@@ -1,0 +1,93 @@
+{
+  "observed_at": "2026-11-12T20:52:26.575547+00:00",
+  "scope": "one real channel, controlled synthetic corpus; no automatic retry",
+  "metadata_values_recorded": false,
+  "source_sha256": {
+    "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+    "protocol.py": "56f697e30fed99e40766f94195dec63fb42f4aa00e10dc09835f06809ac8cc11",
+    "transport.py": "b64c0ed1e230d05feeda2bd2576882b322ca027209b05696208abf9085755321"
+  },
+  "cases": [
+    {
+      "id": "cursor_selection_and_deferred_context",
+      "input_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+      "texts": [
+        "The meeting is tomorrow at <cursor>eleven</cursor>."
+      ],
+      "voice_edits": [
+        {
+          "intent": 2,
+          "transcript": "The meeting is tomorrow at <cursor>eleven</cursor>.",
+          "edited_text": null,
+          "edited_context": {
+            "before": "The meeting is tomorrow at ",
+            "selected": "eleven",
+            "after": "."
+          }
+        }
+      ],
+      "s3_end": true,
+      "transport_eof": true,
+      "grpc_status": "OK",
+      "elapsed_ms": 1294.7285999998712,
+      "audio_integrity": true,
+      "context_provider_called": true,
+      "context_provider_after_source_eof": true,
+      "success": true
+    },
+    {
+      "id": "recovery_concurrent_english",
+      "input_sha256": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "texts": [
+        "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11."
+      ],
+      "voice_edits": [
+        {
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "s3_end": true,
+      "transport_eof": true,
+      "grpc_status": "OK",
+      "elapsed_ms": 2819.4800000001123,
+      "audio_integrity": true,
+      "success": true
+    },
+    {
+      "id": "recovery_concurrent_french",
+      "input_sha256": "044db16dacee5e13fbd9882ea8d6efe4009f888e427b739e3fe639003b25cff8",
+      "texts": [
+        "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h."
+      ],
+      "voice_edits": [
+        {
+          "intent": 2,
+          "transcript": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+          "edited_text": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+          "edited_context": null
+        }
+      ],
+      "s3_end": true,
+      "transport_eof": true,
+      "grpc_status": "OK",
+      "elapsed_ms": 3886.005700000169,
+      "audio_integrity": true,
+      "success": true
+    }
+  ],
+  "cancellation": {
+    "id": "cancel_during_input",
+    "expected": "CancelledError",
+    "intentional_partial_audio": true,
+    "observed": "CancelledError",
+    "cleanup_ms": 0.7188999998106738,
+    "source_closed": true,
+    "success": true
+  },
+  "distinct_successful_session_ids": 3,
+  "isolation_check": true,
+  "success": true
+}

@@ -24,7 +24,9 @@ def _emit(value: dict) -> None:
         if isinstance(item, (list, tuple)):
             return [safe(child) for child in item]
         return item
-    print(json.dumps(safe(value), ensure_ascii=False, allow_nan=False), flush=True)
+    # ASCII JSON escapes preserve every Unicode character across redirected Windows
+    # code pages; JSON consumers recover the original text without mojibake.
+    print(json.dumps(safe(value), ensure_ascii=True, allow_nan=False), flush=True)
 
 
 async def _empty():

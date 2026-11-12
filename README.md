@@ -15,6 +15,7 @@ Le 12 novembre 2026, le client natif a obtenu des réponses de
 | Dictée anglaise | Texte ponctué, extension `VoiceEditingResult`, fin S3 et gRPC OK |
 | « …at ten. No, make that eleven. » | `The meeting is tomorrow at 11.` |
 | Contexte `The meeting is tomorrow at ten.` + « Change ten to eleven. » | `The meeting is tomorrow at eleven.` |
+| Sélection `ten`, contexte différé avant/sélection/après | Sélection remplacée par `eleven`, retour structuré en trois parties |
 | Dictée française | `Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.` |
 
 Les flux ont consommé l'intégralité des octets audio avec vérification SHA-256.
@@ -36,8 +37,10 @@ python -m venv .venv
 
 Linux/macOS : remplacer `.venv/Scripts/python` par `.venv/bin/python`.
 La suite locale utilise des serveurs gRPC loopback et ne contacte pas Google.
-Le fonctionnement réel a été exercé sur Windows ; les autres plateformes restent
-à valider. Pour construire une roue : `python -m pip wheel --no-deps . -w dist`.
+Le service réel a été exercé sur Windows. La CI offline/loopback et la construction
+passent sur Windows et Linux, Python3.11/3.14 ; l'accès réel au service depuis Linux
+n'est pas revendiqué comme testé. Pour construire une roue :
+`python -m pip wheel --no-deps . -w dist`.
 
 ## Configurer l'accès et dicter
 
@@ -52,6 +55,17 @@ compte Google, OAuth ou Zwieback. Aucun renouvellement de session de ces valeurs
 statiques n'a été observé. Leur provisionnement reste une configuration locale ;
 leur révocation/restriction future ne peut pas être résolue par un retry.
 Voir [authentification et limites](docs/research/authentication.md).
+
+Pour une configuration locale Git Bash, remplir un fichier `.env` (ignoré par git,
+modèle vide `.env.example`), puis charger ses variables avant les commandes :
+
+```sh
+set -a
+source .env
+set +a
+```
+
+Le moteur n'a pas besoin de l'APK ni des outils d'analyse à l'exécution.
 
 Le chemin validé prend un **flux Ogg/Opus continu, mono, source 16 kHz**. Il ne
 prend pas du PCM arbitraire étiqueté Opus. Exemple de préparation explicite :
@@ -84,7 +98,8 @@ vraie réponse Rambler via la CLI. L'encodeur optionnel est chargé à la demand
 une entrée déjà Ogg/Opus n'importe pas PyAV. L'import/initialisation du codec a un
 coût de démarrage : préparer le processus avant la capture si ce délai est critique.
 
-La CLI émet du NDJSON et sépare résultats, erreurs et métriques. Les résultats
+La CLI émet du NDJSON (Unicode échappé sans perte, indépendant de la page de codes
+Windows) et sépare résultats, erreurs et métriques. Les résultats
 d'édition peuvent être du **texte d'historique complet** : ne pas les ajouter
 aveuglément au texte existant.
 
@@ -133,6 +148,12 @@ ne devient pas silencieusement une requête sans contexte.
 Les erreurs `IncompleteSessionError` et `S3SessionError` sont exportées ; une
 exception gRPC peut survenir après des réponses déjà reçues. N'appliquer un résultat
 comme définitif qu'après consommation réussie du flux complet.
+
+**Arrêt normal :** terminer la source audio puis continuer à lire ; le moteur
+flushe l'encodeur, envoie le contexte et le marqueur final, puis half-close.
+**Annulation :** annuler la tâche consommatrice, fermer explicitement le stream
+ou appeler `engine.close()` ; cela interrompt la session, ce n'est pas une
+finalisation de dictée. Le test réel de reprise après annulation est dans les preuves.
 
 ## Documentation et contribution
 

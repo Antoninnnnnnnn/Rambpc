@@ -103,21 +103,65 @@ n'est pas le CPU du seul moteur ; aucune conclusion CPU n'est tirée ici.
 et flush final explicite. La preuve FFmpeg ne valide pas cette implémentation
 native à elle seule : elle doit avoir ses propres tests et sessions réelles.
 
-## 3. Validation native et démarrage
+## 3. Profil natif réellement exercé
 
-[Une CLI PCM réelle](evidence/native-pcm-cli.json) a fonctionné avec PyAV/libopus
-sans processus FFmpeg : texte attendu, VoiceEditingResult2, fin S3 et gRPC OK,
-code de sortie0. Dans ce premier processus neuf, total observé5,725s, dont environ
-3,198s dans le stream moteur à l'arrivée du texte. L'écart comprend démarrage de
-Python, imports, préparation CLI et connexion ; aucun découpage n'en isole un
-responsable. Ce sample unique n'est pas une médiane de démarrage froid.
+[Six sessions natives](evidence/native-realtime.json) ont été exécutées avec le
+code du commit `0814813` : les hashes exacts des modules et du banc sont enregistrés.
+Le hash du banc a été vérifié contre le contenu du commit. Le flag `git_dirty`
+inclut le nouveau fichier d'observation ; il ne signifie pas que les modules
+mesurés diffèrent de ces hashes.
 
-Trois imports PyAV ultérieurs dans des processus neufs, **caches OS non purgés**,
-ont pris115,169 /97,754 /99,964ms, hors réseau et hors mesure de connexion. Ces
-mesures ne justifient donc pas d'attribuer les2,5s d'écart du premier essai au seul
-import PyAV. L'encodeur reste facultatif/lazy ; un processus long-vivant peut le
-préparer avant de commencer la capture. Ne pas confondre ce préchauffage avec une
-réduction du temps de calcul du service.
+Aucun processus FFmpeg : lecteur WAVE PCM16 mono16k par20ms, encodeur PyAV/libopus,
+source progressive, un canal prêt, trois paires alternées. Les six sessions ont
+consommé exactement213 070octets PCM avec le hash de l'entrée ; leurs PCM redécodés
+ont tous la même longueur et le même hash. Opus est lossy : le hash décodé est
+comparé **entre configurations**, pas déclaré identique au PCM original.
+
+| Pages Ogg natives | Événement de parole médian | Premier texte après EOF lecteur PCM | Fin S3 après EOF lecteur PCM | Ogg produit |
+|---|---:|---:|---:|---:|
+| 1000ms | 2150ms | 990ms | 991ms | 14 126o |
+| 20ms | 344ms | 328ms | 330ms | 22 955o |
+
+Les trois délais texte après EOF valent981/1036/990ms pour1000ms, contre
+328/407/324ms pour20ms (arrondis). Le gain médian est environ**67%**, toujours sur
+petit corpus et réseau non contrôlé. Les textes/intention sont identiques. Ce
+résultat confirme le choix20ms dans l'implémentation livrée, pas seulement dans un
+producteur FFmpeg de test. Le compromis réseau reste réel : Ogg environ63% plus
+gros,75→339 messages dans ce banc. Le banc subdivise les écritures du muxer en
+fragments d'au plus224octets ; il n'attend pas de remplir224octets sur le direct.
+
+L'EOF natif est l'épuisement du **lecteur PCM**, suivi du flush de l'encodeur ;
+l'EOF du banc FFmpeg était celui du **stdout déjà encodé**. Ne pas fusionner ces
+deux populations ni présenter les deltas comme un temps serveur. Le PCM source
+natif s'épuise vers6,64s pour6,66s audio : pacing de début de chunk, pas microphone.
+Aucun texte exploitable avant fin n'a été observé sur ces phrases.
+
+Le processus du banc natif20ms consomme171,875ms CPU en médiane pour une phrase
+de6,66s, avec93,75–390,625ms observés : encodage, moteur, hash et redécodage de
+vérification inclus. Granularité Windows et variabilité empêchent un gain CPU
+comparatif fiable. La file de sortie Python de l'encodeur a une limite64KiB,
+les chunks PCM entrants une limite8MiB ; ces bornes ne décrivent pas toute la
+mémoire native de PyAV/gRPC ni un pic RAM complet par session.
+
+## 4. Démarrage et distribution
+
+[Une CLI PCM réelle](evidence/native-pcm-cli.json) a fonctionné dans un processus
+neuf : total5,725s, dont environ3,198s dans le stream moteur à l'arrivée du texte.
+L'écart comprend démarrage Python, imports, préparation CLI et connexion ; aucun
+découpage n'en isole un responsable. Ce sample n'est pas une médiane de démarrage.
+
+Trois imports PyAV ultérieurs en processus neufs, **caches OS non purgés**, ont
+pris115,169 /97,754 /99,964ms hors réseau. Le banc natif séparait aussi sa préparation
+(66ms dans ce processus) et l'ouverture du canal (48ms). Ces observations ne
+justifient pas d'attribuer les2,5s d'écart de la première CLI au seul import PyAV.
+L'encodeur est facultatif/lazy ; un processus long-vivant peut le préparer avant
+capture. Ce n'est pas une accélération du serveur.
+
+[Une roue installée dans un venv vierge](evidence/installed-wheel-smoke.json), sans
+PyAV et sans import depuis le checkout, a effectué une dictée réelle via la CLI
+Ogg : sortie0 et résultat attendu, total3,533s. Elle utilise seulement la configuration
+locale déjà provisionnée ; aucun APK, JADX ou Android n'est consulté à l'exécution.
+Ce sample isolé n'est pas directement comparable à la CLI PCM d'une autre session.
 
 ## Reproduire
 
@@ -125,9 +169,20 @@ Préparer un WAV/Opus synthétique avec `tools/make_fixture.ps1` ou un corpus au
 puis configurer les trois variables de metadata applicatives sans les journaliser.
 
 ```sh
-python tools/benchmark_engine.py --live --audio artifacts/synthetic-v1/plain-en.ogg --language en-US --samples 5 --chunk-sizes 224,8192 --output local/batch-run.json
-python tools/benchmark_realtime.py --help
+# Windows / Git Bash, venv installé et .env local configuré
+set -a; source .env; set +a
+mkdir -p local
+.venv/Scripts/python tools/benchmark_engine.py --live --audio artifacts/synthetic-v1/plain-en.ogg --language en-US --samples 5 --chunk-sizes 224,8192 --output local/batch-run.json
+# Préparation explicite du WAV16k si le corpus SAPI d'origine est22,05k
+ffmpeg -n -i artifacts/synthetic-v1/plain-en.wav -ac 1 -ar 16000 -c:a pcm_s16le artifacts/synthetic-v1/plain-en-16k.wav
+# Extra audio requis ; aucun binaire FFmpeg utilisé dans ce banc natif
+.venv/Scripts/python tools/benchmark_realtime.py --source native --live --wav artifacts/synthetic-v1/plain-en-16k.wav --language en-US --output local/native-run.json --encoded-dir artifacts/new-native-run --pairs 3
 ```
+
+Linux/macOS : remplacer `.venv/Scripts/python` par `.venv/bin/python`. Les voix
+SAPI du générateur sont spécifiques à Windows et doivent être installées ; sinon
+utiliser un corpus autorisé propre, avec son hash et ses conditions. Le fichier
+WAV16k et les chemins de sortie doivent être nouveaux, pas écrasés.
 
 Les outils refusent d'écraser une observation existante. Les fichiers bruts et les
 audios restent locaux. `--include-results` est réservé aux textes contrôlés que

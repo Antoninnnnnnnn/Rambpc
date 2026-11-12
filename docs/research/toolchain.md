@@ -1,6 +1,10 @@
 # Inventaire local de toolchain
 
-Inventaire ponctuel sur Windows 11 Pro; ce document ne constitue pas une installation ni une garantie de disponibilité hors de cette machine. Vérifier versions et commandes avant reproduction. Aucun paquet n'a été installé et aucun téléchargement tiers exécuté.
+Inventaire **initial, avant préparation du venv**, sur Windows 11 Pro ; ce n'est
+pas l'état actuel des dépendances du projet. Le moteur dispose ensuite de son
+propre environnement testé : voir `pyproject.toml`, `constraints-tested.txt` et
+`docs/STATUS.md`. Vérifier les versions avant reproduction. Aucun paquet global
+n'avait été installé et aucun téléchargement tiers exécuté lors de cet inventaire.
 
 | Outil | Disponibilité observée | Usage potentiel / limite |
 |---|---|---|

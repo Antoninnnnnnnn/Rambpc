@@ -325,6 +325,8 @@ async def run(args, output, ffmpeg: str | None) -> bool:
         chunk_sizes=[224], samples=args.pairs)
     metadata = _helpers.reproducibility(common_args)
     metadata['source'] = args.source
+    # Shared helper's chunk_sizes describe its own benchmark, not this one.
+    metadata.pop('chunk_sizes', None)
     metadata['pacing'] = 'realtime_wav_chunk_start' if native else 'realtime_ffmpeg_re'
     metadata['code_sha256']['benchmark_engine_helpers'] = metadata['code_sha256'].pop('harness')
     metadata['code_sha256']['realtime_harness'] = hash_file(Path(__file__))[0]
@@ -338,7 +340,12 @@ async def run(args, output, ffmpeg: str | None) -> bool:
     metadata['pairs'] = args.pairs
     metadata['encoder'] = {'codec': 'libopus', 'bitrate': '24k', 'vbr': 'on', 'application': 'voip',
                            'frame_duration_ms': 20, 'sample_rate': 16000, 'channels': 1,
-                           'flush_packets': 1, 'chunk_bytes': 224}
+                           'flush_packets': 1}
+    if native:
+        metadata['encoder']['pcm_chunk_ms'] = 20
+        metadata['encoder']['encoded_chunk_policy'] = 'native muxer writes subdivided into at most 224 bytes'
+    else:
+        metadata['encoder']['encoded_chunk_policy'] = 'FFmpeg stdout reads of at most 224 bytes'
     report = {'reproducibility': metadata, 'source_wav_sha256': wav_hash, 'source_wav_bytes': wav_size,
               'source_pcm_reference': pcm_reference,
               'samples': [], 'decoded_pcm_identical_across_samples': None, 'complete': False,

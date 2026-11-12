@@ -2,6 +2,13 @@
 
 Date de l'analyse : 2026-11-12. Portée : client PixelBoard 1.3.4, transport S3 utilisé par la dictée agentique/Jetson. Cette note ne documente pas une API Gemini publique et ne propose pas de la substituer au service observé.
 
+**Mise à jour expérimentale du même jour :** le coordinateur a obtenu42 sessions
+complètes depuis Windows avec les trois métadonnées applicatives observées, sans
+compte, OAuth, Zwieback, téléphone ni relais Android. Voir
+[preuves](../evidence/README.md), dont les corrections, l'édition et le codec PCM
+natif. Cela valide ce profil et ces credentials/configurations à la date du test,
+pas toute restriction future ni les autres branches d'authentification.
+
 ## Conclusions déterminantes
 
 1. **L'accès anonyme n'est pas suffisant pour caractériser l'authentification.** Un appel gRPC sans metadata, avec un message vide et half-close, a reçu `PERMISSION_DENIED` (« Permission denied on the service. ») en environ 80 ms. Cela établit seulement le refus de cet appel incomplet, pas qu'un compte Google est obligatoire ni qu'une requête conforme serait refusée (`docs/evidence/anonymous-empty-rpc.json`).
@@ -9,7 +16,7 @@ Date de l'analyse : 2026-11-12. Portée : client PixelBoard 1.3.4, transport S3 
 3. **Le `auth_token` lié à Zwieback est un champ protobuf conditionnel, pas le header gRPC `Authorization`.** Dans le mutator observé, le gate est `jetsonVoiceInput` **et** `jetson_send_zb=true`. L'identifiant applicatif S3 séparé (`agentic_dictation_use_separate_s3_application_id`) ne conditionne pas ce gate : lorsqu'il est vide, le client utilise `gboard` tout en conservant la possibilité d'ajouter Zwieback. Les défauts dans cet APK sont `jetson_send_zb=false` et identifiant séparé vide.
 4. **Le mécanisme Zwieback observé n'est ni OAuth ni un cookie.** Gboard demande à GMS Core un `PseudonymousIdToken`, puis calcule localement `hex_minuscule(SHA-256(identifiant_en_UTF-8))` et place ce résultat dans le champ d'authentification. Aucun endpoint Web d'émission de jeton, expiration, refresh token ou délai de renouvellement n'apparaît dans ce chemin.
 5. **PixelBoard ne fournit pas de mécanisme d'authentification autonome.** Ses patches publics activent des capacités et des routes de l'application ; ils n'implémentent ni émission OAuth, ni cookies, ni compte, ni attestation, et ne modifient ni `jetson_send_zb` ni les flags de routing S3 examinés.
-6. **Android n'est pas démontré comme obligatoire pour toute requête Rambler.** Le chemin par défaut observé n'exige pas le Zwieback. En revanche, si une configuration serveur légitime active la branche Zwieback et que le service l'exige, l'acquisition initiale observée dépend de GMS Core sur l'appareil de l'utilisateur. Aucun moyen public documenté et équivalent d'émettre cet identifiant hors Android/GMS n'a été trouvé. Il ne faut ni fabriquer un identifiant, ni emprunter celui d'un tiers.
+6. **Le profil testé fonctionne réellement sans Android.** Les sessions natives ont réussi sans Zwieback. En revanche, si une autre configuration serveur légitime active la branche Zwieback et que le service l'exige, l'acquisition initiale observée dépend de GMS Core sur l'appareil de l'utilisateur. Aucun moyen public documenté et équivalent d'émettre cet identifiant hors Android/GMS n'a été trouvé. Il ne faut ni fabriquer un identifiant, ni emprunter celui d'un tiers.
 7. **Aucune preuve de compte, cookie, OAuth ou Play Integrity n'a été trouvée dans le chemin S3 concret examiné.** Cette absence de preuve est limitée à ce chemin et à cette version ; elle ne prouve pas que le service n'imposera jamais un contrôle supplémentaire.
 
 ## Artefacts et références reproductibles
@@ -125,34 +132,38 @@ Le flag `s3_auth_token_for_debugging` existe, vide par défaut, mais la recherch
 
 Il n'a été trouvé ni endpoint d'émission/renouvellement Web, ni callback OAuth, ni appel Play Integrity/SafetyNet dans ce chemin. Une autre couche de GMS Core ou du serveur peut avoir ses propres contrôles, invisibles dans ce code client.
 
-## Hypothèses encore ouvertes
+## État des questions d'accès
 
 | Question | État | Preuve nécessaire |
 |---|---|---|
-| Les trois metadata applicatives suffisent-elles avec une requête Rambler conforme ? | Non testé | Une session valide à faible volume, avec schéma confirmé et statut serveur |
-| Un compte Google connecté est-il nécessaire ? | Aucune preuve | Comparaison de sessions légitimes ou documentation/serveur explicite ; ne pas l'inférer du seul `PERMISSION_DENIED` anonyme |
+| Les trois metadata applicatives suffisent-elles avec une requête Rambler conforme ? | **Oui, observé pour le profil testé** |42 sessions complètes, fin S3 + gRPC OK ; pas une garantie d'accès universel ou permanent |
+| Un compte Google connecté est-il nécessaire ? | **Non pour les sessions natives testées** | Aucun compte/OAuth fourni ; ne pas généraliser aux autres configurations |
 | Les flags distants activent-ils Zwieback ? | Inconnu | Valeur runtime de `jetsonVoiceInput` (`kmy.n`) et valeur expurgée de `muq.D`, ou trace du mutator sans valeur d'identifiant ; `muq.C` renseigne seulement l'identifiant applicatif |
 | Le serveur exige-t-il `auth_token` lorsque la branche est active ? | Inconnu | Réponse à une requête valide dans cette configuration, sans fabriquer de jeton |
 | Le champ d'authentification est-il accepté hors GMS après provisionnement légitime ? | Inconnu | Réutilisation contrôlée du seul identifiant de l'utilisateur, si autorisée, sans relais Android à l'exécution |
 | Une attestation supplémentaire est-elle exigée côté serveur ? | Non observée côté client | Erreur serveur explicite ou capture autorisée d'une session légitime ; aucune tentative de contournement |
 | Quelle est la sémantique de `aalv.c = 2` ? | Inconnue | Proto source ou enum correspondant ; ne pas inventer « OAuth » ou « Zwieback » sans preuve |
 
-## Accès utilisateur potentiellement nécessaire
+## Accès requis pour reproduire et branches non exercées
 
-- **Pour le premier test fidèle :** autorisation explicite d'effectuer une requête réelle unique et d'utiliser un court échantillon audio synthétique ou fourni avec consentement. Aucun compte n'est demandé à ce stade sur la seule base du refus anonyme.
+- **Essais réels réalisés :** corpus synthétique contrôlé et appels bornés, sans intervention de l'utilisateur, compte ou téléphone. Les outils publics exigent `--live` pour un endpoint non local ; n'envoyer de contenu que si son traitement est autorisé.
 - **Pour les credentials applicatifs :** une configuration locale autorisée, injectée sans affichage ni commit. Ne pas copier de jeton privé ou de credentials d'un tiers.
 - **Seulement si Zwieback est réellement actif :** le PseudonymousIdToken du propre appareil GMS de l'utilisateur, obtenu par le mécanisme normal du client, potentiellement comme provisionnement initial ponctuel. Le besoin d'un appareil Android dans ce cas ne doit pas être généralisé au mode par défaut. Ne pas extraire la base de comptes Android et ne pas utiliser l'identifiant d'une autre personne.
 - **Si une session PixelBoard de référence devient nécessaire :** utiliser le Xiaomi proposé uniquement lorsqu'il est libre, avec action et preuve attendue définies à l'avance. Le téléphone servirait à observer une session de développement, jamais de relais obligatoire pour le moteur final.
 
 ## Mini-expériences réseau non destructives
 
-Ces étapes sont des propositions ; elles n'ont pas été exécutées par cette analyse. Le coordinateur doit les séquencer après confirmation du schéma, à très faible volume, sans rafales ni variantes d'authentification au hasard.
+Ces étapes conservent le plan initial d'investigation. **L'étape1 a été réalisée
+avec succès puis répliquée** ; les étapes2/3 n'ont pas été nécessaires et n'ont pas
+été exécutées. La branche Zwieback n'est pas provisionnée/implémentée par le
+moteur actuel. Les suites éventuelles restent à faible volume, sans rafales ni
+variantes d'authentification au hasard.
 
 ### Étape 0 — test local sans réseau
 
 Avec une valeur factice publique telle que `zwieback-test-fixture`, vérifier que l'implémentation produit exactement le SHA-256 UTF-8 hexadécimal minuscule et sérialise `aalv.c = 2`, `aalv.f = hash` dans le bon champ. Ne jamais utiliser une vraie valeur dans une fixture ou un test commité.
 
-### Étape 1 — une requête valide dans la configuration par défaut
+### Étape 1 — requête valide par défaut (réalisée, puis répliquée)
 
 Construire la requête Rambler minimale complète selon le schéma confirmé, avec :
 

@@ -183,7 +183,13 @@ client half-close ; continuer lecture réponses/trailers
 
 **Vérifié** : `ihv.a()` choisit service **`beyond-a2a-recognizer`** quand `iic.d` (Jetson) ; sinon **`multi-recognizer`** si multilingue, sinon **`recognizer`**. Cette sélection + le routage field50 différencient Rambler d'une simple transcription S3. L'init n'est donc pas un `RecognitionConfig` de Google Cloud Speech.
 
-Ce squelette n'est **pas encore une recette serveur validée** : les champs marqués `...`, les consentements, metadata et valeurs effectives de flags peuvent être nécessaires. L'échec d'une requête partielle ne valide ni n'invalide ces champs isolément.
+Ce squelette était initialement une reconstruction statique. **Le sous-ensemble
+implémenté dans `src/rambler/protocol.py` est désormais accepté par le service**
+(voir sections9–11 et preuves natives). Les champs marqués `...` ne sont pas tous
+émis ni déclarés indispensables ; le besoin exact de chaque option n'a pas été
+établi par ablation. Une réussite dans ce profil ne garantit pas les autres
+consentements, flags ou configurations serveur.
+
 
 ## 7. Réponses et résultats Agentic
 
@@ -279,17 +285,17 @@ Enum **`aamp`**, valeurs **vérifiées** :
 **Inconnu / à valider avant moteur produit** :
 
 1. Valeurs effectives des flags après patches/config distante ; noms exacts de tous les champs.
-2. Restrictions/acceptation serveur des metadata applicatives et nécessité éventuelle de Zwieback pour le routage Agentic.
+2. Durabilité/restrictions serveur des metadata et besoin éventuel de Zwieback dans d'autres profils ; le profil testé fonctionne effectivement avec les trois metadata, sans Zwieback.
 3. Encodage PCM accepté : pas établi ; le chemin réel est Ogg/Opus,10.
 4. Mapping sémantique complet des alternatives de résultat et des types d'édition ; couverture des différentes intentions au-delà du helper partiel récupéré. Les statuts0/1/2/3 sont, eux, établis.
 5. Liste minimale de paramètres/consentements indispensable au serveur, erreurs applicatives/quotas et stratégies de reconnexion.
-6. Sessions natives réussies et corrections/contextualisation consignées aux sections9–10 ; il manque une capture d'une session Android Rambler, des essais de sélection/curseur et une couverture fonctionnelle large pour comparer la parité avec l'application.
+6. Il manque une capture Android pour comparer la parité avec l'application, une sélection non-BMP réelle et une couverture fonctionnelle large. La sélection en trois parties est maintenant exercée nativement (section11).
 
 **Décision recommandée** : garder transport bidi, codecs protobuf et politique d'édition séparés ; parser/conserver les extensions inconnues ; ne pas appeler « Rambler fonctionnel » une simple transcription S3. Aucun moteur n'a été implémenté par l'analyste statique.
 
 ## 9. Première validation réseau native du coordinateur
 
-**Observation fournie par le coordinateur, JSON relu indépendamment ; décodage indépendant des octets bruts encore à compléter.** Preuve : `C:/Users/FSOS/Documents/project/Rambpc/docs/evidence/reconstructed-default-session.json`, horodatage `2026-11-12T20:10:49.907227+00:00`.
+**Observation fournie par le coordinateur, JSON relu indépendamment. Les octets de cette première session seule n'ont pas été conservés ; le redécodage indépendant porte sur les33 réponses suivantes, section10.** Preuve : `C:/Users/FSOS/Documents/project/Rambpc/docs/evidence/reconstructed-default-session.json`, horodatage `2026-11-12T20:10:49.907227+00:00`.
 
 - Cible/méthode ci-dessus ; service **beyond-a2a-recognizer**, routage **gboard_gemini_v3_streaming_voice_edit_mul**.
 - Metadata applicative observée injectée en mémoire par le coordinateur, aucune valeur consignée ; **pas d'OAuth, pas de Zwieback** sur cette session.
@@ -335,4 +341,33 @@ Captures finales et SHA-256 :
 2. **Le champ nommé transcript n'est pas une garantie de verbatim.** Dans le cas contexte, son contenu est l'historique produit, pas la commande prononcée ; dans le cas correction il ne conserve pas la disfluence. Ne pas promettre récupération d'un transcript audio brut à partir de ce seul champ.
 3. **Texte intégral, pas delta** : le contexte est inclus dans le texte final retourné. Une application qui ajoute ce résultat à la fin du contexte dupliquerait la phrase ; politique d'édition/ranges reste nécessaire.
 4. **Champ d'enveloppe inconnu observé : field5 varint**. Il apparaît dans les33 réponses, y compris les messages terminaux, mais n'a pas de champ nommé dans le `aamb` optimisé de l'APK. Le conserver/ignorer comme inconnu ; aucune sémantique de séquence/temps n'est démontrée.
-5. Trois échantillons synthétiques, un par cas, audio préenregistré envoyé en accéléré ; pas de test de microphone temps réel, sélection, contexte avec curseur field7, UTF-16 non-BMP, tous intents, répétabilité, limites de session, quotas ou stabilité future de l'API. Pas de parité générale PixelBoard démontrée.
+5. Ces trois échantillons seuls ne couvrent ni microphone, ni sélection, tous les intents, quotas ou parité générale PixelBoard. Les validations ultérieures de sélection/concurrence et de l'encodeur natif sont séparées ci-dessous et dans l'état du projet.
+
+## 11. Validation ultérieure de sélection et contexte différé
+
+Preuve du coordinateur : [lifecycle.json](../evidence/lifecycle.json), code moteur,
+transport et protocole hashés. Entrée contrôlée `Change ten to eleven.`, contexte
+fourni par callback **après EOF audio** : avant=`The meeting is tomorrow at `,
+sélection=`ten`, après=`.` ; `cursor_aware=true`.
+
+Le service renvoie VoiceEditingResult intention2 avec `edited_context` :
+
+```text
+before:   "The meeting is tomorrow at "
+selected: "eleven"
+after:    "."
+```
+
+Le texte/transcript contient aussi `The meeting is tomorrow at <cursor>eleven</cursor>.`.
+Les marqueurs appartiennent à cette représentation : pour l'intégration, préserver
+le contexte structuré plutôt que coller ce transcript littéralement. Le champ3
+`edited_text` est absent, remplacé par le oneof7. Fin S3, gRPC OK et intégrité audio
+ont été observés. Cette preuve est issue du codec du moteur ; elle n'est pas
+présentée comme une nouvelle inspection indépendante de payload brut.
+
+Le même rapport valide ensuite annulation d'une entrée bloquée, fermeture source,
+puis deux sessions anglaise/française concurrentes sur le même canal, sans mélange
+observé. L'[encodeur natif progressif](../evidence/native-realtime.json) a en outre
+réussi six sessions avec PCM intégral, hashes source/code et profils Ogg comparés.
+Cela ne valide toujours pas toutes les intentions, voix naturelles, longues
+durées ou contraintes futures du service.

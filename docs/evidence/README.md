@@ -54,6 +54,15 @@ réelle et des métadonnées d'identification du client limite fortement ce test
   hashes audio, aucune preuve de handshake physique neuf pour chaque canal API.
 - `realtime-paging.json` :6 sessions à source FFmpeg `-re`, pages1000/20ms, mêmes
   PCM décodés et textes, métriques producteur et fins séparées.
+- `native-realtime.json` : six sessions natives sur le code0814813, profil20/1000ms,
+  source PCM intégrale, Ogg redécodé identique entre pages, aucun FFmpeg à l'exécution,
+  provenance du code et des dépendances enregistrée.
+- `lifecycle.json` : sélection/contexte différé, annulation volontaire, fermeture
+  source puis deux sessions concurrentes isolées sur le même canal.
+- `installed-wheel-smoke.json` : vraie dictée depuis la roue installée dans un venv
+  vierge sans PyAV, configuration locale, aucun APK/JADX lu à l'exécution.
+- `ci-0814813.json` : succès des quatre jobs Windows/Linux × Python3.11/3.14 au
+  jalon correspondant ; CI offline/loopback, pas preuve réseau Google sur Linux.
 - `environment.json` : environnement non sensible et conditions non contrôlées ;
   snapshot après premiers essais, pas provenance de code rétroactive.
 

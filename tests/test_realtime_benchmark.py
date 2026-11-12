@@ -269,6 +269,38 @@ async def test_native_run_metadata_does_not_probe_ffmpeg(tmp_path, monkeypatch):
     metadata = result['reproducibility']
     assert result['complete'] and metadata['source'] == 'native'
     assert 'ffmpeg_test_source' not in metadata
+    assert 'chunk_sizes' not in metadata
+    assert metadata['encoder']['pcm_chunk_ms'] == 20
+    assert metadata['encoder']['encoded_chunk_policy'] == 'native muxer writes subdivided into at most 224 bytes'
+    assert 'chunk_bytes' not in metadata['encoder']
     assert metadata['native_test_source']['native_prepare_ms'] >= 0
     assert len(metadata['code_sha256']['encoding']) == 64
     assert len(metadata['code_sha256']['audio']) == 64
+
+
+async def test_ffmpeg_metadata_reports_stdout_read_policy(tmp_path, monkeypatch):
+    import io
+    wav = tmp_path / 'fixture.wav'
+    wav.write_bytes(b'fixture')
+    args = arguments(tmp_path)
+    args.source, args.pairs, args.page_durations = 'ffmpeg', 1, [1000000, 20000]
+    args.target, args.insecure = '127.0.0.1:1', True
+    class Transport:
+        def __init__(self, *args, **kwargs): pass
+        async def open(self, **kwargs): pass
+        async def close(self): pass
+    class Engine:
+        def __init__(self, *args, **kwargs): pass
+    async def sample(args, engine, ffmpeg, index, page, *, native, pcm_reference):
+        assert native is None and ffmpeg == 'fake-ffmpeg'
+        return {'success': True, 'decoded_pcm': {'sha256': 'same', 'bytes': 10}}
+    monkeypatch.setattr(bench, 'GrpcTransport', Transport)
+    monkeypatch.setattr(bench, 'RamblerEngine', Engine)
+    monkeypatch.setattr(bench, 'take_sample', sample)
+    monkeypatch.setattr(bench, 'ffmpeg_metadata', lambda value: {'version': 'test'})
+    output = io.StringIO()
+    assert await bench.run(args, output, 'fake-ffmpeg')
+    metadata = json.loads(output.getvalue())['reproducibility']
+    assert 'chunk_sizes' not in metadata
+    assert metadata['encoder']['encoded_chunk_policy'] == 'FFmpeg stdout reads of at most 224 bytes'
+    assert 'pcm_chunk_ms' not in metadata['encoder']
