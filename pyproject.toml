@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rambpc-engine"
+version = "0.1.0"
+description = "Direct streaming client for Rambler dictation and contextual editing"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["grpcio>=1.85.1,<2"]
+
+[project.optional-dependencies]
+audio = ["av>=19,<20"]
+test = ["pytest>=9,<10", "pytest-asyncio>=1.5,<2"]
+
+[project.scripts]
+rambler = "rambler.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]

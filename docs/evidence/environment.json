@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-11-12T20:25:49.684142+00:00",
+  "scope": "environment snapshot after initial functional and accelerated benchmark runs; not retroactive code provenance for those runs",
+  "os": "Windows",
+  "os_version": "10.0.26300",
+  "machine": "AMD64",
+  "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+  "logical_cpus": 12,
+  "python": "3.14.5",
+  "grpcio": "1.85.1",
+  "network_conditions": "ordinary Internet connection; no controlled RTT, bandwidth shaping or server instrumentation",
+  "background_conditions": "development agents and other machine activity not controlled"
+}

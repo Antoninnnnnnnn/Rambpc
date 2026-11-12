@@ -1,0 +1,359 @@
+{
+  "observed_at": "2026-11-12T20:38:02.975498+00:00",
+  "command": "python -m rambler.cli dictate-wav <synthetic PCM16 mono16k> --language en-US",
+  "scope": "fresh Python process, optional PyAV/libopus encoder, direct real service; accelerated file input",
+  "wav_sha256": "097a50e074db2fc2028edba6337c5b036d05c94cc948c4f03770e1c4303b1a79",
+  "metadata_values_recorded": false,
+  "source_sha256": {
+    "encoding.py": "223d0e5e9481939dd5dcfbd30ace27ade58d9a795d70fc412d68770cec82421a",
+    "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+    "cli.py": "7b65cf3e78ca0d96c538b4556bdc11f0db72dae078a568679949ac8e97880daa",
+    "protocol.py": "56f697e30fed99e40766f94195dec63fb42f4aa00e10dc09835f06809ac8cc11",
+    "transport.py": "b64c0ed1e230d05feeda2bd2576882b322ca027209b05696208abf9085755321"
+  },
+  "events": [
+    {
+      "process_elapsed_ms": 2523.997799999961,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 45,
+          "request_protobuf_bytes": 3544,
+          "responses_received": 1,
+          "response_protobuf_bytes": 16,
+          "elapsed_seconds": 0.02436570000008942,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 2524.62689999993,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 46,
+          "request_protobuf_bytes": 3594,
+          "responses_received": 2,
+          "response_protobuf_bytes": 54,
+          "elapsed_seconds": 0.025036800000634685,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 2685.410999999476,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": 0,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 3,
+          "response_protobuf_bytes": 73,
+          "elapsed_seconds": 0.18578940000043076,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 3021.802100000059,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 4,
+          "response_protobuf_bytes": 89,
+          "elapsed_seconds": 0.5221818999998504,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 3522.4177999998574,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 5,
+          "response_protobuf_bytes": 105,
+          "elapsed_seconds": 1.022808000000623,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 4023.0467999999746,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 6,
+          "response_protobuf_bytes": 121,
+          "elapsed_seconds": 1.5234642000004897,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 4523.731899999802,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 7,
+          "response_protobuf_bytes": 137,
+          "elapsed_seconds": 2.0241187999999966,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 5023.91869999974,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 8,
+          "response_protobuf_bytes": 153,
+          "elapsed_seconds": 2.524290000000292,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 5526.084000000083,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 9,
+          "response_protobuf_bytes": 169,
+          "elapsed_seconds": 3.026469899999938,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 5696.878900000229,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": 3,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 10,
+          "response_protobuf_bytes": 190,
+          "elapsed_seconds": 3.197237899999891,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 5697.108200000002,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": 1,
+          "speech_event": null,
+          "hypotheses": [
+            {
+              "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+              "confidence": null,
+              "voice_edit": {
+                "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+                "alternative_text": null,
+                "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+                "edited_context": null,
+                "intent": 2
+              }
+            }
+          ],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 11,
+          "response_protobuf_bytes": 727,
+          "elapsed_seconds": 3.197524400000475,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 5697.332499999902,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": null,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 12,
+          "response_protobuf_bytes": 769,
+          "elapsed_seconds": 3.1977715000002718,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 5698.579599999903,
+      "record": {
+        "type": "response",
+        "response": {
+          "status": 1,
+          "error_code": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "hypotheses": [],
+          "partials": []
+        },
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 13,
+          "response_protobuf_bytes": 773,
+          "elapsed_seconds": 3.199026400000548,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": null
+        }
+      }
+    },
+    {
+      "process_elapsed_ms": 5698.797000000013,
+      "record": {
+        "type": "eof",
+        "metrics": {
+          "session_id": "06f61cf39e8844e3b757733fe8f99c19",
+          "requests_produced": 339,
+          "request_protobuf_bytes": 27900,
+          "responses_received": 13,
+          "response_protobuf_bytes": 773,
+          "elapsed_seconds": 3.199231999999938,
+          "first_response_seconds": 0.024316200000612298,
+          "eof_seconds": 3.199231100000361
+        },
+        "diagnostic": false
+      }
+    }
+  ],
+  "exit_code": 0,
+  "process_total_ms": 5724.898999999823
+}

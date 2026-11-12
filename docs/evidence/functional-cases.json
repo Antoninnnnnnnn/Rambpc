@@ -1,0 +1,440 @@
+{
+  "observed_at": "2026-11-12T20:14:44.714250+00:00",
+  "implementation": "RamblerEngine public API + GrpcTransport",
+  "metadata_values_recorded": false,
+  "account_or_zwieback": "none",
+  "audio": "controlled SAPI synthetic voices encoded Ogg/Opus mono16k target24kbps",
+  "mode": "one channel, three sequential streams, prerecorded accelerated input; no retries",
+  "cases": [
+    {
+      "id": "correction-en",
+      "language": "en-US",
+      "before": "",
+      "input_sha256": "f074dedd202b25571a5b321e6afc4b608a9c03b0b36af9045c20469ce6753802",
+      "responses": [
+        {
+          "elapsed_ms": 26.280299999598355,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "d1d8f230de13a3c23e7b897bd2451541840c156efbe576cdbea67a4fb05b69e9",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 27.20019999969736,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "01afcaa2e214cde03ba5eee35d509ee8e086b4433dc8afb27158417c66b54afe",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 206.27179999974032,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": 0,
+          "response_sha256": "79a840038b32c41cc5dbb1cbd5fdbaa64e078bdee54ab3b2c6c2375f6fa84252",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 524.3831999996473,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "aced951362039f7416a4b26f1656a449c95d85ce38185b165edbd2d484e69fc2",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1026.8647999996574,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "698aee1c1aa238db32d5979dbfd297b6b731fcf44621f4434fe035074ae0aee7",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1527.8712999997879,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "75ffc4a8a8a7803332e9c263f965fbbe657b5536e62a93c82b12f125fe5c567d",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 2025.9541999998874,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "702250a69129e0a1d709988240555fb459168f3918e33faac8634383f1e9e982",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 2342.0781999998326,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": 3,
+          "response_sha256": "8dc812fbf3d76b5b1835af81fab680bba76f10b01e9de7fe7386ae03258bf073",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 2342.8187999998045,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": 1,
+          "speech_event": null,
+          "response_sha256": "43fd638823e88612faa6ee8a50614c0ba30ac38bef51f1623fee1178013b9c1e",
+          "hypotheses": [
+            {
+              "text": "The meeting is tomorrow at 11.",
+              "voice_edit": {
+                "intent": 2,
+                "transcript": "The meeting is tomorrow at 11.",
+                "edited_text": "The meeting is tomorrow at 11.",
+                "alternative_text": null,
+                "edited_context": null
+              }
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2343.911399999797,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "171b68a43aae09c8a12d636981317b957ce74b8541e611ece5b32c133df81a2e",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 2344.8647999998684,
+          "status": 1,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "11885a1675c170dd7ec7871c351959eb9c749227da87d37f095849c6110847e8",
+          "hypotheses": []
+        }
+      ],
+      "s3_end": true,
+      "transport_eof": true,
+      "metrics": {
+        "requests_produced": 47,
+        "request_protobuf_bytes": 10501,
+        "responses_received": 11,
+        "response_protobuf_bytes": 447,
+        "elapsed_seconds": 2.3450536999998803
+      },
+      "grpc_status": "OK",
+      "elapsed_ms": 2345.1333999996677,
+      "consumed_audio_bytes": 9640,
+      "consumed_audio_sha256": "f074dedd202b25571a5b321e6afc4b608a9c03b0b36af9045c20469ce6753802",
+      "audio_integrity": true
+    },
+    {
+      "id": "context-edit-en",
+      "language": "en-US",
+      "before": "The meeting is tomorrow at ten.",
+      "input_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+      "responses": [
+        {
+          "elapsed_ms": 26.93020000015167,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "e80cc384f992e24828b9f2a2ae705f518d6e1d4e5b07d0a13c22043d7001b77b",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 27.964900000370108,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "01afcaa2e214cde03ba5eee35d509ee8e086b4433dc8afb27158417c66b54afe",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 196.74780000013925,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": 0,
+          "response_sha256": "79a840038b32c41cc5dbb1cbd5fdbaa64e078bdee54ab3b2c6c2375f6fa84252",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 527.1508000000722,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "2040cad7c0958ddf73c05ae25c21f9617bce785cd45a5207b9be7bdbc1391126",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1029.5375000000604,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "a9c3135be519715b26d9b47f6ac57a399cb87724bbe9bfd96f36b5bf2551b7a3",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1236.4399000002777,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": 3,
+          "response_sha256": "25010e98ed906cf6545703d7b3eb3e06b2d4e5a3988edf5df4d51cfad1498051",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1237.3567000004186,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": 1,
+          "speech_event": null,
+          "response_sha256": "788d7342768e01bc529ef1799182641f10ff954b72b2e21099884672d22f922c",
+          "hypotheses": [
+            {
+              "text": "The meeting is tomorrow at eleven.",
+              "voice_edit": {
+                "intent": 2,
+                "transcript": "The meeting is tomorrow at eleven.",
+                "edited_text": "The meeting is tomorrow at eleven.",
+                "alternative_text": null,
+                "edited_context": null
+              }
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1238.0959000001894,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "dbc25a158ed9e4884e5b48f766f37871f29a4181ac53b30143c1c373e80f9580",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1238.8700000001336,
+          "status": 1,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "1e3b82d09ec0802728f78d14b8cabc12d0e077fd1484a7e5e998cf36bd2ec430",
+          "hypotheses": []
+        }
+      ],
+      "s3_end": true,
+      "transport_eof": true,
+      "metrics": {
+        "requests_produced": 24,
+        "request_protobuf_bytes": 5105,
+        "responses_received": 9,
+        "response_protobuf_bytes": 439,
+        "elapsed_seconds": 1.238988700000391
+      },
+      "grpc_status": "OK",
+      "elapsed_ms": 1239.0308000003643,
+      "consumed_audio_bytes": 4581,
+      "consumed_audio_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+      "audio_integrity": true
+    },
+    {
+      "id": "plain-fr",
+      "language": "fr-FR",
+      "before": "",
+      "input_sha256": "044db16dacee5e13fbd9882ea8d6efe4009f888e427b739e3fe639003b25cff8",
+      "responses": [
+        {
+          "elapsed_ms": 24.15659999996933,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "b03e886eef82fb6e44a1ac9f783d83bc762af826f3a5b85b5c76b7403cf46525",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 24.996399999963614,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "5a98f7a6de1f75113d01c1380d6e3183d48e609095413e2da15e006c8830938c",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 208.93690000002607,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": 0,
+          "response_sha256": "3b89e3cfe17f56b651a4c922a1e48df996c7db63bceef1152ccca6320a52028d",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 525.0190000001567,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "32eca087fe50adbf37f914f1af97c6d632de6841fb51debc1af41e60dff8db36",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1025.3935000000638,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "103573f1105b255b18756a71728095ef7b0f22cfebe4c2b3724b34c29ccf8604",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 1525.1984000001357,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "9a816558ba77d3a46282ca7f65af416093929fbf72f03d4d458aa552cf5f0a99",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 2024.8034000001098,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "e5f02bf4455b1d405b0bb9a0d22cfccacade7fde9cb5021c7d055e3009621a0c",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 2527.0799999998417,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "46ad3ce2e33c8dc24bcd92494f5b10c54e2c584ad40f4e2a6cefbb038c15e2f8",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 3024.970100000246,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "b7b01b205e94c318b59877792d514c2197541710bed710bbcba015ef0a1203d3",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 3366.210300000148,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": 3,
+          "response_sha256": "393cef51c870d4522888793e333b0f7d02cffb89823ae6d6eaf26dd1bc66737e",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 3366.9543000000886,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": 1,
+          "speech_event": null,
+          "response_sha256": "b8c4e7ce9a84b34f27fd1bebf1201cd1ecd538940962a4b8b2cb243380b70d15",
+          "hypotheses": [
+            {
+              "text": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+              "voice_edit": {
+                "intent": 2,
+                "transcript": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+                "edited_text": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+                "alternative_text": null,
+                "edited_context": null
+              }
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3368.0247000002055,
+          "status": null,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "0e668e34471c4608c4d5b29af213d20d823a915f6e1e0d0a557faef3c36bd1e8",
+          "hypotheses": []
+        },
+        {
+          "elapsed_ms": 3368.9468000002307,
+          "status": 1,
+          "error_code": null,
+          "error_message": null,
+          "recognition_state": null,
+          "speech_event": null,
+          "response_sha256": "8a9ba732f72aaf4c227ceca1cb14aebd09660c3ff1f21a98d4ba4a52420e0a4d",
+          "hypotheses": []
+        }
+      ],
+      "s3_end": true,
+      "transport_eof": true,
+      "metrics": {
+        "requests_produced": 89,
+        "request_protobuf_bytes": 20631,
+        "responses_received": 13,
+        "response_protobuf_bytes": 836,
+        "elapsed_seconds": 3.3693537999997716
+      },
+      "grpc_status": "OK",
+      "elapsed_ms": 3369.40420000019,
+      "consumed_audio_bytes": 19098,
+      "consumed_audio_sha256": "044db16dacee5e13fbd9882ea8d6efe4009f888e427b739e3fe639003b25cff8",
+      "audio_integrity": true
+    }
+  ],
+  "channel_ready_ms": 62.150000000201544
+}

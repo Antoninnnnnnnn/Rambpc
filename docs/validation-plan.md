@@ -2,7 +2,7 @@
 
 ## But et frontières
 
-Le dépôt étant encore vide, ce document définit une validation à implémenter, pas des résultats. Aucun chiffre de performance n'est mesuré ni présumé ici. Tester le client et le moteur hors Android, puis séparer explicitement le coût du calcul local de celui du transport et d'un service distant éventuel. Distinguer la reconnaissance conventionnelle Google Speech S3 de la dictée agentique Rambler.
+Ce document décrit les critères de validation, pas à lui seul des résultats. L'état effectivement observé est dans [STATUS.md](STATUS.md), les mesures dans [performance.md](performance.md). Tester le client et le moteur hors Android, puis séparer explicitement le coût du calcul local de celui du transport et du service distant. Distinguer la reconnaissance conventionnelle Google Speech S3 de la dictée agentique Rambler.
 
 ## Preuve d'identité fonctionnelle
 
@@ -50,4 +50,4 @@ Acceptation minimale : chacune de ces propriétés possède un test reproductibl
 
 ## Décision d'architecture
 
-Recommandation de départ : Rust est une hypothèse d'architecture pour le cœur natif, avec API interne indépendante du transport, adaptateur de protocole séparé et instrumentation par session. Python est également viable pour une probe rapide et l'orchestration des mesures; retenir le langage après avoir confirmé le contrat et les contraintes de déploiement. La disponibilité locale de Rust ne démontre pas qu'il est supérieur. Aucun crate gRPC/protobuf n'a été confirmé; choisir un client uniquement après identification du protocole et de la source de schéma. Java/JDK est disponible pour l'analyse éventuelle d'artefacts existants, sans preuve d'un besoin de moteur Java. Les frontières entre modules servent à séparer responsabilités et mesures, sans présumer ni proposer un moteur alternatif. Aucun code moteur/test n'est créé par ce plan.
+L'implémentation retenue après analyse utilise Python + gRPC C-core, codec protobuf séparé, et PyAV/libopus facultatif pour l'entrée PCM. Voir décisions D004/D009. Rust reste une possibilité à comparer si un coût local mesuré le justifie, pas une supériorité démontrée par sa seule présence dans la toolchain. Les frontières de modules isolent responsabilités et mesures ; elles ne proposent aucun moteur alternatif. Les preuves et limitations réelles restent distinctes de ce plan de validation.

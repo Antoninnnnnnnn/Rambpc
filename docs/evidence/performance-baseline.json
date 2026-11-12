@@ -1,0 +1,1284 @@
+{
+  "version": 1,
+  "source": {
+    "sha256": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+    "bytes": 14136,
+    "validation": "signature only; not a full Ogg/Opus validation"
+  },
+  "target_kind": "live",
+  "samples": [
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 224,
+      "warmup": true,
+      "channel_reused": false,
+      "open_ms": 50.6972000002861,
+      "first_any_response_ms": 75.84100000030958,
+      "first_text_ms": 3234.463400000095,
+      "s3_end_ms": 3235.751700000037,
+      "eof_ms": 3236.3351000003604,
+      "last_audio_yield_ms": 58.678600000348524,
+      "end_yield_ms": 58.749900000293565,
+      "cpu_ms": 62.5,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 49635328
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 3.12290000010762,
+      "first_any_response_ms": 26.158599999689613,
+      "first_text_ms": 3189.7196999998414,
+      "s3_end_ms": 3192.2107000000324,
+      "eof_ms": 3193.5327000001053,
+      "last_audio_yield_ms": 13.213700000051176,
+      "end_yield_ms": 13.481299999966723,
+      "cpu_ms": 31.25,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 50679808
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 24.349499999971158,
+      "first_text_ms": 3181.6429000000426,
+      "s3_end_ms": 3184.6434999997655,
+      "eof_ms": 3185.7286999997996,
+      "last_audio_yield_ms": 22.345599999880505,
+      "end_yield_ms": 22.650500000054308,
+      "cpu_ms": 109.375,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 50679808
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 20.33590000019103,
+      "first_text_ms": 3300.5858999999873,
+      "s3_end_ms": 3302.2885000000315,
+      "eof_ms": 3302.8536000001623,
+      "last_audio_yield_ms": 1.6844000001583481,
+      "end_yield_ms": 2.157400000214693,
+      "cpu_ms": 46.875,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 50679808
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 2.977899999677902,
+      "first_any_response_ms": 30.278099999577535,
+      "first_text_ms": 3124.1971999997986,
+      "s3_end_ms": 3128.6388999997143,
+      "eof_ms": 3129.7766999996384,
+      "last_audio_yield_ms": 4.404299999805517,
+      "end_yield_ms": 4.6233999996729835,
+      "cpu_ms": 46.875,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51040256
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 29.17429999979504,
+      "first_text_ms": 3143.130999999812,
+      "s3_end_ms": 3144.5067999998173,
+      "eof_ms": 3144.9619999998504,
+      "last_audio_yield_ms": 1.5257999998539162,
+      "end_yield_ms": 1.8329999998059066,
+      "cpu_ms": 31.25,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 757,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 12,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51040256
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 3.2261999999718682,
+      "first_any_response_ms": 34.39149999985602,
+      "first_text_ms": 3155.4753000000346,
+      "s3_end_ms": 3156.9909999998345,
+      "eof_ms": 3158.001599999807,
+      "last_audio_yield_ms": 5.17279999985476,
+      "end_yield_ms": 5.6202000000666885,
+      "cpu_ms": 15.625,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51040256
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 3.0877000003783905,
+      "first_any_response_ms": 25.71059999991121,
+      "first_text_ms": 3114.0525999999227,
+      "s3_end_ms": 3116.8055999996795,
+      "eof_ms": 3117.3580999998194,
+      "last_audio_yield_ms": 11.408699999719829,
+      "end_yield_ms": 11.513599999943835,
+      "cpu_ms": 15.625,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51052544
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 28.379100000165636,
+      "first_text_ms": 3170.5823000002056,
+      "s3_end_ms": 3173.4249000001,
+      "eof_ms": 3174.0577000000485,
+      "last_audio_yield_ms": 7.351799999923969,
+      "end_yield_ms": 7.433300000229792,
+      "cpu_ms": 31.25,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51052544
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 3.0068999999457446,
+      "first_any_response_ms": 34.39440000011018,
+      "first_text_ms": 2936.737500000163,
+      "s3_end_ms": 2939.736299999822,
+      "eof_ms": 2940.391300000101,
+      "last_audio_yield_ms": 12.22619999998642,
+      "end_yield_ms": 12.33349999984057,
+      "cpu_ms": 15.625,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 757,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 12,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51097600
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 27.19729999989795,
+      "first_text_ms": 2899.1134999996575,
+      "s3_end_ms": 2902.5902999997015,
+      "eof_ms": 2903.085899999951,
+      "last_audio_yield_ms": 10.143699999844102,
+      "end_yield_ms": 10.248899999623973,
+      "cpu_ms": 15.625,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 757,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 12,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51097600
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 22.16290000023946,
+      "first_text_ms": 2784.237800000028,
+      "s3_end_ms": 2785.6814000001577,
+      "eof_ms": 2786.189800000102,
+      "last_audio_yield_ms": 1.0617000002639543,
+      "end_yield_ms": 1.2940000001435692,
+      "cpu_ms": 46.875,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 757,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 12,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51097600
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 3.396300000076735,
+      "first_any_response_ms": 34.8641000000498,
+      "first_text_ms": 2874.3992999998227,
+      "s3_end_ms": 2875.5676000000676,
+      "eof_ms": 2877.2846000001664,
+      "last_audio_yield_ms": 5.0706000001810025,
+      "end_yield_ms": 5.345200000192563,
+      "cpu_ms": 0.0,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 757,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 12,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51257344
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 25.324499999896943,
+      "first_text_ms": 3116.9012999998813,
+      "s3_end_ms": 3119.261599999845,
+      "eof_ms": 3119.6993999997176,
+      "last_audio_yield_ms": 1.0351999999329564,
+      "end_yield_ms": 1.2238999997862265,
+      "cpu_ms": 0.0,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51257344
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 6.195599999955448,
+      "first_any_response_ms": 29.301700000360142,
+      "first_text_ms": 3289.776399999937,
+      "s3_end_ms": 3291.3086000003204,
+      "eof_ms": 3291.8829000000187,
+      "last_audio_yield_ms": 7.472499999948923,
+      "end_yield_ms": 7.680300000174611,
+      "cpu_ms": 0.0,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51310592
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 3.1736999999338877,
+      "first_any_response_ms": 26.79230000012467,
+      "first_text_ms": 3200.6004999998368,
+      "s3_end_ms": 3202.887500000088,
+      "eof_ms": 3203.374900000199,
+      "last_audio_yield_ms": 12.506399999892892,
+      "end_yield_ms": 12.623799999801122,
+      "cpu_ms": 15.625,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51318784
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 24.908999999752268,
+      "first_text_ms": 3100.659899999755,
+      "s3_end_ms": 3102.288099999896,
+      "eof_ms": 3102.827299999717,
+      "last_audio_yield_ms": 10.081399999762652,
+      "end_yield_ms": 10.213199999725475,
+      "cpu_ms": 31.25,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51318784
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 2.9457999999067397,
+      "first_any_response_ms": 35.7704999996713,
+      "first_text_ms": 2833.0697999999757,
+      "s3_end_ms": 2835.543400000006,
+      "eof_ms": 2836.037900000065,
+      "last_audio_yield_ms": 13.077199999770528,
+      "end_yield_ms": 13.192500000059226,
+      "cpu_ms": 31.25,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 757,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 12,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51343360
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 224,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 24.687900000117224,
+      "first_text_ms": 3327.2352000003593,
+      "s3_end_ms": 3330.805700000383,
+      "eof_ms": 3331.739600000219,
+      "last_audio_yield_ms": 8.27690000005532,
+      "end_yield_ms": 8.356800000001385,
+      "cpu_ms": 46.875,
+      "request_protobuf_bytes": 15317,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 1181,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 67,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51343360
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": true,
+      "open_ms": null,
+      "first_any_response_ms": 24.57249999997657,
+      "first_text_ms": 2809.8939000001337,
+      "s3_end_ms": 2811.275399999886,
+      "eof_ms": 2811.8405999998686,
+      "last_audio_yield_ms": 1.6823000000840693,
+      "end_yield_ms": 2.041199999894161,
+      "cpu_ms": 0.0,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 757,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 12,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": false,
+      "process_rss_highwater_bytes": 51343360
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 8192,
+      "warmup": false,
+      "channel_reused": false,
+      "open_ms": 3.0288999996628263,
+      "first_any_response_ms": 50.141200000325625,
+      "first_text_ms": 3152.939399999923,
+      "s3_end_ms": 3154.167099999995,
+      "eof_ms": 3154.7817000000578,
+      "last_audio_yield_ms": 4.198300000098243,
+      "end_yield_ms": 4.415000000335567,
+      "cpu_ms": 78.125,
+      "request_protobuf_bytes": 14327,
+      "response_protobuf_bytes": 773,
+      "request_protobuf_overhead_bytes": 191,
+      "grpc_status": "OK",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "requests_produced": 5,
+      "responses_received": 13,
+      "audio_bytes_consumed": 14136,
+      "audio_sha256_consumed": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "success": true,
+      "s3_error_codes": [],
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "error_type": null,
+      "channel_closed_after_sample": true,
+      "process_rss_highwater_bytes": 51388416
+    }
+  ],
+  "notes": [
+    "Sequential concurrency 1. Warmup excluded from aggregates.",
+    "Fresh channel is not a cold process, DNS cache or server; gRPC may reuse lower-level resources.",
+    "Timings are client-observed from sample start, except open_ms and cpu_ms durations; no server-compute estimate.",
+    "Audio yield times are producer observations, not completed network writes.",
+    "Sizes are protobuf payload sizes, not exact network bytes.",
+    "RSS highwater is process-wide, not a per-session peak.",
+    "Small n: medians and nearest-rank p95 are descriptive, not reliable tail estimates."
+  ],
+  "summary": [
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 224,
+      "count": 5,
+      "successes": 5,
+      "metrics": {
+        "open_ms": {
+          "median": 3.0877000003783905,
+          "p95_nearest_rank": 3.1736999999338877
+        },
+        "first_any_response_ms": {
+          "median": 26.79230000012467,
+          "p95_nearest_rank": 35.7704999996713
+        },
+        "first_text_ms": {
+          "median": 3114.0525999999227,
+          "p95_nearest_rank": 3200.6004999998368
+        },
+        "s3_end_ms": {
+          "median": 3116.8055999996795,
+          "p95_nearest_rank": 3202.887500000088
+        },
+        "eof_ms": {
+          "median": 3117.3580999998194,
+          "p95_nearest_rank": 3203.374900000199
+        },
+        "cpu_ms": {
+          "median": 15.625,
+          "p95_nearest_rank": 31.25
+        },
+        "request_protobuf_bytes": {
+          "median": 15317,
+          "p95_nearest_rank": 15317
+        },
+        "response_protobuf_bytes": {
+          "median": 773,
+          "p95_nearest_rank": 773
+        },
+        "request_protobuf_overhead_bytes": {
+          "median": 1181,
+          "p95_nearest_rank": 1181
+        }
+      }
+    },
+    {
+      "mode": "fresh_channel",
+      "chunk_bytes": 8192,
+      "count": 5,
+      "successes": 5,
+      "metrics": {
+        "open_ms": {
+          "median": 3.2261999999718682,
+          "p95_nearest_rank": 6.195599999955448
+        },
+        "first_any_response_ms": {
+          "median": 34.39149999985602,
+          "p95_nearest_rank": 50.141200000325625
+        },
+        "first_text_ms": {
+          "median": 3152.939399999923,
+          "p95_nearest_rank": 3289.776399999937
+        },
+        "s3_end_ms": {
+          "median": 3154.167099999995,
+          "p95_nearest_rank": 3291.3086000003204
+        },
+        "eof_ms": {
+          "median": 3154.7817000000578,
+          "p95_nearest_rank": 3291.8829000000187
+        },
+        "cpu_ms": {
+          "median": 15.625,
+          "p95_nearest_rank": 78.125
+        },
+        "request_protobuf_bytes": {
+          "median": 14327,
+          "p95_nearest_rank": 14327
+        },
+        "response_protobuf_bytes": {
+          "median": 773,
+          "p95_nearest_rank": 773
+        },
+        "request_protobuf_overhead_bytes": {
+          "median": 191,
+          "p95_nearest_rank": 191
+        }
+      }
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 224,
+      "count": 5,
+      "successes": 5,
+      "metrics": {
+        "open_ms": {
+          "median": null,
+          "p95_nearest_rank": null
+        },
+        "first_any_response_ms": {
+          "median": 24.908999999752268,
+          "p95_nearest_rank": 28.379100000165636
+        },
+        "first_text_ms": {
+          "median": 3170.5823000002056,
+          "p95_nearest_rank": 3327.2352000003593
+        },
+        "s3_end_ms": {
+          "median": 3173.4249000001,
+          "p95_nearest_rank": 3330.805700000383
+        },
+        "eof_ms": {
+          "median": 3174.0577000000485,
+          "p95_nearest_rank": 3331.739600000219
+        },
+        "cpu_ms": {
+          "median": 31.25,
+          "p95_nearest_rank": 109.375
+        },
+        "request_protobuf_bytes": {
+          "median": 15317,
+          "p95_nearest_rank": 15317
+        },
+        "response_protobuf_bytes": {
+          "median": 773,
+          "p95_nearest_rank": 773
+        },
+        "request_protobuf_overhead_bytes": {
+          "median": 1181,
+          "p95_nearest_rank": 1181
+        }
+      }
+    },
+    {
+      "mode": "reused_channel",
+      "chunk_bytes": 8192,
+      "count": 5,
+      "successes": 5,
+      "metrics": {
+        "open_ms": {
+          "median": null,
+          "p95_nearest_rank": null
+        },
+        "first_any_response_ms": {
+          "median": 24.57249999997657,
+          "p95_nearest_rank": 29.17429999979504
+        },
+        "first_text_ms": {
+          "median": 3116.9012999998813,
+          "p95_nearest_rank": 3300.5858999999873
+        },
+        "s3_end_ms": {
+          "median": 3119.261599999845,
+          "p95_nearest_rank": 3302.2885000000315
+        },
+        "eof_ms": {
+          "median": 3119.6993999997176,
+          "p95_nearest_rank": 3302.8536000001623
+        },
+        "cpu_ms": {
+          "median": 31.25,
+          "p95_nearest_rank": 46.875
+        },
+        "request_protobuf_bytes": {
+          "median": 14327,
+          "p95_nearest_rank": 14327
+        },
+        "response_protobuf_bytes": {
+          "median": 757,
+          "p95_nearest_rank": 773
+        },
+        "request_protobuf_overhead_bytes": {
+          "median": 191,
+          "p95_nearest_rank": 191
+        }
+      }
+    }
+  ],
+  "complete": true
+}

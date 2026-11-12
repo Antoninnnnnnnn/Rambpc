@@ -1,51 +1,86 @@
-# État et journal
+# État du moteur — 2026-11-12
 
-## Objectif et règles de preuve
+## Résultat actuel
 
-Moteur natif réutilisable pour le véritable Rambler ; aucune dépendance Android
-à l'exécution ; authentification et cycle de vie font partie du périmètre.
-La réussite nécessite de vraies réponses audio et non seulement une connexion
-TLS/gRPC. Chaque résultat doit être qualifié : **observé**, **inféré**, **non testé**.
+**Des réponses du véritable chemin Rambler ont été obtenues par un client natif
+Windows sans Android.** Ce n'est plus seulement une piste statique ou une connexion
+gRPC. Aucun téléphone, compte Google, OAuth ou Zwieback utilisé pour ces essais.
 
-## 2026-11-12 — démarrage
+Chemin exercé : `speechs3proto2-pa.googleapis.com` / `S3Bidi`, service
+`beyond-a2a-recognizer`, routage `gboard_gemini_v3_streaming_voice_edit_mul`,
+Ogg/Opus16k mono, contexte tardif, fin S3 puis statut gRPC OK.
 
-- Dépôt local vide, aucun historique de code à reprendre.
-- Branche de travail : `feat/rambler-engine`.
-- Trois missions d'analyse parallèles :
-  - Sol / effort élevé : APK PixelBoard 1.3.4, schémas et séquence S3/Rambler.
-  - Kimi Pro / effort élevé : authentification, Zwieback, dépendances d'accès.
-  - Luna / effort moyen : inventaire outils et protocole de validation/mesures.
-- Le coordinateur conserve l'intégration, les décisions et les validations croisées.
-- Aucun accès utilisateur, jeton ou audio fourni. Aucun appel Rambler validé.
+## Capacités et niveau de validation
 
-## 2026-11-12 — premier lot
+| Capacité | Preuve actuelle |
+|---|---|
+| Dictée anglaise et française | Service réel, corpus synthétique contrôlé |
+| Correction orale « ten… no, eleven » | Service réel, texte corrigé |
+| Édition de texte existant par instruction | Service réel, contexte avant curseur et historique édité renvoyé |
+| Intentions et résultats d'édition structurés | `VoiceEditingResult` réel, intention2 ; octets décodés indépendamment |
+| Contexte en trois parties / sélection | Schéma et tests locaux ; pas encore exercé avec le service |
+| Sessions successives / canal réutilisé | 21/21 sessions du banc accéléré réussies ; audio et texte identiques |
+| Alimentation progressive à débit simulé | 6/6 sessions réussies ; pages20ms et1000ms, PCM décodé identique |
+| Annulation, erreurs tardives, deadlines, isolation concurrente | Tests gRPC loopback via transport et moteur ; tests réels supplémentaires à effectuer |
+| Protobuf inconnu / nouveaux champs | Préservés, dont un champ5 observé dans le service mais absent du schéma optimisé de l'APK |
+| Entrée PCM16 avec encodeur natif optionnel | Validée au service réel via CLI : PyAV/libopus, aucun exécutable FFmpeg |
 
-- Hôte joignable depuis Windows, TLS 1.3 et ALPN h2 validés (un échantillon).
-- Appel S3Bidi anonyme avec protobuf vide : `PERMISSION_DENIED`, sans payload.
-  Ce test ne prouve pas l'impossibilité d'une requête conforme ; aucun audio envoyé.
-- Codec wire sans schéma : 25 tests locaux passants. Ce n'est pas un codec Rambler
-  complet. Lecture PCM et transport streaming en cours d'intégration.
-- Première mise en dépôt des notes et observations expurgées, sur demande utilisateur.
-- Affectation transport reprise par Sol après arrêt d'Astra par l'utilisateur.
-  Ne plus lancer d'agents Astra ; privilégier Sol ou plus léger.
-- Téléphone Xiaomi proposé pour analyse de développement si nécessaire ; aucune
-  manipulation effectuée, téléphone encore utilisé. Il ne sera pas requis comme
-  relais à l'exécution.
+**354 tests locaux passent** en mode asyncio debug, avertissements traités comme
+erreurs ; roue Python construite. La CI multi-plateforme reste à observer après push.
 
-## Jalons
+Le premier probe complet, trois cas fonctionnels, 21 sessions accélérées, six
+sessions progressives et une CLI PCM représentent **32 sessions réussies** à ce
+point du journal.
+Ne pas extrapoler ce corpus à toutes les intentions, langues, qualités de voix ou
+conditions réseau. Les réponses de champ `transcript` peuvent déjà être corrigées
+ou contenir l'historique complet : ce n'est pas une garantie de verbatim audio.
 
-1. Retrouver et documenter les éléments réseau et protobuf avec leurs sources.
-2. Déterminer une requête minimale et les conditions d'accès réelles.
-3. Tester à faible volume le service réel, sans contourner ses contrôles d'accès.
-4. Construire l'interface du moteur et les tests de cycle de vie.
-5. Valider audio, résultats, contexte/corrections selon capacités observées.
-6. Mesurer puis optimiser les parties démontrées, sans perte de fidélité.
-7. Documenter les instructions reproductibles, limites, preuves ; committer code
-   et documentation ensemble. Pas de publication distante sans demande explicite.
+## Preuves et performance
 
-## Reprise
+- [Observations et conditions](evidence/README.md)
+- [Premier appel complet](evidence/reconstructed-default-session.json)
+- [Correction, contexte, français](evidence/functional-cases.json)
+- [Banc accéléré](evidence/performance-baseline.json)
+- [Tamponnement temps simulé](evidence/realtime-paging.json)
+- [Trois payloads réels publics inspectés](../tests/fixtures/live_synthetic_responses.json)
 
-Lire ce fichier, `DECISIONS.md` et les notes `research/`. Les archives et sorties
-intermédiaires restent dans le scratchpad de session, hors git. Les notes doivent
-indiquer leurs références, hashes, commandes et inconnues pour permettre une
-nouvelle collecte si ces artefacts disparaissent.
+Les réponses binaires originales ont été redécodées indépendamment de notre
+codec Python ; les fixtures publiques ne contiennent que textes synthétiques
+contrôlés et champs numériques inspectés. Le reste des captures reste local,
+hors git. Pas de metadata applicative dans les observations publiques.
+
+Constats préliminaires : batch8192 réduit les messages67→5 et les payloads protobuf
+d'environ6,5%, mais pas de gain de latence finale net dans le petit banc. Pages
+Ogg20ms au lieu de1000ms : délai médian premier texte après épuisement de source
+935→325ms, avec PCM décodé identique et davantage d'octets Ogg. Ces durées sont
+observées côté client, pas du temps de calcul serveur ; l'expérience utilise une
+source FFmpeg `-re`, pas un microphone réel.
+
+## Dépendances et limites
+
+- Python>=3.11, grpcio ; le codec d'entrée natif optionnel nécessite Python>=3.12
+  et PyAV. Le flux déjà encodé n'en dépend pas.
+- Trois métadonnées applicatives doivent être configurées avec une utilisation
+  autorisée ; valeurs jamais embarquées dans le dépôt. Pas de provisionnement
+  automatique de credentials. Aucun jeton de session temporaire copié à la main
+  n'a été nécessaire pendant ces essais.
+- Les metadata statiques n'ont pas de refresh observé. Une révocation ou une
+  restriction future doit être traitée explicitement, pas contournée ou retryée.
+- Zwieback : branche conditionnée par Jetson et `jetson_send_zb`, défautfalse.
+  La première décompilation donnait une condition supplémentaire erronée sur
+  l'application séparée ; le bytecode a permis de la corriger. Voir la note auth.
+- Service interne non contractuel : schéma/routage/disponibilité peuvent changer.
+- Pas de PCM brut étiqueté Opus, pas d'API Gemini alternative, pas d'application
+  graphique ni d'intégration microphone/environnement dans ce périmètre.
+- Nettoyage asyncio suppose des producteurs coopératifs. Les résultats partiels
+  ne valent pas une fin de session. Erreurs S3 et statut final gRPC sont séparés.
+- Voix naturelles, endurance longue, transport réellement perdu et renouvellement
+  de credentials après révocation restent non validés.
+
+## Historique utile
+
+Dépôt initialement vide ; premier lot documentation/wire poussé dans
+`4745be3`, branche `feat/rambler-engine`. Analyse statique APK PixelBoard1.3.4
+(SHA dans notes recherche), vérification bytecode ciblée, puis preuves serveur
+réelles. Le Xiaomi proposé n'a pas été utilisé. La documentation technique et les
+mesures restent versionnées avec le code pour permettre les contributions.

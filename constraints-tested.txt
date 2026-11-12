@@ -1,0 +1,14 @@
+# Versions résolues et exercées le 2026-11-12 sur Windows / Python 3.14.5.
+# Utilisation : pip install -c constraints-tested.txt -e '.[test]'
+# Pas une preuve de compatibilité de toutes plateformes ; voir CI et état.
+grpcio==1.85.1
+typing_extensions==4.16.0
+pytest==9.2.0
+pytest-asyncio==1.5.0
+pluggy==1.7.0
+iniconfig==2.3.1
+packaging==26.3
+pygments==2.21.0
+colorama==0.4.6
+# Extra audio facultatif, Python >=3.12 ; non installé pour le cœur déjà encodé.
+av==19.0.2
