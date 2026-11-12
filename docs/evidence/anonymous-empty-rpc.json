@@ -1,0 +1,16 @@
+{
+  "observed_at": "2026-11-12T19:49:44.380332+00:00",
+  "target": "speechs3proto2-pa.googleapis.com:443",
+  "method": "/speech.s3.S3StubbyClientConnectorService/S3Bidi",
+  "python": "3.14.5",
+  "grpcio": "1.85.1",
+  "input": "one empty protobuf message followed by client half-close",
+  "credentials": "none",
+  "audio_bytes": 0,
+  "timeout_s": 10.0,
+  "responses": [],
+  "meaning": "Diagnostic only; no recognition or Rambler success is established.",
+  "status": "PERMISSION_DENIED",
+  "details": "Permission denied on the service.",
+  "elapsed_ms": 80.181
+}

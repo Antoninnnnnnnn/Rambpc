@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-11-12T19:48:28.177079+00:00",
+  "host": "speechs3proto2-pa.googleapis.com",
+  "port": 443,
+  "python": "3.14.5",
+  "tls_version": "TLSv1.3",
+  "alpn": "h2",
+  "dns_plus_tcp_ms": 64.007,
+  "tls_handshake_ms": 16.631,
+  "samples": 1,
+  "meaning": "TLS transport only; no HTTP, RPC, authentication or audio tested"
+}

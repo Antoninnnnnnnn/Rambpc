@@ -1,0 +1,31 @@
+# Local credentials, user audio, downloaded or decompiled third-party artifacts
+.env
+.env.*
+!.env.example
+credentials/
+secrets/
+artifacts/
+local/
+*.apk
+*.dex
+*.jks
+*.keystore
+
+# Python tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Rust tooling
+/target/
+
+# Editors and machine configuration
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
