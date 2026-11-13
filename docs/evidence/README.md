@@ -2,6 +2,21 @@
 
 ## Portage Rust
 
+- [rust-pcm-functional-public.json](rust-pcm-functional-public.json) : PCM natif
+  accéléré/progressif au même texte, réécriture intention3 et sélection avec emoji ;
+  quatre appels réels Windows, libopus statique, source/lock/binaire hashés.
+- [rust-endurance-120-public.json](rust-endurance-120-public.json) et
+  [rust-endurance-300-public.json](rust-endurance-300-public.json) :120s sain, puis
+  premier288s sain mais deuxième `incomplete` à282s, troisième non lancé.
+  Le rapport du lot long reste **failed_or_inconclusive**, pas corrigé en3/3.
+  Chaque session est un processus/canal neuf ; les mesures ne valident pas la
+  réutilisation du canal ni une absence générale de fuite. La catégorie
+  `incomplete` vient de l'inspection de la sortie CLI privée ; l'ancienne projection
+  ne conserve que son exit non nul. Cause exacte non établie par cette capture.
+- [rust-windows-ctrl-c.json](rust-windows-ctrl-c.json) : vrai signal Windows dans
+  une console isolée, client/RPC loopback annulé, exit130 ; aucun Google. Le premier
+  pilote a temporisé puis a été corrigé, sans changer le binaire.
+
 - [rust-first-slice-public.json](rust-first-slice-public.json) : trois sessions
   réelles d'une CLI release **Rust** sur Windows, Ogg/Opus déjà encodé : anglais,
   édition sur contexte et français. Le binaire fonctionne avec un PATH système

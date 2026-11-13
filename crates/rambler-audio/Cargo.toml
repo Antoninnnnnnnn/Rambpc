@@ -1,0 +1,23 @@
+[package]
+name = "rambler-audio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Bounded native PCM16LE to continuous Ogg/Opus audio sources"
+publish = false
+
+[dependencies]
+bytes.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+rambler-engine = { path = "../rambler-engine" }
+opus = "=0.4.0"
+# Pin the bundled static native build rather than relying on a system Opus DLL.
+opusic-sys = { version = "=0.7.7", features = ["bundled"] }
+
+[dev-dependencies]
+futures-util.workspace = true
+sha2.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+ogg = "0.9"
+tempfile = "3"

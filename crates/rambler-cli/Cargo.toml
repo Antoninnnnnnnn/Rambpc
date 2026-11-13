@@ -8,7 +8,12 @@ rust-version.workspace = true
 name = "rambler"
 path = "src/main.rs"
 
+[features]
+default = []
+audio = ["dep:rambler-audio"]
+
 [dependencies]
+rambler-audio = { path = "../rambler-audio", optional = true }
 rambler-engine = { path = "../rambler-engine" }
 rambler-transport = { path = "../rambler-transport" }
 bytes.workspace = true
@@ -25,3 +30,5 @@ tokio-util.workspace = true
 tonic.workspace = true
 hex.workspace = true
 tempfile = "3"
+ogg = "0.9"
+opus = "=0.4.0"

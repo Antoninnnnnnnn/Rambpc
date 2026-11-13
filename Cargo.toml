@@ -3,6 +3,7 @@ members = [
     "crates/rambler-protocol",
     "crates/rambler-transport",
     "crates/rambler-engine",
+    "crates/rambler-audio",
     "crates/rambler-cli",
 ]
 resolver = "3"

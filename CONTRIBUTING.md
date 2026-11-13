@@ -16,9 +16,9 @@ reste la référence de conformité. Voir [le guide Rust](docs/rust.md) et
 
 ```sh
 cargo fmt --all -- --check
-cargo test --workspace --locked
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo build --release --locked -p rambler-cli
+cargo test --workspace --all-features --locked
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo build --release --locked -p rambler-cli --features audio
 ```
 
 Les tests Rust doivent rester offline/loopback, y compris les scénarios de

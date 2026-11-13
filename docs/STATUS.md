@@ -1,5 +1,43 @@
 # État du moteur — 2026-11-13
 
+## Audio Rust natif et endurance mesurée
+
+L'entrée PCM est portée dans `rambler-audio` : WAV strict PCM16LE mono16k,
+libopus 1.6.1 statique, VoIP/VBR24kbps, trames/pages20ms par défaut, flush et EOS
+sans perdre les derniers échantillons. La CLI `dictate-wav` est optionnelle
+(`--features audio`). **156 tests Rust passent**, plus un oracle ignoré par défaut
+exécuté séparément sur **57 conteneurs Ogg** : durée décodée exacte à48k et16k.
+Le build Ogg minimal n'a pas de dépendance normale sur Opus/CMake.
+La suite de référence/outils Python étendue passe **653 tests stricts** dans la
+relance bornée. Une première exécution était restée bloquée et a été arrêtée ;
+la relance avec diagnostic de stack activé ne reproduit pas le blocage.
+
+[Quatre appels supplémentaires réussis](evidence/rust-pcm-functional-public.json) :
+PCM anglais accéléré puis progressif au même texte, réécriture intention3 et
+sélection `ten`→`eleven` avec emoji préservé. Ces preuves s'ajoutent aux trois
+appels Ogg initiaux, sans devenir une mesure de qualité générale.
+
+Le [palier Rust118,682s](evidence/rust-endurance-120-public.json) termine en119,929s,
+avec tous les marqueurs rendus, couverture RSS/CPU saine et maximum RSS
+échantillonné11 898 880octets (~11,35Mio). Au
+[palier288,352s](evidence/rust-endurance-300-public.json), le premier essai termine
+en290,905s (max RSS11 862 016octets ; CPU enfant dernier échantillon12,984s),
+mais **le deuxième échoue `incomplete` après282,202s** ; le troisième n'est pas
+lancé. La cause précise de cette fin précoce n'est pas établie par l'ancienne
+sortie d'erreur. Aucun résultat partiel n'est annoncé comme réussi et aucun rejeu
+automatique ne masque l'échec. L'analyse diagnostique est distincte de ce bilan.
+
+Chaque session du banc Rust crée un processus et un canal neufs, contrairement
+aux trois sessions Python sur canal réutilisé. RSS/CPU sont échantillonnés, pas des
+pics/exécutions exactes ; aucune comparaison de vitesse ou preuve d'absence de fuite
+n'est déduite de ces chiffres.
+
+Le [Ctrl-C console Windows réel](evidence/rust-windows-ctrl-c.json) est vérifié sur
+un RPC **loopback**, dans une console isolée : exit130, RPC annulé, pas de résultat.
+Le premier pilote de test a temporisé ; son isolation/héritage console a été
+corrigé sans changer le binaire. Le pilote reproductible est versionné sous
+`tools/validate_rust_ctrl_c.py`. [Guide Rust](rust.md).
+
 ## Première tranche Rust validée
 
 Le workspace natif contient `rambler-protocol`, `rambler-transport`,

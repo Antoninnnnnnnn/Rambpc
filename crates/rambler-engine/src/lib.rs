@@ -6,6 +6,33 @@
 //! Call `Engine::close` / `EngineSession::close` explicitly and keep the Tokio
 //! runtime alive: Drop only signals cancellation, it cannot await cleanup.
 //! Payload metrics count produced protobufs, never network acknowledgements.
+//!
+//! # Collect caller-provided audio
+//!
+//! The caller owns the shared engine and must explicitly close it after all
+//! sessions, including when this function returns an error. Supply a continuous
+//! Ogg/Opus source, not raw PCM labelled as Opus.
+//!
+//! ```no_run
+//! use std::sync::Arc;
+//! use rambler_engine::{AudioSource, CollectorLimits, ContextInput, DictationResult,
+//!     EditingContext, Engine, EngineError, ProtocolConfig, SessionOptions,
+//!     collect_dictation};
+//! use rambler_transport::EnvironmentCredentials;
+//!
+//! async fn completed(engine: &Engine, audio: Box<dyn AudioSource>)
+//!     -> Result<DictationResult, EngineError>
+//! {
+//!     collect_dictation(engine, audio, SessionOptions {
+//!         config: ProtocolConfig { language: "fr-FR".into(), ..Default::default() },
+//!         context: ContextInput::Static(EditingContext {
+//!             before: "Texte existant.".into(), ..Default::default()
+//!         }),
+//!         credentials: Some(Arc::new(EnvironmentCredentials)),
+//!         ..Default::default()
+//!     }, CollectorLimits::default()).await
+//! }
+//! ```
 mod engine;
 mod results;
 pub use engine::*;

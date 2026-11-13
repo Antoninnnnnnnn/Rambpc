@@ -1,5 +1,8 @@
+#[cfg(test)]
+mod tests;
+
 use bytes::Bytes;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext, Engine,
     EngineError, ProtocolConfig, SessionOptions, SourceError, SourceFuture, collect_dictation,
@@ -12,7 +15,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt};
 #[derive(Parser)]
 #[command(
     name = "rambler",
-    about = "Dictate a continuous Ogg/Opus file. Only the Ogg magic is checked."
+    about = "Dictate audio files without a microphone or external encoder."
 )]
 struct Cli {
     #[command(subcommand)]
@@ -20,33 +23,103 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Stream Ogg/Opus (only the Ogg magic is checked).
     Dictate {
-        input: PathBuf,
-        #[arg(long, default_value = "fr-FR")]
-        language: String,
+        #[command(flatten)]
+        common: CommonArgs,
+    },
+    #[cfg(feature = "audio")]
+    /// Encode PCM16LE mono 16 kHz WAVE and stream Ogg/Opus.
+    DictateWav {
+        #[command(flatten)]
+        common: CommonArgs,
+        /// Pace the file at its audio duration rather than sending as fast as possible.
         #[arg(long)]
-        before: Option<String>,
-        #[arg(long)]
-        selected: Option<String>,
-        #[arg(long)]
-        after: Option<String>,
-        #[arg(long)]
-        cursor_aware: bool,
-        #[arg(long, default_value_t = 30)]
-        timeout: u64,
-        #[arg(long, default_value_t = 2)]
-        context_timeout: u64,
-        #[arg(long)]
-        bias_term: Vec<String>,
-        #[arg(long)]
-        preference: Vec<String>,
-        #[arg(long)]
-        secondary_language: Vec<String>,
-        /// Test-only plaintext endpoint; only loopback addresses are accepted.
-        #[arg(long)]
-        loopback: Option<SocketAddr>,
+        realtime: bool,
+        /// Ogg page duration in milliseconds, a multiple of 20 from 20 to 1000.
+        #[arg(long, default_value_t = 20)]
+        page_duration_ms: u32,
     },
 }
+#[derive(Args)]
+struct CommonArgs {
+    input: PathBuf,
+    #[arg(long, default_value = "fr-FR")]
+    language: String,
+    #[arg(long)]
+    before: Option<String>,
+    #[arg(long)]
+    selected: Option<String>,
+    #[arg(long)]
+    after: Option<String>,
+    #[arg(long)]
+    cursor_aware: bool,
+    #[arg(long, default_value_t = 30)]
+    timeout: u64,
+    #[arg(long, default_value_t = 2)]
+    context_timeout: u64,
+    #[arg(long)]
+    bias_term: Vec<String>,
+    #[arg(long)]
+    preference: Vec<String>,
+    #[arg(long)]
+    secondary_language: Vec<String>,
+    /// Test-only plaintext endpoint; only loopback addresses are accepted.
+    #[arg(long)]
+    loopback: Option<SocketAddr>,
+}
+enum InputKind {
+    Ogg,
+    #[cfg(feature = "audio")]
+    Wav {
+        realtime: bool,
+        page_duration_ms: u32,
+    },
+}
+
+async fn open_audio(path: PathBuf, kind: InputKind) -> Result<Box<dyn AudioSource>, &'static str> {
+    match kind {
+        InputKind::Ogg => {
+            let mut file = tokio::fs::File::open(path).await.map_err(|_| "audio")?;
+            let mut magic = [0; 4];
+            if file.read_exact(&mut magic).await.is_err()
+                || &magic != b"OggS"
+                || file.seek(std::io::SeekFrom::Start(0)).await.is_err()
+            {
+                drop(file.into_std().await);
+                return Err("audio");
+            }
+            Ok(Box::new(FileAudio(Some(file))))
+        }
+        #[cfg(feature = "audio")]
+        InputKind::Wav {
+            realtime,
+            page_duration_ms,
+        } => {
+            use rambler_audio::{EncoderConfig, Pcm16Opus, WavAudio, WavConfig};
+            let page_duration_ms = u16::try_from(page_duration_ms).map_err(|_| "configuration")?;
+            if page_duration_ms % 20 != 0 {
+                return Err("configuration");
+            }
+            let encoder = EncoderConfig {
+                page_duration_ms,
+                ..Default::default()
+            };
+            encoder.validate().map_err(|_| "configuration")?;
+            let wav = WavAudio::open(
+                path,
+                WavConfig {
+                    chunk_ms: 20,
+                    realtime,
+                },
+            )
+            .await
+            .map_err(|_| "audio")?;
+            Ok(Box::new(Pcm16Opus::new(wav, encoder)))
+        }
+    }
+}
+
 struct FileAudio(Option<tokio::fs::File>);
 impl AudioSource for FileAudio {
     fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>> {
@@ -115,6 +188,40 @@ fn print_error(category: &str, code: Option<String>) {
         json!({"type":"error", "category":category, "grpc_code":code})
     );
 }
+async fn supervise<T, E, C, Close, Signal>(
+    collection: C,
+    close: impl FnOnce() -> Close,
+    signal: Signal,
+) -> (Option<Result<T, E>>, Result<(), E>, Option<bool>)
+where
+    C: std::future::Future<Output = Result<T, E>>,
+    Close: std::future::Future<Output = Result<(), E>>,
+    Signal: std::future::Future<Output = bool>,
+{
+    tokio::pin!(signal);
+    // Drop the owning collector before requesting engine shutdown.
+    let (result, mut interrupted) = {
+        tokio::pin!(collection);
+        tokio::select! {
+            biased;
+            ok = &mut signal => (None, Some(ok)),
+            result = &mut collection => (Some(result), None),
+        }
+    };
+    let cleanup = close();
+    tokio::pin!(cleanup);
+    let cleanup = if interrupted.is_some() {
+        cleanup.await
+    } else {
+        tokio::select! {
+            biased;
+            ok = &mut signal => { interrupted = Some(ok); cleanup.await },
+            result = &mut cleanup => result,
+        }
+    };
+    (result, cleanup, interrupted)
+}
+
 #[tokio::main]
 async fn main() {
     let cli = match Cli::try_parse() {
@@ -129,7 +236,22 @@ async fn main() {
             }
         }
     };
-    let Command::Dictate {
+    let (common, input_kind) = match cli.command {
+        Command::Dictate { common } => (common, InputKind::Ogg),
+        #[cfg(feature = "audio")]
+        Command::DictateWav {
+            common,
+            realtime,
+            page_duration_ms,
+        } => (
+            common,
+            InputKind::Wav {
+                realtime,
+                page_duration_ms,
+            },
+        ),
+    };
+    let CommonArgs {
         input,
         language,
         before,
@@ -142,7 +264,7 @@ async fn main() {
         preference,
         secondary_language,
         loopback,
-    } = cli.command;
+    } = common;
     let transport =
         match loopback.map_or_else(|| Ok(TransportConfig::default()), TransportConfig::loopback) {
             Ok(v) => v,
@@ -151,28 +273,26 @@ async fn main() {
                 std::process::exit(2);
             }
         };
-    let mut file = match tokio::fs::File::open(input).await {
-        Ok(f) => f,
-        Err(_) => {
-            print_error("audio", None);
+    let mut audio = match open_audio(input, input_kind).await {
+        Ok(audio) => audio,
+        Err(category) => {
+            print_error(category, None);
             std::process::exit(1);
         }
     };
-    let mut magic = [0; 4];
-    if file.read_exact(&mut magic).await.is_err()
-        || &magic != b"OggS"
-        || file.seek(std::io::SeekFrom::Start(0)).await.is_err()
-    {
-        drop(file.into_std().await);
-        print_error("audio", None);
-        std::process::exit(1);
-    }
     let engine = match Engine::connect(transport).await {
         Ok(e) => e,
         Err(e) => {
-            drop(file.into_std().await);
+            let cleanup_failed = audio.close().await.is_err();
             let (c, g) = error_category(&e);
-            print_error(c, g);
+            if cleanup_failed {
+                println!(
+                    "{}",
+                    json!({"type":"error", "category":c, "grpc_code":g, "close_error_category":"cleanup"})
+                );
+            } else {
+                print_error(c, g);
+            }
             std::process::exit(1);
         }
     };
@@ -204,25 +324,47 @@ async fn main() {
             Some(Arc::new(EnvironmentCredentials))
         },
     };
-    let result = collect_dictation(
-        &engine,
-        Box::new(FileAudio(Some(file))),
-        options,
-        CollectorLimits::default(),
-    )
+    let collection = collect_dictation(&engine, audio, options, CollectorLimits::default());
+    let (result, cleanup, interrupted) = supervise(collection, || engine.close(), async {
+        tokio::signal::ctrl_c().await.is_ok()
+    })
     .await;
-    let cleanup = engine.close().await;
-    if cleanup.is_err() {
-        print_error("cleanup", None);
-        std::process::exit(1);
+    if let Some(signal_ok) = interrupted {
+        let (close_category, close_code) = cleanup
+            .as_ref()
+            .err()
+            .map(error_category)
+            .map_or((None, None), |(c, g)| (Some(c), g));
+        println!(
+            "{}",
+            json!({"type":"error", "category": if signal_ok { "cancelled" } else { "signal" }, "grpc_code":null, "close_error_category":close_category, "close_grpc_code":close_code})
+        );
+        std::process::exit(if signal_ok { 130 } else { 1 });
     }
-    match result {
-        Err(e) => {
+    let result = result.expect("collection or interrupt");
+    match (result, cleanup) {
+        (Err(e), cleanup) => {
             let (c, g) = error_category(&e);
-            print_error(c, g);
+            let (close_category, close_code) = cleanup
+                .as_ref()
+                .err()
+                .map(error_category)
+                .map_or((None, None), |(c, g)| (Some(c), g));
+            println!(
+                "{}",
+                json!({"type":"error", "category":c, "grpc_code":g, "close_error_category":close_category, "close_grpc_code":close_code})
+            );
             std::process::exit(1);
         }
-        Ok(r) => {
+        (Ok(_), Err(e)) => {
+            let (c, g) = error_category(&e);
+            println!(
+                "{}",
+                json!({"type":"error", "category":"cleanup", "grpc_code":null, "close_error_category":c, "close_grpc_code":g})
+            );
+            std::process::exit(1);
+        }
+        (Ok(r), Ok(())) => {
             let ambiguous = r.text().is_err();
             let mut value = output(&r);
             if ambiguous {

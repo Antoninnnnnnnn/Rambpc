@@ -232,6 +232,33 @@ La cadence représente une source fichier, pas un microphone. Les données utili
 base 0.2 **avant** intégration des hints 0.3 ; les hashes exacts sont dans les rapports.
 Les limites 300 s / 360 s du banc ne sont pas des limites établies du service.
 
+## 7. Rust natif — premières mesures séparées
+
+Les [trois appels Ogg](evidence/rust-first-slice-public.json) et
+[quatre appels PCM/édition](evidence/rust-pcm-functional-public.json) valident le
+chemin natif, pas un avantage de latence sur Python. Le PCM anglais6,658s termine
+en3,293s accéléré et7,106s en cadence simulée, même texte ; un seul essai par
+mode, incluant démarrage/TLS/réseau/service. `metrics.eof_seconds` du Rust est la
+fin consommateur après drainage/nettoyage, pas l'EOF du lecteur PCM : ne pas en
+déduire les deltas « après EOF PCM » des bancs précédents.
+
+[Endurance Rust](evidence/rust-endurance-120-public.json) :118,682s audio,
+119,929s processus, maximum RSS échantillonné11 898 880octets et CPU enfant au
+dernier échantillon6,766s. Au [palier long](evidence/rust-endurance-300-public.json),
+le premier288,352s termine en290,905s, max RSS11 862 016octets et CPU dernier
+échantillon12,984s. Le deuxième est refusé comme **incomplet après282,202s** ;
+le troisième n'est pas lancé. Ce lot n'est pas trois réussites et sa cause précise
+n'est pas déduite des seuls compteurs disponibles.
+
+Ces ressources sont celles du seul enfant Rust, sans le pilote Python de
+mesure. RSS est courant/échantillonné, CPU cumulatif/échantillonné : pas un pic
+exact ni forcément tout le CPU avant sortie. Le premier point peut précéder le
+chargement de TLS/codec. Chaque essai crée un processus/canal neuf, contrairement
+aux trois longs essais Python sur un canal réutilisé. Codec/version, instrumentation,
+charge et réseau diffèrent : **aucun pourcentage de gain Rust/Python ni preuve
+d'absence de fuite** ne ressort de ces observations. Les limites300/360s restent
+celles du banc, pas des garanties du service.
+
 ## Reproduire
 
 Préparer un WAV/Opus synthétique avec `tools/make_fixture.ps1` ou un corpus autorisé,

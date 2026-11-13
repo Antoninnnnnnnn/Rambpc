@@ -43,9 +43,13 @@ pour les commandes Cargo, les garanties de fermeture et le périmètre validé.
 Python 0.3 reste la **référence de conformité**, pas un runtime caché du binaire.
 Les **trois premiers appels Rust réels** ont réussi sur Windows : anglais,
 français et édition sur contexte, avec un PATH système sans Python/FFmpeg.
-[Preuves et limites](docs/evidence/rust-first-slice-public.json) ; 121 tests Rust
-et 643 tests de référence Python passent. Ce lot prend de l'Ogg/Opus déjà encodé,
-pas encore l'entrée PCM native. Aucun gain de latence global n'est revendiqué.
+[Preuves et limites](docs/evidence/rust-first-slice-public.json). Le lot audio ajoute
+l'entrée **WAV/PCM native optionnelle**, liée à libopus statique : quatre autres
+appels réels réussissent (accéléré/progressif, réécriture et sélection avec emoji).
+[Preuves PCM](docs/evidence/rust-pcm-functional-public.json) ; 156 tests Rust passent,
+plus un oracle indépendant de 57 flux exécuté séparément. Aucun gain de latence
+global n'est revendiqué. L'endurance et ses échecs sont conservés dans
+[l'état détaillé](docs/STATUS.md), pas déduits des tests courts.
 
 Les preuves historiques ci-dessus concernent Python tant qu'une preuve Rust
 n'est pas explicitement identifiée. Tauri, microphone et intégrations système

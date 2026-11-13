@@ -1,0 +1,27 @@
+{
+  "kind": "native_rust_windows_console_ctrl_c_loopback",
+  "successful": true,
+  "exit_code": 130,
+  "rpc_requests_received": 4,
+  "server_rpc_cancelled": true,
+  "isolated_new_console_verified": true,
+  "stdout": {
+    "category": "cancelled",
+    "close_error_category": null,
+    "close_grpc_code": null,
+    "grpc_code": null,
+    "type": "error"
+  },
+  "stderr_bytes": 0,
+  "google_contacted": false,
+  "binary_sha256": "931e9d6b29df458a33c75bb2943997ab254e0a2eefa3be4c670e123cfdb41418",
+  "driver": {
+    "path": "tools/validate_rust_ctrl_c.py",
+    "sha256": "d6d34fc77f5c66fd03d0958e8eee44f548e38b061229569e649103413a0e779a"
+  },
+  "initial_attempt": {
+    "outcome": "development driver TimeoutError before console isolation/inherited ignore handling was corrected",
+    "production_binary_changed": false,
+    "google_contacted": false
+  }
+}

@@ -72,7 +72,9 @@ impl SourceError {
     pub fn new(error: impl std::error::Error + Send + Sync + 'static) -> Self {
         Self(Arc::new(error))
     }
-    pub fn original(&self) -> &(dyn std::error::Error + Send + Sync) {
+    /// Explicit opt-in to the concrete caller error. The object is `'static`,
+    /// but this reference still borrows `self`; this permits safe downcasting.
+    pub fn original(&self) -> &(dyn std::error::Error + Send + Sync + 'static) {
         self.0.as_ref()
     }
 }
