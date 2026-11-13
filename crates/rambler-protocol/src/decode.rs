@@ -1,0 +1,239 @@
+use crate::{
+    wire::{Field, RefField, RefValue, parse_ref},
+    *,
+};
+
+struct Message<'a> {
+    fields: Vec<RefField<'a>>,
+    raw: Vec<u8>,
+    unknown: Vec<Field>,
+}
+impl<'a> Message<'a> {
+    fn new(parts: Vec<&'a [u8]>, known: &[(u32, u8)], budget: &mut usize) -> Result<Self, Error> {
+        let mut fields = Vec::new();
+        let mut raw = Vec::new();
+        for part in parts {
+            bounded(raw.len().checked_add(part.len()).ok_or(Error::SizeLimit)?)?;
+            // Deliberately parse each occurrence before concatenating its raw bytes.
+            fields.extend(parse_ref(part, budget)?);
+            raw.extend_from_slice(part);
+        }
+        let unknown = fields
+            .iter()
+            .filter(|f| !known.contains(&(f.number, f.wire_type)))
+            .map(|f| f.owned())
+            .collect();
+        Ok(Self {
+            fields,
+            raw,
+            unknown,
+        })
+    }
+    fn data(&self, number: u32, wire: u8) -> Vec<&'a [u8]> {
+        self.fields
+            .iter()
+            .filter_map(|f| match f.value {
+                RefValue::Data(d) if f.number == number && f.wire_type == wire => Some(d),
+                _ => None,
+            })
+            .collect()
+    }
+    fn integer(&self, number: u32) -> Option<i32> {
+        self.fields.iter().rev().find_map(|f| match f.value {
+            RefValue::Varint(v) if f.number == number => Some(v as u32 as i32),
+            _ => None,
+        })
+    }
+    fn string(&self, number: u32) -> Result<Option<String>, Error> {
+        text_last(self.data(number, 2))
+    }
+    fn float(&self, number: u32) -> Option<f32> {
+        self.data(number, 5).last().map(|d| {
+            let mut b = [0; 4];
+            b.copy_from_slice(d);
+            f32::from_le_bytes(b)
+        })
+    }
+    fn double(&self, number: u32) -> Option<f64> {
+        self.data(number, 1).last().map(|d| {
+            let mut b = [0; 8];
+            b.copy_from_slice(d);
+            f64::from_le_bytes(b)
+        })
+    }
+    fn message<T>(
+        &self,
+        number: u32,
+        budget: &mut usize,
+        parser: impl FnOnce(Vec<&'a [u8]>, &mut usize) -> Result<T, Error>,
+    ) -> Result<Option<T>, Error> {
+        let parts = self.data(number, 2);
+        if parts.is_empty() {
+            Ok(None)
+        } else {
+            parser(parts, budget).map(Some)
+        }
+    }
+    fn oneof(&self, numbers: &[u32]) -> Vec<(u32, Vec<&'a [u8]>)> {
+        let mut runs: Vec<(u32, Vec<&'a [u8]>)> = Vec::new();
+        for field in &self.fields {
+            if field.wire_type != 2 || !numbers.contains(&field.number) {
+                continue;
+            }
+            if let RefValue::Data(data) = field.value {
+                if let Some((number, values)) = runs.last_mut()
+                    && *number == field.number
+                {
+                    values.push(data);
+                    continue;
+                }
+                runs.push((field.number, vec![data]));
+            }
+        }
+        runs
+    }
+}
+fn text_last(values: Vec<&[u8]>) -> Result<Option<String>, Error> {
+    let mut last = None;
+    for value in values {
+        last = Some(std::str::from_utf8(value).map_err(|_| Error::Utf8)?);
+    }
+    Ok(last.map(str::to_owned))
+}
+fn context(parts: Vec<&[u8]>, budget: &mut usize) -> Result<EditingContext, Error> {
+    let m = Message::new(parts, &[(1, 2), (2, 2), (3, 2)], budget)?;
+    Ok(EditingContext {
+        before: m.string(1)?.unwrap_or_default(),
+        selected: m.string(2)?.unwrap_or_default(),
+        after: m.string(3)?.unwrap_or_default(),
+        cursor_aware: true,
+        raw: m.raw,
+        unknown_fields: m.unknown,
+    })
+}
+fn voice_edit(parts: Vec<&[u8]>, budget: &mut usize) -> Result<VoiceEditResult, Error> {
+    let m = Message::new(parts, &[(1, 2), (2, 2), (3, 2), (4, 0), (7, 2)], budget)?;
+    let mut out = VoiceEditResult {
+        transcript: m.string(1)?,
+        intent: m.integer(4),
+        ..Default::default()
+    };
+    for (number, values) in m.oneof(&[2, 3, 7]) {
+        out.active_field = Some(number);
+        out.alternative_text = None;
+        out.edited_text = None;
+        out.edited_context = None;
+        match number {
+            2 => out.alternative_text = text_last(values)?,
+            3 => out.edited_text = text_last(values)?,
+            _ => out.edited_context = Some(context(values, budget)?),
+        }
+    }
+    out.raw = m.raw;
+    out.unknown_fields = m.unknown;
+    Ok(out)
+}
+fn hypothesis(parts: Vec<&[u8]>, budget: &mut usize) -> Result<Hypothesis, Error> {
+    let m = Message::new(parts, &[(1, 2), (2, 5), (VOICE_EDITING_RESULT, 2)], budget)?;
+    Ok(Hypothesis {
+        text: m.string(1)?,
+        confidence: m.float(2),
+        voice_edit: m.message(VOICE_EDITING_RESULT, budget, voice_edit)?,
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}
+fn partial(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialHypothesis, Error> {
+    let m = Message::new(parts, &[(1, 2), (2, 1)], budget)?;
+    Ok(PartialHypothesis {
+        text: m.string(1)?,
+        confidence: m.double(2),
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}
+fn hypotheses(parts: Vec<&[u8]>, budget: &mut usize) -> Result<HypothesisResult, Error> {
+    let m = Message::new(parts, &[(3, 2)], budget)?;
+    let items = m
+        .data(3, 2)
+        .into_iter()
+        .map(|p| hypothesis(vec![p], budget))
+        .collect::<Result<_, _>>()?;
+    Ok(HypothesisResult {
+        hypotheses: items,
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}
+fn partials(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialResult, Error> {
+    let m = Message::new(parts, &[(1, 2)], budget)?;
+    let items = m
+        .data(1, 2)
+        .into_iter()
+        .map(|p| partial(vec![p], budget))
+        .collect::<Result<_, _>>()?;
+    Ok(PartialResult {
+        partials: items,
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}
+fn recognition(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionResult, Error> {
+    let m = Message::new(parts, &[(1, 0), (3, 2), (4, 2)], budget)?;
+    Ok(RecognitionResult {
+        state: m.integer(1),
+        hypothesis_result: m.message(3, budget, hypotheses)?,
+        partial_result: m.message(4, budget, partials)?,
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}
+fn speech(parts: Vec<&[u8]>, budget: &mut usize) -> Result<SpeechEventResult, Error> {
+    let m = Message::new(parts, &[(1, 0)], budget)?;
+    Ok(SpeechEventResult {
+        event: m.integer(1),
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}
+const RESULT_ONEOF: &[u32] = &[1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 19, 20, 21];
+fn response_result(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionResponse, Error> {
+    let m = Message::new(parts, &[(1, 2), (2, 2), (3, 2), (4, 2)], budget)?;
+    let mut out = RecognitionResponse {
+        result_id: m.string(3)?,
+        alternative_text: m.string(4)?,
+        ..Default::default()
+    };
+    for (number, values) in m.oneof(RESULT_ONEOF) {
+        out.active_field = Some(number);
+        out.active_raw = Some(values.concat());
+        out.recognition = None;
+        out.speech = None;
+        match number {
+            1 => out.recognition = Some(recognition(values, budget)?),
+            2 => out.speech = Some(speech(values, budget)?),
+            _ => (), // Unknown oneof contents stay opaque, but clear the preceding member.
+        }
+    }
+    out.raw = m.raw;
+    out.unknown_fields = m.unknown;
+    Ok(out)
+}
+/// Decode with a single 100000-field global budget and an 8MiB root bound.
+/// Every known occurrence is validated, even when overwritten. S3 errors are data.
+pub fn decode_response(payload: &[u8]) -> Result<S3Response, Error> {
+    let mut budget = MAX_FIELDS;
+    let m = Message::new(
+        vec![payload],
+        &[(1, 0), (2, 0), (3, 2), (RECOGNITION_RESPONSE, 2)],
+        &mut budget,
+    )?;
+    Ok(S3Response {
+        status: m.integer(1),
+        error_code: m.integer(2),
+        error_message: m.string(3)?,
+        result: m.message(RECOGNITION_RESPONSE, &mut budget, response_result)?,
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}

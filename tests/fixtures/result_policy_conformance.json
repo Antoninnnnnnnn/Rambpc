@@ -1,0 +1,735 @@
+{
+  "format_version": 1,
+  "fixture_kind": "generated_result_policy_conformance_oracle",
+  "reference_commit": "ec39b5d",
+  "scope": "Reference result policies only. Manual DictationResult construction is not proof of session EOF or backend support. Synthetic cases are not real service responses. Original and derived inputs remain explicitly distinguished.",
+  "source_files": {
+    "tests\\fixtures\\live_synthetic_responses.json": "25c528a86f3bf1392d54a17d36c08faa2b25191b51d1432d3d2136c401ebef36",
+    "tests\\fixtures\\live_rewrite_response.json": "669b25803ac37f04aeb39785c8048a076da3802bd5f736c66c315213a1b41059",
+    "src\\rambler\\results.py": "9bd80287e48d1a0ba2d99ca94d284db9eab46d71655245fb8962379af4b74aa3"
+  },
+  "revision_encoding": "Tagged strings or canonical decimal integer strings; type-sensitive, arbitrary-size integer equality, no arithmetic.",
+  "cases": [
+    {
+      "id": "captured-correction-intent2",
+      "origin": "original_public_response",
+      "response_payloads": [
+        {
+          "hex": "2808ca8fe404eb010ae80108011a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e20022a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e2002",
+          "sha256": "43fd638823e88612faa6ee8a50614c0ba30ac38bef51f1623fee1178013b9c1e"
+        }
+      ],
+      "context": {
+        "before": ""
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "value": "The meeting is tomorrow at 11."
+        },
+        "proposal": {
+          "replacement_text": "The meeting is tomorrow at 11.",
+          "replacement_context": null,
+          "selection_utf16_range": null,
+          "validations": []
+        }
+      }
+    },
+    {
+      "id": "captured-french-intent2",
+      "origin": "original_public_response",
+      "response_payloads": [
+        {
+          "hex": "280aca8fe404cd040aca0408011aa1020800109cc4f6031a97020a58426f6e6a6f75722e20436563692065737420756e2065737361692064652064696374c3a96520696e74656c6c6967656e74652e204c612072c3a9756e696f6e2061757261206c6965752064656d61696e20c3a0203131682e82dcf79d02b6010a58426f6e6a6f75722e20436563692065737420756e2065737361692064652064696374c3a96520696e74656c6c6967656e74652e204c612072c3a9756e696f6e2061757261206c6965752064656d61696e20c3a0203131682e1a58426f6e6a6f75722e20436563692065737420756e2065737361692064652064696374c3a96520696e74656c6c6967656e74652e204c612072c3a9756e696f6e2061757261206c6965752064656d61696e20c3a0203131682e20022aa1020800109cc4f6031a97020a58426f6e6a6f75722e20436563692065737420756e2065737361692064652064696374c3a96520696e74656c6c6967656e74652e204c612072c3a9756e696f6e2061757261206c6965752064656d61696e20c3a0203131682e82dcf79d02b6010a58426f6e6a6f75722e20436563692065737420756e2065737361692064652064696374c3a96520696e74656c6c6967656e74652e204c612072c3a9756e696f6e2061757261206c6965752064656d61696e20c3a0203131682e1a58426f6e6a6f75722e20436563692065737420756e2065737361692064652064696374c3a96520696e74656c6c6967656e74652e204c612072c3a9756e696f6e2061757261206c6965752064656d61696e20c3a0203131682e2002",
+          "sha256": "b8c4e7ce9a84b34f27fd1bebf1201cd1ecd538940962a4b8b2cb243380b70d15"
+        }
+      ],
+      "context": {
+        "before": ""
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "value": "Bonjour. Ceci est un essai de dict\u00e9e intelligente. La r\u00e9union aura lieu demain \u00e0 11h."
+        },
+        "proposal": {
+          "replacement_text": "Bonjour. Ceci est un essai de dict\u00e9e intelligente. La r\u00e9union aura lieu demain \u00e0 11h.",
+          "replacement_context": null,
+          "selection_utf16_range": null,
+          "validations": []
+        }
+      }
+    },
+    {
+      "id": "derived-rewrite-intent3",
+      "origin": "sanitized_derived_public_response",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404ff010afc0108011af7011af4010a5253656e64206d6520746865207265706f7274206e6f772e204d616b6520746869732073656e74656e6365206d6f726520706f6c6974652c20627574206b656570207468652073616d65206d65616e696e672e82dcf79d0299010a5253656e64206d6520746865207265706f7274206e6f772e204d616b6520746869732073656e74656e6365206d6f726520706f6c6974652c20627574206b656570207468652073616d65206d65616e696e672e1a41436f756c6420796f7520706c656173652073656e64206d6520746865207265706f727420617420796f7572206561726c6965737420636f6e76656e69656e63653f2003",
+          "sha256": "0874d1f2021cd27f03bf1fd3c494d9133dedac8a7c97ea061acd84239ea000bb"
+        }
+      ],
+      "context": {
+        "before": "Send me the report now."
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "value": "Could you please send me the report at your earliest convenience?"
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "duplicate-finals-not-deduplicated",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "2808ca8fe404eb010ae80108011a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e20022a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e2002",
+          "sha256": "43fd638823e88612faa6ee8a50614c0ba30ac38bef51f1623fee1178013b9c1e"
+        },
+        {
+          "hex": "2808ca8fe404eb010ae80108011a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e20022a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e2002",
+          "sha256": "43fd638823e88612faa6ee8a50614c0ba30ac38bef51f1623fee1178013b9c1e"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "AmbiguousResultError"
+        }
+      }
+    },
+    {
+      "id": "distinct-finals-not-concatenated",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "2808ca8fe404eb010ae80108011a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e20022a71080010fc9da8021a680a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e82dcf79d02420a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e1a1e546865206d656574696e6720697320746f6d6f72726f772061742031312e2002",
+          "sha256": "43fd638823e88612faa6ee8a50614c0ba30ac38bef51f1623fee1178013b9c1e"
+        },
+        {
+          "hex": "2806ca8fe40483020a800208011a7d080010bcd484011a740a22546865206d656574696e6720697320746f6d6f72726f7720617420656c6576656e2e82dcf79d024a0a22546865206d656574696e6720697320746f6d6f72726f7720617420656c6576656e2e1a22546865206d656574696e6720697320746f6d6f72726f7720617420656c6576656e2e20022a7d080010bcd484011a740a22546865206d656574696e6720697320746f6d6f72726f7720617420656c6576656e2e82dcf79d024a0a22546865206d656574696e6720697320746f6d6f72726f7720617420656c6576656e2e1a22546865206d656574696e6720697320746f6d6f72726f7720617420656c6576656e2e2002",
+          "sha256": "788d7342768e01bc529ef1799182641f10ff954b72b2e21099884672d22f922c"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "AmbiguousResultError"
+        }
+      }
+    },
+    {
+      "id": "zero-final-updates",
+      "origin": "synthetic_wire",
+      "response_payloads": [],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "AmbiguousResultError"
+        }
+      }
+    },
+    {
+      "id": "final-with-empty-hypothesis-set",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404060a0408011a00",
+          "sha256": "03dfe10efca571ec306db54de9d29b54467b1382a6a73bca87030ad533570071"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "AmbiguousResultError"
+        }
+      }
+    },
+    {
+      "id": "unique-hypothesis-without-voice-edit",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404150a1308011a0f1a0d0a0b506c61696e20746578742e",
+          "sha256": "9aad4d2cc3902cd1106a1a2bc8684299ffb8123e38d1221d0c1ba1a33b7dc52f"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "value": "Plain text."
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "missing-hypothesis-text-without-voice-edit",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404080a0608011a021a00",
+          "sha256": "bd41c4be9ae66273dc047fd87eee5389a9be4da483105864583fa8144736b06d"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "intent4-not-inferred-from-edited-text",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404380a3608011a321a300a0e73706f6b656e20636f6d6d616e6482dcf79d021a0a0e73706f6b656e20636f6d6d616e6420041a06656469746564",
+          "sha256": "779ea118fe87b2ea09cd8530f73151413d6ce93a17a49939e1534b86eb737aa9"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "intent2-opaque-field2-not-rendered",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404380a3608011a321a300a0e73706f6b656e20636f6d6d616e6482dcf79d021a0a0e73706f6b656e20636f6d6d616e6420021206656469746564",
+          "sha256": "5dc32f7e1e58b368f60c6922833ba76e9e63f0321107efa43540fb0bdbe57c2a"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "intent3-context7-remains-ambiguous",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe4043b0a3908011a351a330a0e73706f6b656e20636f6d6d616e6482dcf79d021d0a0e73706f6b656e20636f6d6d616e6420033a090a01411201421a0143",
+          "sha256": "9f9cb2ef4537f2dd9708ced3df97303462b4e6c3a6e6b8c62c09924c34807e01"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "intent2-missing-edit-does-not-fallback",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404300a2e08011a2a1a280a0e73706f6b656e20636f6d6d616e6482dcf79d02120a0e73706f6b656e20636f6d6d616e642002",
+          "sha256": "e349c231d48a7c25b28a5fc7db5bf12f6a50f38af211575fb16bf20263610ab7"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "error": "AmbiguousResultError"
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "empty-edited-text-is-present-deletion",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404320a3008011a2c1a2a0a0e73706f6b656e20636f6d6d616e6482dcf79d02140a0e73706f6b656e20636f6d6d616e6420021a00",
+          "sha256": "391fb2c46a55c4e21ed623b781da75a15d73098e9d92187dcd458f515869dd5c"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "value": ""
+        },
+        "proposal": {
+          "replacement_text": "",
+          "replacement_context": null,
+          "selection_utf16_range": null,
+          "validations": []
+        }
+      }
+    },
+    {
+      "id": "no-captured-context-cannot-propose",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404380a3608011a321a300a0e73706f6b656e20636f6d6d616e6482dcf79d021a0a0e73706f6b656e20636f6d6d616e6420021a06656469746564",
+          "sha256": "b2dc19c6ed17d5b4bcffdbb3c234a5b887be2f8a20544fafbfb8165fdee044a7"
+        }
+      ],
+      "context": null,
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [],
+      "expected": {
+        "text": {
+          "value": "edited"
+        },
+        "proposal": {
+          "error": "UnsupportedEditError"
+        }
+      }
+    },
+    {
+      "id": "context7-utf16-not-bytes-or-codepoints",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404650a6308011a5f1a5d0a1e65cc81f09f9982203c637572736f723ef09f98803c2f637572736f723e2e82dcf79d02370a1e65cc81f09f9982203c637572736f723ef09f98803c2f637572736f723e2e20023a130a0865cc81f09f9982201204f09f98801a012e",
+          "sha256": "49af4783b073fa22d050e0f5bdea3752faecd9020890a0f57a508cf3c01a004b"
+        }
+      ],
+      "context": {
+        "before": "e\u0301\ud83d\ude42 ",
+        "selected": "old",
+        "after": ".",
+        "cursor_aware": true
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [
+        {
+          "context": {
+            "before": "e\u0301\ud83d\ude42 ",
+            "selected": "old",
+            "after": ".",
+            "cursor_aware": true
+          },
+          "revision": {
+            "kind": "integer",
+            "decimal": "1"
+          }
+        },
+        {
+          "context": {
+            "before": "changed",
+            "selected": "old",
+            "after": ".",
+            "cursor_aware": true
+          },
+          "revision": {
+            "kind": "integer",
+            "decimal": "1"
+          }
+        },
+        {
+          "context": {
+            "before": "e\u0301\ud83d\ude42 ",
+            "selected": "old",
+            "after": ".",
+            "cursor_aware": true
+          },
+          "revision": {
+            "kind": "integer",
+            "decimal": "2"
+          }
+        },
+        {
+          "context": {
+            "before": "e\u0301\ud83d\ude42 ",
+            "selected": "old",
+            "after": ".",
+            "cursor_aware": true
+          },
+          "revision": {
+            "kind": "string",
+            "value": "1"
+          }
+        }
+      ],
+      "expected": {
+        "text": {
+          "value": "e\u0301\ud83d\ude42 \ud83d\ude00."
+        },
+        "proposal": {
+          "replacement_text": "e\u0301\ud83d\ude42 \ud83d\ude00.",
+          "replacement_context": {
+            "before": "e\u0301\ud83d\ude42 ",
+            "selected": "\ud83d\ude00",
+            "after": ".",
+            "cursor_aware": true
+          },
+          "selection_utf16_range": [
+            5,
+            7
+          ],
+          "validations": [
+            {
+              "valid": true
+            },
+            {
+              "error": "ContextConflictError"
+            },
+            {
+              "error": "ContextConflictError"
+            },
+            {
+              "error": "ContextConflictError"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "revision-type-sensitive-and-context-mode-ignored",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404380a3608011a321a300a0e73706f6b656e20636f6d6d616e6482dcf79d021a0a0e73706f6b656e20636f6d6d616e6420021a06656469746564",
+          "sha256": "b2dc19c6ed17d5b4bcffdbb3c234a5b887be2f8a20544fafbfb8165fdee044a7"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1"
+      },
+      "validations": [
+        {
+          "context": {
+            "before": "Existing.",
+            "selected": "",
+            "after": "",
+            "cursor_aware": true
+          },
+          "revision": {
+            "kind": "integer",
+            "decimal": "1"
+          }
+        },
+        {
+          "context": {
+            "before": "Existing.",
+            "selected": "",
+            "after": "",
+            "cursor_aware": false
+          },
+          "revision": {
+            "kind": "string",
+            "value": "1"
+          }
+        }
+      ],
+      "expected": {
+        "text": {
+          "value": "edited"
+        },
+        "proposal": {
+          "replacement_text": "edited",
+          "replacement_context": null,
+          "selection_utf16_range": null,
+          "validations": [
+            {
+              "valid": true
+            },
+            {
+              "error": "ContextConflictError"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "arbitrary-size-integer-revision",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404380a3608011a321a300a0e73706f6b656e20636f6d6d616e6482dcf79d021a0a0e73706f6b656e20636f6d6d616e6420021a06656469746564",
+          "sha256": "b2dc19c6ed17d5b4bcffdbb3c234a5b887be2f8a20544fafbfb8165fdee044a7"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": {
+        "kind": "integer",
+        "decimal": "1606938044258990275541962092341162602522202993782792835301377"
+      },
+      "validations": [
+        {
+          "context": {
+            "before": "Existing.",
+            "selected": "",
+            "after": "",
+            "cursor_aware": false
+          },
+          "revision": {
+            "kind": "integer",
+            "decimal": "1606938044258990275541962092341162602522202993782792835301377"
+          }
+        },
+        {
+          "context": {
+            "before": "Existing.",
+            "selected": "",
+            "after": "",
+            "cursor_aware": false
+          },
+          "revision": {
+            "kind": "string",
+            "value": "1606938044258990275541962092341162602522202993782792835301377"
+          }
+        }
+      ],
+      "expected": {
+        "text": {
+          "value": "edited"
+        },
+        "proposal": {
+          "replacement_text": "edited",
+          "replacement_context": null,
+          "selection_utf16_range": null,
+          "validations": [
+            {
+              "valid": true
+            },
+            {
+              "error": "ContextConflictError"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "no-expected-revision-text-snapshot-still-required",
+      "origin": "synthetic_wire",
+      "response_payloads": [
+        {
+          "hex": "ca8fe404380a3608011a321a300a0e73706f6b656e20636f6d6d616e6482dcf79d021a0a0e73706f6b656e20636f6d6d616e6420021a06656469746564",
+          "sha256": "b2dc19c6ed17d5b4bcffdbb3c234a5b887be2f8a20544fafbfb8165fdee044a7"
+        }
+      ],
+      "context": {
+        "before": "Existing.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "expected_revision": null,
+      "validations": [
+        {
+          "context": {
+            "before": "Existing.",
+            "selected": "",
+            "after": "",
+            "cursor_aware": false
+          },
+          "revision": {
+            "kind": "string",
+            "value": "anything"
+          }
+        },
+        {
+          "context": {
+            "before": "Existing.",
+            "selected": "",
+            "after": "changed",
+            "cursor_aware": false
+          },
+          "revision": null
+        }
+      ],
+      "expected": {
+        "text": {
+          "value": "edited"
+        },
+        "proposal": {
+          "replacement_text": "edited",
+          "replacement_context": null,
+          "selection_utf16_range": null,
+          "validations": [
+            {
+              "valid": true
+            },
+            {
+              "error": "ContextConflictError"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

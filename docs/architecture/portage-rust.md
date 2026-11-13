@@ -57,6 +57,10 @@ ni API Gemini publique, ni relais Android.
   fixture **dérivée/expurgée**, jamais présentée comme quatrième original.
 - [`tests/test_protocol_hints.py`](../../tests/test_protocol_hints.py) : goldens
   init préexistants et émission exacte des champs optionnels.
+- [`tests/fixtures/result_policy_conformance.json`](../../tests/fixtures/result_policy_conformance.json) :
+  19 cas d'oracle Python pour le rendu, les ambiguïtés, suppressions vides, conflits,
+  révisions typées de taille arbitraire et UTF-16. Les 20 tests Python associés
+  vérifient ce corpus ; ce n'est pas une preuve de session S3 complète.
 - Suites Python protocole, transport, moteur, résultats et encodage : cas à
   traduire, pas seulement happy-path. Tests Rust offline/loopback avant accès réel.
 - [Corpus naturel](../evidence/natural-expansion-public.json),
