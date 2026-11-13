@@ -181,6 +181,40 @@ def test_duplicate_keys_and_invalid_unicode_leave_no_output(tmp_path):
     assert not output.exists()
 
 
+@pytest.mark.parametrize('include_text', [False, True])
+def test_manifest_and_hints_allowlist_only_nontext_metadata(include_text):
+    original = report()
+    original['manifest_summary'] = {'sha256': 'a' * 64, 'bytes': 321, 'hidden': PRIVATE_ID}
+    case = original['cases'][0]
+    case['language'] = 'fr-FR'
+    case['initial_hints'] = {'bias_terms': ['fake-sensitive-hint']}
+    case['initial_hints_summary'] = {
+        'bias_terms': {'count': 1, 'sha256': 'b' * 64, 'raw': 'fake-sensitive-hint'},
+        'preferences': {'count': 0, 'sha256': 'c' * 64, 'other': PRIVATE_ID},
+        'secondary_languages': {'count': 1, 'sha256': 'd' * 64},
+        'unknown': {'count': 1, 'sha256': 'e' * 64, 'raw': PRIVATE_ID}}
+    projected = sanitizer.sanitize_report(original, include_text=include_text)
+    assert projected['manifest_summary'] == {'sha256': 'a' * 64, 'bytes': 321}
+    assert projected['cases'][0]['language'] == 'fr-FR'
+    hints = projected['cases'][0]['initial_hints_summary']
+    assert hints == {'bias_terms': {'count': 1, 'sha256': 'b' * 64},
+                     'preferences': {'count': 0, 'sha256': 'c' * 64},
+                     'secondary_languages': {'count': 1, 'sha256': 'd' * 64}}
+    text = json.dumps(projected, ensure_ascii=False)
+    assert 'fake-sensitive-hint' not in text and PRIVATE_ID not in text
+
+
+def test_malformed_new_metadata_is_not_projected():
+    original = report()
+    original['manifest_summary'] = {'sha256': PRIVATE_ID, 'bytes': -1}
+    original['cases'][0]['language'] = PRIVATE_ID
+    original['cases'][0]['initial_hints_summary'] = {'bias_terms': {'count': -3, 'sha256': PRIVATE_ID}}
+    projected = sanitizer.sanitize_report(original)
+    assert projected['manifest_summary'] == {}
+    assert 'language' not in projected['cases'][0]
+    assert projected['cases'][0]['initial_hints_summary'] == {'bias_terms': {}}
+
+
 def test_sanitized_derived_fixture_has_only_the_reviewed_known_components():
     fixture = json.loads((ROOT / 'tests/fixtures/live_rewrite_response.json').read_text(encoding='utf-8'))
     assert fixture['fixture_kind'] == 'sanitized_derived_server_response'

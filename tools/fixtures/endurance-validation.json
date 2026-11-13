@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "description": "Original synthetic endurance inputs; relative audio paths are resolved from this manifest. No trimming or padding to force target duration. Speech source: endurance-speech.json; preparation metadata: artifacts/endurance-synthetic/manifest.json.",
+  "cases": [
+    {
+      "id": "endurance-two-minute-en",
+      "audio": "../../artifacts/endurance-synthetic/endurance-two-minute-en-16k.wav",
+      "language": "en-US",
+      "markers": {
+        "beginning": "amber orchard",
+        "middle": "cobalt lantern",
+        "end": "violet harbor"
+      },
+      "context": {"before": ""}
+    },
+    {
+      "id": "endurance-five-minute-en",
+      "audio": "../../artifacts/endurance-synthetic/endurance-five-minute-en-16k.wav",
+      "language": "en-US",
+      "markers": {
+        "beginning": "amber orchard",
+        "middle": "cobalt lantern",
+        "end": "violet harbor"
+      },
+      "context": {"before": ""}
+    }
+  ]
+}

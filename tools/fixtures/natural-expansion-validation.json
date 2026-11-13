@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "description": "Licensed natural audiobook speech, prepared without trimming; see provenance.",
+  "cases": [
+    {
+      "id": "natural-en-1320-122617-0000",
+      "audio": "artifacts/natural-expansion/en-1320-122617-0000.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "NOTWITHSTANDING THE HIGH RESOLUTION OF HAWKEYE HE FULLY COMPREHENDED ALL THE DIFFICULTIES AND DANGER HE WAS ABOUT TO INCUR",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-en-7729-102255-0039",
+      "audio": "artifacts/natural-expansion/en-7729-102255-0039.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "THE INMATES BEING REMOVED AT THE APPOINTED HOUR A FEW CANNON BALLS WERE FIRED THROUGH THE STONE WALLS",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-en-8463-294828-0023",
+      "audio": "artifacts/natural-expansion/en-8463-294828-0023.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "YOU SEE MY FRIEND IT'S AN ISSUE OF THE MONSTER THE NOTORIOUS NARWHALE",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-en-5142-33396-0002",
+      "audio": "artifacts/natural-expansion/en-5142-33396-0002.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "TWO HUNDRED WARRIORS FEASTED IN HIS HALL AND FOLLOWED HIM TO BATTLE",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-en-4446-2275-0005",
+      "audio": "artifacts/natural-expansion/en-4446-2275-0005.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "I FELT IT IN MY BONES WHEN I WOKE THIS MORNING THAT SOMETHING SPLENDID WAS GOING TO TURN UP",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-en-4507-16021-0033",
+      "audio": "artifacts/natural-expansion/en-4507-16021-0033.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "DO WE REALLY KNOW THE MOUNTAIN WELL WHEN WE ARE NOT ACQUAINTED WITH THE CAVERN",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-en-1188-133604-0031",
+      "audio": "artifacts/natural-expansion/en-1188-133604-0031.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "THERE'S ONE AND THERE'S ANOTHER THE DUDLEY AND THE FLINT",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-fr-296_1028_000000",
+      "audio": "artifacts/natural-expansion/fr-296_1028_000000.wav",
+      "language": "fr-FR",
+      "kind": "licensed natural speech",
+      "reference_text": "lorsqu'il eut achevé ce repas frugal comme il était bon musulman il se lava les mains le visage et les pieds et fit sa prière",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-fr-12080_11650_000062",
+      "audio": "artifacts/natural-expansion/fr-12080_11650_000062.wav",
+      "language": "fr-FR",
+      "kind": "licensed natural speech",
+      "reference_text": "oui se disait-il avec une volupté infinie et en parlant lentement nos mérites au marquis et à moi ont été pesés et le pauvre charpentier du jura l'emporte",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    },
+    {
+      "id": "natural-fr-2114_1656_000078",
+      "audio": "artifacts/natural-expansion/fr-2114_1656_000078.wav",
+      "language": "fr-FR",
+      "kind": "licensed natural speech",
+      "reference_text": "au premier signe suivez-moi tous car il faudra repartir sans attirer l'attention et nous allâmes frapper à la porte chapitre cinq",
+      "input_provenance": "docs/evidence/natural-expansion-inputs.json",
+      "context": {
+        "before": ""
+      }
+    }
+  ]
+}

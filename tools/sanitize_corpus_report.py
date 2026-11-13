@@ -45,7 +45,8 @@ _ENUMS = {
     'error_class': {'ValueError', 'TypeError', 'TimeoutError', 'RuntimeError',
                     'LookupError', 'ImportError', 'FileNotFoundError',
                     'AioRpcError', 'CancelledError', 'IncompleteSessionError',
-                    'S3SessionError', 'ContextConflictError', 'AmbiguousResultError'},
+                    'S3SessionError', 'ContextConflictError', 'AmbiguousResultError',
+                    'UnsupportedInitialHintsError'},
 }
 _WIRE = {'raw_summary': ('raw', 'bytes_summary'),
          'unknown_field_summaries': ('unknown_fields', 'unknown_fields')}
@@ -87,7 +88,11 @@ _SCHEMAS = {
                  'rambler_source_sha256': 'source_hashes', 'validator_sha256': 'hash'},
     'summary': {'requested': 'int', 'completed_successfully': 'int', 'failed': 'int',
                 'not_run': 'int', 'status': 'enum:outcome'},
-    'case': {'id': 'label', 'transport': 'enum:transport', 'audio': 'audio',
+    'digest_count': {'sha256': 'hash', 'count': 'uint'},
+    'manifest_summary': {'sha256': 'hash', 'bytes': 'uint'},
+    'hints_summary': {name: 'digest_count' for name in ('bias_terms', 'preferences', 'secondary_languages')},
+    'case': {'id': 'label', 'language': 'language', 'initial_hints_summary': 'hints_summary',
+             'transport': 'enum:transport', 'audio': 'audio',
              'consumed_source': 'consumed', 'sent_ogg': 'consumed',
              'effective_pacing': 'enum:pacing', 'timing': 'timing',
              'final_update_count': 'int', 'rendering': 'enum:rendering',
@@ -98,6 +103,7 @@ _SCHEMAS = {
              'error_class': 'enum:error_class', 'render_error_class': 'enum:error_class',
              'grpc_code': 'enum:grpc_code'},
     'report': {'versions': 'versions', 'cpu': 'cpu', 'requested_realtime': 'bool',
+               'manifest_summary': 'manifest_summary',
                'source_include_results': ('include_results', 'bool'),
                'summary': 'summary', 'cases': 'case[]'},
 }
@@ -216,6 +222,10 @@ def _value(value, kind, include_text):
         return value if type(value) is bool else _OMIT
     if kind == 'int':
         return value if type(value) is int else _OMIT
+    if kind == 'uint':
+        return value if type(value) is int and value >= 0 else _OMIT
+    if kind == 'language':
+        return value if isinstance(value, str) and re.fullmatch(r'[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}', value) else _OMIT
     if kind == 'number':
         if type(value) in (int, float):
             if type(value) is float and not math.isfinite(value):

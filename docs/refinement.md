@@ -242,9 +242,128 @@ Ce n'est pas un nouveau gain de vitesse ni une preuve d'équivalence de latence.
 Distributions, outlier et limites CPU sont dans [performance.md](performance.md).
 
 Les intentions 0 à 6 sont décodables, mais seules **2 et 3** ont été observées dans
-ces preuves fonctionnelles. Les biais/contacts `InputBoxInfo.field3`, préférences
-`field5` et langues secondaires `UserInfo.field4` ne sont pas exposés : leur présence
-dans le schéma ne prouve pas leur effet serveur. Leur placement temporel reste à
-vérifier ; ne pas activer flags, quotas ou chemins d'authentification par supposition.
-Restent notamment les voix naturelles françaises, l'endurance prolongée, les réseaux
-réellement dégradés, le démarrage à froid et la portée des autres intentions.
+ces preuves fonctionnelles. Les hints sont désormais exposés comme indiqué ci-dessous ;
+leur encodage ne garantit pas leur effet serveur. Restent notamment une évaluation
+représentative des voix naturelles, l'endurance plus longue, les réseaux réellement
+dégradés, le démarrage à froid et la portée des autres intentions. Les observations
+supplémentaires ci-dessous ne remplacent pas les rapports historiques.
+
+## Poursuite : corpus naturel, composition et endurance
+
+### Dix nouveaux extraits naturels et trois essais progressifs
+
+Les [entrées et licences](evidence/natural-expansion-inputs.json) couvrent **7 extraits
+anglais LibriSpeech et 3 français MLS**, chacun avec un identifiant de locuteur et
+de chapitre distinct dans sa langue. Les 72,825 s de lecture sont normalisées en
+PCM16 mono 16 kHz sans découpage. Les références sont celles des jeux de données,
+pas des transcriptions indépendamment corrigées.
+
+Les [dix sessions accélérées](evidence/natural-expansion-public.json) terminent avec
+source complète, fin S3/gRPC et rendu unique. Le [résumé qualité](evidence/natural-expansion-quality.json)
+compte 3/109 mots en anglais et 3/79 en français selon le WER ponctuation/casse/blancs
+normalisés, **sans** équivalence entre nombres et mots ni entre mots composés.
+`cannon balls`/`cannonballs`, `narwhale`/`narwhal` et `cinq`/`5` contribuent donc au
+score ; `eut achevé`/`achevait` est une véritable différence de temps par rapport à
+la référence, sans que l'audio ait été réannoté indépendamment. Ne pas présenter
+ces ratios comme une précision générale, ni toute différence comme une perte audio.
+
+[Trois sessions à débit simulé](evidence/natural-expansion-realtime-public.json),
+une anglaise et deux françaises, ont reçu les mêmes textes que leurs versions
+accélérées avec le même PCM source consommé. Ce sont encore de courts extraits
+lus, pas du bruit, du dialogue spontané ou un microphone réel.
+
+### Composition : recherche et observations, pas simple fonctionnalité oubliée
+
+L'[analyse dédiée](research/composition.md) distingue l'enum/mock `COMPOSE`, le
+câblage vide des alternatives MUSE, le chemin Android Lite et le service S3 natif.
+Les cinq essais sans invocation restent de la dictée pour les demandes de création,
+avec réécriture positive pour le témoin connu. Les essais d'invocation ultérieurs
+reconnaissent phonétiquement « Hey Gboard » mais le conservent littéralement avec et
+sans biais ; « Okay » complet avec biais reste aussi littéral. Ils ne valident pas
+COMPOSE 4. Aucune impossibilité universelle ni activation par flags n'est déduite.
+
+### Hints au démarrage : SDK 0.3
+
+`ProtocolConfig` accepte des **tuples** optionnels `bias_terms`, `preferences` et
+`secondary_languages`, vides par défaut. Ils sont sérialisés dans l'initialisation :
+`InputBoxInfo` extension 1203, champs 3 et 5 répétés, puis `UserInfo` extension 293000,
+champ 4 répété pour les langues. Le contexte d'édition reste une requête distincte
+**après l'audio**, avant la fin. Sans options, les goldens restent identiques.
+Exemple :
+
+```python
+from rambler import ProtocolConfig
+config = ProtocolConfig(language='en-US', bias_terms=('Zunarel', 'Valmera'),
+                        preferences=('Use British spelling.',),
+                        secondary_languages=('fr-FR',))
+```
+
+Le SDK impose au plus 1 024 chaînes par catégorie biais/préférences, un budget
+UTF-8 total de 1 MiB pour ces deux catégories, et au plus 16 langues secondaires
+avec un budget total de 1 024 octets UTF-8 ; les tags secondaires sont non vides.
+Les autres limites de message restent applicables. Ce sont des bornes SDK, pas des
+quotas ni des limites serveur démontrées. Les contacts et consignes peuvent être
+sensibles : ne les envoyer qu'avec autorisation.
+
+L'[expérience bornée 10/10](evidence/input-hints-public.json) conserve hash du
+manifeste et résumés : avec biais, `Zunarell` devient `Zunarel`, mais `and` devient
+une virgule ; un seul cas ne démontre pas de gain global. La préférence d'orthographe
+britannique n'a pas d'effet démontré ; les deux configurations FR/EN donnent le même
+texte mixte correct, sans bénéfice isolé des langues secondaires. L'acceptation
+observée de ces requêtes ne démontre pas une prise en compte universelle des hints.
+
+Le placement initial est appuyé par `ihv` lignes 153–211, `knv-simple` lignes
+259–309 et `zxh` lignes 243–255 dans les sorties statiques identifiées par
+[protocol.md](research/protocol.md). Le contexte tardif reste indépendant. Ne pas
+activer de flags, quotas ou chemins d'authentification par supposition.
+
+### Endurance progressive : premier palier réel
+
+Le [palier 118,682 s](evidence/endurance-120-public.json) a consommé ses **3 797 836
+octets PCM**, reçu une finale unique et conservé «Amber Orchard», «Cobalt Lantern»
+et «Violet Harbor» dans cette finale, sans concaténation ni déduplication.
+Collecte/pipeline : 119,880 s, CPU processus 5,891 s ; ce CPU inclut encodage,
+hashing, instrumentation et moteur, pas le seul service distant.
+
+RSS courant échantillonné : 58 511 360 octets au début, 60 723 200 à la fin,
+maximum échantillonné 60 907 520. L'écart maximal entre échantillons est 1,015 s,
+sous le plafond de couverture de 3 s. Ce n'est ni le pic exact, ni le high-water
+historique, ni une preuve d'absence de fuite. Le banc distingue succès transport,
+intégrité source, couverture mémoire et divergences sémantiques.
+
+`tools/validate_endurance.py` limite sa campagne à trois sessions séquentielles,
+300 s audio et 360 s de timeout par session ; **ce sont des garde-fous du banc,
+pas des limites serveur ou du SDK établies**. Le palier 300 exige un rapport
+120 complet et compatible, pas un simple booléen `healthy`. Le rapport local
+n'est toutefois pas une attestation infalsifiable. Une lacune de sampling rend le
+profil inconclusif sans transformer un transport réussi en échec.
+
+Le [palier 300](evidence/endurance-300-public.json) comporte trois sessions saines
+séquentielles de **288,3515625 s** chacune, même canal et cadence simulée 20 ms ;
+chaque source PCM de **9 227 250 octets** est intégrale, les marqueurs sont présents
+et les ensembles finaux ordonnés identiques. Les trois durées pipeline sont environ
+291,238 / 290,908 / 290,747 s, avec CPU processus 17,094 / 14,469 / 14,672 s.
+Les maximums RSS échantillonnés sont 60 796 928 / 61 120 512 / 61 661 184 octets ;
+ce ne sont ni des pics exacts ni une preuve d'absence de fuite. Ces mesures utilisent
+la base SDK 0.2 **avant intégration des hints**, avec hashes de modules dans les
+rapports ; elles ne mesurent pas le nouveau code 0.3.
+
+Les rapports structurés du banc ne contiennent pas d'octets bruts, valeurs inconnues
+ou identifiants de service. `--include-text` exige toujours une revue d'un corpus
+contrôlé ; une dictée personnelle n'est pas automatiquement publiable. Les captures
+privées de continuation restent dans `artifacts/continuation-private/`, hors git.
+
+Reproduction facultative avec les sources autorisées déjà préparées, variables d'accès
+environnementales autorisées et le répertoire `local/` existant ; cela contacte le
+service réel et consomme du temps audio, sans relance automatique :
+
+```sh
+.venv/Scripts/python -I tools/validate_corpus.py --live --manifest tools/fixtures/input-hints-validation.json --output artifacts/my-hints/raw.json --timeout 90 --include-results
+.venv/Scripts/python -I tools/validate_endurance.py --live --manifest tools/fixtures/endurance-validation.json --id endurance-two-minute-en --stage 120 --timeout 180 --output local/endurance-120.json
+.venv/Scripts/python -I tools/validate_endurance.py --live --manifest tools/fixtures/endurance-validation.json --id endurance-five-minute-en --stage 300 --previous-report local/endurance-120.json --sessions 3 --timeout 360 --output local/endurance-300.json
+```
+
+Les fichiers de sortie doivent être nouveaux ; la préparation des audios est locale
+et doit respecter les manifestes. Les rapports `validate_corpus --include-results`
+contiennent des données brutes et exigent une projection expurgée et une revue avant
+publication ; ne pas les confondre avec les rapports structurés d'endurance.

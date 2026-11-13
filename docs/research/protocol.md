@@ -162,6 +162,18 @@ InputBoxInfo = `aamo`, extension S3Request **1203**, static ligne22. Ce n'est **
 
 Donc **ne pas fermer le flux juste après le dernier audio si du contexte reste à envoyer**. Le choix `aamo.field1` contre `.field4` dépend de l'activation cursor-aware (`muq.P`, défautfalse) ; quand false, `muq.Q` peut choisir seulement le texte sélectionné.
 
+**SDK 0.3 — hints init.** `ProtocolConfig.bias_terms` et `.preferences` écrivent
+respectivement les champs répétés 3 et 5 de 1203 dans la requête initiale, et
+`.secondary_languages` écrit les locales répétées `293000.field4`. Le texte
+avant/sélection/après reste envoyé séparément après l'audio. L'examen statique du
+fallback `ihv.java` lignes 153–211, de `knv-simple/knv.java` lignes 259–309 et
+`pixelboard-jadx/sources/defpackage/zxh.java` lignes 243–255 appuie ce placement et
+la construction des locales ; les chemins complets des sorties sont donnés §1.
+Leur présence n'établit pas leur efficacité générale. Les requêtes des dix essais
+[hints](../evidence/input-hints-public.json) ont abouti ; effets et limites sont
+rapportés dans [raffinement](../refinement.md). Les bornes sont celles du SDK, pas
+des limites serveur connues ; les goldens init sans options restent inchangés.
+
 ## 6. Séquence minimale fidèle
 
 ```text
@@ -409,5 +421,6 @@ sélection=`ten`, après=`.`. Retour intention2/champ7 : même avant, sélection
 même après. Une sélection dans un contexte contenant un caractère non-BMP est donc
 réellement exercée hors Android ; l'emoji n'est pas lui-même sélectionné. Les ranges
 numériques restent calculés localement en UTF-16, pas transmis par le wire.
-Voix naturelle anglaise (un seul clip) et dictée de40,56s sont décrites avec leurs
-limites dans [le raffinement](../refinement.md).
+Le premier clip naturel anglais et la dictée de40,56s sont décrits avec leurs limites
+dans [le raffinement](../refinement.md), ainsi que les corpus naturels supplémentaires
+et les essais d'endurance ultérieurs.

@@ -1,6 +1,39 @@
 # État du moteur — 2026-11-13
 
-## Raffinement 0.2.0 — code et nouveaux essais réels du 2026-11-13
+## Continuation SDK 0.3 et référence Rust
+
+Le SDK 0.3 intègre les options de contexte initial et **623 tests locaux stricts**
+passent. Les goldens de protocole par défaut restent identiques. Python est la
+référence de conformité du portage demandé : bibliothèque Rust indépendante et CLI
+d'abord ; Tauri, microphone et intégrations système restent ultérieurs et hors lot.
+Voir le [contrat de portage Rust](architecture/portage-rust.md), la
+[recommandation desktop](architecture/application-desktop-multiplateforme.md) et le
+[raffinement](refinement.md). La [roue de référence 0.3](evidence/reference-0.3-wheel-smoke.json)
+est construite et vérifiée dans un venv vierge sans PyAV : imports, égalité des
+modules, fixture réécriture et wire des hints/langues secondaires passent offline.
+
+**35 transports supplémentaires réussis** : 13 naturels, huit essais composition,
+quatre d'endurance et dix essais de hints. Ce compte ne signifie pas 35 fonctions
+validées. Les dix clips naturels supplémentaires (7 EN, 3 FR ; 72,825 s) donnent
+3/109 et 3/79 erreurs WER normalisées, avec différences de format et de temps verbal ;
+trois essais progressifs retrouvent exactement leur texte accéléré. La qualité générale
+reste ouverte. [Provenance](evidence/natural-expansion-inputs.json),
+[qualité](evidence/natural-expansion-quality.json), [progressif](evidence/natural-expansion-realtime-public.json).
+
+L'endurance synthétique a réussi une session de 118,682 s dans un premier processus,
+puis trois de 288,352 s sur un même canal dans un second processus, en cadence
+simulée, avec source intégrale, marqueurs et finales ordonnées identiques entre ces
+trois sessions longues. Les rapports montrent RSS échantillonné, CPU et durée, sans
+prouver l'absence de fuite ; ces mesures sont sur base **0.2 avant hints**, avec
+hashes de modules conservés. [120](evidence/endurance-120-public.json) ·
+[300](evidence/endurance-300-public.json).
+
+Les dix essais [hints](evidence/input-hints-public.json) n'établissent pas de gain
+général : un nom change avec changement de ponctuation/conjonction ; la préférence
+britannique et la langue secondaire n'ont pas de bénéfice isolé démontré. Les
+invocations vocales testées restent littérales ; COMPOSE 4 n'est pas observé.
+
+## Raffinement 0.2.0 — jalon historique du 2026-11-13
 
 Branche locale : `feat/engine-refinement`, construite sur `1f52c94` sans modifier
 la branche publiée. **438 tests locaux passent** avec asyncio debug et avertissements
@@ -54,8 +87,9 @@ Ogg/Opus16k mono, contexte tardif, fin S3 puis statut gRPC OK.
 | Édition de texte existant par instruction | Service réel, contexte avant curseur et historique édité renvoyé |
 | Intentions et résultats d'édition structurés | `VoiceEditingResult` réel, intentions 2 et 3 ; cas historiques et réécriture décodés indépendamment |
 | Réécriture polie en contexte | Service réel, intention 3/champ 3 rendue par le SDK ; pas de proposition de remplacement pour cette intention |
-| Voix naturelle anglaise | Un clip LibriSpeech de 3,505 s, WER normalisé 0/8 ; validation très limitée |
-| Dictée de 40,56 s | Envoi accéléré puis progressif, source intégrale et même texte final ; pas un test d'endurance prolongée |
+| Voix naturelles EN/FR | Premier clip EN puis dix extraits supplémentaires (7 EN, 3 FR), WER et limites documentés ; trois cas aussi progressifs |
+| Dictées longues | 40,56 s puis palier 118,68 s et trois sessions de 288,35 s ; source intégrale, marqueurs et finales longues identiques, endurance limitée |
+| Hints et langues secondaires | Champs initiaux exposés et dix transports réussis ; pas de gain global ou d'effet universel des préférences démontré |
 | Sélection avec emoji | Service réel, contexte non-BMP conservé et sélection `ten`→`eleven` |
 | Contexte en trois parties / sélection | Service réel : `ten`→`eleven`, contexte différé appelé après EOF audio, retour avant/sélection/après |
 | Sessions successives / canal réutilisé |21/21 sessions du banc accéléré réussies ; audio et texte identiques |
@@ -133,8 +167,8 @@ producteurs (stdout encodé FFmpeg contre lecteur PCM natif).
   graphique ni d'intégration microphone/environnement dans ce périmètre.
 - Nettoyage asyncio suppose des producteurs coopératifs. Les résultats partiels
   ne valent pas une fin de session. Erreurs S3 et statut final gRPC sont séparés.
-- Au-delà de l'unique clip naturel anglais et des sessions de 40,56 s, qualité sur
-  voix naturelles, endurance prolongée, transport réellement perdu et renouvellement
+- Au-delà des corpus naturels limités et des sessions synthétiques de 288 s, qualité
+  représentative, endurance plus longue, transport réellement perdu et renouvellement
   de credentials après révocation restent non validés.
 
 ## Historique utile

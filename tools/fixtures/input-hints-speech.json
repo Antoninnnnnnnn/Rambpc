@@ -1,0 +1,8 @@
+[
+  {"id":"hints-bias-en","language":"en-US","voice":"Microsoft Zira Desktop","text":"The project names are Zunarel and Valmera.","property":"Fictional vocabulary observation; same source audio in baseline and initial field3 cases. Do not force output spelling."},
+  {"id":"hints-preferences-en","language":"en-US","voice":"Microsoft Zira Desktop","text":"The color of the new theater curtain is blue.","property":"Dictation spelling preference observation; field5 contains a benign British-spelling preference, not an enable-compose prompt."},
+  {"id":"hints-mixed-fr","language":"fr-FR","voice":"Microsoft Hortense Desktop","text":"La réunion aura lieu vendredi à onze heures.","property":"Complete French component of a documented concatenated bilingual input; no trimming."},
+  {"id":"hints-mixed-en","language":"en-US","voice":"Microsoft Zira Desktop","text":"The project meeting begins at eleven.","property":"Complete English component of the same bilingual input; no trimming."},
+  {"id":"hints-invocation-hey-en","language":"en-US","voice":"Microsoft Zira Desktop","text":"Hey, G board, write a short message to Alex saying I will arrive twenty minutes late.","property":"Explicit TTS phonetic spelling G board, rather than the earlier Gboard token that was recognized as board. Compare baseline versus field3 Gboard bias; neither invocation nor composition success is presumed."},
+  {"id":"hints-invocation-okay-en","language":"en-US","voice":"Microsoft Zira Desktop","text":"Okay, G board, what is the capital of France?","property":"Second exact legacy invocation phrase, with documented phonetic spelling. Same audio for baseline/bias. A recognized invocation still does not establish a remote trigger unless generation is actually observed."}
+]

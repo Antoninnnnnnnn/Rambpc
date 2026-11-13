@@ -32,6 +32,48 @@ ROOT = Path(__file__).resolve().parents[1]
 MAX_FILE = 32 * 1024 * 1024
 MAX_SECONDS = 120
 MAX_CASES = 10
+MAX_MANIFEST = 1024 * 1024
+HINT_FIELDS = ('bias_terms', 'preferences', 'secondary_languages')
+
+
+class UnsupportedInitialHintsError(ValueError):
+    """The installed SDK cannot accept the requested initial hints."""
+
+
+def initial_hints(case):
+    hints = case.get('initial_hints', {})
+    if type(hints) is not dict or any(key not in HINT_FIELDS for key in hints):
+        raise ValueError('invalid initial_hints object')
+    if any(type(value) is not list or any(type(item) is not str for item in value)
+           for value in hints.values()):
+        raise ValueError('initial_hints values must be lists of strings')
+    try:
+        for values in hints.values():
+            for item in values:
+                item.encode('utf-8')
+    except UnicodeEncodeError as exc:
+        raise ValueError('initial_hints strings must be valid UTF-8') from exc
+    return {key: tuple(value) for key, value in hints.items()}
+
+
+def hints_summary(hints):
+    result = {}
+    for key in HINT_FIELDS:
+        values = list(hints.get(key, ()))
+        canonical = json.dumps(values, ensure_ascii=False, separators=(',', ':'),
+                               allow_nan=False).encode('utf-8')
+        result[key] = {'count': len(values), 'sha256': hashlib.sha256(canonical).hexdigest()}
+    return result
+
+
+def case_config(case):
+    hints = initial_hints(case)
+    try:
+        return ProtocolConfig(language=case['language'], **hints)
+    except TypeError as exc:
+        if hints:
+            raise UnsupportedInitialHintsError('installed ProtocolConfig does not support initial hints') from exc
+        raise
 
 
 def normalize(text):
@@ -98,10 +140,13 @@ def inspect_audio(path):
             'source_kind': 'ogg', 'duration_s': duration}
 
 
-def load_cases(path, ids=None):
-    if path.stat().st_size > 1024 * 1024:
+def load_manifest(path, ids=None):
+    with path.open('rb') as source:
+        raw = source.read(MAX_MANIFEST + 1)
+    if len(raw) > MAX_MANIFEST:
         raise ValueError('manifest too large')
-    data = json.loads(path.read_text(encoding='utf-8'))
+    data = json.loads(raw.decode('utf-8'))
+    summary = {'sha256': hashlib.sha256(raw).hexdigest(), 'bytes': len(raw)}
     cases = data['cases']
     if not isinstance(cases, list) or not 1 <= len(cases) <= MAX_CASES:
         raise ValueError('invalid case count')
@@ -113,7 +158,11 @@ def load_cases(path, ids=None):
         if not all(requested) or len(set(requested)) != len(requested) or not set(requested) <= set(names):
             raise ValueError('invalid selected ids')
         cases = [c for c in cases if c['id'] in requested]
-    return cases
+    return cases, summary
+
+
+def load_cases(path, ids=None):
+    return load_manifest(path, ids)[0]
 
 
 def loopback(target):
@@ -248,6 +297,8 @@ def versions():
 
 
 async def run_case(case, args, engine):
+    config = case_config(case)
+    hint_info = hints_summary(initial_hints(case))
     path = ROOT / case['audio']
     info = inspect_audio(path)
     tracker, encoded = {'bytes': 0}, {'bytes': 0}
@@ -255,12 +306,13 @@ async def run_case(case, args, engine):
     started = time.monotonic()
     source = encoded_source(path, info, args.realtime, tracker, encoded)
     async with aclosing(source):
-        result = await collect_dictation(engine, source, config=ProtocolConfig(language=case['language']),
+        result = await collect_dictation(engine, source, config=config,
                                          context=context, timeout=args.timeout)
     collection_seconds = time.monotonic() - started
     if not tracker.get('complete') or not encoded.get('complete') or tracker.get('sha256') != info['source_sha256'] or file_hash(path) != info['file_sha256']:
         raise ValueError('audio source not fully consumed or changed')
-    report = {'id': case['id'], 'transport': 'success', 'audio': info,
+    report = {'id': case['id'], 'language': case['language'], 'initial_hints_summary': hint_info,
+              'transport': 'success', 'audio': info,
               'consumed_source': tracker, 'sent_ogg': encoded,
               'effective_pacing': ('wav_20ms_realtime' if args.realtime and info['source_kind'] == 'pcm16le'
                                    else 'unpaced'),
@@ -283,15 +335,22 @@ async def run(args, cases):
     outputs = []
     try:
         for case in cases:
+            hint_info = None
             try:
+                hint_info = hints_summary(initial_hints(case))
+                case_config(case)
                 await engine.open(timeout=min(args.timeout, 10))
                 outputs.append(await run_case(case, args, engine))
             except Exception as exc:
                 code = exc.code() if isinstance(exc, grpc.RpcError) else None
                 code_name = code.name if isinstance(code, grpc.StatusCode) else None
-                outputs.append({'id': case['id'], 'transport': 'failed_or_unverified',
-                                'effective_pacing': 'not_verified',
-                                'error_class': type(exc).__name__, 'grpc_code': code_name})
+                failure = {'id': case['id'], 'language': case.get('language'),
+                           'transport': 'failed_or_unverified',
+                           'effective_pacing': 'not_verified',
+                           'error_class': type(exc).__name__, 'grpc_code': code_name}
+                if hint_info is not None:
+                    failure['initial_hints_summary'] = hint_info
+                outputs.append(failure)
                 if code in (grpc.StatusCode.PERMISSION_DENIED, grpc.StatusCode.UNAUTHENTICATED):
                     break
     finally:
@@ -332,12 +391,13 @@ def main(argv=None):
         p.error('non-loopback target requires --live')
     if args.insecure and not loopback(args.target):
         p.error('insecure transport is restricted to loopback')
-    cases = load_cases(args.manifest, args.ids)
+    cases, manifest_summary = load_manifest(args.manifest, args.ids)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open('x', encoding='utf-8') as out:
         reports = asyncio.run(run(args, cases))
         summary = outcome(cases, reports)
         report = {'schema_version': 1, 'versions': versions(), 'requested_realtime': args.realtime,
+                  'manifest_summary': manifest_summary,
                   'include_results': args.include_results, 'summary': summary, 'cases': reports}
         json.dump(json_value(report), out, ensure_ascii=False, indent=2, allow_nan=False)
         out.write('\n')

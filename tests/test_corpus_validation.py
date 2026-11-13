@@ -118,7 +118,7 @@ async def test_stop_on_permission_and_record_error(monkeypatch):
     monkeypatch.setattr(validator, 'RamblerEngine', Engine)
     monkeypatch.setattr(validator, 'run_case', fail)
     args = SimpleNamespace(target='localhost:1', insecure=True, timeout=1)
-    result = await validator.run(args, [{'id': 'a'}, {'id': 'b'}])
+    result = await validator.run(args, [{'id': 'a', 'language': 'en-US'}, {'id': 'b', 'language': 'en-US'}])
     assert calls == ['a'] and result[0]['grpc_code'] == 'PERMISSION_DENIED'
     assert 'sensitive' not in json.dumps(result)
 
@@ -210,3 +210,106 @@ async def test_effective_pacing_is_per_input(tmp_path, monkeypatch):
     case['audio'] = str(ogg)
     result = await validator.run_case(case, args, object())
     assert result['effective_pacing'] == 'unpaced'
+
+
+def test_manifest_hash_is_of_parsed_buffer(tmp_path):
+    raw = b'{ "cases": [{"id":"a"},{"id":"b"}] }\n'
+    path = tmp_path / 'manifest.json'
+    path.write_bytes(raw)
+    cases, summary = validator.load_manifest(path, 'b')
+    assert [x['id'] for x in cases] == ['b']
+    assert summary == {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+    path.write_bytes(b' ' * (validator.MAX_MANIFEST + 1))
+    with pytest.raises(ValueError, match='manifest too large'):
+        validator.load_manifest(path)
+
+
+def test_initial_hints_to_tuples_and_canonical_fingerprints(monkeypatch):
+    received = []
+    def fake_config(**kwargs):
+        received.append(kwargs)
+        return kwargs
+    monkeypatch.setattr(validator, 'ProtocolConfig', fake_config)
+    case = {'language': 'fr-FR', 'initial_hints': {'bias_terms': ['secret-é', 'two'],
+            'preferences': ['secret-p'], 'secondary_languages': ['en-US']}}
+    config = validator.case_config(case)
+    assert config['bias_terms'] == ('secret-é', 'two') and config['preferences'] == ('secret-p',)
+    assert config['secondary_languages'] == ('en-US',)
+    digest = validator.hints_summary(validator.initial_hints(case))
+    encoded = json.dumps(['secret-é', 'two'], ensure_ascii=False, separators=(',', ':')).encode('utf8')
+    assert digest['bias_terms'] == {'count': 2, 'sha256': hashlib.sha256(encoded).hexdigest()}
+    assert 'secret' not in json.dumps(digest)
+    validator.case_config({'language': 'en-US'})
+    validator.case_config({'language': 'en-US', 'initial_hints': {}})
+    assert received[-2:] == [{'language': 'en-US'}, {'language': 'en-US'}]
+
+
+@pytest.mark.parametrize('bad', [None, [], 'bad', {'bad': []}, {'bias_terms': 'text'},
+                                 {'preferences': [1]}, {'secondary_languages': (x for x in [])}])
+async def test_bad_hints_rejected_before_rpc(monkeypatch, bad):
+    calls = []
+    class Transport:
+        def __init__(self, *args, **kwargs): pass
+        async def close(self): pass
+    class Engine:
+        def __init__(self, *args): pass
+        async def open(self, **kwargs): calls.append('open')
+    monkeypatch.setattr(validator, 'GrpcTransport', Transport)
+    monkeypatch.setattr(validator, 'RamblerEngine', Engine)
+    args = SimpleNamespace(target='localhost:1', insecure=True, timeout=1)
+    result = await validator.run(args, [{'id': 'a', 'language': 'en-US', 'initial_hints': bad}])
+    assert calls == [] and result[0]['transport'] == 'failed_or_unverified'
+
+
+async def test_invalid_hint_unicode_reports_safe_value_error_before_open(monkeypatch):
+    from tools import sanitize_corpus_report
+    calls = []
+    class Transport:
+        def __init__(self, *args, **kwargs): pass
+        async def close(self): pass
+    class Engine:
+        def __init__(self, *args): pass
+        async def open(self, **kwargs): calls.append('open')
+    monkeypatch.setattr(validator, 'GrpcTransport', Transport)
+    monkeypatch.setattr(validator, 'RamblerEngine', Engine)
+    case = {'id': 'x', 'language': 'en-US', 'initial_hints': {'bias_terms': ['\ud800']}}
+    with pytest.raises(ValueError) as error:
+        validator.initial_hints(case)
+    assert isinstance(error.value.__cause__, UnicodeEncodeError)
+    assert '\ud800' not in str(error.value)
+    args = SimpleNamespace(target='localhost:1', insecure=True, timeout=1)
+    result = await validator.run(args, [case])
+    assert not calls and result[0]['error_class'] == 'ValueError'
+    projected = sanitize_corpus_report.sanitize_report({'cases': result})
+    assert projected['cases'][0]['error_class'] == 'ValueError'
+
+
+def test_old_sdk_never_silently_ignores_hints(monkeypatch):
+    def old_config(*, language):
+        return language
+    monkeypatch.setattr(validator, 'ProtocolConfig', old_config)
+    assert validator.case_config({'language': 'en-US'}) == 'en-US'
+    with pytest.raises(validator.UnsupportedInitialHintsError):
+        validator.case_config({'language': 'en-US', 'initial_hints': {'bias_terms': ['sensitive']}})
+
+
+async def test_hint_config_reaches_collect(tmp_path, monkeypatch):
+    pytest.importorskip('av')
+    path = tmp_path / 'source.wav'
+    with wave.open(str(path), 'wb') as out:
+        out.setparams((1, 2, 16000, 0, 'NONE', 'not compressed'))
+        out.writeframes(b'\0\0' * 320)
+    calls = []
+    def fake_config(**kwargs): return kwargs
+    async def collect(engine, source, **kwargs):
+        calls.append(kwargs['config'])
+        async for _ in source: pass
+        return DictationResult((response(edit=False),), kwargs['context'])
+    monkeypatch.setattr(validator, 'ProtocolConfig', fake_config)
+    monkeypatch.setattr(validator, 'collect_dictation', collect)
+    case = {'id': 'x', 'audio': str(path), 'language': 'fr-FR',
+            'initial_hints': {'bias_terms': ['sensitive-phrase']}}
+    result = await validator.run_case(case, SimpleNamespace(realtime=False, timeout=5, include_results=True), object())
+    assert calls == [{'language': 'fr-FR', 'bias_terms': ('sensitive-phrase',)}]
+    assert result['language'] == 'fr-FR' and result['initial_hints_summary']['bias_terms']['count'] == 1
+    assert 'sensitive-phrase' not in json.dumps(result)

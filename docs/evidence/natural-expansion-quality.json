@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "report_kind": "derived_natural_corpus_quality_summary",
+  "source_public_report_sha256": "878c952b21c01e3699a8d8cafe9df03592da70a46622e73587aaf4e45ac42427",
+  "manifest_sha256": "9d748bb5d5237768d5e4207f2f39894881c97d3b808ab10644a7b62d4c13a1de",
+  "groups": {
+    "en-US": {
+      "cases": 7,
+      "unique_renderings": 7,
+      "errors": 3,
+      "reference_words": 109,
+      "audio_seconds": 37.305,
+      "weighted_wer": 0.027522935779816515
+    },
+    "fr-FR": {
+      "cases": 3,
+      "unique_renderings": 3,
+      "errors": 3,
+      "reference_words": 79,
+      "audio_seconds": 35.519999999999996,
+      "weighted_wer": 0.0379746835443038
+    }
+  },
+  "normalization": "casefold, Unicode punctuation replaced by spaces, whitespace collapsed; no spelling, number or compound-word equivalence correction",
+  "scope": "Ten selected read-audiobook clips, different speaker and chapter IDs within each language; accelerated file upload, not microphone or representative population evaluation. Dataset references were not independently corrected. WER differences can be typography, cleanup, reference errors or recognition errors.",
+  "observations": [
+    {
+      "case_id": "natural-en-7729-102255-0039",
+      "difference": "Reference cannon balls versus output cannonballs; two token-level errors."
+    },
+    {
+      "case_id": "natural-en-8463-294828-0023",
+      "difference": "Reference NARWHALE versus output narwhal; one token-level error."
+    },
+    {
+      "case_id": "natural-fr-296_1028_000000",
+      "difference": "Reference eut acheve (with accent) versus output achevait; two token-level errors, actual tense difference relative to reference."
+    },
+    {
+      "case_id": "natural-fr-2114_1656_000078",
+      "difference": "Reference cinq versus output 5; one token-level error."
+    }
+  ]
+}

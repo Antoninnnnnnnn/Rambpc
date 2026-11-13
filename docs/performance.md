@@ -197,8 +197,9 @@ estimée fiablement ; le réseau et la charge ne sont pas contrôlés. Une médi
 favorable ne prouve pas une meilleure latence dans toutes les conditions. Aucune
 configuration n'est établie comme optimum global.
 
-Le CPU pipeline sépare désormais vérification/redécodage et écriture des artefacts,
-mais inclut toujours encodage, transport, hashing et instrumentation du pipeline.
+Le CPU pipeline exclut la vérification/redécodage. Les écritures d'artefacts sont
+mesurées séparément mais restent incluses dans ce total, avec l'encodage, le
+transport, le hashing et l'instrumentation du pipeline.
 Ses plages restent larges (20 ms : 297–547 ms ; 60 ms : 188–766 ms), avec granularité
 Windows. Pas de gain CPU du seul moteur établi. En-tête Ogg et première page audio
 utile sont distingués ; le setup de l'encodeur reste **non instrumenté**, pas estimé
@@ -208,6 +209,28 @@ Une [dictée progressive distincte](evidence/refinement-long-realtime-public.jso
 de 40,564 s PCM a terminé en 41,454 s de collecte complète, source intégrale et même
 texte que son essai accéléré. Ce sample isolé ne mesure ni latence microphone
 après arrêt ni endurance prolongée ; il n'entre pas dans la grille ci-dessus.
+
+## 6. Endurance à cadence simulée — continuation
+
+[Une session de 118,682 s](evidence/endurance-120-public.json), puis
+[trois sessions de 288,3515625 s](evidence/endurance-300-public.json) ont été
+réalisées séquentiellement avec pages et chunks 20 ms. Au palier long : même canal,
+9 227 250 octets PCM consommés par session, marqueurs observés et ensembles de
+finales ordonnés identiques. Les quatre sessions sont saines selon le banc.
+
+| Session | Pipeline wall | CPU processus | RSS début → fin (octets) | Maximum RSS échantillonné |
+|---|---:|---:|---:|---:|
+| 118,682 s | 119,880 s | 5,891 s | 58 511 360 → 60 723 200 | 60 907 520 |
+| 288,352 s, 1 | 291,238 s | 17,094 s | 58 396 672 → 60 694 528 | 60 796 928 |
+| 288,352 s, 2 | 290,908 s | 14,469 s | 60 739 584 → 61 001 728 | 61 120 512 |
+| 288,352 s, 3 | 290,747 s | 14,672 s | 61 341 696 → 61 464 576 | 61 661 184 |
+
+Le RSS est celui du processus courant échantillonné, non le pic exact ou un
+high-water ; ces quatre sessions ne prouvent pas l'absence de fuite. Le CPU inclut
+codec, moteur, hashes et instrumentation ; il n'isole ni serveur ni moteur seul.
+La cadence représente une source fichier, pas un microphone. Les données utilisent la
+base 0.2 **avant** intégration des hints 0.3 ; les hashes exacts sont dans les rapports.
+Les limites 300 s / 360 s du banc ne sont pas des limites établies du service.
 
 ## Reproduire
 
@@ -245,8 +268,9 @@ le producteur de test.
 ## Ce qui reste à mesurer
 
 Démarrage de processus réellement froid, microphone/PCM réel, endurance au-delà
-des sessions de 40 s, réseaux dégradés, ressources par session isolée, trafic réseau
-exact et qualité représentative sur voix naturelles (un seul clip anglais essayé).
+des sessions de 288 s, réseaux dégradés, ressources par session isolée, trafic réseau
+exact et qualité représentative sur voix naturelles (dix clips supplémentaires lus,
+plus l'échantillon initial).
 Aucun langage concurrent n'a été benchmarké ; on ne prétend pas
 que Python soit le plus rapide possible. Les mesures montrent à ce stade que le
 levier important identifié est le pipeline d'entrée ; une réécriture du transport

@@ -1,0 +1,837 @@
+{
+  "versions": {
+    "python": "3.14.5 (tags/v3.14.5:5607950, May 10 2026, 10:43:50) [MSC v.1944 64 bit (AMD64)]",
+    "os": "Windows-11-10.0.26300-SP0",
+    "libraries": {
+      "av": "19.0.2",
+      "grpcio": "1.85.1",
+      "rambpc-engine": "0.2.0"
+    },
+    "git_head": "a5fa05c2a0492e6f6feb186c9175c3253c918624",
+    "rambler_source_sha256": {
+      "__init__.py": "d8d02fbac4cbcc55a21b31839319b27f4bf2ac013a9ed077045059b8df1d2298",
+      "audio.py": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "cli.py": "ed47d335ddba93452662472ae465a6ff7a2dd2e25ae6f87e3ba78558e96e9d8e",
+      "credentials.py": "3fbf621715874e56e2aaa059469eb620ceee73ef9d1794a6377e9b272cc9920a",
+      "encoding.py": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+      "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol.py": "1604f9420dd48f967ca8bea31fa5ebef1fcb8cfb5e30144f76115637c24ae0b2",
+      "results.py": "9bd80287e48d1a0ba2d99ca94d284db9eab46d71655245fb8962379af4b74aa3",
+      "transport.py": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire.py": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+    },
+    "validator_sha256": "0d070f098dfe19d367b8b280b4ff92bd0bac1278b5aa63d8ba8ea71198a91ad3"
+  },
+  "requested_realtime": true,
+  "source_include_results": true,
+  "summary": {
+    "requested": 3,
+    "completed_successfully": 3,
+    "failed": 0,
+    "not_run": 0,
+    "status": "success"
+  },
+  "cases": [
+    {
+      "id": "natural-en-1320-122617-0000",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "749ebc8b14914ec2e14d21f6c6814b6538f98b84e66e7eb5db26984db6da76f9",
+        "source_sha256": "91b978f6fdaf4f1820a7159c876c496c4ab9fa23714dca360305f3c3629bce37",
+        "source_kind": "pcm16le",
+        "duration_s": 7.835
+      },
+      "consumed_source": {
+        "bytes": 250720,
+        "sha256": "91b978f6fdaf4f1820a7159c876c496c4ab9fa23714dca360305f3c3629bce37",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 34145,
+        "sha256": "e86887c2ef53c97e4a15d4be32b00201f2ae768d8f11a8ea66cceeeae8a588d5",
+        "complete": true
+      },
+      "effective_pacing": "wav_20ms_realtime",
+      "timing": {
+        "collection_seconds": 8.401233999989927,
+        "engine_metrics_at_eof": {
+          "requests_produced": 398,
+          "request_protobuf_bytes": 40221,
+          "responses_received": 23,
+          "response_protobuf_bytes": 1209,
+          "elapsed_seconds": 8.40109929999744,
+          "first_response_seconds": 0.11805589999130461,
+          "eof_seconds": 8.40109769999981
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "8b6062b9aa20895d1dec27004e49074e0811f964781294120ff82420347c0563",
+            "bytes": 813,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "c00bee3c01fb66b7bde90b014dabd473b21d2e5f07309983a1f66c6fed41efa4",
+              "bytes": 805,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "aebeb690f1904dd8ffa88c2934976d16f68c337ea0e81ab496731b7e49ac3d7f",
+                "bytes": 802,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "ef794a294c169c5133cff5f30a3e8a1aea547d89e6d85d4c05698392dfeadece",
+                    "bytes": 397,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "ef794a294c169c5133cff5f30a3e8a1aea547d89e6d85d4c05698392dfeadece",
+                  "bytes": 397,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "d49ee94bc35a3e2d6b296340695c4946e622a34cd2a1322a6c56449922f0018d",
+                      "bytes": 387,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Notwithstanding the high resolution of Hawkeye, he fully comprehended all the difficulties and danger he was about to incur.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "a6937111db23e47516d023aca24c99a8f80187ec5825365cfb7102940ea5341e",
+                        "bytes": 254,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Notwithstanding the high resolution of Hawkeye, he fully comprehended all the difficulties and danger he was about to incur.",
+                      "alternative_text": null,
+                      "edited_text": "Notwithstanding the high resolution of Hawkeye, he fully comprehended all the difficulties and danger he was about to incur.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "aebeb690f1904dd8ffa88c2934976d16f68c337ea0e81ab496731b7e49ac3d7f",
+              "bytes": 802,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Notwithstanding the high resolution of Hawkeye, he fully comprehended all the difficulties and danger he was about to incur.",
+      "wer": {
+        "errors": 0,
+        "reference_words": 19,
+        "rate": 0.0
+      },
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Notwithstanding the high resolution of Hawkeye, he fully comprehended all the difficulties and danger he was about to incur.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "natural-fr-296_1028_000000",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "82661aa0097146effc5d03c123ac8f17bd8c385baa95122eab249fcd5dc1d6a4",
+        "source_sha256": "fa784174fb5cc1a38aabacda97479a0310e53807b580fac692ca779668e7e91e",
+        "source_kind": "pcm16le",
+        "duration_s": 11.27
+      },
+      "consumed_source": {
+        "bytes": 360640,
+        "sha256": "fa784174fb5cc1a38aabacda97479a0310e53807b580fac692ca779668e7e91e",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 48534,
+        "sha256": "4bd7c40e38142baf59208b8d7ee82ed3e570c3b37f0722f08f57dcd4a402116a",
+        "complete": true
+      },
+      "effective_pacing": "wav_20ms_realtime",
+      "timing": {
+        "collection_seconds": 11.804750700001023,
+        "engine_metrics_at_eof": {
+          "requests_produced": 569,
+          "request_protobuf_bytes": 57176,
+          "responses_received": 30,
+          "response_protobuf_bytes": 1366,
+          "elapsed_seconds": 11.8046178999939,
+          "first_response_seconds": 0.029876899992814288,
+          "eof_seconds": 11.804616900000838
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "fdf389e9926246cec21fd920b6dc765a74aa0c7fb88a43e0754a1638cdb1e92e",
+            "bytes": 855,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "a61862b2401f6245003ce8a6726b39e7ebe6cdfe3dc78d57f3cd7dc70b1b3b39",
+              "bytes": 847,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "3cfeb6435c9a6cde43ded8ff3ffd527945e6c8056a9124c42e668cb4052ea7db",
+                "bytes": 844,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "4e0bb422e91a216f2275ac89954c7e2cbd1a489c8b08572bb1870ec5edc2613a",
+                    "bytes": 418,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "4e0bb422e91a216f2275ac89954c7e2cbd1a489c8b08572bb1870ec5edc2613a",
+                  "bytes": 418,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "41a4c3fb8ae80fdab7bcb44c7646d69dab0d7359da0136b608d658e4321ee9d7",
+                      "bytes": 408,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Lorsqu'il achevait ce repas frugal, comme il était bon musulman, il se lava les mains, le visage et les pieds, et fit sa prière.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "e1e9a260d66c03dac18deecb5e74a608045a94243de4c55eb3f754cb30d93fdc",
+                        "bytes": 268,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Lorsqu'il achevait ce repas frugal, comme il était bon musulman, il se lava les mains, le visage et les pieds, et fit sa prière.",
+                      "alternative_text": null,
+                      "edited_text": "Lorsqu'il achevait ce repas frugal, comme il était bon musulman, il se lava les mains, le visage et les pieds, et fit sa prière.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "3cfeb6435c9a6cde43ded8ff3ffd527945e6c8056a9124c42e668cb4052ea7db",
+              "bytes": 844,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Lorsqu'il achevait ce repas frugal, comme il était bon musulman, il se lava les mains, le visage et les pieds, et fit sa prière.",
+      "wer": {
+        "errors": 2,
+        "reference_words": 26,
+        "rate": 0.07692307692307693
+      },
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Lorsqu'il achevait ce repas frugal, comme il était bon musulman, il se lava les mains, le visage et les pieds, et fit sa prière.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "natural-fr-2114_1656_000078",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "c15adaf5cf2afe96837e37cd82ffb5d80c2af2b2bdc1c7b79de6ba510ec240eb",
+        "source_sha256": "a79e6d39008249f38f53bc5369f5949b48ae201a572ee26793a3f3a5b645c738",
+        "source_kind": "pcm16le",
+        "duration_s": 13.48
+      },
+      "consumed_source": {
+        "bytes": 431360,
+        "sha256": "a79e6d39008249f38f53bc5369f5949b48ae201a572ee26793a3f3a5b645c738",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 56324,
+        "sha256": "74cf6f12824fea130b1d5d1e6449aacc319e8ee9608e644ab4881230545c3f2d",
+        "complete": true
+      },
+      "effective_pacing": "wav_20ms_realtime",
+      "timing": {
+        "collection_seconds": 14.10516250001092,
+        "engine_metrics_at_eof": {
+          "requests_produced": 680,
+          "request_protobuf_bytes": 66631,
+          "responses_received": 35,
+          "response_protobuf_bytes": 1458,
+          "elapsed_seconds": 14.105048399986117,
+          "first_response_seconds": 0.027869099998497404,
+          "eof_seconds": 14.1050477999961
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "ef38fdee5dcd91f0e28c09b25ac479ea56d37249103fa5c5593c6245de99e6a9",
+            "bytes": 867,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "a964566a9baa012197963a72485c11eab0b1c185de1e27e7d5ccec6691d206bc",
+              "bytes": 859,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "4911845bea0693cf5edcdcfb4f07d697423753662be1f7ec9b78a908e6977704",
+                "bytes": 856,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "eb6914b6267cc47de36b5b01ed2c669ea40a5f0c0889a1f4f3124d8f2fe7550e",
+                    "bytes": 424,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "eb6914b6267cc47de36b5b01ed2c669ea40a5f0c0889a1f4f3124d8f2fe7550e",
+                  "bytes": 424,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "4b3cf71ee268452d7c21b0b09ba545101c79b4bbeace3b61a672d1f44b5e11ff",
+                      "bytes": 414,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Au premier signe, suivez-moi tous car il faudra repartir sans attirer l'attention. Et nous allâmes frapper à la porte.\n\nChapitre 5",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "b3bdb59bd512043b435debdff49625b1c3bde1a5477cf1cf6207b442d6d0f9d4",
+                        "bytes": 272,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Au premier signe, suivez-moi tous car il faudra repartir sans attirer l'attention. Et nous allâmes frapper à la porte.\n\nChapitre 5",
+                      "alternative_text": null,
+                      "edited_text": "Au premier signe, suivez-moi tous car il faudra repartir sans attirer l'attention. Et nous allâmes frapper à la porte.\n\nChapitre 5",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "4911845bea0693cf5edcdcfb4f07d697423753662be1f7ec9b78a908e6977704",
+              "bytes": 856,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Au premier signe, suivez-moi tous car il faudra repartir sans attirer l'attention. Et nous allâmes frapper à la porte.\n\nChapitre 5",
+      "wer": {
+        "errors": 1,
+        "reference_words": 23,
+        "rate": 0.043478260869565216
+      },
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Au premier signe, suivez-moi tous car il faudra repartir sans attirer l'attention. Et nous allâmes frapper à la porte.\n\nChapitre 5",
+        "replacement_context": null
+      }
+    }
+  ],
+  "schema_version": 1,
+  "report_kind": "sanitized_validate_corpus_report",
+  "privacy_review_required": true,
+  "text_included": true,
+  "publication_warning": "Inspect before publishing. Controlled-text opt-in is not proof that private speech, context, local labels or machine metadata are publishable. Hashes retain correlation and may be guessed.",
+  "withheld": [
+    "raw_protobuf_bytes",
+    "unknown_field_values",
+    "service_result_ids",
+    "session_ids",
+    "expected_revision",
+    "unrecognized_report_keys"
+  ],
+  "source_report_summary": {
+    "sha256": "3e20d2c7895c1839ac97876c3d0906073faec1f432ae3079455a2a28fe53f890",
+    "bytes": 46997
+  },
+  "sanitizer_source_sha256": "a052c876f5494eb4558ae324a2cab2fc9670b7004d2d20d2a23777c184f2a530"
+}

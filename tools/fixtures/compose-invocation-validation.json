@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "description": "Three new bounded invocation probes motivated by the recovered Android Lite legacy Mode A prompt. The prompt and its activation predicate are not established as remote S3 behavior. This plan does not transplant any prompt, change headers, flags, quota, authentication or backend.",
+  "execution_policy": {
+    "maximum_live_calls": 3,
+    "automatic_retries": false,
+    "same_existing_s3_profile": true,
+    "record_numeric_intent_separately_from_generated_content": true,
+    "negative_or_literal_results_do_not_prove_universal_absence_of_composition": true
+  },
+  "cases": [
+    {
+      "id": "compose-invocation-question-en",
+      "audio": "artifacts/compose-invocation-synthetic/compose-invocation-question-en-16k.wav",
+      "language": "en-US",
+      "context": {"before": ""}
+    },
+    {
+      "id": "compose-invocation-message-en",
+      "audio": "artifacts/compose-invocation-synthetic/compose-invocation-message-en-16k.wav",
+      "language": "en-US",
+      "context": {"before": ""}
+    },
+    {
+      "id": "compose-invocation-literal-en",
+      "audio": "artifacts/compose-invocation-synthetic/compose-invocation-literal-en-16k.wav",
+      "language": "en-US",
+      "context": {"before": ""}
+    }
+  ]
+}

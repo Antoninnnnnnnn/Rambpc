@@ -3,7 +3,7 @@
 Ce répertoire distingue les diagnostics de transport des véritables réponses
 Rambler. Les deux premiers fichiers ci-dessous n'envoyaient aucun audio ni
 identifiant utilisateur. Les fichiers fonctionnels ajoutés ensuite utilisent
-des phrases synthétiques contrôlées, puis un unique extrait naturel public licencié,
+des phrases synthétiques contrôlées et des extraits naturels publics licenciés,
 et des métadonnées applicatives en mémoire, dont les valeurs ne sont jamais
 enregistrées ici. Les limites et
 conditions de comparaison sont dans [performance.md](../performance.md).
@@ -82,7 +82,7 @@ ou explicitement publiables avec leur licence, pas à des dictées personnelles.
   décodés identiques. Pas de capture protobuf brute. Défaut 20 ms conservé ; données
   et outlier à interpréter selon [performance.md](../performance.md).
 - `natural-corpus-inputs.json` : provenance, hashes et attribution CC BY 4.0 de
-  l'unique extrait anglais LibriSpeech utilisé. Audio non versionné.
+  l'extrait anglais LibriSpeech du premier corpus. Audio non versionné.
 - `refinement-capabilities-public.json` : projection expurgée du premier corpus
   de cinq cas. Cinq transports réussis, mais **4/5 rendus** dans le code d'alors :
   intention 3 non encore interprétée. Ce bilan historique reste inchangé.
@@ -105,6 +105,37 @@ hash de l'outil de projection et résumés des payloads. Les octets bruts, valeu
 inconnues et identifiants opaques de service/session ne sont pas publiés ; la
 bibliothèque, elle, les préserve pour l'appelant. Le hash du code SDK utilisé figure
 dans les versions ; le seul HEAD ne suffit pas pour l'essai réécriture sur arbre modifié.
+
+## Continuation : corpus naturel, endurance et hints
+
+- [reference-0.3-wheel-smoke.json](reference-0.3-wheel-smoke.json) : roue 0.3.0
+  construite et installée dans un venv vierge sans PyAV ; imports publics, modules
+  identiques au source, fixture dérivée et émission des hints/locales secondaires
+  vérifiés offline. Aucun appel Google dans ce smoke.
+
+- [natural-expansion-inputs.json](natural-expansion-inputs.json) : provenance et
+  licences des dix extraits supplémentaires, sept anglais et trois français.
+- [natural-expansion-public.json](natural-expansion-public.json) : dix transports
+  réussis en accéléré ; [natural-expansion-quality.json](natural-expansion-quality.json)
+  résume WER 3/109 EN et 3/79 FR, avec limites de référence et de normalisation.
+- [natural-expansion-realtime-public.json](natural-expansion-realtime-public.json) :
+  trois sessions à débit simulé, textes identiques aux essais accélérés.
+- [endurance-120-public.json](endurance-120-public.json) et
+  [endurance-300-public.json](endurance-300-public.json) : une session de 118,682 s
+  puis trois de 288,352 s ; source intégrale, marqueurs et finales ordonnées
+  contrôlés. RSS courant échantillonné, CPU/wall et hashes de modules sont indiqués ;
+  mesures sur base 0.2 avant hints, sans preuve d'absence de fuite.
+- [input-hints-public.json](input-hints-public.json) : dix transports réussis avec
+  manifeste hashé et résumés ; effets des biais, préférences et langues secondaires
+  bornés aux observations décrites dans [raffinement](../refinement.md).
+
+Ces 13 + 4 + 10 transports, plus huit essais de composition décrits dans
+[composition](../research/composition.md), font 35 transports de continuation ;
+ce n'est ni une liste de 35 capacités validées ni un ajout aux comptes historiques.
+Les rapports structurés d'endurance ne contiennent ni raw protobuf, ni valeurs
+inconnues, ni identifiants de service ; les captures privées de continuation restent
+sous `artifacts/continuation-private/`, hors git. Les textes de corpus contrôlés
+publiés restent soumis à leur provenance et à une revue de confidentialité.
 
 L'outil offline `tools/sanitize_corpus_report.py` utilise une allowlist fermée et
 refuse toute sortie existante. Les textes sont hachés par défaut ; `--include-text`

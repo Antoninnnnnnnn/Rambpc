@@ -21,15 +21,26 @@ Le 12 novembre 2026, le client natif a obtenu des réponses de
 Le raffinement du **13 novembre 2026** ajoute une réécriture réelle (« Send me the
 report now. » → « Could you please send me the report at your earliest convenience? »),
 une sélection avec emoji, une dictée de **40,56 s** en accéléré puis à débit simulé,
-et un échantillon anglais naturel de 3,505 s sans erreur sur ses huit mots de référence.
-La demande de composition essayée est restée une dictée de l'instruction : cette
-fonction n'est pas validée.
+et dix nouveaux extraits naturels (7 anglais, 3 français), en plus du premier clip
+anglais de 3,505 s. Ces dix extraits totalisent 72,825 s ; leurs écarts WER normalisés
+sont de 3/109 mots en anglais et 3/79 en français, dont des variations de formatage
+et une différence de temps verbal par rapport aux références du jeu de données.
+La composition n'a pas été observée dans les essais ciblés du profil S3 actuel ;
+ce n'est pas une preuve d'impossibilité générale. Voir [l'analyse](docs/research/composition.md).
 
 Les flux ont consommé l'intégralité des octets audio avec vérification SHA-256.
 Les [observations expurgées](docs/evidence/) et la [reconstruction du protocole](docs/research/protocol.md)
 précisent les preuves et leurs limites. Ces petits corpus n'établissent pas la qualité
 générale sur voix naturelles, toutes les intentions, ni la disponibilité future
 du service interne.
+
+## Prochaine étape : cœur Rust
+
+Le SDK Python 0.3 reste la **référence de conformité** et les fixtures servent à
+comparer le portage ; il ne s'agit pas de créer une nouvelle application Python.
+La prochaine tranche demandée est une bibliothèque Rust indépendante et une CLI
+fichier audio → résultat confirmé. Tauri, microphone et intégrations système viennent
+plus tard et restent hors de ce lot. Voir la [recommandation d'architecture](docs/architecture/application-desktop-multiplateforme.md).
 
 ## Installer et tester
 
@@ -161,6 +172,14 @@ flushe l'encodeur, envoie le contexte et le marqueur final, puis half-close.
 **Annulation :** annuler la tâche consommatrice, fermer explicitement le stream
 ou appeler `engine.close()` ; cela interrompt la session, ce n'est pas une
 finalisation de dictée. Le test réel de reprise après annulation est dans les preuves.
+
+### Biais, préférences et langues secondaires
+
+`ProtocolConfig` accepte les tuples optionnels `bias_terms`, `preferences` et
+`secondary_languages` ; ils sont envoyés à l'initialisation, tandis que le contexte
+d'édition reste différé après l'audio. Leurs limites et la différence entre encodage
+SDK et effet serveur sont précisées dans [raffinement](docs/refinement.md). Les essais
+bornés n'établissent ni gain général, ni composition vocale intention 4.
 
 ### Résultat final et proposition d'édition
 
