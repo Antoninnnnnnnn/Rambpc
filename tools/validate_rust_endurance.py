@@ -34,6 +34,13 @@ MAX_OUTPUT = 8 * 1024 * 1024
 MAX_REPORT = 64 * 1024 * 1024
 MAX_SAMPLES = 400
 PHASES = ('beginning', 'middle', 'end')
+ERROR_CATEGORIES = frozenset(('grpc', 'timeout', 'credentials', 'transport', 's3', 'audio',
+                              'cleanup', 'protocol', 'ambiguous', 'result_limit', 'incomplete',
+                              'configuration', 'engine', 'arguments', 'cancelled', 'signal'))
+GRPC_CODES = frozenset(('Ok', 'Cancelled', 'Unknown', 'InvalidArgument', 'DeadlineExceeded',
+                        'NotFound', 'AlreadyExists', 'PermissionDenied', 'ResourceExhausted',
+                        'FailedPrecondition', 'Aborted', 'OutOfRange', 'Unimplemented', 'Internal',
+                        'Unavailable', 'DataLoss', 'Unauthenticated'))
 
 
 def digest(data):
@@ -199,6 +206,54 @@ def project_result(value, markers):
             'ordered_finals_summary': digest(canonical_finals),
             'final_update_count': len(known), 'markers_found': observations,
             'rendered_markers_found': rendered_markers, 'engine_metrics': clean_metrics}
+
+
+def project_cli_error(value):
+    """Allow only known error categories and explicitly typed diagnostics."""
+    if not isinstance(value, dict) or value.get('type') != 'error':
+        return None
+    result = {}
+    for key in ('category', 'close_error_category'):
+        item = value.get(key)
+        if isinstance(item, str) and item in ERROR_CATEGORIES:
+            result[key] = item
+    for key in ('grpc_code', 'close_grpc_code'):
+        item = value.get(key)
+        if isinstance(item, str) and item in GRPC_CODES:
+            result[key] = item
+    incomplete = value.get('incomplete')
+    if isinstance(incomplete, dict):
+        diagnostic = {}
+        if type(incomplete.get('saw_s3_end')) is bool:
+            diagnostic['saw_s3_end'] = incomplete['saw_s3_end']
+        completion = incomplete.get('completion')
+        if isinstance(completion, dict):
+            clean = {}
+            for key in ('requests_produced', 'requests_polled', 'responses_received'):
+                if type(completion.get(key)) is int and completion[key] >= 0:
+                    clean[key] = completion[key]
+            for key in ('source_exhausted', 'upload_eof_polled', 'source_closed'):
+                if type(completion.get(key)) is bool:
+                    clean[key] = completion[key]
+            code = completion.get('terminal_code')
+            if isinstance(code, str) and code in GRPC_CODES:
+                clean['terminal_code'] = code
+            diagnostic['completion'] = clean
+        metrics = incomplete.get('metrics')
+        if isinstance(metrics, dict):
+            clean = {}
+            for key in ('requests_produced', 'request_protobuf_bytes', 'responses_received',
+                        'response_protobuf_bytes'):
+                if type(metrics.get(key)) is int and metrics[key] >= 0:
+                    clean[key] = metrics[key]
+            for key in ('elapsed_seconds', 'first_response_seconds', 'eof_seconds'):
+                item = metrics.get(key)
+                if ((type(item) is int and item >= 0)
+                        or (type(item) is float and item >= 0 and math.isfinite(item))):
+                    clean[key] = item
+            diagnostic['metrics'] = clean
+        result['incomplete'] = diagnostic
+    return result
 
 
 def coverage(samples, interval, elapsed):
@@ -455,6 +510,13 @@ def main(argv=None):
                                      and row['ordered_finals_match_first'] is not False else 'inconclusive')
                 else:
                     row['status'] = 'failed'
+                    if result['exit_code'] != 0 and result['reason'] is None:
+                        try:
+                            diagnostic = project_cli_error(strict_json(result['stdout']))
+                        except (ValueError, UnicodeError, RecursionError):
+                            diagnostic = None
+                        if diagnostic is not None:
+                            row['cli_error'] = diagnostic
             except Exception as exc:
                 row['error_class'] = type(exc).__name__
                 row['status'] = 'failed'
@@ -474,7 +536,7 @@ def main(argv=None):
             for row in report['sessions']:
                 projected['sessions'].append({key: row[key] for key in (
                     'status', 'exit_code', 'reason', 'child_wall_seconds', 'resources',
-                    'public', 'ordered_finals_match_first', 'input_and_binary_unchanged', 'error_class') if key in row})
+                    'public', 'cli_error', 'ordered_finals_match_first', 'input_and_binary_unchanged', 'error_class') if key in row})
             json.dump(projected, public_out, ensure_ascii=True, indent=2, allow_nan=False)
             public_out.write('\n')
     return 0 if good else 1

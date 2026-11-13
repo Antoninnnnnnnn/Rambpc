@@ -102,6 +102,42 @@ def test_child_timeout_cleanup_and_bounded_output(monkeypatch):
     assert result['reason'] == 'output_limit' and len(result['stdout']) == 1024
 
 
+def test_cli_error_projection_whitelists_diagnostics_without_secrets():
+    payload = {'type': 'error', 'category': 'incomplete', 'grpc_code': 'Unavailable',
+               'close_error_category': 'cleanup', 'close_grpc_code': 'Cancelled',
+               'message': 'SECRET_DIAGNOSTIC', 'unknown': 'SECRET_OPAQUE',
+               'incomplete': {'saw_s3_end': False, 'unknown': 'SECRET_HIDDEN',
+                   'completion': {'requests_produced': 12, 'requests_polled': 11,
+                                  'responses_received': 4, 'source_exhausted': True,
+                                  'upload_eof_polled': False, 'source_closed': True,
+                                  'terminal_code': 'Unavailable', 'source_error': 'SECRET_SOURCE'},
+                   'metrics': {'requests_produced': 12, 'request_protobuf_bytes': 400,
+                               'responses_received': 4, 'response_protobuf_bytes': 50,
+                               'elapsed_seconds': 282.2, 'first_response_seconds': 0.5,
+                               'eof_seconds': None, 'unknown': 'SECRET_METRIC'}}}
+    result = bench.project_cli_error(payload)
+    assert result['category'] == 'incomplete' and result['grpc_code'] == 'Unavailable'
+    assert result['close_error_category'] == 'cleanup' and result['close_grpc_code'] == 'Cancelled'
+    assert result['incomplete']['saw_s3_end'] is False
+    assert result['incomplete']['completion'] == {'requests_produced': 12, 'requests_polled': 11,
+        'responses_received': 4, 'source_exhausted': True, 'upload_eof_polled': False,
+        'source_closed': True, 'terminal_code': 'Unavailable'}
+    assert result['incomplete']['metrics']['elapsed_seconds'] == 282.2
+    assert 'eof_seconds' not in result['incomplete']['metrics']
+    assert 'SECRET' not in json.dumps(result)
+    payload['category'] = 'SECRET_CATEGORY'
+    payload['grpc_code'] = 'SECRET_CODE'
+    payload['incomplete']['completion']['requests_polled'] = True
+    payload['incomplete']['completion']['terminal_code'] = 'SECRET_CODE'
+    payload['incomplete']['metrics']['elapsed_seconds'] = float('inf')
+    result = bench.project_cli_error(payload)
+    assert 'category' not in result and 'grpc_code' not in result
+    assert 'requests_polled' not in result['incomplete']['completion']
+    assert 'terminal_code' not in result['incomplete']['completion']
+    assert 'elapsed_seconds' not in result['incomplete']['metrics']
+    assert 'SECRET' not in json.dumps(result)
+
+
 def test_failure_stops_and_public_projection_does_not_leak(tmp_path, monkeypatch):
     binary, audio = tmp_path/'bin', tmp_path/'audio.wav'
     binary.write_bytes(b'not real')
@@ -111,7 +147,10 @@ def test_failure_stops_and_public_projection_does_not_leak(tmp_path, monkeypatch
     called = []
     def fail(*a):
         called.append(1)
-        return {'exit_code':1, 'reason':None, 'stdout':b'SECRET_SERVICE_ID', 'stderr':b'SECRET_ERROR',
+        payload = {'type': 'error', 'category': 'incomplete', 'message': 'SECRET_SERVICE_ID',
+                   'incomplete': {'saw_s3_end': False, 'completion': {'source_closed': True,
+                                   'source_error': 'SECRET_ERROR'}}}
+        return {'exit_code':1, 'reason':None, 'stdout':json.dumps(payload).encode(), 'stderr':b'SECRET_ERROR',
                 'elapsed_seconds':1, 'samples':[sample(0),sample(1)]}
     monkeypatch.setattr(bench, 'run_child', fail)
     private, public = tmp_path/'private.json', tmp_path/'public.json'
@@ -124,6 +163,9 @@ def test_failure_stops_and_public_projection_does_not_leak(tmp_path, monkeypatch
     public_text = public.read_text()
     assert 'SECRET_SERVICE_ID' not in public_text and 'SECRET_ERROR' not in public_text
     assert 'private_output' not in public_text
+    error = json.loads(public_text)['sessions'][0]['cli_error']
+    assert error == {'category': 'incomplete', 'incomplete': {'saw_s3_end': False,
+                                                              'completion': {'source_closed': True}}}
 
 
 def test_marker_matching_does_not_accept_word_prefixes():

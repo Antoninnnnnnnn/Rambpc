@@ -174,7 +174,7 @@ async fn late_s3_or_grpc_or_missing_end_never_return_a_result() {
                 EngineError::Transport(TransportError::Grpc(Code::Internal))
             )),
             1 => assert!(matches!(error, EngineError::S3(_))),
-            _ => assert!(matches!(error, EngineError::IncompleteSession)),
+            _ => assert!(matches!(error, EngineError::IncompleteSession(_))),
         }
         let _ = engine.close().await;
         let _ = transport.close().await;

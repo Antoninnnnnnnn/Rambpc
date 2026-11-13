@@ -67,7 +67,7 @@ pub enum EngineError {
     #[error("S3 reported an application error")]
     S3(Arc<S3Response>),
     #[error("session did not complete S3 END and a fully exhausted upload with gRPC OK")]
-    IncompleteSession,
+    IncompleteSession(Arc<IncompleteSessionDiagnostic>),
     #[error("session supervisor failed")]
     Supervisor,
     #[error("expected one final update, one hypothesis, and a verified text policy")]

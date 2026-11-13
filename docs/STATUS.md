@@ -1,6 +1,30 @@
 # État du moteur — 2026-11-13
 
-## Audio Rust natif et endurance mesurée
+## Consolidation Rust : diagnostic sans faux succès
+
+Le cœur Rust comprend protocole/transport, sessions/résultats, WAV/PCM natif et CLI.
+**163 tests Rust intégrés et 654 tests stricts de référence/outils Python passent**,
+formatage/Clippy tous targets/features et build release audio compris. L'oracle
+indépendant57 conteneurs est passé séparément ; la matrice OS/MSRV n'est pas déduite
+de ces exécutions Windows.
+
+Après le lot long arrêté, un nouveau binaire ajoute seulement des observations
+structurelles typées d'`IncompleteSession`, sans changer les conditions de succès,
+le codec ou introduire un rejeu. Le
+[palier de qualification120s](evidence/rust-diagnostic-endurance-120-public.json)
+réussit, puis [un unique essai300s](evidence/rust-diagnostic-endurance-300-public.json)
+termine en290,904s avec14 422 requêtes et les mêmes finales connues ordonnées que
+le premier essai long sain. **L'incident282s n'est pas reproduit, pas déclaré résolu.**
+
+La revue indépendante Opus, avec neuf contrôles loopback ciblés, ne démontre aucun
+défaut client compatible avec cet incident et recommande de ne pas multiplier les
+appels service. Il manque les flags/timeline de l'échec original, impossibles à
+récupérer après coup ; cela interdit d'en attribuer la cause au client ou au service.
+[Observations, sémantique des flags et limites](evidence/rust-incomplete-diagnostic-followup.json).
+Le prochain incident d'usage autorisé disposera du diagnostic, sans accepter des
+résultats tronqués ni les rejouer automatiquement.
+
+## Audio Rust natif et endurance mesurée — jalon eb87cc5
 
 L'entrée PCM est portée dans `rambler-audio` : WAV strict PCM16LE mono16k,
 libopus 1.6.1 statique, VoIP/VBR24kbps, trames/pages20ms par défaut, flush et EOS

@@ -1,0 +1,48 @@
+{
+  "kind": "bounded_incomplete_session_diagnostic_followup",
+  "source_tree_base_commit": "eb87cc5",
+  "scope": "Additional safe client observability; success requirements, codec and no-replay policy unchanged.",
+  "original_batch": {
+    "requested": 3,
+    "attempted": 2,
+    "successful": 1,
+    "failed": 1,
+    "third_not_launched": true,
+    "failure_cli_category": "incomplete",
+    "failure_wall_seconds": 282.2019580000051,
+    "failure_completion_flags": "not captured; cannot be recovered retroactively",
+    "evidence": "rust-endurance-300-public.json"
+  },
+  "followup": {
+    "explicit_development_sessions": 2,
+    "qualification": "rust-diagnostic-endurance-120-public.json",
+    "long_diagnostic": "rust-diagnostic-endurance-300-public.json",
+    "both_healthy": true,
+    "same_known_ordered_finals_as_original_healthy_long_session": true,
+    "failure_reproduced": false,
+    "incident_declared_resolved": false,
+    "binary_sha256": "b9a0704e6648cf8ec348b7274422bb3979c82ae0ba1225188076b7c016f85efa"
+  },
+  "validation": {
+    "rust_workspace_tests_passed": 163,
+    "python_reference_and_tools_tests_passed": 654,
+    "audio_independent_oracle": "57 complete Ogg streams passed separately before diagnostic-only changes",
+    "release_audio_build": "passed",
+    "fmt": "passed",
+    "clippy_all_features_all_targets_deny_warnings": "passed"
+  },
+  "independent_review": {
+    "model": "Claude Opus",
+    "demonstrated_client_defect": false,
+    "targeted_offline_loopback_checks_passed": 9,
+    "recommendation": "Stop service replays now; retain typed flags for a future explicitly authorized incident.",
+    "limits": "No access to service internals or missing original timeline. Successful followup does not identify a fix or distinguish client from peer/service cause."
+  },
+  "flag_semantics": {
+    "source_exhausted": "EOF of complete RequestSource (init/audio/late context/END), not a PCM byte-count acknowledgement",
+    "source_closed": "cleanup attempt finished, not proof of normal source EOF",
+    "upload_eof_polled": "END_STREAM submitted locally to h2 after the upload, not acknowledged by the server",
+    "saw_s3_end": "S3 END observed, which alone does not prove complete tail audio"
+  },
+  "remaining_limit": "Intermittent long-session incompleteness is observed but not explained. No partial result is accepted as a completed dictation; no automatic audio replay is introduced."
+}

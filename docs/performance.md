@@ -259,6 +259,13 @@ charge et réseau diffèrent : **aucun pourcentage de gain Rust/Python ni preuve
 d'absence de fuite** ne ressort de ces observations. Les limites300/360s restent
 celles du banc, pas des garanties du service.
 
+Un [suivi diagnostique distinct](evidence/rust-incomplete-diagnostic-followup.json)
+qualifie le nouveau binaire sur118,682s, puis termine un unique288,352s en290,904s,
+avec mêmes finales connues, max RSS11 792 384octets et CPU dernier échantillon15,344s.
+Cet incident n'est pas reproduit, pas résolu : l'ancien échec reste conservé, sans
+flags récupérables rétrospectivement. La revue indépendante recommande de ne pas
+multiplier les replays. Le suivi ne remplace pas le lot initial par trois succès.
+
 ## Reproduire
 
 Préparer un WAV/Opus synthétique avec `tools/make_fixture.ps1` ou un corpus autorisé,
@@ -298,7 +305,8 @@ Démarrage de processus réellement froid, microphone/PCM réel, endurance au-de
 des sessions de 288 s, réseaux dégradés, ressources par session isolée, trafic réseau
 exact et qualité représentative sur voix naturelles (dix clips supplémentaires lus,
 plus l'échantillon initial).
-Aucun langage concurrent n'a été benchmarké ; on ne prétend pas
-que Python soit le plus rapide possible. Les mesures montrent à ce stade que le
-levier important identifié est le pipeline d'entrée ; une réécriture du transport
-n'aurait pas, à elle seule, démontré le gain de finalisation observé.
+Les observations Rust ne sont pas une comparaison contrôlée de langages ; on ne
+prétend pas que Python soit le plus rapide possible, ni que Rust accélère le
+calcul distant. Les mesures identifient à ce stade le pipeline d'entrée comme
+levier important ; une réécriture du transport n'aurait pas, à elle seule,
+démontré le gain de finalisation observé.

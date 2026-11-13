@@ -121,7 +121,7 @@ async fn collect_inner(
     while let Some(event) = session.next().await? {
         if let Some(response) = event.response {
             if eof.is_some() {
-                return Err(EngineError::IncompleteSession);
+                return Err(session.incomplete_error().await);
             }
             if response.status == Some(1) {
                 end = true;
@@ -140,7 +140,7 @@ async fn collect_inner(
             }
         } else {
             if eof.is_some() {
-                return Err(EngineError::IncompleteSession);
+                return Err(session.incomplete_error().await);
             }
             eof = Some(event.metrics);
         }
@@ -149,7 +149,7 @@ async fn collect_inner(
         return Err(EngineError::S3(std::sync::Arc::new(error)));
     }
     if !end || eof.is_none() {
-        return Err(EngineError::IncompleteSession);
+        return Err(session.incomplete_error().await);
     }
     Ok(DictationResult {
         final_updates: updates,

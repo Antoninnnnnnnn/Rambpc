@@ -1,4 +1,6 @@
-use super::supervise;
+use super::{failure_output, supervise};
+use rambler_engine::{DiagnosticMetrics, EngineError, IncompleteSessionDiagnostic, SourceError};
+use rambler_transport::Completion;
 use std::{
     future::Future,
     pin::Pin,
@@ -10,6 +12,49 @@ use std::{
 };
 
 struct PendingCollection(Arc<AtomicBool>);
+
+#[test]
+fn incomplete_output_contains_only_explicit_completion_diagnostics() {
+    let error = EngineError::IncompleteSession(Arc::new(IncompleteSessionDiagnostic {
+        saw_s3_end: true,
+        completion: Completion {
+            requests_produced: 3,
+            requests_polled: 3,
+            responses_received: 2,
+            source_exhausted: false,
+            upload_eof_polled: false,
+            source_closed: true,
+            terminal_code: Some(tonic::Code::Ok),
+        },
+        metrics: DiagnosticMetrics {
+            requests_produced: 3,
+            request_protobuf_bytes: 100,
+            responses_received: 2,
+            response_protobuf_bytes: 20,
+            elapsed_seconds: 2.0,
+            first_response_seconds: Some(0.1),
+            eof_seconds: None,
+        },
+    }));
+    let value = failure_output(&error, None);
+    assert_eq!(value["category"], "incomplete");
+    assert_eq!(value["incomplete"]["saw_s3_end"], true);
+    assert_eq!(value["incomplete"]["completion"]["source_exhausted"], false);
+    assert_eq!(value["incomplete"]["completion"]["terminal_code"], "Ok");
+    assert_eq!(value["incomplete"]["metrics"]["requests_produced"], 3);
+    let serialized = value.to_string();
+    for forbidden in ["session_id", "raw", "text", "metadata"] {
+        assert!(!serialized.contains(forbidden));
+    }
+    let sensitive = EngineError::Audio(SourceError::new(std::io::Error::other(
+        "PRIVATE-AUDIO-DETAIL",
+    )));
+    let value = failure_output(&sensitive, Some(&sensitive));
+    assert_eq!(value["category"], "audio");
+    assert!(!value.to_string().contains("PRIVATE-AUDIO-DETAIL"));
+    assert!(value.get("incomplete").is_none());
+}
+
 impl Future for PendingCollection {
     type Output = Result<u32, &'static str>;
     fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {

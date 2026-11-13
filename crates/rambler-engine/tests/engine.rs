@@ -330,7 +330,7 @@ async fn early_end_and_missing_end_never_emit_successful_eof() {
                 Err(error) => break error,
             }
         };
-        assert!(matches!(error, EngineError::IncompleteSession));
+        assert!(matches!(error, EngineError::IncompleteSession(_)));
         assert!(!eof);
         assert_eq!(closes.load(Ordering::SeqCst), 1);
         let _ = engine.close().await;

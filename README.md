@@ -1,7 +1,7 @@
 # Rambpc — moteur Rambler sans Android
 
 Moteur du **véritable service Rambler/Jetson**, reconstruit à partir de PixelBoard
-1.3.4. Portage Rust en cours ; Python 0.3 reste la référence de conformité.
+1.3.4. Cœur Rust opérationnel ; Python 0.3 reste la référence de conformité.
 Connexion directe gRPC, sans Android, téléphone, émulateur ni API Gemini publique
 à l'exécution. Pas d'interface graphique.
 
@@ -46,10 +46,12 @@ français et édition sur contexte, avec un PATH système sans Python/FFmpeg.
 [Preuves et limites](docs/evidence/rust-first-slice-public.json). Le lot audio ajoute
 l'entrée **WAV/PCM native optionnelle**, liée à libopus statique : quatre autres
 appels réels réussissent (accéléré/progressif, réécriture et sélection avec emoji).
-[Preuves PCM](docs/evidence/rust-pcm-functional-public.json) ; 156 tests Rust passent,
-plus un oracle indépendant de 57 flux exécuté séparément. Aucun gain de latence
-global n'est revendiqué. L'endurance et ses échecs sont conservés dans
-[l'état détaillé](docs/STATUS.md), pas déduits des tests courts.
+[Preuves PCM](docs/evidence/rust-pcm-functional-public.json). La consolidation passe
+**163 tests Rust et 654 tests Python/outils**, plus un oracle indépendant de
+57 flux exécuté séparément. Aucun gain de latence global n'est revendiqué.
+L'endurance conserve un échec intermittent ; le suivi instrumenté réussit sans
+établir sa cause ni prétendre l'avoir corrigé. Voir
+[l'état détaillé](docs/STATUS.md) et le [diagnostic](docs/evidence/rust-incomplete-diagnostic-followup.json).
 
 Les preuves historiques ci-dessus concernent Python tant qu'une preuve Rust
 n'est pas explicitement identifiée. Tauri, microphone et intégrations système

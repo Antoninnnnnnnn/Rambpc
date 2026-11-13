@@ -171,6 +171,15 @@ explicitement `close()` en cas d'arrêt anticipé.
   fermée et statut gRPC OK. Une finale reçue avant cela n'est pas une réussite.
 - Une erreur S3 n'interrompt pas le drainage requis pour détecter une erreur gRPC
   tardive. Aucun échec ne déclenche un rejeu automatique d'audio.
+- `EngineError::IncompleteSession(Arc<IncompleteSessionDiagnostic>)` expose END S3,
+  les compteurs/flags du transport et des métriques finales sans texte/raw/ID,
+  relevés après son nettoyage. La CLI les projette dans `error.incomplete` ; ils
+  distinguent un END absent d'un upload interrompu, sans prouver la cause serveur.
+  Le payload typé remplace la variante unitaire du prototype0.1 initial.
+  `source_exhausted` vise le RequestSource entier (init/audio/contexte/END), pas
+  directement l'EOF PCM ; `source_closed` signifie cleanup terminé, même précoce.
+  `upload_eof_polled` reste une soumission locale END_STREAM, pas un acquittement
+  serveur, et `saw_s3_end` seul ne garantit pas le tail audio.
 - Arrêt normal : terminer la source et drainer les réponses. Annulation :
   `request_cancel()` puis `close().await` ; ce n'est pas une finalisation de dictée.
 - `Drop` signale l'annulation mais ne peut pas attendre un nettoyage asynchrone.

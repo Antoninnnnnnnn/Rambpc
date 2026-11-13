@@ -163,7 +163,7 @@ fn error_category(e: &EngineError) -> (&'static str, Option<String>) {
         EngineError::Protocol(_) => ("protocol", None),
         EngineError::AmbiguousResult => ("ambiguous", None),
         EngineError::ResultLimit => ("result_limit", None),
-        EngineError::IncompleteSession => ("incomplete", None),
+        EngineError::IncompleteSession(_) => ("incomplete", None),
         EngineError::InvalidConfig => ("configuration", None),
         _ => ("engine", None),
     }
@@ -188,6 +188,41 @@ fn print_error(category: &str, code: Option<String>) {
         json!({"type":"error", "category":category, "grpc_code":code})
     );
 }
+fn failure_output(error: &EngineError, cleanup: Option<&EngineError>) -> Value {
+    let (category, code) = error_category(error);
+    let (close_category, close_code) = cleanup
+        .map(error_category)
+        .map_or((None, None), |(category, code)| (Some(category), code));
+    let mut value = json!({"type":"error", "category":category, "grpc_code":code,
+        "close_error_category":close_category, "close_grpc_code":close_code});
+    if let EngineError::IncompleteSession(diagnostic) = error {
+        let completion = &diagnostic.completion;
+        let metrics = &diagnostic.metrics;
+        value["incomplete"] = json!({
+            "saw_s3_end": diagnostic.saw_s3_end,
+            "completion": {
+                "requests_produced": completion.requests_produced,
+                "requests_polled": completion.requests_polled,
+                "responses_received": completion.responses_received,
+                "source_exhausted": completion.source_exhausted,
+                "upload_eof_polled": completion.upload_eof_polled,
+                "source_closed": completion.source_closed,
+                "terminal_code": completion.terminal_code.map(|code| format!("{code:?}")),
+            },
+            "metrics": {
+                "requests_produced": metrics.requests_produced,
+                "request_protobuf_bytes": metrics.request_protobuf_bytes,
+                "responses_received": metrics.responses_received,
+                "response_protobuf_bytes": metrics.response_protobuf_bytes,
+                "elapsed_seconds": metrics.elapsed_seconds,
+                "first_response_seconds": metrics.first_response_seconds,
+                "eof_seconds": metrics.eof_seconds,
+            }
+        });
+    }
+    value
+}
+
 async fn supervise<T, E, C, Close, Signal>(
     collection: C,
     close: impl FnOnce() -> Close,
@@ -344,16 +379,7 @@ async fn main() {
     let result = result.expect("collection or interrupt");
     match (result, cleanup) {
         (Err(e), cleanup) => {
-            let (c, g) = error_category(&e);
-            let (close_category, close_code) = cleanup
-                .as_ref()
-                .err()
-                .map(error_category)
-                .map_or((None, None), |(c, g)| (Some(c), g));
-            println!(
-                "{}",
-                json!({"type":"error", "category":c, "grpc_code":g, "close_error_category":close_category, "close_grpc_code":close_code})
-            );
+            println!("{}", failure_output(&e, cleanup.as_ref().err()));
             std::process::exit(1);
         }
         (Ok(_), Err(e)) => {

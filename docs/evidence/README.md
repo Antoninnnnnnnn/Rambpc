@@ -2,6 +2,13 @@
 
 ## Portage Rust
 
+- [rust-incomplete-diagnostic-followup.json](rust-incomplete-diagnostic-followup.json) :
+  consolidation avec diagnostic typé et revue Opus. Une qualification120s et
+  un unique300s réussissent, sans reproduire ni résoudre l'ancien incident282s.
+  [Qualification](rust-diagnostic-endurance-120-public.json) ·
+  [essai long diagnostique](rust-diagnostic-endurance-300-public.json).
+  L'ancien lot reste failed_or_inconclusive ; aucun troisième succès rétroactif.
+
 - [rust-pcm-functional-public.json](rust-pcm-functional-public.json) : PCM natif
   accéléré/progressif au même texte, réécriture intention3 et sélection avec emoji ;
   quatre appels réels Windows, libopus statique, source/lock/binaire hashés.

@@ -5,7 +5,7 @@ use rambler_protocol::{
     audio_request, context_request, decode_response, end_request, initial_request,
 };
 use rambler_transport::{
-    GrpcTransport, Metadata, MetadataProvider, RequestSource, TransportConfig,
+    Completion, GrpcTransport, Metadata, MetadataProvider, RequestSource, TransportConfig,
 };
 use std::{
     pin::Pin,
@@ -88,6 +88,44 @@ pub struct SessionMetrics {
     pub first_response_seconds: Option<f64>,
     pub eof_seconds: Option<f64>,
 }
+/// Safe final counters and timings, deliberately excluding session identifiers,
+/// audio, context, hypotheses, response bytes, and caller/server error details.
+/// Counts describe produced protobuf payloads, not acknowledged network bytes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DiagnosticMetrics {
+    pub requests_produced: u64,
+    pub request_protobuf_bytes: u64,
+    pub responses_received: u64,
+    pub response_protobuf_bytes: u64,
+    pub elapsed_seconds: f64,
+    pub first_response_seconds: Option<f64>,
+    pub eof_seconds: Option<f64>,
+}
+impl From<&SessionMetrics> for DiagnosticMetrics {
+    fn from(metrics: &SessionMetrics) -> Self {
+        Self {
+            requests_produced: metrics.requests_produced,
+            request_protobuf_bytes: metrics.request_protobuf_bytes,
+            responses_received: metrics.responses_received,
+            response_protobuf_bytes: metrics.response_protobuf_bytes,
+            elapsed_seconds: metrics.elapsed_seconds,
+            first_response_seconds: metrics.first_response_seconds,
+            eof_seconds: metrics.eof_seconds,
+        }
+    }
+}
+/// Observations after transport supervision AND source cleanup have completed.
+/// Missing criteria remain failures: this is diagnosis, not permission to retry
+/// or replay audio. `upload_eof_polled` is a local transport observation, not a
+/// server acknowledgement. Only safe structural data is retained here.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IncompleteSessionDiagnostic {
+    pub saw_s3_end: bool,
+    pub completion: Completion,
+    pub metrics: DiagnosticMetrics,
+}
+type DiagnosticSlot = Arc<Mutex<Option<Arc<IncompleteSessionDiagnostic>>>>;
+
 #[derive(Clone, Debug)]
 pub struct EngineEvent {
     /// None is the unique successful EOF event. Response candidates alone never
@@ -383,6 +421,8 @@ impl Engine {
         let transport = self.transport.clone();
         let cancel = control.cancel.clone();
         let (events_tx, events) = mpsc::channel(1);
+        let diagnostic: DiagnosticSlot = Arc::new(Mutex::new(None));
+        let final_diagnostic = diagnostic.clone();
         let id = SESSION_ID.fetch_add(1, Ordering::Relaxed);
         tokio::spawn(async move {
             let provider = options
@@ -399,6 +439,7 @@ impl Engine {
                 start,
                 id,
                 fault,
+                final_diagnostic,
             )
             .await;
             // Includes failed transport start (which takes and then drops Requests).
@@ -415,6 +456,7 @@ impl Engine {
             control,
             events,
             captured,
+            diagnostic,
             terminal_delivered: false,
         })
     }
@@ -500,6 +542,7 @@ pub struct EngineSession {
     control: Arc<Control>,
     events: mpsc::Receiver<EngineEvent>,
     captured: Arc<Mutex<Option<EditingContext>>>,
+    diagnostic: DiagnosticSlot,
     terminal_delivered: bool,
 }
 impl EngineSession {
@@ -537,6 +580,19 @@ impl EngineSession {
             result => result,
         }
     }
+    // Defensive collector invariants use the real joined transport snapshot,
+    // never a fabricated default Completion. Late failures still take precedence.
+    pub(crate) async fn incomplete_error(&mut self) -> EngineError {
+        if let Err(error) = self.close_unobserved().await {
+            return error;
+        }
+        self.diagnostic
+            .lock()
+            .unwrap()
+            .clone()
+            .map(EngineError::IncompleteSession)
+            .unwrap_or(EngineError::Supervisor)
+    }
     pub async fn cancel(&mut self) -> Result<(), EngineError> {
         self.close().await
     }
@@ -559,6 +615,7 @@ async fn supervise(
     start: Instant,
     id: u64,
     fault: Arc<Mutex<Option<EngineError>>>,
+    final_diagnostic: DiagnosticSlot,
 ) -> Result<(), EngineError> {
     if cancel.is_cancelled() {
         return Err(EngineError::Cancelled);
@@ -574,6 +631,7 @@ async fn supervise(
     let mut received = 0;
     let mut bytes = 0;
     let mut first = None;
+    let mut eof = None;
     let mut s3_end = false;
     let mut s3_error = None;
     let snapshot = |received, bytes, first, eof| SessionMetrics {
@@ -622,16 +680,18 @@ async fn supervise(
             || !completion.source_closed
             || completion.terminal_code != Some(tonic::Code::Ok)
         {
-            return Err(EngineError::IncompleteSession);
+            // Defer the error payload until the final cleanup/join below.
+            return Ok(false);
         }
+        eof = Some(start.elapsed().as_secs_f64());
         events
             .send(EngineEvent {
                 response: None,
-                metrics: snapshot(received, bytes, first, Some(start.elapsed().as_secs_f64())),
+                metrics: snapshot(received, bytes, first, eof),
             })
             .await
             .map_err(|_| EngineError::Cancelled)?;
-        Ok(())
+        Ok(true)
     };
     let result = tokio::select! {
         biased;
@@ -645,6 +705,12 @@ async fn supervise(
         rpc.request_cancel();
     }
     let cleanup = rpc.finish().await;
+    let diagnostic = Arc::new(IncompleteSessionDiagnostic {
+        saw_s3_end: s3_end,
+        completion: rpc.completion(),
+        metrics: DiagnosticMetrics::from(&snapshot(received, bytes, first, eof)),
+    });
+    *final_diagnostic.lock().unwrap() = Some(diagnostic.clone());
     match result {
         // Restore an explicitly retained engine-source error without publishing
         // caller error text. A real late gRPC failure is never hidden by S3 END.
@@ -655,6 +721,10 @@ async fn supervise(
             .clone()
             .unwrap_or(EngineError::Supervisor)),
         Err(error) => Err(error),
-        Ok(()) => cleanup.map(|_| ()).map_err(Into::into),
+        Ok(false) => {
+            cleanup?;
+            Err(EngineError::IncompleteSession(diagnostic))
+        }
+        Ok(true) => cleanup.map(|_| ()).map_err(Into::into),
     }
 }
