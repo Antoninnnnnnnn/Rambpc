@@ -1,0 +1,27 @@
+[package]
+name = "rambler-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "rambler"
+path = "src/main.rs"
+
+[dependencies]
+rambler-engine = { path = "../rambler-engine" }
+rambler-transport = { path = "../rambler-transport" }
+bytes.workspace = true
+tokio.workspace = true
+serde_json.workspace = true
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+rambler-protocol = { path = "../rambler-protocol" }
+http.workspace = true
+futures-util.workspace = true
+tokio-stream.workspace = true
+tokio-util.workspace = true
+tonic.workspace = true
+hex.workspace = true
+tempfile = "3"

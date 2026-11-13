@@ -1,5 +1,17 @@
 # Observations réseau
 
+## Portage Rust
+
+- [rust-first-slice-public.json](rust-first-slice-public.json) : trois sessions
+  réelles d'une CLI release **Rust** sur Windows, Ogg/Opus déjà encodé : anglais,
+  édition sur contexte et français. Le binaire fonctionne avec un PATH système
+  sans Python/FFmpeg ; Python ne sert que de lanceur de développement. TLS vérifié,
+  END S3 et gRPC OK, sortie après nettoyage, zéro retry. Hashes exacts du binaire,
+  du lock et des fichiers sources avant leur premier commit d'intégration.
+  Les textes synthétiques connus ont été inspectés ; pas de nouvelle inspection
+  binaire indépendante, ni preuve d'endurance/PCM natif ou de gain de vitesse Rust.
+  Les captures stdout/stderr originales restent dans `artifacts/`, hors git.
+
 Ce répertoire distingue les diagnostics de transport des véritables réponses
 Rambler. Les deux premiers fichiers ci-dessous n'envoyaient aucun audio ni
 identifiant utilisateur. Les fichiers fonctionnels ajoutés ensuite utilisent

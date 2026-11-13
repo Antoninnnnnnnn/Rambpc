@@ -1,8 +1,9 @@
 # Rambpc — moteur Rambler sans Android
 
-Client Python réutilisable du **véritable service Rambler/Jetson**, reconstruit à
-partir de PixelBoard 1.3.4. Connexion directe gRPC, sans Android, téléphone, émulateur
-ni API Gemini publique à l'exécution. Pas d'interface graphique.
+Moteur du **véritable service Rambler/Jetson**, reconstruit à partir de PixelBoard
+1.3.4. Portage Rust en cours ; Python 0.3 reste la référence de conformité.
+Connexion directe gRPC, sans Android, téléphone, émulateur ni API Gemini publique
+à l'exécution. Pas d'interface graphique.
 
 ## Fonctionnement réellement observé
 
@@ -34,15 +35,24 @@ précisent les preuves et leurs limites. Ces petits corpus n'établissent pas la
 générale sur voix naturelles, toutes les intentions, ni la disponibilité future
 du service interne.
 
-## Prochaine étape : cœur Rust
+## Cœur Rust
 
-Le SDK Python 0.3 reste la **référence de conformité** et les fixtures servent à
-comparer le portage ; il ne s'agit pas de créer une nouvelle application Python.
-La prochaine tranche demandée est une bibliothèque Rust indépendante et une CLI
-fichier audio → résultat confirmé. Tauri, microphone et intégrations système viennent
-plus tard et restent hors de ce lot. Voir la [recommandation d'architecture](docs/architecture/application-desktop-multiplateforme.md).
+Le workspace contient le codec, le transport, le moteur et une CLI fichier
+Ogg/Opus. Voir **[construire, utiliser et intégrer le moteur Rust](docs/rust.md)**
+pour les commandes Cargo, les garanties de fermeture et le périmètre validé.
+Python 0.3 reste la **référence de conformité**, pas un runtime caché du binaire.
+Les **trois premiers appels Rust réels** ont réussi sur Windows : anglais,
+français et édition sur contexte, avec un PATH système sans Python/FFmpeg.
+[Preuves et limites](docs/evidence/rust-first-slice-public.json) ; 121 tests Rust
+et 643 tests de référence Python passent. Ce lot prend de l'Ogg/Opus déjà encodé,
+pas encore l'entrée PCM native. Aucun gain de latence global n'est revendiqué.
 
-## Installer et tester
+Les preuves historiques ci-dessus concernent Python tant qu'une preuve Rust
+n'est pas explicitement identifiée. Tauri, microphone et intégrations système
+restent hors de ce lot. Voir le [contrat de portage](docs/architecture/portage-rust.md)
+et la [recommandation desktop](docs/architecture/application-desktop-multiplateforme.md).
+
+## Référence Python : installer et tester
 
 Python **3.11 ou plus récent**. Exemple Windows / Git Bash :
 

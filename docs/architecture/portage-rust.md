@@ -79,6 +79,21 @@ différence avant de conclure à un changement de code. Le smoke de roue vérifi
 l'égalité exacte des modules installés avec les fichiers locaux ; cette question
 n'affecte pas les goldens des requêtes protobuf binaires.
 
+## Première tranche obtenue le 13 novembre 2026
+
+La CLI release Rust a terminé trois sessions réelles Windows : anglais, édition
+sur contexte et français, sans Python/FFmpeg dans le PATH du processus. Les
+[observations inspectées](../evidence/rust-first-slice-public.json) fixent les
+hashes du code/binaire et les limites. 121 tests Rust intégrés et 643 tests de la
+référence Python passent ; aucun gain de latence remote n'est déduit de ces essais.
+
+Le transport réel est `h2` + `tokio-rustls`/racines système, avec types et tests
+`tonic`. Ce choix remplace le Channel tonic/hyper du prototype, pas le service :
+le test d'upload bloqué exigeait de pouvoir réinitialiser une session sans couper
+les autres ou laisser son upload reprendre après annulation. Les cas HTTP/RST ont
+été comparés au client tonic. Le portage PCM natif et les mesures Rust prolongées
+restent distincts de cette preuve fichier Ogg. [Guide d'intégration](../rust.md).
+
 ## Critère de réussite du premier lot Rust
 
 Une CLI Rust autonome reçoit une réponse du vrai Rambler, sans Python/Android à

@@ -1,5 +1,34 @@
 # État du moteur — 2026-11-13
 
+## Première tranche Rust validée
+
+Le workspace natif contient `rambler-protocol`, `rambler-transport`,
+`rambler-engine` et `rambler-cli`. **121 tests Rust intégrés passent**, ainsi que
+le formatage, Clippy tous targets avec warnings bloquants et la compilation
+release. Les **643 tests de la référence Python** passent aussi (623 du gel 0.3
+et 20 de l'oracle de politique de résultat).
+
+**Trois appels réels Rust réussis sur Windows** : dictée anglaise, instruction
+sur contexte `ten`→`eleven`, dictée française. Le processus Rust a été lancé avec
+un PATH limité aux répertoires système Windows, sans Python/FFmpeg ; l'orchestration
+Python de développement n'est pas une dépendance du binaire. TLS vérifié, service
+S3Bidi/routage Rambler inchangés, plateforme déclarée `Rust`, fin S3 et gRPC OK,
+aucun rejeu automatique. [Preuve inspectée](evidence/rust-first-slice-public.json)
+avec hashes du binaire, du lock et des sources mesurées ; pas de payload opaque
+ou d'identifiant de service publié.
+
+Les tests loopback couvrent notamment annulation d'un upload bloqué par le
+flow-control avec reset du seul flux, sessions voisines conservées sur une même
+connexion, erreurs tardives, deadline, framing, mapping HTTP/RST comparé à tonic,
+nettoyage exactement une fois et conservation de plusieurs erreurs background.
+La fermeture explicite reste nécessaire pour attendre le nettoyage asynchrone.
+
+Cette preuve utilise **de l'Ogg/Opus déjà encodé** : le portage PCM natif, les
+mesures Rust CPU/RSS/endurance et l'exécution réelle sur d'autres OS sont des lots
+distincts, pas des succès déduits des essais Python. Aucun gain de vitesse global
+Rust n'est revendiqué. Voir [le guide Rust](rust.md) pour construire, exécuter et
+intégrer le moteur ; GUI/microphone/insertion restent hors périmètre.
+
 ## Continuation SDK 0.3 et référence Rust
 
 Le SDK 0.3 intègre les options de contexte initial et **623 tests locaux stricts**
