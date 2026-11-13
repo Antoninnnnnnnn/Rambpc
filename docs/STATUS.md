@@ -1,22 +1,39 @@
 # État du moteur — 2026-11-13
 
-## Raffinement 0.2.0 — validation locale avant nouveaux essais réseau
+## Raffinement 0.2.0 — code et nouveaux essais réels du 2026-11-13
 
-Branche de travail : `feat/engine-refinement`, construite sur `1f52c94` sans
-modifier la branche publiée. **415 tests locaux passent** avec asyncio debug et
-avertissements bloquants ; roue0.2.0 construite.
+Branche locale : `feat/engine-refinement`, construite sur `1f52c94` sans modifier
+la branche publiée. **438 tests locaux passent** avec asyncio debug et avertissements
+bloquants. La [roue 0.2.0 finale](evidence/refinement-wheel-smoke.json) est construite
+et installée dans un venv vierge sans PyAV : imports publics, modules identiques au
+source et rendu de la fixture dérivée vérifiés offline. Les mesures initiales
+portent le checkpoint `4b96696` ; le suivi
+réécriture enregistre aussi les hashes du nouveau code de rendu.
 
 - Deux défauts corrigés : fusion des messages protobuf singuliers répétés (y compris
   même membre oneof) et nettoyage producteur asynchrone interrompu par la fin RPC.
-  Aucun des deux n'a été observé dans les42 essais historiques ; reproductions
-  offline/loopback et vérification canonique ont été ajoutées.
+  Aucun des deux n'a été observé dans les 42 essais historiques ; reproductions
+  offline/loopback et vérification canonique ajoutées.
 - API de résultat final bornée, ambiguïté explicite, proposition de remplacement
   sans effet de bord et contrôle snapshot/révision : [guide](refinement.md).
-- Bancs plus représentatifs de la CLI native, grille20/40/60/100ms et comparaison
-  de toutes les mises à jour finales ; aucun nouveau gain de vitesse revendiqué
-  avant exécution des mesures.
-- Un clip anglais naturel licencié et des scénarios synthétiques plus longs sont
-  préparés. Les nouveaux essais Google restent à exécuter à ce point du journal.
+- **20/20 sessions de la grille** 20/40/60/100 ms réussies, PCM décodé et toutes les
+  mises à jour finales ordonnées identiques. Défaut 20 ms conservé ; 60 ms économise
+  environ 26 % d'Ogg avec environ 17 ms de médiane finale supplémentaire sur ce banc.
+  Aucun nouvel optimum de vitesse établi ; [distributions et limites](performance.md).
+- Cinq cas fonctionnels ont terminé leur transport ; quatre rendus uniques au
+  premier passage. La réécriture réelle, intention 3/champ 3, a révélé une limite de
+  l'API puis a réussi dans un nouvel essai après correction du rendu. Le rapport
+  initial 4/5 est conservé, pas réécrit.
+- Clip naturel anglais de 3,505 s : WER 0/8 mots, sans généralisation. Dictée de
+  40,56 s intégrale en accéléré puis à débit simulé (collecte 41,454 s), même texte
+  corrigé et référence finale conservée. Sélection avec emoji réussie. La demande
+  de composition est restée une dictée de l'instruction, pas une composition validée.
+
+Les **27 nouveaux transports complets** sont les 20 mesures, cinq cas fonctionnels,
+une dictée longue progressive et le suivi réécriture ; ils ne constituent pas
+27 succès de rendu du premier coup. Les rapports publics sont expurgés, les captures
+avec identifiants opaques restent hors git. Aucune nouvelle CI distante ou exécution
+Google/Linux n'est revendiquée pour ce raffinement local.
 
 ## Jalon réel du 2026-11-12
 
@@ -35,7 +52,11 @@ Ogg/Opus16k mono, contexte tardif, fin S3 puis statut gRPC OK.
 | Dictée anglaise et française | Service réel, corpus synthétique contrôlé |
 | Correction orale « ten… no, eleven » | Service réel, texte corrigé |
 | Édition de texte existant par instruction | Service réel, contexte avant curseur et historique édité renvoyé |
-| Intentions et résultats d'édition structurés | `VoiceEditingResult` réel, intention2 ; octets décodés indépendamment |
+| Intentions et résultats d'édition structurés | `VoiceEditingResult` réel, intentions 2 et 3 ; cas historiques et réécriture décodés indépendamment |
+| Réécriture polie en contexte | Service réel, intention 3/champ 3 rendue par le SDK ; pas de proposition de remplacement pour cette intention |
+| Voix naturelle anglaise | Un clip LibriSpeech de 3,505 s, WER normalisé 0/8 ; validation très limitée |
+| Dictée de 40,56 s | Envoi accéléré puis progressif, source intégrale et même texte final ; pas un test d'endurance prolongée |
+| Sélection avec emoji | Service réel, contexte non-BMP conservé et sélection `ten`→`eleven` |
 | Contexte en trois parties / sélection | Service réel : `ten`→`eleven`, contexte différé appelé après EOF audio, retour avant/sélection/après |
 | Sessions successives / canal réutilisé |21/21 sessions du banc accéléré réussies ; audio et texte identiques |
 | Alimentation progressive à débit simulé |12/12 sessions réussies : six FFmpeg, six encodeur natif ; PCM décodé identique entre pages dans chaque expérience |
@@ -69,6 +90,12 @@ ou contenir l'historique complet : ce n'est pas une garantie de verbatim audio.
 - [Sélection, contexte différé, annulation et concurrence](evidence/lifecycle.json)
 - [Roue installée, configuration locale, sans APK à l'exécution](evidence/installed-wheel-smoke.json)
 - [Trois payloads réels publics inspectés](../tests/fixtures/live_synthetic_responses.json)
+- [Grille native 20/40/60/100 ms du raffinement](evidence/refinement-page-grid.json)
+- [Corpus fonctionnel initial expurgé, bilan historique 4/5](evidence/refinement-capabilities-public.json)
+- [Dictée de 40,56 s progressive, copie expurgée](evidence/refinement-long-realtime-public.json)
+- [Réécriture après extension du rendu, copie expurgée](evidence/refinement-rewrite-public.json)
+- [Roue 0.2.0 finale, installation et smoke offline sans PyAV](evidence/refinement-wheel-smoke.json)
+- [Fixture réécriture dérivée et expurgée, non originale](../tests/fixtures/live_rewrite_response.json)
 
 Les **33 réponses des trois premiers cas fonctionnels** ont été redécodées
 indépendamment de notre codec Python ; les fixtures publiques correspondantes ne
@@ -106,7 +133,8 @@ producteurs (stdout encodé FFmpeg contre lecteur PCM natif).
   graphique ni d'intégration microphone/environnement dans ce périmètre.
 - Nettoyage asyncio suppose des producteurs coopératifs. Les résultats partiels
   ne valent pas une fin de session. Erreurs S3 et statut final gRPC sont séparés.
-- Voix naturelles, endurance longue, transport réellement perdu et renouvellement
+- Au-delà de l'unique clip naturel anglais et des sessions de 40,56 s, qualité sur
+  voix naturelles, endurance prolongée, transport réellement perdu et renouvellement
   de credentials après révocation restent non validés.
 
 ## Historique utile

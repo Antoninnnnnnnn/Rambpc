@@ -46,11 +46,12 @@ class DictationResult:
 
     @property
     def text(self) -> str:
-        """Render known intent-2 history; never interpret opaque alternatives.
+        """Render verified edits; never interpret opaque alternatives.
 
         With no voice edit, expose the unique hypothesis text. For intent 2,
-        render field 3 or concatenate the three strings of field 7. Other
-        intents and field 2 have no verified text-selection policy here.
+        render field 3 or concatenate the three strings of field 7. For intent 3,
+        render field 3 only; this does not establish its replacement scope.
+        Other intents and field 2 have no verified text-selection policy here.
         """
         hypothesis = self.single_hypothesis
         edit = hypothesis.voice_edit
@@ -58,9 +59,9 @@ class DictationResult:
             if hypothesis.text is None:
                 raise AmbiguousResultError("unique hypothesis has no text")
             return hypothesis.text
+        if edit.intent in (2, 3) and edit.active_field == 3 and edit.edited_text is not None:
+            return edit.edited_text
         if edit.intent == 2:
-            if edit.active_field == 3 and edit.edited_text is not None:
-                return edit.edited_text
             if edit.active_field == 7 and edit.edited_context is not None:
                 value = edit.edited_context
                 return value.before + value.selected + value.after

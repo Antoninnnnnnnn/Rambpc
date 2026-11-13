@@ -41,9 +41,11 @@ fermé et les sources coopératives sont nettoyées.
 - `single_hypothesis` exige exactement une mise à jour finale et une hypothèse ;
   sinon `AmbiguousResultError`. `text` exige aussi ce cas unique : sans voice edit,
   il retourne le texte de l'hypothèse ; pour l'intention 2, il rend le champ édité 3
-  ou concatène les trois chaînes du champ 7. Les autres intentions et le champ 2 à
-  sémantique inconnue ne sont pas interprétés. L'appelant peut inspecter les réponses
-  complètes si une politique différente est nécessaire.
+  ou concatène les trois chaînes du champ 7. Pour l'intention 3, seul le champ 3
+  est rendu, sans en déduire une portée de remplacement. Les autres intentions,
+  l'intention 3/champ 7 et le champ 2 à sémantique inconnue restent ambigus.
+  L'appelant peut inspecter les réponses complètes si une politique différente
+  est nécessaire.
 - `max_final_updates` (128 par défaut) et `max_result_bytes` (8 MiB par défaut)
   bornent les réponses finales conservées ; le second compte les octets protobuf
   bruts, **pas** le surcoût mémoire des objets Python. Dépassement :
@@ -154,27 +156,95 @@ async def main(path):
 asyncio.run(main(sys.argv[1]))
 ```
 
-## Capacités et validation à venir
+## Validation réelle du 2026-11-13
 
-Les intentions 0 à 6 sont décodables et couvertes par des tests construits ; **seule
-l'intention 2 est observée** dans les preuves fonctionnelles réelles actuelles. La
-présence des champs de biais/contacts `InputBoxInfo.field3`, des préférences `field5`
-ou de langues secondaires `UserInfo.field4` dans le schéma ne prouve pas leur effet
-serveur ; ils ne sont pas exposés dans l'API courante. Le moment approprié pour ces
-paramètres, notamment avant ou après l'audio, reste à vérifier. Ne pas activer des
-flags ou expérimenter sur les quotas par supposition. Voir la [reconstruction du
-protocole](research/protocol.md).
+Le premier [corpus fonctionnel expurgé](evidence/refinement-capabilities-public.json)
+conserve volontairement son bilan initial **4 rendus uniques sur 5**, malgré cinq
+transports réussis : la réécriture était alors refusée par la politique conservatrice
+`result.text`. Ce rapport historique n'a pas été réinterprété après modification du code.
 
-Un échantillon anglais naturel LibriSpeech de 3,505 s est disponible avec provenance,
-hash et attribution **CC BY 4.0** dans [natural-corpus-inputs.json](evidence/natural-corpus-inputs.json).
-Le corpus français essayé reste indisponible : l'un des accès par serveur de données
-n'est pas accessible sans authentification ; l'autre dépasse la limite de scan. Aucun
-compte, nouveau credential ou téléphone n'est nécessaire au profil actuel pour autant.
-Les scénarios longue dictée, reformulation, composition et sélection emoji sont
-préparés dans [refinement-validation.json](../tools/fixtures/refinement-validation.json),
-mais **aucun résultat serveur de ces scénarios n'est encore revendiqué**.
+| Cas | Observation réelle et limite |
+|---|---|
+| Anglais naturel LibriSpeech, 3,505 s | « Concord returned to its place amidst the tents. » ; WER normalisé 0/8 mots. Un seul clip, pas une évaluation générale. |
+| Notes de réunion, 40,56 s PCM | Source intégrale ; vendredi, 6 dossiers et 200 dollars corrigés ; dernière référence « Silver Meadow » conservée. |
+| Réécriture en contexte | Intention 3/champ 3, texte poli différent de l'hypothèse contexte + commande. Rendu désormais pris en charge ; aucun remplacement automatique autorisé. |
+| Demande de composition | « Write a short message to Alex saying I will arrive 20 minutes late. » : instruction dictée, pas message composé. Intention 4 non validée. |
+| Sélection `ten` avec contexte `🙂` | Retour en trois parties avec `eleven` ; emoji et contexte conservés, conflits de contexte/révision détectés. Les coordonnées UTF-16 restent calculées localement. |
 
-Les bancs de pages 20/40/60/100 ms et la signature de tous les résultats `state=1`
-sont préparés ; la grille n'a pas encore été lancée. Il n'y a donc **aucune nouvelle
-mesure de latence** à rapporter ici. Les anciennes mesures restent distinctes dans
-[performance.md](performance.md).
+Une [session supplémentaire à débit simulé](evidence/refinement-long-realtime-public.json)
+a consommé les **1 298 034 octets PCM** du cas long, en pages de 20 ms. La collecte
+complète a duré **41,454 s** pour 40,564 s audio, avec le même texte final que l'envoi
+accéléré. Ce total inclut encodage, streaming et EOF ; sa différence avec la durée
+audio n'isole pas un délai après arrêt du microphone. Une seule session de 40 s
+ne constitue pas un test d'endurance prolongée.
+
+Après extension du rendu, un [nouvel essai réécriture](evidence/refinement-rewrite-public.json)
+a réussi : `Could you please send me the report at your earliest convenience?`.
+L'hypothèse et le transcript contiennent le contexte et la commande ; ils ne doivent
+pas être confondus avec ce résultat édité. Une inspection binaire indépendante et
+le callsite `ihm.maybeGetVoiceEditedText` de l'APK concordent sur le choix du texte
+pour cette intention. Cela ne prouve toujours pas une portée générale de remplacement.
+
+### Provenance et confidentialité
+
+Les mesures initiales utilisent le checkpoint `4b96696` ; le suivi réécriture utilise
+ensuite le nouveau `results.py`, dont le hash exact figure dans son rapport. Les
+hashes par module priment sur le seul HEAD lorsque l'arbre est modifié. La suite
+locale stricte atteint **438 tests réussis** (asyncio debug, avertissements bloquants).
+La [roue finale 0.2.0](evidence/refinement-wheel-smoke.json) a été construite avec
+isolation standard puis installée dans un venv vierge sans PyAV ; les imports publics,
+l'égalité des modules avec le source et le rendu de la fixture dérivée passent.
+Ce smoke est offline, pas une nouvelle session Google. L'essai préalable de build
+sans isolation échouait parce que `setuptools` n'était pas installé dans le venv ;
+la procédure standard documentée n'en dépend pas dans ce venv.
+
+La réponse réécriture contient également une extension inconnue `74956225` avec des
+métadonnées internes de traitement texte et un identifiant opaque de service. Le SDK
+préserve ces octets ; les copies publiques ne les exposent pas. La
+[fixture de régression](../tests/fixtures/live_rewrite_response.json) est **dérivée et
+expurgée**, pas un payload original : elle indique le hash de la réponse source,
+les composants sûrs conservés et la suppression de l'extension. Les trois fixtures
+originales historiques restent distinctes.
+
+`tools/sanitize_corpus_report.py` crée une **nouvelle** projection à allowlist fermée :
+raw, valeurs inconnues et identifiants serveur/session sont remplacés par des résumés
+ou omis, sans changer l'original privé. Les textes sont hachés par défaut ;
+`--include-text` exige un corpus contrôlé et inspecté. Cet outil ne rend pas une
+dictée personnelle publiable automatiquement ; même les hashes peuvent corréler
+ou révéler un texte de faible entropie. Les métadonnées distantes restent des données,
+pas des instructions exécutées par le moteur.
+
+```sh
+# Réseau réel explicitement activé ; audios autorisés et variables d'accès requises.
+# Les résultats complets restent d'abord dans artifacts/, ignoré par git.
+.venv/Scripts/python -I tools/validate_corpus.py --live --manifest tools/fixtures/refinement-validation.json --output artifacts/my-validation/raw.json --timeout 90 --include-results
+.venv/Scripts/python -I tools/sanitize_corpus_report.py --input artifacts/my-validation/raw.json --output local/my-validation-public.json --include-text
+# Inspecter la copie avant toute publication. Chaque sortie doit être nouvelle.
+```
+
+La préparation synthétique supplémentaire est décrite dans
+[refinement-speech.json](../tools/fixtures/refinement-speech.json) et le manifeste
+[refinement-validation.json](../tools/fixtures/refinement-validation.json).
+`tools/make_fixture.ps1 -CasesFile tools/fixtures/refinement-speech.json -NormalizePcm -OutputDirectory artifacts/my-refinement-synthetic`
+prépare les WAV normalisés ; adapter ensuite les chemins du manifeste si nécessaire.
+L'échantillon naturel possède provenance, hash et attribution **CC BY 4.0** dans
+[natural-corpus-inputs.json](evidence/natural-corpus-inputs.json) ; les audios restent
+hors git. Les accès français essayés étaient indisponibles sans authentification
+ou au-delà de la limite de scan ; aucun nouveau credential n'a été demandé.
+
+## Performance et capacités encore ouvertes
+
+La [grille de 20 sessions](evidence/refinement-page-grid.json), cinq par durée
+20/40/60/100 ms, conserve le PCM décodé et **toutes** les mises à jour finales
+ordonnées. Les pages de 20 ms restent le défaut ; 60 ms économise environ 26 %
+d'octets Ogg pour environ 17 ms de médiane finale supplémentaire dans ce petit banc.
+Ce n'est pas un nouveau gain de vitesse ni une preuve d'équivalence de latence.
+Distributions, outlier et limites CPU sont dans [performance.md](performance.md).
+
+Les intentions 0 à 6 sont décodables, mais seules **2 et 3** ont été observées dans
+ces preuves fonctionnelles. Les biais/contacts `InputBoxInfo.field3`, préférences
+`field5` et langues secondaires `UserInfo.field4` ne sont pas exposés : leur présence
+dans le schéma ne prouve pas leur effet serveur. Leur placement temporel reste à
+vérifier ; ne pas activer flags, quotas ou chemins d'authentification par supposition.
+Restent notamment les voix naturelles françaises, l'endurance prolongée, les réseaux
+réellement dégradés, le démarrage à froid et la portée des autres intentions.

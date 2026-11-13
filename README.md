@@ -18,10 +18,17 @@ Le 12 novembre 2026, le client natif a obtenu des réponses de
 | Sélection `ten`, contexte différé avant/sélection/après | Sélection remplacée par `eleven`, retour structuré en trois parties |
 | Dictée française | `Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.` |
 
+Le raffinement du **13 novembre 2026** ajoute une réécriture réelle (« Send me the
+report now. » → « Could you please send me the report at your earliest convenience? »),
+une sélection avec emoji, une dictée de **40,56 s** en accéléré puis à débit simulé,
+et un échantillon anglais naturel de 3,505 s sans erreur sur ses huit mots de référence.
+La demande de composition essayée est restée une dictée de l'instruction : cette
+fonction n'est pas validée.
+
 Les flux ont consommé l'intégralité des octets audio avec vérification SHA-256.
 Les [observations expurgées](docs/evidence/) et la [reconstruction du protocole](docs/research/protocol.md)
-précisent les preuves et leurs limites. Ce petit corpus synthétique n'établit pas
-la qualité sur voix naturelles, toutes les intentions, ni la disponibilité future
+précisent les preuves et leurs limites. Ces petits corpus n'établissent pas la qualité
+générale sur voix naturelles, toutes les intentions, ni la disponibilité future
 du service interne.
 
 ## Installer et tester
@@ -113,7 +120,7 @@ from rambler.protocol import ProtocolConfig, EditingContext
 
 async def ogg_chunks(path):
     with open(path, 'rb') as audio:
-        while chunk := audio.read(224):
+        while chunk := audio.read(8192):
             yield chunk
 
 async def dictate(path):
@@ -178,6 +185,11 @@ async def collect(engine, ogg_chunks):
         print('Inspecter result.final_updates sans choisir arbitrairement.')
     return result
 ```
+
+`result.text` rend les champs vérifiés d'édition historique (intention 2) et le
+texte réécrit du champ 3 pour l'intention 3 ; il ne choisit pas arbitrairement parmi
+plusieurs résultats. `replacement_proposal` reste limité à l'intention 2 : rendre
+une réécriture ne prouve pas sa portée de remplacement dans un éditeur.
 
 `replacement_proposal` peut décrire le remplacement d'une fenêtre de contexte pour
 le cas d'édition historique vérifié, avec contrôle de contexte et révision avant

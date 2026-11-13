@@ -1,11 +1,14 @@
 import asyncio
+import hashlib
+import json
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 import grpc
 import pytest
 
 from rambler.engine import IncompleteSessionError, RamblerEngine, S3SessionError
-from rambler.protocol import EditingContext, ProtocolConfig, context_request
+from rambler.protocol import EditingContext, ProtocolConfig, context_request, decode_response
 from rambler.results import (AmbiguousResultError, ContextConflictError, DictationResult, ResultLimitError,
                              UnsupportedEditError, collect_dictation, replacement_proposal)
 from rambler.transport import DEFAULT_METHOD, GrpcTransport
@@ -108,7 +111,8 @@ async def test_context_is_captured_at_audio_end_and_proposal_checks_snapshot():
             proposal.validate_current(current, revision=[])
 
 
-@pytest.mark.parametrize('payload', [final(2), final(3, intent=4)])
+@pytest.mark.parametrize('payload', [final(2), final(2, intent=3), final(7, intent=3),
+                                     *(final(3, intent=intent) for intent in (0, 1, 4, 5, 6, 99))])
 async def test_unknown_edit_not_interpreted(payload):
     async def handler(requests, call):
         async for _ in requests: pass
@@ -118,6 +122,35 @@ async def test_unknown_edit_not_interpreted(payload):
         result = await success(transport, context=EditingContext('old'))
         with pytest.raises(AmbiguousResultError): _ = result.text
         with pytest.raises(UnsupportedEditError): replacement_proposal(result)
+
+
+def test_sanitized_derived_rewrite_fixture_renders_without_replacement():
+    fixture = json.loads((Path(__file__).parent / 'fixtures' / 'live_rewrite_response.json').read_text(encoding='utf-8'))
+    assert fixture['fixture_kind'] == 'sanitized_derived_server_response'
+    case = fixture['cases'][0]
+    raw = bytes.fromhex(case['payload_hex'])
+    assert hashlib.sha256(raw).hexdigest() == case['payload_sha256']
+    response = decode_response(raw)
+    result = DictationResult((response,), EditingContext(case['before_context']))
+    hypothesis = result.single_hypothesis
+    assert hypothesis.text == case['expected']['hypothesis_text']
+    assert hypothesis.voice_edit.transcript == case['expected']['voice_transcript']
+    assert result.text == case['expected']['edited_text'] != hypothesis.text
+    with pytest.raises(UnsupportedEditError):
+        replacement_proposal(result)
+
+
+async def test_rewrite_renders_edited_text_not_hypothesis_without_replacement():
+    async def handler(requests, call):
+        async for _ in requests: pass
+        yield final(3, intent=3)
+        yield b'\x08\x01'
+    async with server(handler) as transport:
+        result = await success(transport, context=EditingContext('old'))
+        assert result.single_hypothesis.text == 'hypothesis'
+        assert result.text == 'edited'
+        with pytest.raises(UnsupportedEditError):
+            replacement_proposal(result)
 
 
 @pytest.mark.parametrize('payloads', [[final(count=2)], [final(), final()]])

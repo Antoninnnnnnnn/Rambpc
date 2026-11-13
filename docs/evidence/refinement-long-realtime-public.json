@@ -1,0 +1,320 @@
+{
+  "versions": {
+    "python": "3.14.5 (tags/v3.14.5:5607950, May 10 2026, 10:43:50) [MSC v.1944 64 bit (AMD64)]",
+    "os": "Windows-11-10.0.26300-SP0",
+    "libraries": {
+      "av": "19.0.2",
+      "grpcio": "1.85.1",
+      "rambpc-engine": "0.2.0"
+    },
+    "git_head": "4b96696cf656844f8747050ed572059d4e85f38c",
+    "rambler_source_sha256": {
+      "__init__.py": "d8d02fbac4cbcc55a21b31839319b27f4bf2ac013a9ed077045059b8df1d2298",
+      "audio.py": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "cli.py": "ed47d335ddba93452662472ae465a6ff7a2dd2e25ae6f87e3ba78558e96e9d8e",
+      "credentials.py": "3fbf621715874e56e2aaa059469eb620ceee73ef9d1794a6377e9b272cc9920a",
+      "encoding.py": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+      "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol.py": "1604f9420dd48f967ca8bea31fa5ebef1fcb8cfb5e30144f76115637c24ae0b2",
+      "results.py": "a480b5aa3ad8fdbdb511f10772aaae6ad7d01a22ea2b6fc849bf75a6245e1b70",
+      "transport.py": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire.py": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+    },
+    "validator_sha256": "0d070f098dfe19d367b8b280b4ff92bd0bac1278b5aa63d8ba8ea71198a91ad3"
+  },
+  "requested_realtime": true,
+  "source_include_results": true,
+  "summary": {
+    "requested": 1,
+    "completed_successfully": 1,
+    "failed": 0,
+    "not_run": 0,
+    "status": "success"
+  },
+  "cases": [
+    {
+      "id": "long-planning-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "70ed5bb9f6537e647ca6797024b43636e20463675d54ceaef31c7bc4b91baa73",
+        "source_sha256": "6ee145ff08e5c31a77a604ffc57902fa94e0d1372c811a6d320ffced38959146",
+        "source_kind": "pcm16le",
+        "duration_s": 40.5635625
+      },
+      "consumed_source": {
+        "bytes": 1298034,
+        "sha256": "6ee145ff08e5c31a77a604ffc57902fa94e0d1372c811a6d320ffced38959146",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 149328,
+        "sha256": "1dd2610d6c7c7627d8f303343a77f451ef817e1088a7a8ef86f937b07de177e1",
+        "complete": true
+      },
+      "effective_pacing": "wav_20ms_realtime",
+      "timing": {
+        "collection_seconds": 41.45449430000008,
+        "engine_metrics_at_eof": {
+          "requests_produced": 2034,
+          "request_protobuf_bytes": 181156,
+          "responses_received": 89,
+          "response_protobuf_bytes": 4107,
+          "elapsed_seconds": 41.45439410000108,
+          "first_response_seconds": 0.06623300000501331,
+          "eof_seconds": 41.45439260000421
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "27e4a9f753b31022da582c7087ffa223c47dbe74214b08d32e38b94fb45134df",
+            "bytes": 2655,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "ce53df1bd8992e2b2c5c18ee15f5151ee6628967cfefd3a1591ccf6ad9e1b501",
+              "bytes": 2647,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "dd8d142b1174f511f3287481327e75d5840bf5205a152a6fb9d9adf6d4d8ab88",
+                "bytes": 2644,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "7fdb991fd4c72dc219c5f9ff6bfa52867d19bf8e965b85fb7cbe4f3ae96396e8",
+                    "bytes": 1318,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "7fdb991fd4c72dc219c5f9ff6bfa52867d19bf8e965b85fb7cbe4f3ae96396e8",
+                  "bytes": 1318,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "25733879be6130a436fd4551a4c7b09bca11c24f890df6b8e570d6852424c8cb",
+                      "bytes": 1308,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "54be7e0b4ac279f047ac6b1e5fd98546076a8cd686aec4bd167ab49bd4c2a2a0",
+                        "bytes": 868,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+                      "alternative_text": null,
+                      "edited_text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "dd8d142b1174f511f3287481327e75d5840bf5205a152a6fb9d9adf6d4d8ab88",
+              "bytes": 2644,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+      "required_terms": [
+        {
+          "term": "silver",
+          "present": true
+        },
+        {
+          "term": "meadow",
+          "present": true
+        }
+      ],
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+        "replacement_context": null
+      }
+    }
+  ],
+  "schema_version": 1,
+  "report_kind": "sanitized_validate_corpus_report",
+  "privacy_review_required": true,
+  "text_included": true,
+  "publication_warning": "Inspect before publishing. Controlled-text opt-in is not proof that private speech, context, local labels or machine metadata are publishable. Hashes retain correlation and may be guessed.",
+  "withheld": [
+    "raw_protobuf_bytes",
+    "unknown_field_values",
+    "service_result_ids",
+    "session_ids",
+    "expected_revision",
+    "unrecognized_report_keys"
+  ],
+  "source_report_summary": {
+    "sha256": "9b904c69f05d14fff74be36999ded05341e23c96d98f32c89f22210c3eccbd16",
+    "bytes": 39335
+  },
+  "sanitizer_source_sha256": "a052c876f5494eb4558ae324a2cab2fc9670b7004d2d20d2a23777c184f2a530"
+}

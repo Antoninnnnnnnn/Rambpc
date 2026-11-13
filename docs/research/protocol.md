@@ -289,7 +289,7 @@ Enum **`aamp`**, valeurs **vérifiées** :
 3. Encodage PCM accepté : pas établi ; le chemin réel est Ogg/Opus,10.
 4. Mapping sémantique complet des alternatives de résultat et des types d'édition ; couverture des différentes intentions au-delà du helper partiel récupéré. Les statuts0/1/2/3 sont, eux, établis.
 5. Liste minimale de paramètres/consentements indispensable au serveur, erreurs applicatives/quotas et stratégies de reconnexion.
-6. Il manque une capture Android pour comparer la parité avec l'application, une sélection non-BMP réelle et une couverture fonctionnelle large. La sélection en trois parties est maintenant exercée nativement (section11).
+6. Il manque une capture Android pour comparer la parité avec l'application et une couverture fonctionnelle large. Les sélections en trois parties, y compris dans un contexte non-BMP, sont maintenant exercées nativement (sections11–12), sans comparaison sur appareil. La sélection d'un caractère non-BMP lui-même n'a pas été testée au service.
 
 **Décision recommandée** : garder transport bidi, codecs protobuf et politique d'édition séparés ; parser/conserver les extensions inconnues ; ne pas appeler « Rambler fonctionnel » une simple transcription S3. Aucun moteur n'a été implémenté par l'analyste statique.
 
@@ -371,3 +371,43 @@ observé. L'[encodeur natif progressif](../evidence/native-realtime.json) a en o
 réussi six sessions avec PCM intégral, hashes source/code et profils Ogg comparés.
 Cela ne valide toujours pas toutes les intentions, voix naturelles, longues
 durées ou contraintes futures du service.
+
+## 12. Réécriture et contexte non-BMP — 2026-11-13
+
+Un nouveau cas contrôlé fournit le contexte `Send me the report now.` puis l'audio
+`Make this sentence more polite, but keep the same meaning.`. La réponse finale a
+été inspectée avec un parseur autonome, sans importer `rambler.*` :
+
+- Réponse source : **1055 octets**, SHA-256
+  `7a8c1217362395a706d0626aa69860413a82bed82cfc868f369750f185f4ff92`.
+- Reconnaissance `.1253625.1.1=1`, hypothèse sous `.1253625.1.3.3` ; statut S3 absent
+  de cette réponse finale de reconnaissance, qui n'est pas le terminal de session.
+- Hypothèse `.field1` et `VoiceEditingResult.field1` : contexte suivi de la commande.
+- `VoiceEditingResult.field4=3`, oneof actif **field3**, fields2/7 absents :
+  `Could you please send me the report at your earliest convenience?`.
+- `aamp.java` lignes9/29–30 confirme `INTENT_REWRITE(3)`. Le callsite `ihm.java`
+  lignes192–212 choisit le texte édité3 ou contexte7 pour les ordinals2/3, puis
+  ligne224 le privilégie au texte ASR. Cette lecture corrobore le rendu du cas
+  observé, pas un contrat général de portée de remplacement.
+
+Le SDK rend désormais l'intention3/champ3, mais les propositions de remplacement
+restent limitées à l'intention2. Une [nouvelle session de suivi](../evidence/refinement-rewrite-public.json)
+a confirmé ce rendu après modification. Le premier
+[rapport expurgé](../evidence/refinement-capabilities-public.json) conserve son état
+historique ambigu pour cette session ; il n'est pas corrigé rétroactivement.
+
+La réponse source contient aussi **extension74956225** avec des labels internes de
+traitement texte et un identifiant opaque du service, présent dans deux branches.
+Son schéma et sa sémantique complète ne sont pas établis ; le SDK le préserve comme
+inconnu et n'exécute aucune action à partir de ces données. Le corps original reste
+privé. La [fixture](../../tests/fixtures/live_rewrite_response.json) est **dérivée et
+expurgée**, avec wrapper reconstruit, composants sûrs conservés et hashés, suppression
+explicite de74956225. Elle n'est pas une quatrième capture originale publique.
+
+Le même corpus a exercé le contexte avant=`🙂 The meeting is tomorrow at `,
+sélection=`ten`, après=`.`. Retour intention2/champ7 : même avant, sélection=`eleven`,
+même après. Une sélection dans un contexte contenant un caractère non-BMP est donc
+réellement exercée hors Android ; l'emoji n'est pas lui-même sélectionné. Les ranges
+numériques restent calculés localement en UTF-16, pas transmis par le wire.
+Voix naturelle anglaise (un seul clip) et dictée de40,56s sont décrites avec leurs
+limites dans [le raffinement](../refinement.md).

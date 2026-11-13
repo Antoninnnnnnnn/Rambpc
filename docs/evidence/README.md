@@ -3,8 +3,9 @@
 Ce répertoire distingue les diagnostics de transport des véritables réponses
 Rambler. Les deux premiers fichiers ci-dessous n'envoyaient aucun audio ni
 identifiant utilisateur. Les fichiers fonctionnels ajoutés ensuite utilisent
-uniquement des phrases synthétiques contrôlées et des métadonnées applicatives
-en mémoire, dont les valeurs ne sont jamais enregistrées ici. Les limites et
+des phrases synthétiques contrôlées, puis un unique extrait naturel public licencié,
+et des métadonnées applicatives en mémoire, dont les valeurs ne sont jamais
+enregistrées ici. Les limites et
 conditions de comparaison sont dans [performance.md](../performance.md).
 
 ## `connectivity.json`
@@ -71,5 +72,43 @@ comme [fixtures](../../tests/fixtures/live_synthetic_responses.json), avec SHA e
 hex et phrases de synthèse. Les tests offline vérifient le décodage et le maintien
 des champs inconnus. Ces fixtures n'incluent aucun header, credential, cookie,
 identifiant de compte ou texte personnel. Les autres captures et audios restent
-ignorés par git. Les rapports avec résultat textuel sont réservés à ce corpus
-synthétique explicitement publiable, pas à des données dictées par l'utilisateur.
+ignorés par git. Les rapports textuels publics sont réservés aux corpus contrôlés
+ou explicitement publiables avec leur licence, pas à des dictées personnelles.
+
+## Raffinement du 2026-11-13
+
+- `refinement-page-grid.json` : 20 transports réussis, cinq par page 20/40/60/100 ms,
+  source native, politique `muxer`, toutes les mises à jour finales ordonnées et PCM
+  décodés identiques. Pas de capture protobuf brute. Défaut 20 ms conservé ; données
+  et outlier à interpréter selon [performance.md](../performance.md).
+- `natural-corpus-inputs.json` : provenance, hashes et attribution CC BY 4.0 de
+  l'unique extrait anglais LibriSpeech utilisé. Audio non versionné.
+- `refinement-capabilities-public.json` : projection expurgée du premier corpus
+  de cinq cas. Cinq transports réussis, mais **4/5 rendus** dans le code d'alors :
+  intention 3 non encore interprétée. Ce bilan historique reste inchangé.
+- `refinement-long-realtime-public.json` : une dictée de 40,564 s PCM à débit simulé,
+  intégralement consommée, texte corrigé et référence finale conservés, collecte
+  complète 41,454 s. Même texte que le cas accéléré, pas preuve d'endurance prolongée.
+- `refinement-rewrite-public.json` : nouveau test réel après extension du rendu,
+  texte réécrit intention 3/champ 3 rendu avec succès ; pas de remplacement d'éditeur.
+- `refinement-wheel-smoke.json` : roue 0.2.0 finale construite, installée dans un venv
+  vierge sans PyAV ; imports, égalité des modules avec le source et rendu de la fixture
+  dérivée vérifiés. Offline uniquement, aucun appel Google supplémentaire.
+- [`live_rewrite_response.json`](../../tests/fixtures/live_rewrite_response.json) :
+  **fixture dérivée/expurgée**, et non quatrième payload original. Composants sûrs
+  conservés, wrapper reconstruit, source et composants hashés, extension 74956225
+  retirée. Inspection indépendante du source : intention 3/champ 3 confirmée ;
+  portée générale de remplacement inconnue.
+
+Les trois copies `*-public.json` indiquent hash/longueur du rapport privé source,
+hash de l'outil de projection et résumés des payloads. Les octets bruts, valeurs
+inconnues et identifiants opaques de service/session ne sont pas publiés ; la
+bibliothèque, elle, les préserve pour l'appelant. Le hash du code SDK utilisé figure
+dans les versions ; le seul HEAD ne suffit pas pour l'essai réécriture sur arbre modifié.
+
+L'outil offline `tools/sanitize_corpus_report.py` utilise une allowlist fermée et
+refuse toute sortie existante. Les textes sont hachés par défaut ; `--include-text`
+sert uniquement après revue d'un corpus contrôlé. L'outil n'est pas une garantie
+universelle d'anonymisation : texte, labels locaux, métadonnées machine et même hashes
+peuvent nécessiter une revue. Ne pas publier directement les rapports complets de
+`validate_corpus.py --include-results`, même pour de l'audio synthétique.
