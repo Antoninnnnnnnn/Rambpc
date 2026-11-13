@@ -134,10 +134,24 @@ fn voice_edit(parts: Vec<&[u8]>, budget: &mut usize) -> Result<VoiceEditResult, 
     Ok(out)
 }
 fn hypothesis(parts: Vec<&[u8]>, budget: &mut usize) -> Result<Hypothesis, Error> {
-    let m = Message::new(parts, &[(1, 2), (2, 5), (VOICE_EDITING_RESULT, 2)], budget)?;
+    let mut m = Message::new(parts, &[(1, 2), (2, 5), (VOICE_EDITING_RESULT, 2)], budget)?;
+    // Unlike open numeric enums, this safety marker only recognizes the two
+    // verified wire values. Unknown occurrences remain opaque and never clear
+    // an earlier recognized value (closed proto2 enum merge semantics).
+    let safety_status = m.fields.iter().rev().find_map(|field| match field.value {
+        RefValue::Varint(value @ (0 | 1)) if field.number == HYPOTHESIS_SAFETY_STATUS => {
+            Some(value as i32)
+        }
+        _ => None,
+    });
+    m.unknown.retain(|field| {
+        field.number != HYPOTHESIS_SAFETY_STATUS
+            || !matches!(field.value, wire::Value::Varint(0 | 1))
+    });
     Ok(Hypothesis {
         text: m.string(1)?,
         confidence: m.float(2),
+        safety_status,
         voice_edit: m.message(VOICE_EDITING_RESULT, budget, voice_edit)?,
         unknown_fields: m.unknown,
         raw: m.raw,

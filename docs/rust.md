@@ -29,10 +29,12 @@ l'outil de build isolé sans installation globale et les licences de redistribut
 Libopus 1.6.1 est liée statiquement ; les DLL système/CRT MSVC restent nécessaires,
 pas une DLL Opus, Python ou FFmpeg.
 
-Le manifeste déclare Rust 1.88 minimum ; cela ne signifie pas qu'une matrice de
-compilateurs/OS a déjà été exécutée. Les tests n'utilisent que des fixtures et des
-serveurs loopback, jamais Google. Le téléchargement initial des dépendances Cargo
-nécessite Internet ; `--locked` fixe leurs versions, pas leur disponibilité locale.
+Rust **1.88.0 a été exécuté sur Windows x86_64/MSVC** avec le lock courant :
+workspace avec audio et CLI sans audio passent. La matrice Windows/Linux/macOS
+1.88/stable est écrite, pas encore exécutée à distance ; voir la
+[validation des builds](research/rust-build-validation.md). Les tests n'utilisent
+que des fixtures et des serveurs loopback, jamais Google. Le téléchargement initial
+nécessite Internet ; `--locked` fixe les versions, pas leur disponibilité locale.
 
 Le binaire est `target/release/rambler.exe` sur Windows et
 `target/release/rambler` sur Linux/macOS. Aucun environnement virtuel Python n'est
@@ -136,7 +138,12 @@ fixture contrôlé préparé :
 
 Un [exemple d'intégration Rust compilé par les doctests](../crates/rambler-engine/src/lib.rs)
 illustre la collecte depuis une source fournie par l'appelant, le contexte et les
-credentials injectés. Pour les signatures détaillées :
+credentials injectés. `Presentation::new(&response)` fournit une vue empruntée du membre actif
+(reconnaissance, événement vocal, variante opaque). Les conteneurs partiels et
+hypothèses restent indépendants, y compris doublons ; `SegmentKind::Final` ne
+prouve pas une fin globale. La vue ne filtre ni ne simplifie les candidats et
+**n'autorise pas leur application**, notamment en présence de marqueurs safety.
+Pour les signatures détaillées :
 
 ```sh
 cargo doc -p rambler-engine -p rambler-transport -p rambler-protocol --no-deps --open
@@ -194,6 +201,20 @@ explicitement `close()` en cas d'arrêt anticipé.
   trailers. Les compteurs d'upload décrivent le travail client, pas un accusé de
   réception du serveur. `metrics.eof_seconds` marque la fin du consommateur après
   drainage/nettoyage, **pas** l'instant où les derniers échantillons PCM sont lus.
+- `EngineSession::audio_progress()` et `metrics.audio` comptent les chunks non
+  vides et octets encodés réellement rendus à l'engine, l'EOF audio et les flags
+  `cleanup_finished`/`cleanup_succeeded`. Ils restent accessibles après une erreur
+  sur la session ; attendre la terminaison/fermeture pour un snapshot final.
+  Ce n'est ni un nombre d'échantillons PCM ni une preuve d'audio reçu par le serveur.
+  L'EOF audio peut être vrai pendant que le contexte tardif bloque encore le
+  RequestSource. Les champs sont ajoutés aux structs du prototype0.1.
+- `DictationResult::check_safety()` inspecte toutes les hypothèses finales retenues.
+  `text()`, `single_hypothesis()` et `replacement_proposal()` refusent les candidats
+  safety1 (`SafetyBlocked`) et le champ30 non interprété (`UnrecognizedSafety`),
+  avant l'ambiguïté. La CLI retourne une erreur sans texte ni finales. Les données
+  structurées restent explicitement consultables par l'intégrateur. Absence/0
+  inchangés ; refus hors VoiceEdit et sur inconnu volontairement conservateurs,
+  [portée et preuve statique](research/rust-feature-parity.md).
 - Le texte simplifié exige une unique finale/hypothèse interprétable : sans
   VoiceEdit, texte d'hypothèse ; intention 2, texte/contexte édité vérifié ;
   intention 3, champ `edited_text` seulement. Les autres cas restent ambigus.

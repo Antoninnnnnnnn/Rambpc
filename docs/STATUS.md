@@ -1,6 +1,43 @@
 # État du moteur — 2026-11-13
 
-## Consolidation Rust : diagnostic sans faux succès
+## Parité, robustesse, profilage et MSRV
+
+**186 tests Rust passent** sur l'arbre intégré avec stable1.99.1 et Rust1.88.0,
+Windows x86_64/MSVC ; un oracle audio indépendant est ignoré par défaut, passé
+séparément sur57 conteneurs. Formatage et Clippy tous targets/features passent.
+La matrice CI Windows/Linux/macOS ×1.88/stable est écrite mais **pas exécutée à distance**.
+[Validation builds](research/rust-build-validation.md).
+
+La [matrice de parité](research/rust-feature-parity.md) relie les symboles APK,
+API Rust et preuves réseau sans confondre enums et capacités validées. La revue
+Opus a trouvé un marqueur `hypothesis.field30` sécurité ignoré : décodage0/1,
+préservation des inconnus et refus de rendu/proposition sont maintenant testés.
+La CLI n'affiche aucun candidat ni contexte pour `safety_blocked` ou
+`unrecognized_safety`. Revue ciblée finale sans constat ; aucun cas bloqué réel
+provoqué, aucune nouvelle requête Google ni interaction appareil dans ce lot.
+Les refus hors VoiceEdit et sur valeurs inconnues sont un durcissement explicite.
+
+Les nouveaux tests génératifs exercent128 séquences proto2 et343 traces safety,
+les bornes exactes, occurrences tronquées, partitions gRPC et fermetures
+concurrentes interrompues. `Presentation` distingue les types de résultats sans
+simplifier leur texte ni prouver la fin globale. `EncodedAudioProgress` sépare
+chunks/octets encodés, EOF audio et nettoyage des flags du RequestSource ; ce ne
+sont ni des compteurs PCM ni des acquittements serveur.
+
+Le [profilage offline release ABBA](research/rust-audio-profiling.md) mesure
+encodeur, mux et pipeline sur signaux synthétiques5,001s. Total médian groupé
+45–134ms, mux14–81µs ; **aucun gain robuste du candidat CRC**, rejeté. Codec,
+qualité, bitrate et sources audio de production restent inchangés. Ce banc
+n'établit ni optimum global ni accélération réseau.
+
+La suite Python/outils passe656 tests en11,20s, en relance bornée avec diagnostic
+de stack. Comme lors d'un précédent lot, une exécution silencieuse avait stagné
+vers605 et a été arrêtée après120s ; la relance verbose ne reproduit pas le blocage.
+Cette observation n'est ni cachée ni attribuée à une cause non démontrée.
+La référence Python0.3 reste gelée : la nouvelle politique safety est portée
+explicitement dans Rust, pas rétroactivement revendiquée pour Python.
+
+## Consolidation Rust : diagnostic sans faux succès — jalon4fdf29e
 
 Le cœur Rust comprend protocole/transport, sessions/résultats, WAV/PCM natif et CLI.
 **163 tests Rust intégrés et 654 tests stricts de référence/outils Python passent**,

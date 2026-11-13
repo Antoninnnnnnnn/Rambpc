@@ -446,6 +446,157 @@ async fn close_reports_each_unobserved_cleanup_failure_after_reaping_or_interrup
     }
 }
 
+// Concurrent close callers share an error ledger, not one error per caller.
+// Poll-and-drop injects interruption at an exact cleanup barrier without sleeps.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn concurrent_interrupted_closes_deliver_each_unobserved_failure_exactly_once() {
+    for release_order in [[4, 5], [5, 4]] {
+        let server = TestServer::new(echo).await;
+        let transport = server.transport().await;
+        let mut sessions = Vec::new();
+        let mut releases = Vec::new();
+        let mut drops = Vec::new();
+        let mut closes = Vec::new();
+        for id in 0..6 {
+            let mut source = OwnedSource::new();
+            source.block_after_first = false;
+            let started = source.close_started.clone();
+            releases.push(source.release.clone());
+            drops.push(source.dropped.clone());
+            closes.push(source.close_calls.clone());
+            let session = transport
+                .start(
+                    DistinctCleanupSource {
+                        source,
+                        error_id: id,
+                    },
+                    Metadata::default(),
+                    Duration::from_secs(5),
+                )
+                .unwrap();
+            bounded(started.notified()).await;
+            sessions.push(session);
+        }
+        for release in &releases[..4] {
+            release.add_permits(1);
+        }
+        bounded(async {
+            while drops[..4]
+                .iter()
+                .any(|count| count.load(Ordering::SeqCst) == 0)
+            {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        // First observe three errors, deliberately leaving error 0 unobserved.
+        for (id, session) in sessions.iter_mut().enumerate().take(4).skip(1) {
+            assert_eq!(
+                cleanup_error_id(bounded(session.finish()).await.unwrap_err()),
+                id as i32
+            );
+        }
+        // Starting another session retires completed supervisors. Their error
+        // markers must still be shared with Sessions and concurrent closers.
+        let mut healthy = transport
+            .start(
+                source_bytes(b"healthy"),
+                Metadata::default(),
+                Duration::from_secs(5),
+            )
+            .unwrap();
+        bounded(healthy.finish()).await.unwrap();
+        {
+            let interrupted = futures_util::future::join_all((0..8).map(|_| transport.close()));
+            tokio::pin!(interrupted);
+            assert!(futures_util::poll!(interrupted.as_mut()).is_pending());
+        }
+        assert_eq!(drops[4].load(Ordering::SeqCst), 0);
+        assert_eq!(drops[5].load(Ordering::SeqCst), 0);
+        let retries = futures_util::future::join_all((0..8).map(|_| transport.close()));
+        tokio::pin!(retries);
+        assert!(futures_util::poll!(retries.as_mut()).is_pending());
+        releases[release_order[0]].add_permits(1);
+        bounded(async {
+            while drops[release_order[0]].load(Ordering::SeqCst) == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
+        // No close may acknowledge error 0 while the last cleanup is pending.
+        assert!(futures_util::poll!(retries.as_mut()).is_pending());
+        releases[release_order[1]].add_permits(1);
+        let results = bounded(retries).await;
+        let mut errors: Vec<_> = results
+            .into_iter()
+            .filter_map(Result::err)
+            .map(cleanup_error_id)
+            .collect();
+        errors.sort();
+        assert_eq!(errors, [0, 4, 5], "release order {release_order:?}");
+        // Sessions retain their own outcomes even after transport delivery.
+        for (id, session) in sessions.iter_mut().enumerate() {
+            assert_eq!(
+                cleanup_error_id(bounded(session.cancel()).await.unwrap_err()),
+                id as i32
+            );
+        }
+        assert!(closes.iter().all(|count| count.load(Ordering::SeqCst) == 1));
+        assert!(drops.iter().all(|count| count.load(Ordering::SeqCst) == 1));
+        transport.close().await.unwrap();
+        server.close().await;
+    }
+}
+
+#[tokio::test]
+async fn deadline_outcome_survives_cancelled_observation_and_late_cleanup() {
+    for fail_close in [false, true] {
+        let server = TestServer::new(echo).await;
+        let transport = server.transport().await;
+        let mut source = OwnedSource::new();
+        source.fail_close = fail_close;
+        let started = source.close_started.clone();
+        let release = source.release.clone();
+        let closes = source.close_calls.clone();
+        let dropped = source.dropped.clone();
+        let provider = Arc::new(GateProvider::new());
+        let mut session = transport
+            .start_with_provider(source, provider.clone(), Duration::from_millis(40))
+            .unwrap();
+        // No gRPC request can reach the server, so only our local deadline can
+        // cause cleanup (not remote grpc-timeout handling or an early terminal).
+        bounded(started.notified()).await;
+        assert!(server.paths.lock().unwrap().is_empty());
+        assert_eq!(session.completion().terminal_code, None);
+        assert!(!session.completion().source_closed);
+        {
+            let observation = session.cancel();
+            tokio::pin!(observation);
+            assert!(futures_util::poll!(observation.as_mut()).is_pending());
+        }
+        drop(session); // Neither polling nor dropping observed a final error.
+        {
+            let shutdown = transport.close();
+            tokio::pin!(shutdown);
+            assert!(futures_util::poll!(shutdown.as_mut()).is_pending());
+        }
+        assert_eq!(closes.load(Ordering::SeqCst), 1);
+        assert_eq!(dropped.load(Ordering::SeqCst), 0);
+        release.add_permits(1);
+        let error = bounded(transport.close()).await.unwrap_err();
+        if fail_close {
+            assert!(matches!(error, TransportError::Cleanup(_)));
+        } else {
+            assert!(matches!(error, TransportError::Timeout));
+        }
+        assert_eq!(dropped.load(Ordering::SeqCst), 1);
+        assert_eq!(provider.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(closes.load(Ordering::SeqCst), 1);
+        transport.close().await.unwrap();
+        server.close().await;
+    }
+}
+
 #[test]
 fn defaults_and_config_restrictions() {
     let config = TransportConfig::default();

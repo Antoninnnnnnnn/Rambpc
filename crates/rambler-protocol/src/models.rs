@@ -53,6 +53,13 @@ pub struct VoiceEditResult {
 pub struct Hypothesis {
     pub text: Option<String>,
     pub confidence: Option<f32>,
+    /// Verified closed proto2 safety marker: 0 is unblocked, 1 is blocked.
+    /// Only exact unsigned wire values 0/1 are recognized, including overlong
+    /// varint encodings of those values; larger values are not truncated to i32.
+    /// The last recognized value wins. Unknown values and wrong-wire occurrences
+    /// remain in `unknown_fields` for conservative caller policy, and do not clear
+    /// an earlier recognized value. Absence is distinct from explicit zero.
+    pub safety_status: Option<i32>,
     pub voice_edit: Option<VoiceEditResult>,
     pub unknown_fields: Vec<Field>,
     pub raw: Vec<u8>,

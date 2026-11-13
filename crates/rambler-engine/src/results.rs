@@ -2,7 +2,7 @@ use crate::{
     AudioSource, EditingContext, Engine, EngineError, EngineSession, S3Response, SessionMetrics,
     SessionOptions,
 };
-use rambler_protocol::Hypothesis;
+use rambler_protocol::{HYPOTHESIS_SAFETY_STATUS, Hypothesis};
 
 #[derive(Clone, Copy, Debug)]
 pub struct CollectorLimits {
@@ -27,7 +27,31 @@ pub struct DictationResult {
     pub metrics: Option<SessionMetrics>,
 }
 impl DictationResult {
+    /// Refuse simplified rendering and editor proposals when any retained final
+    /// candidate is safety-blocked, or has an uninterpreted field-30 occurrence.
+    /// Structured responses remain explicitly available to callers. The Android
+    /// evidence covers accepted VoiceEdit candidates; applying this guard to all
+    /// candidates and unknown values is intentionally conservative.
+    pub fn check_safety(&self) -> Result<(), EngineError> {
+        let mut unrecognized = false;
+        for hypothesis in self.final_updates.iter().flat_map(S3Response::hypotheses) {
+            if hypothesis.safety_status == Some(1) {
+                return Err(EngineError::SafetyBlocked);
+            }
+            unrecognized |= hypothesis.safety_status.is_some_and(|value| value != 0)
+                || hypothesis
+                    .unknown_fields
+                    .iter()
+                    .any(|field| field.number == HYPOTHESIS_SAFETY_STATUS);
+        }
+        if unrecognized {
+            Err(EngineError::UnrecognizedSafety)
+        } else {
+            Ok(())
+        }
+    }
     pub fn single_hypothesis(&self) -> Result<&Hypothesis, EngineError> {
+        self.check_safety()?;
         if self.final_updates.len() != 1 || self.final_updates[0].hypotheses().len() != 1 {
             return Err(EngineError::AmbiguousResult);
         }

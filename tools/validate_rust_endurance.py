@@ -36,7 +36,8 @@ MAX_SAMPLES = 400
 PHASES = ('beginning', 'middle', 'end')
 ERROR_CATEGORIES = frozenset(('grpc', 'timeout', 'credentials', 'transport', 's3', 'audio',
                               'cleanup', 'protocol', 'ambiguous', 'result_limit', 'incomplete',
-                              'configuration', 'engine', 'arguments', 'cancelled', 'signal'))
+                              'configuration', 'engine', 'arguments', 'cancelled', 'signal',
+                              'safety_blocked', 'unrecognized_safety'))
 GRPC_CODES = frozenset(('Ok', 'Cancelled', 'Unknown', 'InvalidArgument', 'DeadlineExceeded',
                         'NotFound', 'AlreadyExists', 'PermissionDenied', 'ResourceExhausted',
                         'FailedPrecondition', 'Aborted', 'OutOfRange', 'Unimplemented', 'Internal',
@@ -126,6 +127,21 @@ def text_hash(text):
     return digest(text.encode('utf-8'))
 
 
+def project_audio_progress(value):
+    """Encoded-source counters only; no PCM/server-consumption claim."""
+    if not isinstance(value, dict):
+        return {}
+    result = {}
+    for key in ('chunks', 'bytes'):
+        item = value.get(key)
+        if type(item) is int and 0 <= item <= 2**64 - 1:
+            result[key] = item
+    for key in ('eof', 'cleanup_finished', 'cleanup_succeeded'):
+        if type(value.get(key)) is bool:
+            result[key] = value[key]
+    return result
+
+
 def project_result(value, markers):
     """Keep only known semantic field hashes, counts and EOF metrics."""
     if not isinstance(value, dict) or value.get('type') != 'result':
@@ -148,6 +164,10 @@ def project_result(value, markers):
             if not isinstance(h, dict):
                 raise ValueError('invalid hypothesis')
             fields = {}
+            if h.get('safety_status') is not None:
+                if type(h['safety_status']) is not int or h['safety_status'] != 0:
+                    raise ValueError('unsafe final candidate')
+                fields['safety_status'] = h['safety_status']
             confidence = h.get('confidence')
             if confidence is not None:
                 if type(confidence) not in (int, float) or not math.isfinite(confidence):
@@ -199,6 +219,13 @@ def project_result(value, markers):
             clean_metrics[k] = v
     if 'eof_seconds' not in clean_metrics:
         raise ValueError('missing EOF metric')
+    # Historical binaries do not emit this field. If present, require the full
+    # successful-source observation rather than silently accepting false flags.
+    if 'audio' in metrics:
+        audio = project_audio_progress(metrics['audio'])
+        if len(audio) != 5 or not all(audio[key] for key in ('eof', 'cleanup_finished', 'cleanup_succeeded')):
+            raise ValueError('incomplete encoded audio metric')
+        clean_metrics['audio'] = audio
     rendered_markers = {phase: contains_marker(text, markers[phase]) for phase in PHASES}
     canonical_finals = json.dumps(known, ensure_ascii=False, sort_keys=True, separators=(',', ':'),
                                   allow_nan=False).encode('utf-8')
@@ -251,6 +278,8 @@ def project_cli_error(value):
                 if ((type(item) is int and item >= 0)
                         or (type(item) is float and item >= 0 and math.isfinite(item))):
                     clean[key] = item
+            if 'audio' in metrics:
+                clean['audio'] = project_audio_progress(metrics['audio'])
             diagnostic['metrics'] = clean
         result['incomplete'] = diagnostic
     return result

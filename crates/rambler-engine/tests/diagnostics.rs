@@ -102,6 +102,13 @@ fn check_safe(diagnostic: &Arc<IncompleteSessionDiagnostic>) {
     );
     assert_eq!(diagnostic.metrics.eof_seconds, None);
     assert!(diagnostic.completion.source_closed);
+    assert_eq!(diagnostic.metrics.audio.chunks, 1);
+    assert_eq!(
+        diagnostic.metrics.audio.bytes,
+        b"private audio chunk".len() as u64
+    );
+    assert!(diagnostic.metrics.audio.cleanup_finished);
+    assert!(diagnostic.metrics.audio.cleanup_succeeded);
     assert_eq!(diagnostic.completion.terminal_code, Some(Code::Ok));
 }
 
@@ -143,6 +150,7 @@ async fn missing_s3_end_reports_complete_upload_and_safe_final_counters() {
     let mut session = engine.start(Box::new(audio), options).unwrap();
     let diagnostic = incomplete(&mut session).await;
     assert!(!diagnostic.saw_s3_end);
+    assert!(diagnostic.metrics.audio.eof);
     assert!(diagnostic.completion.source_exhausted);
     assert!(diagnostic.completion.upload_eof_polled);
     assert_eq!(diagnostic.completion.requests_produced, 4);
@@ -191,6 +199,7 @@ async fn early_s3_end_grpc_ok_reports_unexhausted_audio_and_remains_an_error() {
         .unwrap();
     let diagnostic = incomplete(&mut session).await;
     assert!(diagnostic.saw_s3_end);
+    assert!(!diagnostic.metrics.audio.eof);
     assert!(!diagnostic.completion.source_exhausted);
     assert_eq!(diagnostic.completion.requests_produced, 2);
     assert_eq!(diagnostic.completion.requests_polled, 2);
@@ -236,6 +245,8 @@ async fn incomplete_diagnostic_is_final_only_after_slow_cleanup_despite_dropped_
             .is_err()
     );
     assert!(!closed.load(Ordering::SeqCst));
+    assert!(!session.audio_progress().eof);
+    assert!(!session.audio_progress().cleanup_finished);
     assert_eq!(closes.load(Ordering::SeqCst), 1);
     release.add_permits(1);
     let diagnostic = incomplete(&mut session).await;
@@ -243,6 +254,7 @@ async fn incomplete_diagnostic_is_final_only_after_slow_cleanup_despite_dropped_
     assert_eq!(closes.load(Ordering::SeqCst), 1);
     assert!(diagnostic.metrics.elapsed_seconds >= 0.025);
     assert!(diagnostic.saw_s3_end);
+    assert!(!diagnostic.metrics.audio.eof);
     assert!(!diagnostic.completion.source_exhausted);
     check_safe(&diagnostic);
     engine.close().await.unwrap();
@@ -280,6 +292,8 @@ async fn explicit_cancel_during_slow_cleanup_is_not_relabelled_as_incomplete_or_
             .is_err()
     );
     assert!(!closed.load(Ordering::SeqCst));
+    assert!(!session.audio_progress().eof);
+    assert!(!session.audio_progress().cleanup_finished);
     release.add_permits(1);
     bounded(engine.close()).await.unwrap();
     assert!(matches!(
@@ -288,6 +302,16 @@ async fn explicit_cancel_during_slow_cleanup_is_not_relabelled_as_incomplete_or_
     ));
     assert!(closed.load(Ordering::SeqCst));
     assert_eq!(closes.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        session.audio_progress(),
+        EncodedAudioProgress {
+            chunks: 1,
+            bytes: 19,
+            eof: false,
+            cleanup_finished: true,
+            cleanup_succeeded: true,
+        }
+    );
     transport.close().await.unwrap();
     server.close().await;
 }
@@ -317,6 +341,7 @@ async fn completed_collector_preserves_both_incomplete_diagnostic_kinds() {
             panic!("collector lost the incomplete diagnostic");
         };
         assert_eq!(diagnostic.saw_s3_end, early);
+        assert_eq!(diagnostic.metrics.audio.eof, !early);
         assert_eq!(diagnostic.completion.source_exhausted, !early);
         check_safe(&diagnostic);
         engine.close().await.unwrap();
@@ -329,6 +354,7 @@ async fn completed_collector_preserves_both_incomplete_diagnostic_kinds() {
 fn safe_metrics_conversion_does_not_retain_the_session_identifier() {
     let metrics = SessionMetrics {
         session_id: u64::MAX,
+        audio: EncodedAudioProgress::default(),
         requests_produced: 4,
         request_protobuf_bytes: 100,
         responses_received: 1,

@@ -138,6 +138,45 @@ def test_cli_error_projection_whitelists_diagnostics_without_secrets():
     assert 'SECRET' not in json.dumps(result)
 
 
+def test_encoded_audio_progress_projection_is_typed_and_legacy_compatible():
+    audio = {'chunks': 12, 'bytes': 345, 'eof': True, 'cleanup_finished': True,
+             'cleanup_succeeded': True, 'private': 'SECRET_AUDIO'}
+    payload = {'type': 'result', 'text': 'first token middle token last token',
+               'final_updates': [{'hypotheses': [{'text': 'controlled'}]}],
+               'metrics': {'eof_seconds': 1, 'audio': audio}}
+    projected = bench.project_result(payload, markers())
+    assert projected['engine_metrics']['audio'] == {k: v for k, v in audio.items() if k != 'private'}
+    assert 'SECRET' not in json.dumps(projected)
+    for key, bad in [('chunks', True), ('bytes', -1), ('bytes', 2**64), ('eof', False),
+                     ('cleanup_finished', False), ('cleanup_succeeded', 'SECRET')]:
+        original = audio[key]
+        audio[key] = bad
+        with pytest.raises(ValueError):
+            bench.project_result(payload, markers())
+        error = bench.project_cli_error({'type': 'error', 'category': 'incomplete',
+                                        'incomplete': {'metrics': {'audio': audio}}})
+        assert 'SECRET' not in json.dumps(error)
+        audio[key] = original
+    del payload['metrics']['audio']
+    assert 'audio' not in bench.project_result(payload, markers())['engine_metrics']
+
+
+def test_safety_projection_refuses_marked_candidates_and_preserves_safe_presence():
+    hypothesis = {'text': 'controlled', 'safety_status': 0}
+    payload = {'type': 'result', 'text': 'controlled',
+               'final_updates': [{'hypotheses': [hypothesis]}], 'metrics': {'eof_seconds': 1}}
+    projected = bench.project_result(payload, markers())
+    assert projected['final_updates'][0]['hypotheses'][0]['safety_status'] == 0
+    for bad in (1, 2, True, 'SECRET_SAFETY'):
+        hypothesis['safety_status'] = bad
+        with pytest.raises(ValueError, match='unsafe final'):
+            bench.project_result(payload, markers())
+    for category in ('safety_blocked', 'unrecognized_safety'):
+        projected = bench.project_cli_error({'type': 'error', 'category': category,
+                                            'text': 'SECRET_CANDIDATE'})
+        assert projected == {'category': category}
+
+
 def test_failure_stops_and_public_projection_does_not_leak(tmp_path, monkeypatch):
     binary, audio = tmp_path/'bin', tmp_path/'audio.wav'
     binary.write_bytes(b'not real')

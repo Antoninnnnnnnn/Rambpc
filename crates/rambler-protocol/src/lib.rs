@@ -64,6 +64,8 @@ pub const INPUT_BOX_INFO: u32 = 1203;
 pub const INITIAL_PARAMETER: u32 = 29735924;
 pub const RECOGNITION_RESPONSE: u32 = 1253625;
 pub const VOICE_EDITING_RESULT: u32 = 74956224;
+/// Verified closed safety enum on each recognition hypothesis (0/1 only).
+pub const HYPOTHESIS_SAFETY_STATUS: u32 = 30;
 
 /// Errors contain no caller text, hint contents, audio, or response data.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]

@@ -34,8 +34,10 @@
 //! }
 //! ```
 mod engine;
+mod presentation;
 mod results;
 pub use engine::*;
+pub use presentation::*;
 pub use rambler_protocol::{EditingContext, ProtocolConfig, S3Response};
 pub use rambler_transport::{MetadataProvider, SourceError, SourceFuture};
 pub use results::*;
@@ -70,6 +72,10 @@ pub enum EngineError {
     IncompleteSession(Arc<IncompleteSessionDiagnostic>),
     #[error("session supervisor failed")]
     Supervisor,
+    #[error("result blocked by service safety status")]
+    SafetyBlocked,
+    #[error("result has an unrecognized safety status")]
+    UnrecognizedSafety,
     #[error("expected one final update, one hypothesis, and a verified text policy")]
     AmbiguousResult,
     #[error("final result retention limit exceeded")]

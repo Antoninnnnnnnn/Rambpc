@@ -4,6 +4,18 @@ Mesures initiales du 2026-11-12. Il ne s'agit ni d'un classement de langages ni
 d'une garantie de latence du service. Chaque réponse comptée réussie a un texte
 exploitable, une fin S3, un gRPC OK et une entrée audio complète.
 
+## Profilage natif Rust séparé — 2026-11-13
+
+[Protocole, mesures brutes, hashes et candidat reproductible](research/rust-audio-profiling.md).
+Banc release ABBA, signaux synthétiques5,001s, encodeur/mux/pipeline mesurés
+séparément sans compilation concurrente annoncée. Total baseline médian groupé
+45–134ms ; mux14–81µs. Aucun gain uniforme du candidat CRC ; **production inchangée**.
+Les variations d'un encodeur inchangé interdisent d'attribuer les écarts totaux
+au CRC. Aucun gain réseau, de qualité ASR, de CPU processus ou Rust/Python déduit.
+Le banc `cargo run --release -p rambler-audio --example profile_pipeline -- 7 5 100 80017`
+est offline, pas une nouvelle session Rambler. Les fenêtres et entrées ne sont
+pas un benchmark de voix naturelles ni un optimum global.
+
 ## Conditions et horloges
 
 Windows11, Python3.14.5, grpcio1.85.1, 12 processeurs logiques ; détails et limites

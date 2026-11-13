@@ -673,3 +673,166 @@ async fn trailers_only_and_late_non_ok_status_are_authoritative() {
         peer.close().await;
     }
 }
+
+// The oracle is the original message vector, not another gRPC decoder.
+fn generated_messages(mut seed: u64) -> Vec<Bytes> {
+    (0..24)
+        .map(|index| {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+            let len = if index % 5 == 0 {
+                0
+            } else if index == 1 {
+                32
+            } else {
+                (seed >> 32) as usize % 33
+            };
+            Bytes::from(
+                (0..len)
+                    .map(|i| (seed >> (i % 8 * 8)) as u8)
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn generated_envelopes_are_partition_invariant_at_exact_configured_limit() {
+    let peer = Peer::new(|request, mut reply| async move {
+        let seed: u64 = request.headers()["x-seed"]
+            .to_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+        drain(request).await;
+        let all: Vec<u8> = generated_messages(seed)
+            .iter()
+            .flat_map(|bytes| frame(bytes))
+            .collect();
+        let mut response = reply.send_response(headers(), false).unwrap();
+        let mut offset = 0;
+        let mut state = seed;
+        while offset < all.len() {
+            state = state.wrapping_mul(6364136223846793005).wrapping_add(1);
+            let end = (offset + 1 + (state >> 32) as usize % 29).min(all.len());
+            response
+                .send_data(Bytes::copy_from_slice(&all[offset..end]), false)
+                .unwrap();
+            offset = end;
+        }
+        response.send_trailers(trailers("0")).unwrap();
+    })
+    .await;
+    let transport = GrpcTransport::connect(
+        TransportConfig::loopback(peer.address)
+            .unwrap()
+            .with_max_message_bytes(32)
+            .unwrap(),
+    )
+    .await
+    .unwrap();
+    for seed in [1_u64, 2, 3, 5, 8, 13, 0x5eed, 0xcafe] {
+        let metadata =
+            Metadata::new([("x-seed".into(), CredentialValue::Text(seed.to_string()))]).unwrap();
+        let mut session = transport
+            .start(source(b"request"), metadata, Duration::from_secs(2))
+            .unwrap();
+        let expected = generated_messages(seed);
+        assert_eq!(
+            bounded(collect(&mut session)).await.unwrap(),
+            expected,
+            "seed={seed:x}"
+        );
+        let done = session.finish().await.unwrap();
+        assert_eq!(done.responses_received, 24);
+        assert_eq!(done.terminal_code, Some(Code::Ok));
+    }
+    assert_eq!(peer.connections.load(Ordering::SeqCst), 1);
+    transport.close().await.unwrap();
+    peer.close().await;
+}
+
+#[tokio::test]
+async fn malformed_suffix_never_erases_valid_prefix_or_becomes_ok_after_draining() {
+    for case in 0..6 {
+        let suffix: &'static [u8] = match case {
+            0 => b"\x01\0\0\0\0",
+            1 => b"\x02\0\0\0\0",
+            2 => b"\0\0\0\0\x21", // 33 > configured 32, without body allocation.
+            3 => b"\0",
+            4 => b"\0\0\0\0",
+            _ => b"\0\0\0\0\x03ab",
+        };
+        let peer = Peer::new(move |request, mut reply| async move {
+            drain(request).await;
+            let mut response = reply.send_response(headers(), false).unwrap();
+            let all = [
+                frame(b""),
+                frame(b"\xff\0prefix"),
+                Bytes::from_static(suffix),
+            ]
+            .concat();
+            // Split headers and cross the valid payload / malformed header boundary.
+            for bytes in all.chunks(3) {
+                response
+                    .send_data(Bytes::copy_from_slice(bytes), false)
+                    .unwrap();
+            }
+            let _ = response.send_trailers(trailers(if case % 2 == 0 { "0" } else { "15" }));
+        })
+        .await;
+        let transport = GrpcTransport::connect(
+            TransportConfig::loopback(peer.address)
+                .unwrap()
+                .with_max_message_bytes(32)
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+        let mut session = transport
+            .start(
+                source(b"request"),
+                Metadata::default(),
+                Duration::from_secs(2),
+            )
+            .unwrap();
+        assert_eq!(
+            bounded(session.next()).await.unwrap(),
+            Some(Bytes::new()),
+            "case={case}"
+        );
+        assert_eq!(
+            bounded(session.next()).await.unwrap(),
+            Some(Bytes::from_static(b"\xff\0prefix")),
+            "case={case}"
+        );
+        let classify = |error: TransportError| match error {
+            TransportError::CompressionUnsupported => 0,
+            TransportError::Protocol => 1,
+            TransportError::Grpc(Code::ResourceExhausted) => 2,
+            other => panic!("case={case}, unexpected {other:?}"),
+        };
+        let expected = match case {
+            0 => 0,
+            2 => 2,
+            _ => 1,
+        };
+        assert_eq!(
+            classify(bounded(session.next()).await.unwrap_err()),
+            expected
+        );
+        assert_eq!(
+            session.next().await.unwrap(),
+            None,
+            "terminal delivered once"
+        );
+        assert_eq!(
+            classify(session.finish().await.unwrap_err()),
+            expected,
+            "finish retains outcome"
+        );
+        assert_eq!(session.completion().responses_received, 2);
+        assert!(session.completion().source_closed);
+        transport.close().await.unwrap(); // Observed framing errors are not redelivered.
+        peer.close().await;
+    }
+}

@@ -77,9 +77,23 @@ impl Default for SessionOptions {
     }
 }
 
+/// Observations of the encoded source at the engine boundary, not PCM sample
+/// counts or network acknowledgements. Only nonempty chunks returned by `next`
+/// are counted, even if later protobuf validation fails. EOF is independent of
+/// cleanup: an early cancellation may finish cleanup without ever seeing EOF.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EncodedAudioProgress {
+    pub chunks: u64,
+    pub bytes: u64,
+    pub eof: bool,
+    pub cleanup_finished: bool,
+    pub cleanup_succeeded: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionMetrics {
     pub session_id: u64,
+    pub audio: EncodedAudioProgress,
     pub requests_produced: u64,
     pub request_protobuf_bytes: u64,
     pub responses_received: u64,
@@ -93,6 +107,7 @@ pub struct SessionMetrics {
 /// Counts describe produced protobuf payloads, not acknowledged network bytes.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DiagnosticMetrics {
+    pub audio: EncodedAudioProgress,
     pub requests_produced: u64,
     pub request_protobuf_bytes: u64,
     pub responses_received: u64,
@@ -104,6 +119,7 @@ pub struct DiagnosticMetrics {
 impl From<&SessionMetrics> for DiagnosticMetrics {
     fn from(metrics: &SessionMetrics) -> Self {
         Self {
+            audio: metrics.audio.clone(),
             requests_produced: metrics.requests_produced,
             request_protobuf_bytes: metrics.request_protobuf_bytes,
             responses_received: metrics.responses_received,
@@ -149,21 +165,33 @@ impl Counts {
 type CleanupOutcome = Result<(), EngineError>;
 struct AudioState {
     source: AsyncMutex<Option<Box<dyn AudioSource>>>,
+    progress: Arc<Mutex<EncodedAudioProgress>>,
     cleanup: Mutex<Option<watch::Receiver<Option<CleanupOutcome>>>>,
 }
 impl AudioState {
     fn new(source: Box<dyn AudioSource>) -> Arc<Self> {
         Arc::new(Self {
             source: AsyncMutex::new(Some(source)),
+            progress: Arc::new(Mutex::new(EncodedAudioProgress::default())),
             cleanup: Mutex::new(None),
         })
     }
     async fn next(&self) -> Result<Option<Bytes>, EngineError> {
         let mut slot = self.source.lock().await;
-        match slot.as_mut() {
-            Some(source) => source.next().await.map_err(EngineError::Audio),
-            None => Err(EngineError::Supervisor),
+        let chunk = match slot.as_mut() {
+            Some(source) => source.next().await.map_err(EngineError::Audio)?,
+            None => return Err(EngineError::Supervisor),
+        };
+        let mut progress = self.progress.lock().unwrap();
+        match &chunk {
+            Some(chunk) if !chunk.is_empty() => {
+                progress.chunks = progress.chunks.saturating_add(1);
+                progress.bytes = progress.bytes.saturating_add(chunk.len() as u64);
+            }
+            None => progress.eof = true,
+            _ => {}
         }
+        Ok(chunk)
     }
     /// Move the actual Box into an independent task BEFORE awaiting close. A
     /// dropped caller future cannot discard a borrowed, half-executed close.
@@ -175,11 +203,17 @@ impl AudioState {
                 let audio = source.take();
                 let (sender, done) = watch::channel(None);
                 *cleanup = Some(done);
+                let progress = self.progress.clone();
                 tokio::spawn(async move {
                     let result = match audio {
                         Some(mut audio) => audio.close().await.map_err(EngineError::AudioCleanup),
                         None => Err(EngineError::Supervisor),
                     };
+                    {
+                        let mut progress = progress.lock().unwrap();
+                        progress.cleanup_finished = true;
+                        progress.cleanup_succeeded = result.is_ok();
+                    }
                     let _ = sender.send(Some(result));
                 });
             }
@@ -399,6 +433,7 @@ impl Engine {
                 return Err(error);
             }
         };
+        let audio_progress = audio.progress.clone();
         let captured = Arc::new(Mutex::new(match &options.context {
             ContextInput::Static(context) => Some(context.clone()),
             _ => None,
@@ -456,6 +491,7 @@ impl Engine {
             control,
             events,
             captured,
+            audio_progress,
             diagnostic,
             terminal_delivered: false,
         })
@@ -542,6 +578,7 @@ pub struct EngineSession {
     control: Arc<Control>,
     events: mpsc::Receiver<EngineEvent>,
     captured: Arc<Mutex<Option<EditingContext>>>,
+    audio_progress: Arc<Mutex<EncodedAudioProgress>>,
     diagnostic: DiagnosticSlot,
     terminal_delivered: bool,
 }
@@ -559,6 +596,12 @@ impl EngineSession {
     }
     pub fn captured_context(&self) -> Option<EditingContext> {
         self.captured.lock().unwrap().clone()
+    }
+    /// A safe live snapshot, also available after cancellation or another error.
+    /// Await `close` or terminal `next` before treating cleanup flags as final.
+    /// These are encoded-source observations, not PCM or server consumption.
+    pub fn audio_progress(&self) -> EncodedAudioProgress {
+        self.audio_progress.lock().unwrap().clone()
     }
     pub fn request_cancel(&self) {
         self.control.cancel.cancel();
@@ -627,6 +670,7 @@ async fn supervise(
             rambler_transport::TransportError::Timeout,
         ));
     }
+    let audio_progress = requests.audio.progress.clone();
     let mut rpc = transport.start_with_provider(requests, provider, timeout)?;
     let mut received = 0;
     let mut bytes = 0;
@@ -636,6 +680,7 @@ async fn supervise(
     let mut s3_error = None;
     let snapshot = |received, bytes, first, eof| SessionMetrics {
         session_id: id,
+        audio: audio_progress.lock().unwrap().clone(),
         requests_produced: counts.requests.load(Ordering::SeqCst),
         request_protobuf_bytes: counts.bytes.load(Ordering::SeqCst),
         responses_received: received,

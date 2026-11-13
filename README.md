@@ -47,8 +47,14 @@ français et édition sur contexte, avec un PATH système sans Python/FFmpeg.
 l'entrée **WAV/PCM native optionnelle**, liée à libopus statique : quatre autres
 appels réels réussissent (accéléré/progressif, réécriture et sélection avec emoji).
 [Preuves PCM](docs/evidence/rust-pcm-functional-public.json). La consolidation passe
-**163 tests Rust et 654 tests Python/outils**, plus un oracle indépendant de
-57 flux exécuté séparément. Aucun gain de latence global n'est revendiqué.
+**186 tests Rust et 656 tests Python/outils**, plus un oracle indépendant de
+57 flux exécuté séparément. Rust1.88 a été testé sous Windows ; la matrice
+CI multiplateforme est écrite mais pas exécutée. La [matrice de parité](docs/research/rust-feature-parity.md)
+distingue fonctions validées, inconnues et chemins Android. Un marqueur de sécurité
+jusqu'ici ignoré est maintenant interprété : rendu/proposition refusés si bloqués
+ou non interprétables. Le [profilage offline](docs/research/rust-audio-profiling.md)
+conserve les mesures et rejette une optimisation CRC sans gain robuste.
+Aucun gain de latence global n'est revendiqué.
 L'endurance conserve un échec intermittent ; le suivi instrumenté réussit sans
 établir sa cause ni prétendre l'avoir corrigé. Voir
 [l'état détaillé](docs/STATUS.md) et le [diagnostic](docs/evidence/rust-incomplete-diagnostic-followup.json).

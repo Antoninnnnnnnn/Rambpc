@@ -27,6 +27,13 @@ fn incomplete_output_contains_only_explicit_completion_diagnostics() {
             terminal_code: Some(tonic::Code::Ok),
         },
         metrics: DiagnosticMetrics {
+            audio: rambler_engine::EncodedAudioProgress {
+                chunks: 1,
+                bytes: 19,
+                eof: false,
+                cleanup_finished: true,
+                cleanup_succeeded: true,
+            },
             requests_produced: 3,
             request_protobuf_bytes: 100,
             responses_received: 2,
@@ -42,6 +49,8 @@ fn incomplete_output_contains_only_explicit_completion_diagnostics() {
     assert_eq!(value["incomplete"]["completion"]["source_exhausted"], false);
     assert_eq!(value["incomplete"]["completion"]["terminal_code"], "Ok");
     assert_eq!(value["incomplete"]["metrics"]["requests_produced"], 3);
+    assert_eq!(value["incomplete"]["metrics"]["audio"]["bytes"], 19);
+    assert_eq!(value["incomplete"]["metrics"]["audio"]["eof"], false);
     let serialized = value.to_string();
     for forbidden in ["session_id", "raw", "text", "metadata"] {
         assert!(!serialized.contains(forbidden));

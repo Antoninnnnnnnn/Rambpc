@@ -4,8 +4,9 @@ mod tests;
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
 use rambler_engine::{
-    AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext, Engine,
-    EngineError, ProtocolConfig, SessionOptions, SourceError, SourceFuture, collect_dictation,
+    AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext,
+    EncodedAudioProgress, Engine, EngineError, ProtocolConfig, SessionOptions, SourceError,
+    SourceFuture, collect_dictation,
 };
 use rambler_transport::{EnvironmentCredentials, TransportConfig, TransportError};
 use serde_json::{Value, json};
@@ -161,6 +162,8 @@ fn error_category(e: &EngineError) -> (&'static str, Option<String>) {
         EngineError::Audio(_) => ("audio", None),
         EngineError::AudioCleanup(_) => ("cleanup", None),
         EngineError::Protocol(_) => ("protocol", None),
+        EngineError::SafetyBlocked => ("safety_blocked", None),
+        EngineError::UnrecognizedSafety => ("unrecognized_safety", None),
         EngineError::AmbiguousResult => ("ambiguous", None),
         EngineError::ResultLimit => ("result_limit", None),
         EngineError::IncompleteSession(_) => ("incomplete", None),
@@ -171,16 +174,23 @@ fn error_category(e: &EngineError) -> (&'static str, Option<String>) {
 fn context(c: &EditingContext) -> Value {
     json!({"before": c.before, "selected": c.selected, "after": c.after, "cursor_aware": c.cursor_aware})
 }
-fn output(result: &DictationResult) -> Value {
+fn audio_progress(progress: &EncodedAudioProgress) -> Value {
+    json!({"chunks":progress.chunks, "bytes":progress.bytes, "eof":progress.eof,
+        "cleanup_finished":progress.cleanup_finished, "cleanup_succeeded":progress.cleanup_succeeded})
+}
+fn output(result: &DictationResult) -> Result<Value, EngineError> {
+    result.check_safety()?;
     let finals: Vec<_> = result.final_updates.iter().map(|r| {
         let hypotheses: Vec<_> = r.hypotheses().iter().map(|h| {
             let edit = h.voice_edit.as_ref().map(|e| json!({"transcript": e.transcript, "alternative_text": e.alternative_text, "edited_text": e.edited_text, "edited_context": e.edited_context.as_ref().map(context), "intent": e.intent, "active_field": e.active_field.filter(|i| [2,3,7].contains(i))}));
-            json!({"text":h.text, "confidence":h.confidence.filter(|v| v.is_finite()), "voice_edit":edit})
+            json!({"text":h.text, "confidence":h.confidence.filter(|v| v.is_finite()), "voice_edit":edit, "safety_status":h.safety_status})
         }).collect();
         json!({"hypotheses":hypotheses})
     }).collect();
-    let metrics = result.metrics.as_ref().map(|m| json!({"requests_produced":m.requests_produced, "request_protobuf_bytes":m.request_protobuf_bytes, "responses_received":m.responses_received, "response_protobuf_bytes":m.response_protobuf_bytes, "elapsed_seconds":m.elapsed_seconds, "first_response_seconds":m.first_response_seconds, "eof_seconds":m.eof_seconds}));
-    json!({"type":"result", "text":result.text().ok(), "final_updates":finals, "context":result.context.as_ref().map(context), "metrics":metrics})
+    let metrics = result.metrics.as_ref().map(|m| json!({"audio":audio_progress(&m.audio), "requests_produced":m.requests_produced, "request_protobuf_bytes":m.request_protobuf_bytes, "responses_received":m.responses_received, "response_protobuf_bytes":m.response_protobuf_bytes, "elapsed_seconds":m.elapsed_seconds, "first_response_seconds":m.first_response_seconds, "eof_seconds":m.eof_seconds}));
+    Ok(
+        json!({"type":"result", "text":result.text().ok(), "final_updates":finals, "context":result.context.as_ref().map(context), "metrics":metrics}),
+    )
 }
 fn print_error(category: &str, code: Option<String>) {
     println!(
@@ -210,6 +220,7 @@ fn failure_output(error: &EngineError, cleanup: Option<&EngineError>) -> Value {
                 "terminal_code": completion.terminal_code.map(|code| format!("{code:?}")),
             },
             "metrics": {
+                "audio": audio_progress(&metrics.audio),
                 "requests_produced": metrics.requests_produced,
                 "request_protobuf_bytes": metrics.request_protobuf_bytes,
                 "responses_received": metrics.responses_received,
@@ -392,7 +403,13 @@ async fn main() {
         }
         (Ok(r), Ok(())) => {
             let ambiguous = r.text().is_err();
-            let mut value = output(&r);
+            let mut value = match output(&r) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("{}", failure_output(&error, None));
+                    std::process::exit(1);
+                }
+            };
             if ambiguous {
                 value["type"] = json!("ambiguous");
             }
