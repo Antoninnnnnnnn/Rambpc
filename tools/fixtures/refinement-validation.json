@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "description": "Controlled follow-up cases. All audio is local and either original synthesis or the attributed licensed natural sample.",
+  "cases": [
+    {
+      "id": "natural-en",
+      "audio": "artifacts/natural-refinement/en-6930-75918-0000.wav",
+      "language": "en-US",
+      "kind": "licensed natural speech",
+      "reference_text": "CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS",
+      "input_provenance": "docs/evidence/natural-corpus-inputs.json",
+      "context": {"before": ""}
+    },
+    {
+      "id": "long-planning-en",
+      "audio": "artifacts/refinement-synthetic/long-planning-en-16k.wav",
+      "language": "en-US",
+      "kind": "original synthetic long dictation",
+      "required_terms": ["silver", "meadow"],
+      "context": {"before": ""}
+    },
+    {
+      "id": "rewrite-en",
+      "audio": "artifacts/refinement-synthetic/rewrite-en-16k.wav",
+      "language": "en-US",
+      "kind": "original synthetic rewrite request",
+      "context": {"before": "Send me the report now."}
+    },
+    {
+      "id": "compose-en",
+      "audio": "artifacts/refinement-synthetic/compose-en-16k.wav",
+      "language": "en-US",
+      "kind": "original synthetic composition capability probe",
+      "context": {"before": ""}
+    },
+    {
+      "id": "unicode-selection-en",
+      "audio": "artifacts/synthetic-v1/context-edit-en.ogg",
+      "language": "en-US",
+      "kind": "original synthetic editing request with non-BMP context",
+      "context": {
+        "before": "🙂 The meeting is tomorrow at ",
+        "selected": "ten",
+        "after": ".",
+        "cursor_aware": true
+      }
+    }
+  ]
+}

@@ -1,6 +1,24 @@
-# État du moteur — 2026-11-12
+# État du moteur — 2026-11-13
 
-## Résultat actuel
+## Raffinement 0.2.0 — validation locale avant nouveaux essais réseau
+
+Branche de travail : `feat/engine-refinement`, construite sur `1f52c94` sans
+modifier la branche publiée. **415 tests locaux passent** avec asyncio debug et
+avertissements bloquants ; roue0.2.0 construite.
+
+- Deux défauts corrigés : fusion des messages protobuf singuliers répétés (y compris
+  même membre oneof) et nettoyage producteur asynchrone interrompu par la fin RPC.
+  Aucun des deux n'a été observé dans les42 essais historiques ; reproductions
+  offline/loopback et vérification canonique ont été ajoutées.
+- API de résultat final bornée, ambiguïté explicite, proposition de remplacement
+  sans effet de bord et contrôle snapshot/révision : [guide](refinement.md).
+- Bancs plus représentatifs de la CLI native, grille20/40/60/100ms et comparaison
+  de toutes les mises à jour finales ; aucun nouveau gain de vitesse revendiqué
+  avant exécution des mesures.
+- Un clip anglais naturel licencié et des scénarios synthétiques plus longs sont
+  préparés. Les nouveaux essais Google restent à exécuter à ce point du journal.
+
+## Jalon réel du 2026-11-12
 
 **Des réponses du véritable chemin Rambler ont été obtenues par un client natif
 Windows sans Android.** Ce n'est plus seulement une piste statique ou une connexion
@@ -26,7 +44,7 @@ Ogg/Opus16k mono, contexte tardif, fin S3 puis statut gRPC OK.
 | Protobuf inconnu / nouveaux champs | Préservés, dont un champ5 observé dans le service mais absent du schéma optimisé de l'APK |
 | Entrée PCM16 avec encodeur natif optionnel | Validée au service réel via CLI : PyAV/libopus, aucun exécutable FFmpeg |
 
-**356 tests locaux passent** en mode asyncio debug, avertissements traités comme
+Au jalon précédent, **356 tests locaux passaient** en mode asyncio debug, avertissements traités comme
 erreurs ; roue Python construite et installée dans un environnement vierge sans
 PyAV. La [CI du jalon0814813](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43304009641)
 a réussi sur Windows/Linux et Python3.11/3.14 (tests réseau local uniquement).

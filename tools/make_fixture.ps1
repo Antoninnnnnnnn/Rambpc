@@ -1,5 +1,7 @@
 param(
-    [string]$OutputDirectory = "artifacts/synthetic-v1"
+    [string]$OutputDirectory = "artifacts/synthetic-v1",
+    [string]$CasesFile,
+    [switch]$NormalizePcm
 )
 $ErrorActionPreference = "Stop"
 
@@ -27,6 +29,22 @@ $cases = @(
       text="Bonjour. Ceci est un essai de dictee intelligente. La reunion aura lieu demain a onze heures.";
       property="Observe French language support; synthesis accents are not a quality reference."}
 )
+if ($CasesFile) {
+    # Windows PowerShell 5.1 emits a JSON root array as one pipeline object.
+    # Assign it directly instead of wrapping it in another array subexpression.
+    $cases = Get-Content -LiteralPath $CasesFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($cases.Count -eq 0) { throw "Cases file must contain at least one case." }
+}
+$ids = @{}
+foreach ($case in $cases) {
+    if ($case.id -isnot [string] -or $case.id -notmatch '^[a-zA-Z0-9_-]+$' -or $ids.ContainsKey($case.id)) {
+        throw "Case IDs must be unique, nonempty filename-safe identifiers."
+    }
+    if ($case.text -isnot [string] -or $case.voice -isnot [string] -or [string]::IsNullOrWhiteSpace($case.text) -or [string]::IsNullOrWhiteSpace($case.voice)) {
+        throw "Each case requires text and an installed voice name."
+    }
+    $ids[$case.id] = $true
+}
 $results = @()
 foreach ($case in $cases) {
     $tokens = @($voice.GetVoices() | Where-Object { $_.GetDescription().StartsWith($case.voice) })
@@ -48,7 +66,7 @@ foreach ($case in $cases) {
     if ($LASTEXITCODE -ne 0) { throw "FFmpeg failed for $($case.id)." }
     $duration = & ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $ogg
     if ($LASTEXITCODE -ne 0) { throw "FFprobe failed for $($case.id)." }
-    $results += [ordered]@{
+    $entry = [ordered]@{
         id=$case.id; language=$case.language; text=$case.text;
         before=$case.before; expected_property=$case.property;
         synthesis_voice=$tokens[0].GetDescription(); synthesis_rate=0;
@@ -58,6 +76,14 @@ foreach ($case in $cases) {
         ogg_bytes=(Get-Item $ogg).Length;
         duration_s=[double]::Parse($duration, [Globalization.CultureInfo]::InvariantCulture)
     }
+    if ($NormalizePcm) {
+        $pcm = Join-Path $directory.FullName ($case.id + "-16k.wav")
+        & ffmpeg -nostdin -hide_banner -loglevel error -n -i $wav -ac 1 -ar 16000 -c:a pcm_s16le $pcm
+        if ($LASTEXITCODE -ne 0) { throw "PCM normalization failed for $($case.id)." }
+        $entry.pcm16_file = ($case.id + "-16k.wav")
+        $entry.pcm16_sha256 = (Get-FileHash -Algorithm SHA256 $pcm).Hash.ToLowerInvariant()
+    }
+    $results += $entry
 }
 $manifest = [ordered]@{
     created_at=[DateTime]::UtcNow.ToString("o");
@@ -65,6 +91,9 @@ $manifest = [ordered]@{
     format="continuous Ogg/Opus, mono, original sample rate 16000 Hz, target bitrate 24000 bit/s, VBR, voip";
     ffmpeg_version=(& ffmpeg -version | Select-Object -First 1);
     samples=$results
+}
+if ($CasesFile) {
+    $manifest.cases_sha256 = (Get-FileHash -Algorithm SHA256 $CasesFile).Hash.ToLowerInvariant()
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $directory.FullName "manifest.json") -Encoding UTF8
 Write-Output "Prepared $($results.Count) synthetic fixtures in $($directory.FullName)."

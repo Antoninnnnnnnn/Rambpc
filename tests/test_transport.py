@@ -575,6 +575,245 @@ async def test_close_waits_for_async_producer_cleanup_and_cancels_server(serve):
             await transport.close()
 
 
+class SlowCloseRequests:
+    """An iterator whose single owned aclose() needs asynchronous resource release."""
+    def __init__(self, *, cleanup_error=None, producer_error=None, block=False):
+        self.sent = False
+        self.block = block
+        self.producer_error = producer_error
+        self.cleanup_error = cleanup_error
+        self.next_started = asyncio.Event()
+        self.cleanup_started = asyncio.Event()
+        self.cleanup_done = asyncio.Event()
+        self.release_cleanup = asyncio.Event()
+        self.cleanup_count = 0
+        self.cleanup_finished = False
+        self.cleanup_cancelled = False
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self.sent:
+            self.sent = True
+            return b"request"
+        self.next_started.set()
+        if self.block:
+            await asyncio.Event().wait()
+        if self.producer_error is not None:
+            raise self.producer_error
+        raise StopAsyncIteration
+
+    async def aclose(self):
+        self.cleanup_count += 1
+        self.cleanup_started.set()
+        try:
+            await self.release_cleanup.wait()
+        except asyncio.CancelledError:
+            self.cleanup_cancelled = True
+            raise
+        self.cleanup_finished = True
+        self.cleanup_done.set()
+        if self.cleanup_error is not None:
+            raise self.cleanup_error
+
+
+async def test_cancel_before_writer_starts_still_closes_owned_iterator():
+    from rambler.transport import _Session
+
+    class Call:
+        def cancel(self):
+            return True
+
+        async def code(self):
+            return grpc.StatusCode.CANCELLED
+
+    source = SlowCloseRequests()
+    source.release_cleanup.set()
+    session = _Session(Call(), source)
+    # No yield to the event loop: close cancels the writer before its first step.
+    await session.close()
+    assert not source.sent
+    assert source.cleanup_finished and source.cleanup_count == 1
+    assert session.writer.done() and session.monitor.done()
+
+
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+async def test_normal_eof_waits_for_uninterrupted_cleanup_and_reports_failure(serve, cleanup_fails):
+    failure = LookupError("request cleanup failed") if cleanup_fails else None
+    source = SlowCloseRequests(cleanup_error=failure)
+
+    async def handler(requests, context):
+        async for _ in requests:
+            pass
+        await source.cleanup_started.wait()
+        yield b"last"
+
+    async with serve(handler) as target:
+        async with GrpcTransport(target, secure=False) as transport:
+            consumer = asyncio.create_task(collect(transport.stream(source)))
+            try:
+                await event_set(source.cleanup_started)
+                session = next(iter(transport._sessions))
+                assert await asyncio.wait_for(session.call.code(), 3) is grpc.StatusCode.OK
+                await asyncio.sleep(0)
+                assert not consumer.done()
+                assert source.cleanup_count == 1 and not source.cleanup_cancelled
+                source.release_cleanup.set()
+                if cleanup_fails:
+                    with pytest.raises(LookupError) as caught:
+                        await consumer
+                    assert caught.value is failure
+                else:
+                    assert await consumer == [b"last"]
+                assert source.cleanup_finished and source.cleanup_count == 1
+                assert not source.cleanup_cancelled
+                assert session.writer.done() and session.monitor.done()
+                assert_clean(transport)
+            finally:
+                source.release_cleanup.set()
+                await asyncio.gather(consumer, return_exceptions=True)
+
+
+@pytest.mark.parametrize("action", ["caller_cancel", "stream_close", "transport_close"])
+async def test_cancellation_during_natural_aclose_waits_and_closes_exactly_once(serve, action):
+    source = SlowCloseRequests()
+
+    async def handler(requests, context):
+        async for _ in requests:
+            yield b"partial"
+        await asyncio.Event().wait()
+
+    async with serve(handler) as target:
+        transport = GrpcTransport(target, secure=False)
+        await transport.open()
+        stream = transport.stream(source)
+        stopping = None
+        try:
+            assert await anext(stream) == b"partial"
+            await event_set(source.cleanup_started)
+            session = next(iter(transport._sessions))
+            if action == "caller_cancel":
+                stopping = asyncio.create_task(anext(stream))
+                await asyncio.sleep(0)
+                stopping.cancel()
+            elif action == "stream_close":
+                stopping = asyncio.create_task(stream.aclose())
+            else:
+                stopping = asyncio.create_task(transport.close())
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            assert not stopping.done()
+            assert not source.cleanup_cancelled and source.cleanup_count == 1
+            source.release_cleanup.set()
+            if action == "caller_cancel":
+                with pytest.raises(asyncio.CancelledError):
+                    await stopping
+            else:
+                await stopping
+            assert source.cleanup_finished and source.cleanup_count == 1
+            assert not source.cleanup_cancelled
+            assert session.writer.done() and session.monitor.done()
+            assert_clean(transport)
+        finally:
+            source.release_cleanup.set()
+            if stopping is not None:
+                await asyncio.gather(stopping, return_exceptions=True)
+            await stream.aclose()
+            await transport.close()
+
+
+async def test_early_server_end_waits_for_blocked_producer_cleanup(serve):
+    source = SlowCloseRequests(block=True)
+
+    async def handler(requests, context):
+        await anext(requests)
+        await source.next_started.wait()
+        yield b"early"
+
+    async with serve(handler) as target:
+        async with GrpcTransport(target, secure=False) as transport:
+            consumer = asyncio.create_task(collect(transport.stream(source)))
+            try:
+                await event_set(source.cleanup_started)
+                assert not consumer.done() and source.cleanup_count == 1
+                source.release_cleanup.set()
+                assert await consumer == [b"early"]
+                assert source.cleanup_finished and not source.cleanup_cancelled
+                assert source.cleanup_count == 1
+                assert_clean(transport)
+            finally:
+                source.release_cleanup.set()
+                await asyncio.gather(consumer, return_exceptions=True)
+
+
+async def test_producer_failure_survives_cancellation_during_its_async_cleanup(serve):
+    failure = RuntimeError("producer failed before cleanup")
+    source = SlowCloseRequests(producer_error=failure)
+
+    async with serve(echo) as target:
+        async with GrpcTransport(target, secure=False) as transport:
+            consumer = asyncio.create_task(collect(transport.stream(source)))
+            try:
+                await event_set(source.cleanup_started)
+                assert not consumer.done()
+                source.release_cleanup.set()
+                with pytest.raises(RuntimeError) as caught:
+                    await consumer
+                assert caught.value is failure
+                assert source.cleanup_finished and not source.cleanup_cancelled
+                assert source.cleanup_count == 1
+                assert_clean(transport)
+            finally:
+                source.release_cleanup.set()
+                await asyncio.gather(consumer, return_exceptions=True)
+
+
+async def test_transport_close_waits_for_every_cleanup_even_when_one_fails(serve):
+    failure = LookupError("request cleanup failed")
+    failed, delayed = SlowCloseRequests(cleanup_error=failure), SlowCloseRequests()
+
+    async def handler(requests, context):
+        async for _ in requests:
+            yield b"partial"
+        await asyncio.Event().wait()
+
+    async with serve(handler) as target:
+        transport = GrpcTransport(target, secure=False)
+        await transport.open()
+        streams = [transport.stream(source) for source in (failed, delayed)]
+        closing = None
+        try:
+            assert await asyncio.gather(*(anext(stream) for stream in streams)) == [b"partial"] * 2
+            await event_set(failed.cleanup_started)
+            await event_set(delayed.cleanup_started)
+            closing = asyncio.create_task(transport.close())
+            failed.release_cleanup.set()
+            await event_set(failed.cleanup_done)
+            await asyncio.sleep(0)
+            assert not closing.done()
+            assert not delayed.cleanup_finished
+            delayed.release_cleanup.set()
+            with pytest.raises(LookupError) as caught:
+                await closing
+            assert caught.value is failure
+            assert transport._channel is None
+            assert_clean(transport)
+            assert all(source.cleanup_finished and source.cleanup_count == 1
+                       and not source.cleanup_cancelled for source in (failed, delayed))
+            with pytest.raises(LookupError) as caught:
+                await streams[0].aclose()
+            assert caught.value is failure
+            await streams[1].aclose()
+        finally:
+            failed.release_cleanup.set()
+            delayed.release_cleanup.set()
+            if closing is not None:
+                await asyncio.gather(closing, return_exceptions=True)
+            await asyncio.gather(*(stream.aclose() for stream in streams), return_exceptions=True)
+            await transport.close()
+
+
 async def test_unavailable_is_not_retried(serve):
     invocations = 0
 

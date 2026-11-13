@@ -75,7 +75,7 @@ async def test_sample_tracks_source_and_s3_times(tmp_path, monkeypatch):
         return bytes(out) + bytes([value])
     def blob(number, payload):
         return varint(number * 8 + 2) + varint(len(payload)) + payload
-    response = decode_response(b'\x08\x01' + blob(1253625, blob(1, blob(3, blob(3, blob(1, b'synthetic'))))))
+    response = decode_response(b'\x08\x01' + blob(1253625, blob(1, b'\x08\x01' + blob(3, blob(3, blob(1, b'synthetic'))))))
     processes = []
     async def spawn(*command, **kwargs):
         assert '-re' in command and '-page_duration' in command and '20000' in command
@@ -157,7 +157,7 @@ async def test_optional_ffmpeg_equal_decoded_pcm(tmp_path):
         return bytes(out) + bytes([value])
     def blob(number, payload):
         return varint(number * 8 + 2) + varint(len(payload)) + payload
-    response = decode_response(b'\x08\x01' + blob(1253625, blob(1, blob(3, blob(3, blob(1, b'test'))))))
+    response = decode_response(b'\x08\x01' + blob(1253625, blob(1, b'\x08\x01' + blob(3, blob(3, blob(1, b'test'))))))
     class Engine:
         async def stream(self, source, **kwargs):
             async with aclosing(source):
@@ -174,7 +174,8 @@ async def test_optional_ffmpeg_equal_decoded_pcm(tmp_path):
     assert rows[0]['decoded_pcm'] == rows[1]['decoded_pcm']
 
 
-async def test_native_source_pages_and_duration_without_ffmpeg(tmp_path, monkeypatch):
+@pytest.mark.parametrize('policy', ['muxer', 'legacy224'])
+async def test_native_source_pages_and_duration_without_ffmpeg(tmp_path, monkeypatch, policy):
     pytest.importorskip('av')
     import hashlib
     import wave
@@ -194,7 +195,7 @@ async def test_native_source_pages_and_duration_without_ffmpeg(tmp_path, monkeyp
         return bytes(out) + bytes([value])
     def blob(number, payload):
         return varint(number * 8 + 2) + varint(len(payload)) + payload
-    response = decode_response(b'\x08\x01' + blob(1253625, blob(1, blob(3, blob(3, blob(1, b'test'))))))
+    response = decode_response(b'\x08\x01' + blob(1253625, blob(1, b'\x08\x01' + blob(3, blob(3, blob(1, b'test'))))))
     class Engine:
         async def stream(self, source, **kwargs):
             async with aclosing(source):
@@ -214,13 +215,22 @@ async def test_native_source_pages_and_duration_without_ffmpeg(tmp_path, monkeyp
     args = arguments(tmp_path)
     args.timeout = 5
     args.source = 'native'
+    args.native_chunk_policy = policy
     rows = [await bench.take_sample(args, Engine(), None, i, page, native=(av, audio, encoding), pcm_reference=reference)
-            for i, page in enumerate((1000000, 20000))]
+            for i, page in enumerate((1000000, 20000, 40000, 60000, 100000))]
     assert all(row['success'] for row in rows), rows
     assert all(row['pcm_sha256_consumed'] == reference['sha256'] for row in rows)
     assert all(row['pcm_bytes_consumed'] == len(data) and row['decoded_pcm']['bytes'] == len(data) for row in rows)
     assert rows[0]['decoded_pcm'] == rows[1]['decoded_pcm']
     assert all(row['source_exhausted_ms'] is not None for row in rows)
+    assert len({row['decoded_pcm']['sha256'] for row in rows}) == 1
+    for row in rows:
+        assert row['native_first_header_ms'] <= row['native_first_audio_page_ms'] <= row['eof_ms']
+        assert row['native_encoder_setup_ms'] is None
+        assert row['pipeline_wall_ms'] <= row['elapsed_ms']
+        assert row['verification_wall_ms'] >= 0 and row['artifact_write_wall_ms'] >= 0
+        assert row['pipeline_cpu_ms'] >= 0 and row['verification_cpu_ms'] >= 0
+        assert row['semantic_result']['hypothesis_count'] == 1
 
 
 def test_native_options_and_page_validation(tmp_path, monkeypatch):
@@ -256,7 +266,8 @@ async def test_native_run_metadata_does_not_probe_ffmpeg(tmp_path, monkeypatch):
     async def sample(args, engine, ffmpeg, index, page, *, native, pcm_reference):
         assert ffmpeg is None and native is not None
         assert pcm_reference['bytes'] == 640
-        return {'success': True, 'decoded_pcm': {'sha256': 'same', 'bytes': 640}}
+        return {'success': True, 'decoded_pcm': {'sha256': 'same', 'bytes': 640},
+                'semantic_result': {'sha256': 'same-result', 'hypothesis_count': 1}}
     def forbidden(*args, **kwargs):
         raise AssertionError('native mode must not query FFmpeg')
     monkeypatch.setattr(bench, 'GrpcTransport', Transport)
@@ -271,9 +282,13 @@ async def test_native_run_metadata_does_not_probe_ffmpeg(tmp_path, monkeypatch):
     assert 'ffmpeg_test_source' not in metadata
     assert 'chunk_sizes' not in metadata
     assert metadata['encoder']['pcm_chunk_ms'] == 20
-    assert metadata['encoder']['encoded_chunk_policy'] == 'native muxer writes subdivided into at most 224 bytes'
+    assert metadata['encoder']['encoded_chunk_policy'] == 'native muxer writes unchanged, immediately'
+    assert metadata['native_chunk_policy'] == 'muxer'
+    assert metadata['scheduled_page_durations_us'] == [1000000, 20000]
     assert 'chunk_bytes' not in metadata['encoder']
     assert metadata['native_test_source']['native_prepare_ms'] >= 0
+    assert metadata['semantic_signature_version'] == 2
+    assert result['semantic_policy'] == 'ordered_all_recognition_state_1_sets_v2'
     assert len(metadata['code_sha256']['encoding']) == 64
     assert len(metadata['code_sha256']['audio']) == 64
 
@@ -293,7 +308,8 @@ async def test_ffmpeg_metadata_reports_stdout_read_policy(tmp_path, monkeypatch)
         def __init__(self, *args, **kwargs): pass
     async def sample(args, engine, ffmpeg, index, page, *, native, pcm_reference):
         assert native is None and ffmpeg == 'fake-ffmpeg'
-        return {'success': True, 'decoded_pcm': {'sha256': 'same', 'bytes': 10}}
+        return {'success': True, 'decoded_pcm': {'sha256': 'same', 'bytes': 10},
+                'semantic_result': {'sha256': 'same-result', 'hypothesis_count': 1}}
     monkeypatch.setattr(bench, 'GrpcTransport', Transport)
     monkeypatch.setattr(bench, 'RamblerEngine', Engine)
     monkeypatch.setattr(bench, 'take_sample', sample)
@@ -304,3 +320,124 @@ async def test_ffmpeg_metadata_reports_stdout_read_policy(tmp_path, monkeypatch)
     assert 'chunk_sizes' not in metadata
     assert metadata['encoder']['encoded_chunk_policy'] == 'FFmpeg stdout reads of at most 224 bytes'
     assert 'pcm_chunk_ms' not in metadata['encoder']
+
+
+async def test_sample_final_history_detects_lost_first_segment(tmp_path, monkeypatch):
+    from rambler.engine import EngineEvent, SessionMetrics
+    from rambler.protocol import (S3Response, RecognitionResponse, RecognitionResult,
+                                  HypothesisResult, Hypothesis)
+    async def spawn(*args, **kwargs):
+        return Process([b'identical audio'])
+    async def decode(*args):
+        return {'sha256': 'same-pcm', 'bytes': 20}
+    class Engine:
+        def __init__(self, texts):
+            self.texts = texts
+        async def stream(self, source, **kwargs):
+            async with aclosing(source):
+                async for _ in source:
+                    pass
+            metrics = SessionMetrics('id', 4, 5, 1, 1, .1, .1, .1)
+            for text in self.texts:
+                response = S3Response(status=1, result=RecognitionResponse(recognition=RecognitionResult(
+                    state=1, hypothesis_result=HypothesisResult(hypotheses=(Hypothesis(text=text),)))))
+                yield EngineEvent(response, metrics)
+            yield EngineEvent(None, metrics)
+    monkeypatch.setattr(bench.asyncio, 'create_subprocess_exec', spawn)
+    monkeypatch.setattr(bench, 'decode_pcm', decode)
+    first = await bench.take_sample(arguments(tmp_path), Engine(['A', 'B']), 'ffmpeg', 0, 20000)
+    second = await bench.take_sample(arguments(tmp_path), Engine(['B']), 'ffmpeg', 1, 20000)
+    assert first['success'] and second['success']
+    assert first['last_populated_semantic_result'] == second['last_populated_semantic_result']
+    assert len(first['semantic_final_updates']) == 2 and len(second['semantic_final_updates']) == 1
+    bench._helpers.semantic_guard(second, first['semantic_result'])
+    assert not second['success'] and second['error_type'] == 'SemanticResultMismatch'
+
+
+def test_grid_schedule_and_native_chunk_contract():
+    from collections import Counter
+    pages = [20000, 40000, 60000, 100000]
+    plan = bench.grid_schedule(5, pages)
+    assert len(plan) == 20 and Counter(plan) == Counter({page: 5 for page in pages})
+    assert plan[:8] == pages + pages[1:] + pages[:1]
+    assert plan[16:20] == pages[::-1]
+    assert len(bench.grid_schedule(6, pages)) == 24
+    for rounds, durations in ((7, pages), (0, pages), (1, [20000]),
+                              (1, [20000, 20000]), (1, [19999, 40000])):
+        with pytest.raises(ValueError):
+            bench.grid_schedule(rounds, durations)
+    with pytest.raises(ValueError):
+        bench.experiment_schedule(SimpleNamespace(pairs=3, rounds=None, page_durations=pages))
+    writes = [b'a', b'b' * 1025, b'c' * 7]
+    for policy in ('muxer', 'legacy224'):
+        chunks = [chunk for write in writes for chunk in bench.native_chunks(write, policy)]
+        assert b''.join(chunks) == b''.join(writes)
+        if policy == 'muxer':
+            assert chunks == writes
+        else:
+            assert max(map(len, chunks)) <= 224
+            assert chunks[0] == b'a'  # Never wait for the next muxer write.
+    with pytest.raises(ValueError):
+        list(bench.native_chunks(b'a', 'unknown'))
+    args = bench.parser().parse_args(['--rounds', '5', '--page-durations', '20000,40000,60000,100000',
+        '--native-chunk-policy', 'legacy224', '--wav', 'a', '--output', 'b', '--encoded-dir', 'c'])
+    assert bench.experiment_schedule(args) == plan and args.native_chunk_policy == 'legacy224'
+    with pytest.raises(SystemExit):
+        bench.parser().parse_args(['--pairs', '2', '--rounds', '5'])
+
+
+def test_grid_limit_rejected_before_any_output(tmp_path):
+    output = tmp_path / 'observation.json'
+    encoded = tmp_path / 'encoded'
+    assert bench.main(['--source', 'native', '--rounds', '7',
+        '--page-durations', '20000,40000,60000,100000', '--target', '127.0.0.1:1',
+        '--wav', str(tmp_path / 'missing.wav'), '--output', str(output),
+        '--encoded-dir', str(encoded)]) == 1
+    assert not output.exists() and not encoded.exists()
+
+
+def test_ogg_milestones_fragmentation_and_headers():
+    def page(body):
+        return b'OggS' + bytes(22) + bytes([1, len(body)]) + body
+    stream = page(b'OpusHead-header') + page(b'OpusTags-tags') + page(b'audio-packet')
+    observer = bench.OggMilestones()
+    for index, value in enumerate(stream):
+        observer.feed(bytes([value]), index)
+    assert observer.first_header_ms < observer.first_audio_page_ms == len(stream) - 1
+    assert not observer.pending
+
+
+@pytest.mark.parametrize('mismatch_index', [None, 1, 4])
+async def test_grid_run_semantic_nondeterminism_stops_inconclusive(tmp_path, monkeypatch, mismatch_index):
+    import io
+    wav = tmp_path / 'fixture.wav'
+    wav.write_bytes(b'fixture')
+    args = arguments(tmp_path)
+    args.source, args.pairs, args.rounds = 'ffmpeg', 3, 5
+    args.page_durations = [20000, 40000, 60000, 100000]
+    args.target, args.insecure = '127.0.0.1:1', True
+    class Transport:
+        def __init__(self, *args, **kwargs): pass
+        async def open(self, **kwargs): pass
+        async def close(self): pass
+    class Engine:
+        def __init__(self, *args, **kwargs): pass
+    async def sample(args, engine, ffmpeg, index, page, **kwargs):
+        return {'success': True, 'decoded_pcm': {'sha256': 'same', 'bytes': 10},
+                'semantic_result': {'sha256': 'reference' if mismatch_index is None or index < mismatch_index else 'changed',
+                                    'hypothesis_count': 1, 'confidence_scores': [index / 20]}}
+    monkeypatch.setattr(bench, 'GrpcTransport', Transport)
+    monkeypatch.setattr(bench, 'RamblerEngine', Engine)
+    monkeypatch.setattr(bench, 'take_sample', sample)
+    monkeypatch.setattr(bench, 'ffmpeg_metadata', lambda value: {'version': 'test'})
+    output = io.StringIO()
+    assert await bench.run(args, output, 'fake-ffmpeg') == (mismatch_index is None)
+    report = json.loads(output.getvalue())
+    if mismatch_index is None:
+        assert len(report['samples']) == 20 and report['complete']
+        assert report['comparison_status'] == 'semantic_match_observed_not_quality_proof'
+    else:
+        assert len(report['samples']) == mismatch_index + 1 and report['comparison_status'] == 'inconclusive'
+        assert not report['complete']
+        assert report['samples'][-1]['error_type'] == 'SemanticResultMismatch'
+    assert report['reproducibility']['scheduled_page_durations_us'] == bench.grid_schedule(5, args.page_durations)

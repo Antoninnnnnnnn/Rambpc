@@ -287,7 +287,7 @@ def test_response_payload_oneof_and_independent_strings(last):
     result = recognition + speech + alternative + blob(3, "id") + blob(4, "independent")
     decoded = decode_response(blob(1253625, result))
     assert decoded.result.active_field == last
-    assert decoded.result.active_raw == scalar(1, 44)
+    assert decoded.result.active_raw == (scalar(1, 3) if last == 2 else b"") + scalar(1, 44)
     assert decoded.result.result_id == "id" and decoded.result.alternative_text == "independent"
     assert decoded.recognition_state == (44 if last == 1 else None)
     assert decoded.speech_event == (44 if last == 2 else None)
@@ -302,17 +302,105 @@ def test_unknown_non_oneof_field_and_wrong_wire_type_do_not_clear_result():
     assert decoded.result.unknown_fields == (Field(14, 2, b"future"), Field(2, 0, 22))
 
 
-def test_singular_last_wins_repeated_items_preserve_order():
+def test_singular_scalars_last_win_messages_merge_repeated_items_preserve_order():
     hypothesis = blob(1, "old") + blob(1, "new") + fixed(2, 0.25) + fixed(2, 0.5)
     partial = blob(1, "old") + blob(1, "new") + fixed(2, 0.25, double=True) + fixed(2, 0.75, double=True)
-    old_list = blob(3, blob(1, "discarded"))
+    old_list = blob(3, blob(1, "retained"))
     new_list = blob(3, hypothesis) + blob(3, blob(1, "second"))
     recognition = scalar(1, 0) + scalar(1, 77) + blob(3, old_list) + blob(3, new_list) + blob(4, blob(1, partial))
     decoded = decode_response(response(scalar(1, 0)) + response(recognition))
     assert decoded.recognition_state == 77
-    assert [item.text for item in decoded.hypotheses] == ["new", "second"]
-    assert decoded.hypotheses[0].confidence == 0.5
+    assert [item.text for item in decoded.hypotheses] == ["retained", "new", "second"]
+    assert decoded.hypotheses[1].confidence == 0.5
     assert decoded.partials[0].text == "new" and decoded.partials[0].confidence == 0.75
+
+
+def test_singular_response_extension_merges_instead_of_discarding_recognition():
+    # Protobuf's concatenation/MergeFrom rule applies to singular extensions too.
+    # These literal bytes are independent of both wire encoders in this project.
+    payload = bytes.fromhex("ca8fe4040b0a0908011a051a030a0141ca8fe404041a026964")
+    decoded = decode_response(payload)
+    assert decoded.recognition_state == 1
+    assert [item.text for item in decoded.hypotheses] == ["A"]
+    assert decoded.result.result_id == "id"
+    assert decoded.raw == payload
+    assert decoded.result.raw == bytes.fromhex("0a0908011a051a030a01411a026964")
+
+
+def test_same_oneof_message_merges_across_independent_and_wrong_wire_fields():
+    first = scalar(1, 1) + scalar(88, 5)
+    second = blob(3, blob(3, blob(1, "A"))) + scalar(89, 6)
+    result = blob(1, first) + blob(3, "id") + scalar(2, 123) + blob(1, second)
+    decoded = decode_response(blob(1253625, result))
+    assert decoded.recognition_state == 1
+    assert [item.text for item in decoded.hypotheses] == ["A"]
+    assert decoded.result.result_id == "id"
+    assert decoded.result.active_raw == first + second
+    assert decoded.result.recognition.raw == first + second
+    assert decoded.result.recognition.unknown_fields == (Field(88, 0, 5), Field(89, 0, 6))
+    assert decoded.result.unknown_fields == (Field(2, 0, 123),)
+
+
+def test_oneof_member_change_discards_previous_message_before_later_merge():
+    old = scalar(1, 1) + blob(3, blob(3, blob(1, "discarded")))
+    new = blob(3, blob(3, blob(1, "retained")))
+    result = blob(1, old) + blob(2, scalar(1, 3)) + blob(1, new) + blob(1, scalar(1, 7))
+    decoded = decode_response(blob(1253625, result))
+    assert decoded.recognition_state == 7 and decoded.speech_event is None
+    assert [item.text for item in decoded.hypotheses] == ["retained"]
+    assert decoded.result.active_raw == new + scalar(1, 7)
+
+
+def test_voice_edit_extension_and_same_context_member_merge():
+    first_context = blob(1, "before") + scalar(90, 1)
+    second_context = blob(2, "selection") + blob(3, "after")
+    first = blob(1, "transcript") + blob(7, first_context)
+    second = scalar(4, 2) + blob(7, second_context)
+    payload = with_hypothesis(blob(74956224, first) + blob(74956224, second))
+    voice = decode_response(payload).hypotheses[0].voice_edit
+    assert voice.transcript == "transcript" and voice.intent == 2
+    assert voice.edited_context == EditingContext("before", "selection", "after", True,
+                                                 unknown_fields=(Field(90, 0, 1),))
+    assert voice.raw == first + second
+    assert voice.edited_context.raw == first_context + second_context
+
+
+def test_context_oneof_member_change_resets_before_merging_again():
+    edit = (blob(7, blob(1, "discarded")) + blob(3, "also discarded")
+            + blob(7, blob(2, "selected")) + blob(7, blob(3, "after")))
+    voice = decode_response(with_edit(edit)).hypotheses[0].voice_edit
+    assert voice.edited_text is None
+    assert voice.edited_context == EditingContext("", "selected", "after", True)
+
+
+@pytest.mark.parametrize("payload", [
+    blob(1253625, blob(1, b"\x08") + blob(2, scalar(1, 3)) + blob(1, scalar(1, 1))),
+    with_edit(blob(7, blob(1, b"\xff")) + blob(3, "valid")),
+])
+def test_overwritten_message_oneof_runs_still_validate_all_occurrences(payload):
+    with pytest.raises(ValueError):
+        decode_response(payload)
+
+
+@pytest.mark.parametrize("payload", [
+    blob(1253625, b"\x0a") + blob(1253625, b"\x00"),
+    response(blob(3, b"\x1a") + blob(3, b"\x00")),
+    blob(1253625, blob(1, b"\x08") + blob(1, b"\x01")),
+    with_edit(blob(7, b"\x0a\x03a") + blob(7, b"bc")),
+])
+def test_merging_cannot_heal_truncated_fields_across_message_boundaries(payload):
+    with pytest.raises(ValueError):
+        decode_response(payload)
+
+
+def test_merged_messages_share_one_exact_global_field_budget():
+    # Two root fields + two fields at each of four nested levels = ten fields.
+    merged = with_hypothesis(blob(1, "A")) + with_hypothesis(blob(1, "B"))
+    payload = scalar(1, 0) * (MAX_FIELDS - 10) + merged
+    decoded = decode_response(payload)
+    assert [item.text for item in decoded.hypotheses] == ["A", "B"]
+    with pytest.raises(ValueError, match="max_fields"):
+        decode_response(scalar(1, 0) + payload)
 
 
 def test_unknown_fields_order_wrong_wire_type_and_original_noncanonical_bytes():

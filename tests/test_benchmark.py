@@ -63,7 +63,7 @@ async def test_real_engine_loopback(tmp_path, monkeypatch):
     for name in ('RAMBLER_API_KEY', 'RAMBLER_ANDROID_PACKAGE', 'RAMBLER_ANDROID_CERT'):
         monkeypatch.delenv(name, raising=False)
     text = blob(1, b'synthetic test')
-    recognition = blob(3, blob(3, text))
+    recognition = b'\x08\x01' + blob(3, blob(3, text))
     response = b'\x08\x01' + blob(1253625, blob(1, recognition))
     calls = []
     async def handler(requests, context):
@@ -156,3 +156,96 @@ def test_reproducibility_metadata(monkeypatch):
     assert set(data['code_sha256']) == {'engine', 'protocol', 'transport', 'wire', 'harness'}
     assert all(len(digest) == 64 for digest in data['code_sha256'].values())
     assert 'sensitive-test-secret' not in json.dumps(data)
+
+
+def test_semantic_signature_preserves_structure_but_not_scores():
+    from dataclasses import replace
+    from rambler.protocol import EditingContext, Hypothesis, decode_response
+    # Use a small response proxy so all decoded hypothesis sets are exercised.
+    edit = decode_response(blob(1253625, blob(1, blob(3, blob(3,
+        blob(74956224, blob(7, blob(1, b'before')))))))).hypotheses[0].voice_edit
+    hypothesis = Hypothesis(text='text', confidence=.1, voice_edit=edit)
+    def observe(items):
+        return bench.semantic_observation(SimpleNamespace(hypotheses=items))
+    reference = observe([hypothesis])
+    changed_score = observe([replace(hypothesis, confidence=.9)])
+    assert reference['sha256'] == changed_score['sha256']
+    assert reference['confidence_scores'] != changed_score['confidence_scores']
+    assert reference['sha256'] != observe([hypothesis, Hypothesis()])['sha256']
+    assert reference['sha256'] != observe([replace(hypothesis, text='other')])['sha256']
+    for changed in (replace(edit, intent=9), replace(edit, alternative_text='alternative'),
+                    replace(edit, edited_text='edited'), replace(edit, transcript='transcript'),
+                    replace(edit, edited_context=EditingContext(before='before', selected='selected'))):
+        assert reference['sha256'] != observe([replace(hypothesis, voice_edit=changed)])['sha256']
+    assert observe([Hypothesis(text=None)])['sha256'] != observe([Hypothesis(text='')])['sha256']
+    assert observe([Hypothesis(confidence=float('nan'))])['confidence_scores'] == ['nan']
+    assert observe([]) is None
+    row = {'success': True, 'semantic_result': changed_score}
+    bench.semantic_guard(row, reference)
+    assert row['success']
+    row['semantic_result'] = observe([replace(hypothesis, text='nondeterministic')])
+    bench.semantic_guard(row, reference)
+    assert not row['success'] and row['error_type'] == 'SemanticResultMismatch'
+    missing = {'success': True}
+    bench.semantic_guard(missing, reference)
+    assert missing['error_type'] == 'MissingSemanticResult'
+
+
+def test_strict_final_history_detects_lost_reordered_and_repeated_segments():
+    from rambler.protocol import Hypothesis, PartialHypothesis
+    def response(text, *, state=1, confidence=.5, partials=()):
+        return SimpleNamespace(recognition_state=state,
+            hypotheses=() if text is None else (Hypothesis(text=text, confidence=confidence),),
+            partials=partials)
+    def history(*responses):
+        observation = bench.SemanticHistory()
+        for item in responses:
+            observation.observe(item)
+        return observation
+    ab = history(response('A'), response('B'))
+    b = history(response('B'))
+    assert ab.last_populated == b.last_populated
+    assert ab.signature()['sha256'] != b.signature()['sha256']
+    assert ab.signature()['final_update_count'] == 2
+    assert ab.signature()['hypothesis_counts'] == [1, 1]
+    assert ab.signature()['policy'] == 'ordered_all_recognition_state_1_sets_v2'
+    assert ab.signature()['version'] == 2
+    assert ab.signature()['sha256'] != history(response('B'), response('A')).signature()['sha256']
+    assert ab.signature()['sha256'] != history(response('AB')).signature()['sha256']
+    assert history(response('A'), response('A')).signature()['sha256'] != history(response('A')).signature()['sha256']
+    assert b.signature()['sha256'] == history(response('B', confidence=.9)).signature()['sha256']
+    provisional = history(response('A', state=0, partials=(PartialHypothesis(text='draft', confidence=.7),)),
+                          response('B'))
+    assert provisional.signature() == b.signature()
+    assert len(provisional.provisional_updates) == 2
+    assert provisional.provisional_updates[-1]['partial_count'] == 1
+    assert provisional.final_updates == b.final_updates
+    assert history(response('only provisional', state=0)).signature() is None
+    assert history(response(None)).signature()['hypothesis_counts'] == [0]
+    row = {'success': True, 'semantic_result': b.signature()}
+    bench.semantic_guard(row, ab.signature())
+    assert not row['success'] and row['error_type'] == 'SemanticResultMismatch'
+    assert 'draft' not in json.dumps(provisional.provisional_updates)
+
+
+async def test_semantic_mismatch_kept_and_stops_batch(tmp_path, monkeypatch):
+    audio = tmp_path / 'audio.ogg'
+    audio.write_bytes(b'OggSOpusHead')
+    args = SimpleNamespace(audio=audio, samples=2, chunk_sizes=[224], language='en-US',
+                           timeout=1, target='127.0.0.1:1', insecure=True)
+    class Transport:
+        def __init__(self, *args, **kwargs): pass
+        async def close(self): pass
+    async def sample(*args, **kwargs):
+        warmup = kwargs.get('warmup', False)
+        return {'success': True, 'warmup': warmup, 'mode': 'reused_channel',
+                'chunk_bytes': 224, 'semantic_result': {
+                    'sha256': 'reference' if warmup else 'changed', 'hypothesis_count': 1}}
+    monkeypatch.setattr(bench, 'GrpcTransport', Transport)
+    monkeypatch.setattr(bench, 'sample', sample)
+    output = io.StringIO()
+    assert not await bench.run(args, output)
+    report = json.loads(output.getvalue())
+    assert len(report['samples']) == 2 and not report['complete']
+    assert report['comparison_status'] == 'inconclusive' and report['summary'] == []
+    assert report['samples'][-1]['error_type'] == 'SemanticResultMismatch'

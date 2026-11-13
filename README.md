@@ -155,6 +155,37 @@ flushe l'encodeur, envoie le contexte et le marqueur final, puis half-close.
 ou appeler `engine.close()` ; cela interrompt la session, ce n'est pas une
 finalisation de dictée. Le test réel de reprise après annulation est dans les preuves.
 
+### Résultat final et proposition d'édition
+
+Pour une intégration qui n'a pas besoin de traiter chaque événement, l'API publique
+`collect_dictation` consomme le flux jusqu'à une fin S3 et gRPC réussie. Elle conserve
+les mises à jour finales séparément avec leurs réponses brutes et expose les métriques
+EOF. Les erreurs tardives sont propagées ; les limites `max_final_updates` et
+`max_result_bytes` bornent la conservation.
+
+```python
+from rambler import (AmbiguousResultError, EditingContext, ProtocolConfig,
+                     collect_dictation)
+
+async def collect(engine, ogg_chunks):
+    result = await collect_dictation(
+        engine, ogg_chunks, config=ProtocolConfig(language='fr-FR'),
+        context=EditingContext(before='Texte existant.'),
+    )
+    try:
+        print(result.text)  # seulement si le résultat est unique et interprétable
+    except AmbiguousResultError:
+        print('Inspecter result.final_updates sans choisir arbitrairement.')
+    return result
+```
+
+`replacement_proposal` peut décrire le remplacement d'une fenêtre de contexte pour
+le cas d'édition historique vérifié, avec contrôle de contexte et révision avant
+application. Aucun texte n'est appliqué automatiquement : un résultat édité peut
+inclure l'historique complet et ne doit pas lui être ajouté. Pour les détails, les
+exemples exécutables, les unités UTF-16 et les limites de validation, voir
+[API de résultat et raffinement](docs/refinement.md).
+
 ## Documentation et contribution
 
 - [État, capacités et limites](docs/STATUS.md)

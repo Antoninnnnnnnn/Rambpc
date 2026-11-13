@@ -1,0 +1,44 @@
+{
+  "status": "partial: English available, French unavailable",
+  "inputs": [
+    {
+      "language": "en",
+      "dataset": "LibriSpeech ASR, test-clean",
+      "utterance_id": "6930-75918-0000",
+      "reference_text": "CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS",
+      "reference_source": "https://datasets-server.huggingface.co/rows?dataset=openslr%2Flibrispeech_asr&config=clean&split=test&offset=0&length=1",
+      "dataset_source": "https://www.openslr.org/12/",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "attribution": "Vassil Panayotov, Guoguo Chen, Daniel Povey and Sanjeev Khudanpur, LibriSpeech: an ASR corpus based on public domain audio books, ICASSP 2015. Audio derived from LibriVox readings of public-domain books.",
+      "download_description": "Audio FLAC returned in the audio field of the public dataset-server row; the temporary signed URL is deliberately omitted. This hash identifies the downloaded server representation, not necessarily the original OpenSLR archive member.",
+      "download_sha256": "9ce35224156f071ab58eb7feb8a5ceae600f6f9f353da2a6cbf797b6b1ac8a23",
+      "download_bytes": 74138,
+      "pcm_path": "artifacts/natural-refinement/en-6930-75918-0000.pcm",
+      "pcm_format": "signed 16-bit little-endian, mono, 16000 Hz, headerless",
+      "pcm_sha256": "9afaada0c1b445dae8a3baae5bbaffdcedbd2c09eb66b86720b8045c854feefc",
+      "samples": 56080,
+      "duration_seconds": 3.505,
+      "conversion_command": "ffmpeg -v error -i original.flac -map 0:a:0 -ac 1 -ar 16000 -c:a pcm_s16le -f s16le en-6930-75918-0000.pcm",
+      "conversion_notes": "Complete decoded clip; no trimming. The server response was identified by ffprobe as FLAC, 16000 Hz mono, duration 3.505 seconds. The clip is shorter than the preferred 5–20 seconds."
+    }
+  ],
+  "unavailable": [
+    {
+      "language": "fr",
+      "dataset": "google/fleurs, fr_fr, test",
+      "license": "CC BY 4.0 according to the dataset card",
+      "card": "https://huggingface.co/datasets/google/fleurs/raw/main/README.md",
+      "row_query": "https://datasets-server.huggingface.co/rows?dataset=google%2Ffleurs&config=fr_fr&split=test&offset=0&length=1",
+      "failure": "Dataset server reported that the dataset does not exist or is not accessible without authentication; no authentication attempted."
+    },
+    {
+      "language": "fr",
+      "dataset": "facebook/voxpopuli, fr, test",
+      "license": "CC0 1.0 according to the dataset card",
+      "card": "https://huggingface.co/datasets/facebook/voxpopuli/raw/main/README.md",
+      "row_query": "https://datasets-server.huggingface.co/rows?dataset=facebook%2Fvoxpopuli&config=fr&split=test&offset=0&length=1",
+      "failure": "Dataset server reported Parquet scan size limit exceeded (548642439 bytes versus 300000000 byte limit); no archive downloaded."
+    }
+  ]
+}
