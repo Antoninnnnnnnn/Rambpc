@@ -1,0 +1,16 @@
+[package]
+name = "rambler-protocol"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Bounded, loss-preserving codec for the reconstructed Rambler S3 protocol"
+publish = false
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+hex.workspace = true
+sha2.workspace = true
