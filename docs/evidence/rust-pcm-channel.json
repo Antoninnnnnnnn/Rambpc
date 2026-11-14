@@ -1,0 +1,155 @@
+{
+  "date": "2026-11-14",
+  "base_commit": "48948842787cedd5928d6e306388f92a4fdc6972",
+  "scope": "new optional bounded PCM producer source, existing native codec unchanged; no service/device action",
+  "source_sha256": {
+    "Cargo.toml": "7343a994d018903abffbace669edd83cdc48aa5f8a3c17fa1e0ece2113a13766",
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "crates/rambler-audio/Cargo.toml": "624dd3c43a1161844b995874a5fc0b9f6b382166957847ead3abc1032c83433b",
+    "crates/rambler-audio/src/lib.rs": "593325e80789a91f23f12c2d183c0475beaa15f3aaa253777eae0fcfffd06766",
+    "crates/rambler-audio/src/input.rs": "2c38b76923ee6dc876139827e63e7107101be4af567effc28229428570af3822",
+    "crates/rambler-audio/src/encode.rs": "cf645682eaeb2ebd5fcdb026b4bab21edd4b88db7b274a7820cae398e523d463",
+    "crates/rambler-audio/src/ogg.rs": "54a28d7e3fc999677e6b625a3f0ace9db812ac56330a15333f05cd19bda33828",
+    "crates/rambler-audio/tests/pcm_input.rs": "41d863a7561ae1e9ff7095a0f365735d754f7b03837f7cc135c6bddc1c12173d",
+    "crates/rambler-audio/tests/pcm_input_encoding.rs": "1343585dba3fb102dcb1a5fbca4c55d28f3572b94905b2e8ab1ef7d608184532",
+    "crates/rambler-audio/tests/common/mod.rs": "ea7d8788a3ba4b2397c06775553be940c5c283d6a556bb69810542e021b709be",
+    "crates/rambler-audio/examples/pcm_channel.rs": "0b763ecb13ccff9140e9ebe7b778d78f3ed3f1b9c3358eeae70f515fdaf29518"
+  },
+  "full_source_manifest": {
+    "entries": 94,
+    "canonical_sorted_json_sha256": "20a505e2e6af4f03118ed99ea42eac921f27961d47bfa2600f685e14b1b18a03",
+    "windows_linux_identical": true,
+    "includes": "all Rust workspace sources/manifests and selected first-party fixture/source extensions transferred to Linux; complete manifests retained privately"
+  },
+  "workspace_tests": [
+    {
+      "platform": "Windows x86_64/MSVC",
+      "rust": "1.99.1",
+      "passed": 300,
+      "failed": 0,
+      "ignored": 1,
+      "private_log_sha256": "12ea0ddb7e53d23823c9f6b1ee043152dd50ea3681e1cfcc8216093ed131543a"
+    },
+    {
+      "platform": "Windows x86_64/MSVC",
+      "rust": "1.88.0",
+      "passed": 300,
+      "failed": 0,
+      "ignored": 1,
+      "private_log_sha256": "9e7e9c08d362ff938ac7ae052d33967e2318a1ba566b84627046cf4f81173cae"
+    },
+    {
+      "platform": "Linux x86_64/WSL Ubuntu24.04",
+      "rust": "1.88.0",
+      "passed": 300,
+      "failed": 0,
+      "ignored": 1,
+      "private_log_sha256": "088de83d09d3375b64331e8b1f7243fb67d9f41f1fc244ead8fd7db71efc9b35"
+    }
+  ],
+  "new_test_cases": {
+    "raw_channel": 13,
+    "encoder_composition": 6,
+    "total": 19,
+    "suite_execution": "included in every full workspace run above",
+    "coverage": [
+      "single-slot backpressure",
+      "cancelled reservations and reads",
+      "unused permits",
+      "queued drain before explicit EOF",
+      "latched producer abandonment",
+      "close/drop wakeup",
+      "unpolled-close immediate wakeup",
+      "rejected byte ownership/redaction",
+      "logical chunk boundary",
+      "independent channels",
+      "Opus packet equality with existing memory source at pages20/1000",
+      "independent Ogg CRC and decoded trimmed duration",
+      "abandon/truncation never emit successful EOS",
+      "empty finish",
+      "encoder invalid-config cleanup"
+    ]
+  },
+  "additional_tests": {
+    "Windows": {
+      "partial_observer_example": 10,
+      "cli_feature_off": 30
+    },
+    "Linux": {
+      "partial_observer_example": 10,
+      "cli_feature_off": 30
+    }
+  },
+  "windows_checks": {
+    "strict-clippy": {
+      "exit": 0,
+      "log_sha256": "5e7b411b76c76f7b9be4f89e3eca4cbb393fd57aecd1a90278ae892f9934886c"
+    },
+    "release-audio-cli": {
+      "exit": 0,
+      "log_sha256": "d331152bc76b982c5383f63f324aadcdcb423a8abc783384ef92899b34ce1fe4",
+      "binary_sha256": "fdb6ae8f870e82a10f5dde1dce58db9a664a9e56eb526ad96c8e08807dfbe9fd"
+    },
+    "release-pcm-example": {
+      "exit": 0,
+      "log_sha256": "343c13e7f6f2d320993b573f830525e33b59b3c32656ef426e015b1e30f3fdc2",
+      "binary_sha256": "20fc14c6342590a74f829e98a6ca1a15cba41f6ab72e8327b679965c3197f7cf"
+    },
+    "release-minimal-cli": {
+      "exit": 0,
+      "log_sha256": "05484851819558a0458033aa2c85b858f4c88bf24620e4159e5f9b6e627a589d",
+      "binary_sha256": "c642ee827f6ca98e4f2fdbf78a9665c9d71e2bc8deb5c5240d21350dc0963c78"
+    },
+    "format": {
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "linux_build_binary_sha256": {
+    "rambler": "c549c7933103469643340058a6978cd49b58f90d7cccc5ff6f6a3a7607d19bb1",
+    "pcm_channel": "ccfc394777340136ca707a323d6256ab2efd50321afa667738115140b87ea05e"
+  },
+  "public_api_example": {
+    "input_samples_16k": 1017,
+    "decoded_trimmed_samples_48k": 3051,
+    "ogg_eos": 1,
+    "windows_release_exit": 0,
+    "windows_system_only_path": true,
+    "windows_private_log_sha256": "486ea2dd91040a1edd7bef7ae76d98e1f073afef2bf174a136345620874b4b67",
+    "linux_release_exit": 0,
+    "no_microphone_or_network": true,
+    "not_a_service_dictation": true
+  },
+  "initial_setup_failure": {
+    "exit": 101,
+    "stage": "opusic-sys build",
+    "reason": "cmake executable not found in initial environment",
+    "resolution": "existing local CMake selected via per-process CMAKE; short existing Cargo target; no installation/global setting",
+    "private_log_sha256": "2b8cc9c7d208128f2e137604351014920aa4f6f7972a12f95f8ba7e641c11aab"
+  },
+  "preserved_format_failure": {
+    "initial_windows_format_exit": 1,
+    "stage": "final cargo fmt --check",
+    "scope": "single test-only call chain wrapping",
+    "resolution": "cargo fmt applied; all platform validation rerun on formatted sources",
+    "private_log_sha256": "ac6c424cb27809a3a5b1313cb3949f89f527bd21dfe3cf7ce619076e85b387f0"
+  },
+  "review": {
+    "model": "Sol",
+    "independent_state_machine_review": "no confirmed correctness defect, static only",
+    "test_review_gap_fixed": "unpolled close now separately verifies immediate wakeup of already-pending reserve",
+    "not_opus_or_formal_scheduler_proof": true
+  },
+  "remote_service_calls": 0,
+  "device_actions": 0,
+  "tests_read_real_credentials": false,
+  "limits": [
+    "one PyAV independent oracle ignored here, not retroactively marked run",
+    "macOS and remote CI unexecuted",
+    "no new speech quality, remote partial, service intent, authentication recovery or Android parity qualification",
+    "no universal correctness or optimality proof",
+    "no new performance or WAN latency claim",
+    "one queued chunk does not bound caller buffers, in-flight encoder input or Bytes backing allocations",
+    "accepted PCM may be intentionally discarded by explicit close/cancellation; only healthy engine terminal completion means successful dictation"
+  ]
+}

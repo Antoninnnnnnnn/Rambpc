@@ -19,10 +19,12 @@
 //! See `BUILDING.md` for native toolchain, linkage audit and third-party licences.
 
 mod encode;
+mod input;
 mod lifecycle;
 mod ogg;
 mod wav;
 pub use encode::{EncoderConfig, Pcm16Opus};
+pub use input::{PcmInput, PcmInputError, PcmPermit, PcmSendError, PcmSender, pcm_channel};
 pub use wav::{PcmFormat, WavAudio, WavConfig};
 
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;
@@ -37,6 +39,8 @@ pub enum AudioError {
     InvalidConfig,
     #[error("PCM input chunk exceeds 8 MiB limit")]
     InputLimit,
+    #[error("PCM input producer abandoned without finishing")]
+    InputAbandoned,
     #[error("truncated PCM16LE: isolated final byte (incomplete sample)")]
     TruncatedPcm,
     #[error("native Opus operation failed")]

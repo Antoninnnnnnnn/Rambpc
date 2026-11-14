@@ -164,8 +164,9 @@ fixture contrôlé préparé :
   d'annulation sous backpressure ; ce changement ne modifie pas le backend.
 - `rambler-engine` : assemblage des sessions, source audio asynchrone, contexte
   différé, événements, collecte bornée et politique de résultat/proposition.
-- `rambler-audio` : source WAV stricte et adaptateur PCM → Ogg/Opus natif statique,
-  fragmentation, tail/flush, pacing et cleanup bornés ; aucun microphone.
+- `rambler-audio` : source WAV stricte, entrée PCM producteur bornée et adaptateur
+  PCM → Ogg/Opus natif statique, fragmentation, tail/flush, pacing fichier et
+  cleanup bornés ; aucun microphone.
 - `rambler-cli` : adaptateur fichier minimal, sans microphone, GUI ou insertion.
 
 Un [exemple d'intégration Rust compilé par les doctests](../crates/rambler-engine/src/lib.rs)
@@ -192,6 +193,14 @@ l'appelant. `Engine::start(Box<dyn AudioSource>, SessionOptions)` prend la sourc
 en charge immédiatement. `StreamAudio::new(stream)` adapte un flux de fragments
 `Bytes`. Les implémentations de source doivent coopérer avec l'annulation et leur
 `close` asynchrone doit terminer.
+
+Pour du PCM produit progressivement, `rambler_audio::pcm_channel()` fournit un
+producteur unique et une source à composer avec `Pcm16Opus`. Réserver avant de
+remettre les bytes évite leur perte lors d'une attente de capacité annulée.
+`PcmSender::finish()` annonce la fin normale ; Drop sans finish est un abandon
+en erreur, pas un EOF réussi. Conduire producteur et collecte en concurrence puis
+attendre la vraie terminaison moteur. [Contrat et exemple offline exécutable](research/rust-pcm-channel.md).
+Ce helper n'ajoute aucune capture microphone et n'est pas un acquittement d'upload.
 
 `SessionOptions` regroupe la configuration, les délais, un
 `Option<Arc<dyn MetadataProvider>>` et `ContextInput::{None, Static, Provider}`.

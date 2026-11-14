@@ -1,5 +1,20 @@
 # État du moteur — 2026-11-14
 
+## Entrée PCM producteur et arrêt normal explicite
+
+`pcm_channel()` ajoute un producteur unique avec une file d'un seul chunk et des
+réservations annulables sans remise prématurée des bytes. `finish()` annonce
+l'EOF normal après drainage ; Drop sans finish est un abandon en erreur. Close
+réveille les producteurs bloqués, même si son futur n'est pas pollé. La capture
+microphone reste hors périmètre ; le profil codec et le service sont inchangés.
+L'acceptation d'un chunk n'est jamais présentée comme un acquittement de dictée.
+**300 tests workspace passent** sur Windows stable1.99.1, Windows/MSVC1.88 et
+Linux1.88 (un oracle ignoré), dont19 nouveaux cas PCM. Les10 tests de l'observateur
+et30 tests CLI feature-off passent aussi ; Clippy strict/formatage Windows et
+builds release natifs passent. Le smoke offline vérifie1017→3051 échantillons
+après trim, un EOS, zéro service/appareil. L'échec de formatage initial est conservé.
+[Contrat, exemple offline et limites](research/rust-pcm-channel.md).
+
 ## Métadonnées natives : snapshots par session
 
 Deux nouveaux tests couvrent le fournisseur partagé avec rotation puis retrait

@@ -20,6 +20,12 @@
 
 ## Portage Rust
 
+- [rust-pcm-channel.json](rust-pcm-channel.json) :
+  nouvelle entrée PCM à producteur unique et capacité1, arrêt normal explicite,
+  abandon distinct de l'EOF sain, réservations annulables et19 tests dédiés.
+  Exemple natif offline avec CRC/durée décodée vérifiés ; aucun appel service.
+  [Contrat et limites](../research/rust-pcm-channel.md).
+
 - [rust-credential-snapshots.json](rust-credential-snapshots.json) :
   isolation de snapshots d'un fournisseur partagé, rotation puis retrait pendant
   trois RPCs sur un seul TCP loopback, doublons/binaires exacts. Sensibilité
