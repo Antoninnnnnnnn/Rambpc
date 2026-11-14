@@ -117,6 +117,14 @@ async fn read_and_cleanup_failures_do_not_fabricate_eof_or_successful_cleanup() 
         let progress = session.audio_progress();
         assert_eq!(progress, expected(!read_error, !close_error));
         assert!(!format!("{progress:?}").contains("PRIVATE"));
+        if read_error && close_error {
+            // Each call creates a distinct original error. Observing Audio did
+            // not deliver or acknowledge the independent cleanup failure.
+            assert!(matches!(
+                bounded(engine.close()).await,
+                Err(EngineError::AudioCleanup(_))
+            ));
+        }
         bounded(engine.close()).await.unwrap();
         transport.close().await.unwrap();
         server.close().await;

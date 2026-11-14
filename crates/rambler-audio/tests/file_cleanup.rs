@@ -17,9 +17,29 @@ fn assert_released(path: &std::path::Path) {
             .unwrap(),
     );
 }
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+fn open_descriptors(path: &std::path::Path) -> usize {
+    let path = path.canonicalize().unwrap();
+    std::fs::read_dir("/proc/self/fd")
+        .expect("Linux descriptor audit requires mounted /proc/self/fd")
+        .map(|entry| entry.unwrap().path())
+        // Other test threads may close descriptors during enumeration.
+        .filter(|fd| match std::fs::read_link(fd) {
+            Ok(target) => target == path,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+            Err(error) => panic!("cannot inspect descriptor {fd:?}: {error}"),
+        })
+        .count()
+}
+
+#[cfg(target_os = "linux")]
 fn assert_released(path: &std::path::Path) {
-    assert!(path.exists()); // The exclusive Windows-handle audit is Windows-only.
+    assert_eq!(open_descriptors(path), 0, "WAV descriptor still open");
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+fn assert_released(_path: &std::path::Path) {
+    // No descriptor-release oracle is available on this platform.
 }
 
 #[tokio::test]
@@ -38,6 +58,11 @@ async fn wav_close_awaits_inflight_reads_even_when_next_was_cancelled() {
     )
     .await
     .unwrap();
+    #[cfg(target_os = "linux")]
+    assert!(
+        open_descriptors(&path) > 0,
+        "open WAV not found in /proc/self/fd"
+    );
     {
         let mut next = audio.next();
         // Start a real Tokio blocking read, then drop its caller's future.

@@ -1,7 +1,7 @@
 //! Real, offline tonic HTTP/2 loopback tests; no protoc, generated proto, real
 //! credentials, Google access, or process environment reads.
 use bytes::Bytes;
-use futures_util::{Stream, stream};
+use futures_util::{Stream, StreamExt, stream};
 use rambler_transport::*;
 use std::{
     convert::Infallible,
@@ -96,13 +96,19 @@ impl TestServer {
         };
         let stop = CancellationToken::new();
         let done = stop.clone();
+        // Custom incoming streams bypass tonic's TCP acceptor configuration.
+        // Disable Nagle explicitly, as the production client already does, so
+        // Linux delayed ACKs do not dominate the flow-window boundary test.
+        let incoming = TcpListenerStream::new(listener).map(|accepted| {
+            accepted.and_then(|stream| {
+                stream.set_nodelay(true)?;
+                Ok(stream)
+            })
+        });
         let task = tokio::spawn(async move {
             Server::builder()
                 .add_service(service)
-                .serve_with_incoming_shutdown(
-                    TcpListenerStream::new(listener),
-                    done.cancelled_owned(),
-                )
+                .serve_with_incoming_shutdown(incoming, done.cancelled_owned())
                 .await
                 .unwrap();
         });

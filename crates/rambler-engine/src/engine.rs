@@ -333,6 +333,9 @@ struct Control {
     cancel: CancellationToken,
     done: watch::Receiver<Option<CleanupOutcome>>,
     observed: AtomicBool,
+    // Published before done. Observing the unchanged primary session result
+    // never acknowledges a distinct source-cleanup error that it did not carry.
+    secondary: Mutex<Option<EngineError>>,
 }
 impl Control {
     async fn wait(&self) -> CleanupOutcome {
@@ -344,11 +347,41 @@ impl Control {
         result
     }
     fn needs_tracking(&self) -> bool {
-        match self.done.borrow().as_ref() {
-            None => true,
+        // Read done first: a pending supervisor may still publish a secondary.
+        // Once done is present, both outcomes are stable, even if another task
+        // observes the primary while start/close is reaping this control.
+        let primary_pending = match self.done.borrow().as_ref() {
+            None => return true,
             Some(Ok(()) | Err(EngineError::Cancelled)) => false,
             Some(Err(_)) => !self.observed.load(Ordering::SeqCst),
+        };
+        primary_pending || self.secondary.lock().unwrap().is_some()
+    }
+    // Only called after all shutdown awaits, so claiming is delivery-atomic
+    // with respect to cancellation. Concurrent closes cannot claim one failure.
+    fn claim_failure(&self) -> Option<EngineError> {
+        if let Some(Err(error)) = self.done.borrow().as_ref()
+            && !matches!(error, EngineError::Cancelled)
+            && self
+                .observed
+                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+        {
+            return Some(error.clone());
         }
+        self.secondary.lock().unwrap().take()
+    }
+}
+// AudioState memoizes close, and some sources return the same original failure
+// from next and close. Only shared object identity proves duplication; fixed
+// redacted formatting (or equal codes/details) cannot identify an error instance.
+fn same_audio_failure(primary: &EngineError, cleanup: &EngineError) -> bool {
+    match (primary, cleanup) {
+        (
+            EngineError::Audio(primary) | EngineError::AudioCleanup(primary),
+            EngineError::AudioCleanup(cleanup),
+        ) => std::ptr::eq(primary.original(), cleanup.original()),
+        _ => false,
     }
 }
 struct Lifecycle {
@@ -413,6 +446,7 @@ impl Engine {
             cancel: CancellationToken::new(),
             done,
             observed: AtomicBool::new(false),
+            secondary: Mutex::new(None),
         });
         let mut lifecycle = self.lifecycle.lock().unwrap();
         lifecycle
@@ -458,6 +492,7 @@ impl Engine {
         let (events_tx, events) = mpsc::channel(1);
         let diagnostic: DiagnosticSlot = Arc::new(Mutex::new(None));
         let final_diagnostic = diagnostic.clone();
+        let final_control = control.clone();
         let id = SESSION_ID.fetch_add(1, Ordering::Relaxed);
         tokio::spawn(async move {
             let provider = options
@@ -482,6 +517,12 @@ impl Engine {
             let cleanup = audio.close().await;
             let result = match (result, cleanup) {
                 (Ok(()) | Err(EngineError::Cancelled), Err(cleanup)) => Err(cleanup),
+                (Err(primary), Err(cleanup)) => {
+                    if !same_audio_failure(&primary, &cleanup) {
+                        *final_control.secondary.lock().unwrap() = Some(cleanup);
+                    }
+                    Err(primary)
+                }
                 (result, _) => result,
             };
             let _ = sender.send(Some(result));
@@ -506,6 +547,7 @@ impl Engine {
             cancel: CancellationToken::new(),
             done,
             observed: AtomicBool::new(false),
+            secondary: Mutex::new(None),
         });
         {
             let mut lifecycle = self.lifecycle.lock().unwrap();
@@ -522,6 +564,8 @@ impl Engine {
     /// Permanently cancels and awaits all sessions. Already-delivered session
     /// failures are not replayed. At most one unobserved background/cleanup failure
     /// is delivered per call; additional failures remain available to later closes.
+    /// A distinct audio-cleanup failure remains reportable even after observing the
+    /// primary session failure. Owned transport errors likewise remain independent.
     pub async fn close(&self) -> Result<(), EngineError> {
         let sessions = {
             let mut lifecycle = self.lifecycle.lock().unwrap();
@@ -531,33 +575,19 @@ impl Engine {
         for session in &sessions {
             session.cancel.cancel();
         }
-        let mut failures = Vec::new();
         for session in &sessions {
-            if let Err(error) = session.wait().await
-                && !matches!(error, EngineError::Cancelled)
-            {
-                failures.push((session, error));
-            }
+            let _ = session.wait().await;
         }
-        let mut error = if self.owns_transport {
+        let error = if self.owns_transport {
             self.transport.close().await.err().map(EngineError::from)
         } else {
             None
         };
-        // No acknowledgement before the final await: cancelling close must not
-        // discard a background failure that has not reached its caller yet.
-        // Claim only the error actually returned. Other failures remain tracked
-        // for a subsequent close; concurrent closes cannot claim the same error.
-        for (session, failure) in failures {
-            if session
-                .observed
-                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                .is_ok()
-            {
-                error = Some(failure);
-                break;
-            }
-        }
+        // Transport close acknowledges the error it returns. Deliver it without
+        // overwriting it or claiming any session failure. No await follows this
+        // handoff, so cancellation cannot lose the consumed transport outcome.
+        // Claim only a failure actually returned; all others remain tracked.
+        let error = error.or_else(|| sessions.iter().find_map(|session| session.claim_failure()));
         self.lifecycle
             .lock()
             .unwrap()

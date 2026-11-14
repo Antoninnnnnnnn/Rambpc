@@ -50,6 +50,15 @@ impl Drop for Driver {
     }
 }
 
+async fn drive(
+    connection: impl std::future::Future<Output = Result<(), h2::Error>>,
+    stopped: CancellationToken,
+) -> Result<(), h2::Error> {
+    // Poll the connection first: shutdown must not replace an already ready
+    // terminal failure with a successful local cancellation.
+    tokio::select! { biased; result = connection => result, _ = stopped.cancelled() => Ok(()) }
+}
+
 pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, TransportError> {
     let authority: http::uri::Authority = config
         .target
@@ -98,9 +107,7 @@ pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, Trans
         .map_err(|_| TransportError::Connect)?;
     let stop = CancellationToken::new();
     let stopped = stop.clone();
-    let handle = tokio::spawn(async move {
-        tokio::select! { biased; _ = stopped.cancelled() => Ok(()), result = connection => result }
-    });
+    let handle = tokio::spawn(drive(connection, stopped));
     Ok(Connected {
         sender,
         driver: Driver {
@@ -108,4 +115,31 @@ pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, Trans
             handle: Mutex::new(Some(handle)),
         },
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn shutdown_cannot_mask_ready_driver_failure_but_still_stops_pending_io() {
+        let stopped = CancellationToken::new();
+        stopped.cancel();
+        let result = drive(
+            std::future::ready(Err(h2::Reason::PROTOCOL_ERROR.into())),
+            stopped.clone(),
+        )
+        .await;
+        assert_eq!(
+            result.unwrap_err().reason(),
+            Some(h2::Reason::PROTOCOL_ERROR)
+        );
+        tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            drive(std::future::pending(), stopped),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    }
 }

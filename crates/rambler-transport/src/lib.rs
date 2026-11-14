@@ -29,6 +29,16 @@
 //! Rust Drop cannot await asynchronous cleanup. Call `close` before that point for
 //! resource cleanup guarantees, and keep the Tokio runtime alive until it returns.
 //! A transport is caller-owned; future engines must not close an injected transport.
+//!
+//! A connection that dies or receives GOAWAY is never reconnected automatically.
+//! `start` can still accept a source on that channel: the session reports the h2
+//! failure and closes its source, without retry or replay. Recover only for new
+//! sessions by explicitly calling `GrpcTransport::connect(config.clone())` and
+//! retaining the returned independent transport. Existing sessions and clones are
+//! not moved; a permanently closed old transport stays closed. Keep the config if
+//! replacement is needed, and observe each old session before closing the old
+//! transport. No idle keepalive/health guarantee is provided; an RPC deadline also
+//! bounds detection of an unresponsive peer, not its asynchronous source cleanup.
 
 pub mod codec;
 mod connection;
@@ -521,7 +531,9 @@ impl GrpcTransport {
     /// subsequent closes expose remaining failures before returning Ok. Only the
     /// error actually returned is acknowledged, after every cleanup await.
     /// Includes failures of dropped sessions, but never repeats a final failure
-    /// already observed through Session::next/finish/cancel/close. Partial reads
+    /// already observed through Session::next/finish/cancel/close. The independent
+    /// driver error remains reportable, even if a session error may share its
+    /// cause: h2 provides no identity for safe cross-layer deduplication. Partial reads
     /// and cancelled consumer futures do not mark a final outcome observed.
     /// Does not close independently owned transports.
     pub async fn close(&self) -> Result<(), TransportError> {
@@ -540,6 +552,10 @@ impl GrpcTransport {
         // Persist a driver failure before later awaits, too: an interrupted
         // close must not consume its JoinHandle and silently lose that error.
         if let Err(error) = self.inner.network.shutdown().await {
+            // Public h2 errors expose kind/reason but no shared identity or
+            // generation. Never let observing a stream error acknowledge this
+            // independent driver result: successive GOAWAYs may differ, or even
+            // have identical reasons. A possible duplicate is the safe fallback.
             let failure = RetiredFailure {
                 error,
                 observed: Arc::new(AtomicBool::new(false)),
@@ -729,11 +745,11 @@ async fn supervise<S: RequestSource>(
         loop {
             tokio::select! {
                 biased;
-                _ = cancel.cancelled() => break Err(TransportError::Cancelled),
-                _ = tokio::time::sleep_until(deadline) => break Err(TransportError::Timeout),
-                _ = failed.cancelled() => break Err(TransportError::Cancelled),
+                _ = cancel.cancelled() => break Err(TransportError::Cancelled.into()),
+                _ = tokio::time::sleep_until(deadline) => break Err(TransportError::Timeout.into()),
+                _ = failed.cancelled() => break Err(TransportError::Cancelled.into()),
                 result = &mut writer, if writer_result.is_none() => {
-                    if result.is_err() { writer_result = Some(result); break Err(TransportError::Cancelled); }
+                    if result.is_err() { writer_result = Some(result); break Err(TransportError::Cancelled.into()); }
                     writer_result = Some(result);
                 }
                 result = &mut reader => break result,
@@ -745,7 +761,7 @@ async fn supervise<S: RequestSource>(
         Some(result) => result,
         None => writer.await,
     };
-    writer_result.and(result)
+    writer_result.and(result.map_err(wire::RpcError::into_transport))
 }
 
 #[cfg(test)]
