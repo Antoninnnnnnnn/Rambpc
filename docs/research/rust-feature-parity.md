@@ -129,7 +129,14 @@ contrôlées par l'intégrateur.
   une référence Android appariée avec backend effectif et éditeur de test inerte.
   Au plus trois cas courts discriminants (répétition près d'un texte similaire,
   réécriture connue, SEND) seraient préférables à de nouveaux essais COMPOSE aveugles.
-  **Aucun essai appareil n'a été lancé pour cette matrice.** Les appels de
+  La [préparation de référence Android](android-reference-validation.md) est maintenant
+  exécutée sur appareil autorisé (éditeur inerte/diagnostics SDK), mais **aucune
+  phrase n'a encore été injectée et aucune dictée appariée n'est qualifiée** dans
+  les preuves publiées. Le préflight initial reste inconclusif ; un second
+  préflight et un contrôle constructeur/lecture minimal reproduisent un SIGSEGV
+  ART avant armement, avec restauration réussie. Le hook de lecture seul tient20s,
+  mais aucune construction contrôlée compatible n'est qualifiée. `connectOnly`
+  n'est pas une entrée audio externe : il termine sans audio. Les appels de
   réutilisation native distincts ne comparent pas la chaîne Android/IME.
 
 Les traces absentes de l'incident long historique ne peuvent pas être recréées

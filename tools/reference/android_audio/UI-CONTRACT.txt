@@ -1,0 +1,147 @@
+PIXELBOARD UI DISPATCH ADDENDUM — SEPARATE SOURCE, MAIN-ONLY DEVICE WORK
+
+Scope and status
+----------------
+New source:
+C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/ui-dispatch.js
+New host tests:
+C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/ui-dispatch.test.js
+
+No original pcm-core.js, frida-agent.js, CLI bundle, SDK bundle or builder is changed
+by this addendum. MAIN alone decides source composition and does device/ADB/SDK
+attachment. This worker used only Node/pure-JS handwritten Java mocks; no SDK,
+device, network, microphone, private app artifacts or APK code execution on host.
+
+Composition
+-----------
+Load the existing audio source first, then ui-dispatch.js in the SAME Frida script
+and Java-bridge context. MAIN's builder handles composition. Bridge lookup is lazy
+at RPC time, so an ESM entry can assign globalThis.Java after imports evaluate;
+MAIN must still complete bridge setup before its first UI RPC. The adapter captures
+and preserves original audio exports and appends ONLY uiStatus/uiShow/uiStart/
+uiEnd. There is no arbitrary eval, target, event code, payload, path or reset RPC.
+No arguments are needed. A separate Frida script cannot see the audio RPC state
+and is not a supported way to compose this adapter.
+
+The adapter replaces ZERO Java methods. A single generated synthetic Consumer
+implementation is registered lazily for the normal launch callback; it is not a
+replacement of an application method. Frida may manage generated-class runtime
+cache storage as part of Java.registerClass; this adapter does not open/read app
+private files or extract artifacts. Do not reload to bypass its lifetime budget.
+
+Application/target checks
+-------------------------
+Uses the same fixed APK/package/version/hash/byte pin as the original audio agent.
+A previously observed audio phase=ready is mandatory: a pin echoed by an unloaded
+or unprepared agent alone is not accepted as identity verification.
+Only exact com.android.inputmethod.latin.LatinIME is enumerated with Java.choose,
+at most eight retained candidates; overflow refuses the request. It never chooses
+another service, class, app or backend. Candidate state is read on the main thread.
+There must be exactly ONE connected instance across all enumerated LatinIMEs,
+not just one matching the editor filter. Every dispatch also requires:
+- IME Context package exactly com.akshaykadam.pixelboard;
+- current EditorInfo.packageName exactly org.rambpc.referenceprobe;
+- current EditorInfo.imeOptions & 255 exactly 4;
+- nonnull current InputConnection and EditorInfo.
+No unrelated editor contents, package names or connection data are logged.
+
+The coordinator confirmed from the exact pinned APK's DEX metadata:
+Lkla;.g(Ljava/lang/String;Ljava/util/function/Consumer;)V public static
+invoke-interface java/util/function/Consumer.accept(Ljava/lang/Object;)V
+The source therefore pins java.util.function.Consumer / accept(Object):void.
+JADX's consumer.e() spelling was a decompilation artifact, not a runtime SAM name.
+The same interface/SAM is verified through reflection before any typed registration.
+Mismatch => no dispatch, no alternate interface/method/class. This static DEX
+confirmation is not a claim that this worker executed a live Java Consumer.
+
+RPC contract
+------------
+uiStatus() -> bounded metadata about the adapter, verified probe/action4 target,
+read-only mut.b(context) result, and pinned Consumer shape. No app preferences,
+flags or input contents are changed; no show/start/stop event is emitted.
+The adapter may cache metadata/retain temporary references internally.
+
+uiShow() -> normal InputMethodService.requestShowSelf(0) on the selected LatinIME
+using Java.scheduleOnMainThread. Result says showRequested=true,
+visibilityProven=false: requesting a show is not proof of a visible keyboard.
+Maximum three show requests per adapter lifetime. No alternative visibility path.
+
+uiStart() -> before ANY launch dispatch, requires all target/identity checks,
+audio.phase=ready, audio.stream.stopped=false, one pending approved audio arm,
+mut.b(current IME context)==true, no previous active start, and <=3 lifetime start
+attempts. It can spend a given armedCount only once. Invalid preconditions do not
+spend a start, but MAIN must not retry a denied request as an evasion of a gate.
+The hard budget has no reset; a dispatched/failed attempt remains spent.
+
+Start calls exactly kla.g("jetson", typedConsumer) on the UI thread. Consumer
+accepts ONLY the normal oak object produced by that helper; it forwards that SAME
+object, unmodified, to this selected LatinIME's normal dG(oak), scheduled on the
+UI thread. The deferred callback re-enumerates/revalidates the unique target,
+requires the same IME, EditorInfo object and InputConnection, rechecks the pending
+arm and mut.b=true, then dispatches. No direct knt/iho/ffu or alternate recognizer.
+The RPC resolves only after dG returns, not merely after kla.g returns.
+
+A fixed 5-second callback deadline rejects the operation permanently on timeout.
+No polling/retry/fallback is performed. Late or duplicate callbacks do not dispatch
+another event. A timeout cannot undo dG if that normal dispatch was already entered;
+MAIN must perform the contained teardown even if the RPC rejects. Unexpected
+callback/helper failure permanently fails this adapter.
+The start result's dispatchOnly=true means ONLY that normal dG returned: dG and
+its downstream gates may ignore/reject the event. It is NOT proof of a recording,
+constructor bypass, final result, successful consent/onboarding, or quota approval.
+
+uiEnd() -> requires a successfully dispatched adapter start, and the SAME selected
+IME, EditorInfo object and InputConnection on the approved probe/action4 editor.
+Uses exactly the existing static final pva constant kla.c (Frida collision alias
+kla._c), constructs oak.d(kla._c.value), then passes that event to the selected
+LatinIME.dG(oak) on the UI thread. This is the parent-approved event-equivalent
+STOP path: the proven kla.h body logs then calls f(oak.d(c),consumer); proven f
+only schedules consumer.e(oak) on its executor. No kla instance is constructed,
+heap-chosen or substituted. The adapter does NOT exercise original kla.n executor
+scheduling and explicitly reports originalExecutorExercised=false.
+No arbitrary event code is accepted; -10066 comes solely from the pinned existing
+constant. A changed target/connection refuses End rather than stopping another
+editor or choosing a backend alternative. Each successful start has at most one
+successful End. On normal completion, active UI state is cleared, NOT the budgets.
+
+Operations are mutually exclusive and fail fast if another UI operation is pending.
+Concurrent UI RPCs do not queue retries. Metadata events contain only operation
+names/counts/state flags and dispatch-coverage markers, never speech, transcripts,
+credentials, target contents or payload bytes. Original audio RPCs remain unchanged.
+
+Mandatory MAIN lifecycle and interpretation
+------------------------------------------
+Original microphone AppOp=ignore containment remains mandatory through teardown,
+including all errors/unload; this addendum does not change that requirement and
+does not prove system-wide absence of capture. The original constructor ART caveat
+remains UNEXERCISED by these host tests. Start dispatch must still produce the
+expected constructor-bypass metadata and finite matching hash/count/EOF before a
+controlled recording can be counted successful.
+
+Typical bounded MAIN sequence, with the approved SDK/CLI composition already loaded:
+1. Original audio prepare() with exact approved PCM descriptors and containment.
+2. Focus only org.rambpc.referenceprobe's action4 editor; satisfy normal app UI/
+   consent/onboarding prerequisites using the real UI, never by writing flags.
+3. uiStatus(); optionally uiShow(); original audio arm(approved PCM); uiStart().
+4. Independently observe the expected audio constructor/hash/EOF. Use uiEnd() on
+   the SAME probe/connection for the normal stop event while that UI session is
+   still active. If the app changes focus/connection or auto-ends unpredictably,
+   do not force an alternate event: stop the run with original audio stop() and
+   MAIN's contained force-stop lifecycle.
+5. At most three approved arm/start cycles across this entire run. No reload,
+   restart or RPC budget reset to add attempts. Finish original audio stop(),
+   contained app force-stop, detach and restore UI/AppOp per the original contract.
+
+This deliberately does NOT prove non-decompiled ffh.m/klb.g branches or routing
+through ffh.z/y onboarding/quota gates. No auth, TLS, attestation, feature, safety,
+onboarding, consent, quota, response or preference state is patched. Normal dG
+routing and whatever gates it applies remain the app's own. MAIN must not claim
+this helper dispatch covers earlier physical toolbar/click gates. If required
+consent/gates cannot be established without bypass, STOP and report the limitation;
+there is no backend alternative in this implementation.
+
+Host verification command
+-------------------------
+node --test "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/ui-dispatch.test.js"
+The mocks test state/metadata/routing only; they are NOT ART/Consumer/Dex runtime
+validation, UI attachment, actual consent evaluation or a claim of live execution.

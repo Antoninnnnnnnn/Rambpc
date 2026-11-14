@@ -1,0 +1,43 @@
+{
+  "report_kind": "android_reference_zero_audio_diagnostics_public_v1",
+  "date": "2026-11-14",
+  "studies": [
+    {
+      "name": "read_only_sdk_no_hooks",
+      "status": "passed_read_only",
+      "java_method_replacements": 0,
+      "audio_arms": 0,
+      "voice_ui_attempts": 0,
+      "observation_seconds": 20,
+      "unexpected_detach_during_observation": false,
+      "restoration_exit": 0,
+      "private_report_sha256": "d60b2765936e422626bdfb4ef9d80cd32312175a26e31ab9817a982f90c3b2a3"
+    },
+    {
+      "name": "hook_install_no_arm_foreground",
+      "status": "passed_hook_install_no_capture",
+      "java_method_replacements": 3,
+      "audio_arms": 0,
+      "voice_ui_attempts": 0,
+      "observation_seconds": 20,
+      "unexpected_detach_during_observation": false,
+      "restoration_exit": 0,
+      "private_report_sha256": "4c30a423cc6c87d02d2f6407122227082f4686fe80040f2cd4420ec9197edb85"
+    }
+  ],
+  "rambler_preference_enabled": true,
+  "jetson_selected": true,
+  "constructor_bypass_art_exercised": false,
+  "controlled_pcm_sent": false,
+  "first_preflight_failure_reclassified": false,
+  "first_preflight_cause": "still unknown",
+  "controller_lifecycle_hardening": "29 host-only mocked tests; not yet device-validated",
+  "limits": [
+    "These are manual zero-audio setup diagnostics, not dictation retries or reference intent/VoiceAction qualification.",
+    "Read-only SDK calls and hook installation remained available for20 seconds while settings were foreground. The earlier detachment after idle setup is not resolved by later successful observations.",
+    "No aaqe constructor was invoked by the diagnostics; ART superclass-only initialization remains unvalidated.",
+    "Original keyboard remained selected in these diagnostics; returned framework subtype is not a measured Rambler voice-session language.",
+    "Physical microphone access for PixelBoard stayed AppOp ignore; each diagnostic restored baseline and removed its temporary server/forward.",
+    "No device serials, user/account IDs, authentication tokens, raw app data or host/device paths are published."
+  ]
+}

@@ -1,5 +1,21 @@
 # État du moteur — 2026-11-14
 
+## Référence Android de développement : préparation, pas parité acquise
+
+PixelBoard officiel est installé côte à côte avec Gboard sur le téléphone de test
+explicitement autorisé. L'[éditeur inerte original](../tools/reference/android_editor/README.md)
+à zéro permission passe7 contrôles de cas/sélections et4 de suivi/reset sur appareil.
+Aucun envoi réel, aucune donnée personnelle ni dépendance Android du moteur ajoutée.
+Le préflight initial reste inconclusif. Un second préflight avec IME actif et un
+contrôle minimal constructeur/lecture reproduisent un **SIGSEGV ART avant tout
+armement audio**, avec restauration réussie. Lecture SDK seule, hook d'une méthode
+de laboratoire et hook de lecture seul tiennent chacun20s ; la cause exacte du
+crash reste non établie. Les3 phrases restent non injectées. L'alternative qui
+neutraliserait `startRecording` est rejetée statiquement, sans falsifier l'état.
+Les sources expérimentales audio/UI sont conservées avec29 tests Node et5 tests
+d'assembleur Python passants, pas présentées comme injecteur fonctionnel.
+[État, sources reproductibles et limites](research/android-reference-validation.md).
+
 ## Observation native des partiels
 
 Le validateur expose `--observe-partials` : compteurs par session et hashes cadrés

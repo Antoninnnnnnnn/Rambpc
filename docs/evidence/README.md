@@ -1,5 +1,23 @@
 # Observations réseau
 
+## Référence Android de développement
+
+- [android-reference-preflight1-public.json](android-reference-preflight1-public.json) :
+  APK officiel installé et vérifié, puis perte de session avant tout PCM armé.
+  Cause inconnue, état initial restauré, aucune qualification de dictée/parité.
+- [android-reference-sdk-diagnostics-public.json](android-reference-sdk-diagnostics-public.json) :
+  deux diagnostics distincts de20s sans audio, SDK lecture seule puis trois hooks
+  installés. Pas d'exécution du constructeur ART ni résolution rétroactive du premier échec.
+- [android-reference-active-ime-isolation-public.json](android-reference-active-ime-isolation-public.json) :
+  second préflight actif en erreur, puis cinq contrôles sans audio. Le constructeur
+  instrumenté minimal reproduit SIGSEGV dans `libart.so`, tandis que lecture seule
+  et hook de lecture seul tiennent20s ; cause exacte inconnue, restauration réussie,
+  zéro armement. Deux alternatives écartées statiquement, pas de dictée qualifiée.
+- [android-reference-editor-public.json](android-reference-editor-public.json) :
+  source originale d'éditeur à zéro permission, build host signé/vérifié et smoke
+  appareil contrôlé. SHA du rebuild à clé fraîche séparé de l'APK mesuré sur appareil.
+  [Protocole et limites](../research/android-reference-validation.md).
+
 ## Portage Rust
 
 - [rust-native-partials-public.json](rust-native-partials-public.json) :

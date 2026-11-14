@@ -1,0 +1,32 @@
+{
+  "report_kind": "inert_reference_editor_public_v1",
+  "date": "2026-11-14",
+  "package": "org.rambpc.referenceprobe",
+  "device_tested_apk_sha256": "354e1c4363e399ea1978d21544983843b5a423eb6cee8f11f171b641960fb8fe",
+  "host_rebuilt_apk_sha256": "f1056357ad7c4d1bfe38fad118ddefc3f37bdce081eb7dbef1081db090ce7486",
+  "source_java_xml_and_catalog_test_match_device_build": true,
+  "source_files_sha256": {
+    "source/AndroidManifest.xml": "6dda064519ec07e7743412ee3a90b9434aa3421b43d72f369d377535311360c9",
+    "source/java/org/rambpc/referenceprobe/CaseCatalog.java": "89ff9934c4880a054dc85f06e9131ecbe2b5dac879f3b8affddc3b6767c5d263",
+    "source/java/org/rambpc/referenceprobe/ReferenceActivity.java": "1f2b82460e12eebc1285d23479f7ad2bd82b0ed48f44397beab8b7cd2870cb18",
+    "source/res/layout/main.xml": "5bf4b10ff7198e2fff55c61de7ef93098b6878e08b6f2ee4dd53cb7f0a41b8f5",
+    "scripts/CaseCatalogTest.java": "180200b2527f837d4462c85410420cef4671ee980c4da21a94b1622eee5e581f"
+  },
+  "host_build_passed": true,
+  "host_catalog_tests_passed": true,
+  "apk_signatures_v2_v3_verified": true,
+  "zipalign_verified": true,
+  "manifest_permissions": 0,
+  "sdk_downloads": 0,
+  "device_fixed_case_checks_passed": 7,
+  "owned_textwatcher_and_reset_checks_passed": 4,
+  "dictation_attempts": 0,
+  "audio_injected": false,
+  "send_callbacks": 0,
+  "limits": [
+    "Host rebuild has a new disposable local signing identity/timestamps; its APK hash is not the device-measured hash.",
+    "Build outputs/keys/APKs remain ignored; source is original and does not execute downloaded APK code on host.",
+    "Own editor state only, no network/microphone/storage permissions or sending.",
+    "Smoke checks do not qualify any Android Rambler result or backend intent."
+  ]
+}

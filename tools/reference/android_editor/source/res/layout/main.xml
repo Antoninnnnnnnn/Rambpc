@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="16dp"
+        android:focusable="true" android:focusableInTouchMode="true">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Reference Probe — controlled local editor" android:textSize="22sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="No network, microphone, storage permissions or sending. SEND only counts locally."
+            android:textSize="16sp" />
+        <Button android:id="@+id/case_one" android:layout_width="match_parent"
+            android:layout_height="56dp" android:text="1 · Repetition context"
+            android:contentDescription="reference_case_1" />
+        <Button android:id="@+id/case_two" android:layout_width="match_parent"
+            android:layout_height="56dp" android:text="2 · Polite rewrite"
+            android:contentDescription="reference_case_2" />
+        <Button android:id="@+id/case_three" android:layout_width="match_parent"
+            android:layout_height="56dp" android:text="3 · Inert SEND"
+            android:contentDescription="reference_case_3" />
+        <TextView android:id="@+id/case_details" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="17sp"
+            android:contentDescription="reference_case_details" />
+        <EditText android:id="@+id/editor" android:layout_width="match_parent"
+            android:layout_height="144dp" android:gravity="top|start" android:textSize="22sp"
+            android:inputType="textCapSentences" android:imeOptions="actionSend|flagNoExtractUi|flagNoPersonalizedLearning"
+            android:autofillHints="" android:importantForAutofill="noExcludeDescendants"
+            android:saveEnabled="false" android:filterTouchesWhenObscured="true"
+            android:contentDescription="reference_editor" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/reset" android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="64dp" android:text="Reset case"
+                android:contentDescription="reference_reset" />
+            <Button android:id="@+id/capture" android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="64dp" android:text="Capture locally"
+                android:contentDescription="reference_capture" />
+        </LinearLayout>
+        <TextView android:id="@+id/status" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textSize="16sp"
+            android:contentDescription="reference_status" />
+    </LinearLayout>
+</ScrollView>

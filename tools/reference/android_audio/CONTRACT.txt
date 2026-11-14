@@ -1,0 +1,209 @@
+PIXELBOARD BOUNDED REFERENCE PCM INJECTION — MAIN-ONLY DEVICE CONTRACT
+
+Implementation status
+---------------------
+Original code, host-tested only. No device/ADB/Frida attach, microphone, network,
+service call, APK execution, package install, or repository modification was done
+by this implementation agent. Decompiled files were read only at the four approved
+seams. The host Java model is handwritten; it is NOT ART or an APK runtime test.
+
+All implementation files live under this absolute directory:
+C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection
+
+Exact application pin (hard-coded; not caller-selectable)
+--------------------------------------------------------
+Package: com.akshaykadam.pixelboard
+Release tag: 1.3.4
+Actual PackageInfo.versionName: 18.6.3.1002251336-release-arm64-v8a
+Installed single/base APK byte count: 127650866
+Installed APK SHA256: a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8
+Runtime class: aaqe (JADX's defpackage is synthetic here; no alternate-class search)
+
+prepare() reads only the installed app's own sourceDir to hash it. It verifies the
+current application's package, exact manifest version, single APK/no splits,
+size, hash, superclass, constructor signatures and the two expected fields.
+Wrong identity/signature/class/Java bridge => stop, not another class or fallback.
+Reading/hashing installed APK bytes does not execute those bytes on the host.
+
+Mandatory external containment, owned exclusively by MAIN
+---------------------------------------------------------
+1. Keep RECORD_AUDIO AppOp=ignore before any test capture, through attach,
+   all hooks, errors, stop, script unload/detach, and until PixelBoard is force-
+   stopped. Main has separately arranged permission/UI prerequisites. This code
+   does not change permission/AppOp, switch keyboards, launch services or use ADB.
+2. Main verifies that containment actually holds; the RPC acknowledgment is not
+   itself a runtime AppOp check. No constructor event proves global microphone
+   inactivity. Other classes/apps and existing AudioRecord instances are NOT hooked.
+3. Attach only to the intended already-running, idle app process with no recording
+   in progress. Do not trigger the UI capture until prepare() returns phase=ready,
+   the ready event is received, and the corresponding arm() succeeds. There is no
+   hook-before-Java startup guarantee for spawn/resume races.
+4. Any missing expected constructor event, Java/ART error, app crash, unexpected
+   stream/EOF/hash, or inability to verify containment => stop the test. No retry,
+   reloading to reset the three-arm budget, alternate seam or deoptimization sweep.
+5. Finish with RPC stop(), force-stop the app while AppOp is still ignore, unload/
+   detach only with containment maintained, restore the original keyboard and only
+   then restore prior AppOp/permission state according to main's lifecycle plan.
+   If RPC/attach fails, main still force-stops the app under containment.
+
+Constructor/ART caveat — must not be hidden
+------------------------------------------
+Exactly THREE method implementations are replaced: aaqe.$init(),
+aaqe.$init(byte[]), and aaqe.read(byte[],int,int). No other method is hooked.
+Both constructor replacements NEVER invoke an original aaqe constructor (both
+original overloads reach AudioRecord construction/start). They directly call only
+java.io.InputStream.$init on the allocated object, then explicitly set a=false and
+b=null and bind ONE armed recording. The unused byte[] constructor argument is
+ignored, not treated as audio. The analyzed original close() tolerates b=null.
+
+Direct superclass initialization on an already-allocated subclass through Frida
+is an ART/JNI/bridge assumption, not validated by the host tests. Constructor hooks
+can also be missed by pre-existing optimized/inlined callsites. No broad ART
+optimization change is made. If this exact device/bridge cannot safely perform
+this superclass-only initialization or does not emit the expected bypass event,
+STOP: do not call original $init, do not hook generic AudioRecord, and do not widen
+scope. The narrow alternative is an explicitly authorized test build/factory seam
+that supplies a finite ByteArrayInputStream instead of constructing aaqe; that
+would be a separate task, not an automatic recovery in this implementation.
+
+The constructor-bypass event confirms only: this replacement ran, the original
+constructor was not called by it, superclass initialization returned, b is null,
+and the approved PCM was bound. It does NOT claim system-wide absence of audio
+construction/start. The ready event deliberately includes
+constructorBypassArtValidated=false.
+
+Original aaqe.a() will return -1 because b=null; no real audio session exists.
+Original aaqe.b() cancellation is respected by reads. Original close(), with b
+null, does NOT set a; consequently it does not independently cancel the synthetic
+source. Keep the app's normal reader shutdown, finite EOF and final RPC stop();
+do not expect close() alone to interrupt a concurrent synthetic read. No close
+hook was added because the approved scope is constructors + byte-array read only.
+
+Source/build/host verification
+------------------------------
+Sources: pcm-core.js, frida-agent.js. No external dependency for CLI bundle/tests.
+Run on HOST only:
+node "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/pcm-core.test.js"
+node --test "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/pcm-core.test.js" "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/frida-agent.mock.test.js"
+node "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/build.js"
+
+Generated CLI source:
+C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/pixelboard-reference.bundle.js
+
+The plain concatenated bundle requires the Java global supplied by Frida CLI
+17.17's REPL environment. It does NOT magically supply Java to a raw Python/Node
+session.create_script(). Main owns validation of the installed CLI/bridge.
+CLI attach shape (MAIN only, PID already verified, never executed here):
+frida -U -p APPROVED_PID -l "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/pixelboard-reference.bundle.js"
+
+For an exact host-driven SDK RPC path, MAIN may compile the supplied bridge-entry.js
+with an already-approved locally available frida-compile + frida-java-bridge:
+frida-compile "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/bridge-entry.js" -o "C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/reference-audio-injection/pixelboard-reference.sdk.js"
+The SDK bundle is NOT generated or runtime-validated by this implementation agent.
+If the local toolchain/module is missing or compilation fails, stop; no dependency
+install, network retrieval, or silently switching to the plain CLI bundle for SDK.
+
+Minimal MAIN-only Python SDK attachment shape, after compiling the SDK bundle:
+    import frida
+    from pathlib import Path
+    device = frida.get_usb_device(timeout=5)
+    session = device.attach(APPROVED_PID)
+    script = session.create_script(Path(SDK_BUNDLE_ABSOLUTE_PATH).read_text(encoding='utf-8'))
+    script.on('message', YOUR_METADATA_ONLY_HANDLER)
+    script.load()
+    api = script.exports_sync
+    api.status()
+    # prepare/arm/stop below; never print the arm request or base64.
+This is a contract example, NOT an instruction for a worker to attach a device.
+
+Exact RPC API — JSON-serializable values, no private-device file API
+------------------------------------------------------------------
+status() -> {phase,pin,deniedConstructors,bypassedConstructors,stream}
+Initial phase is loaded, capture not permitted. No audio in this result.
+
+prepare({
+  constructorBypassApproved: true,
+  ambientMicBlocked: true,
+  approvedPcm: [ {sha256: LOWERCASE_HEX64, byteCount: EVEN_INTEGER}, ... ]
+}) -> metadata with phase=ready, only after verification + all three hooks.
+One-shot. There must be 1..3 explicit pre-approved descriptors. No capture is armed.
+Acknowledgments mean MAIN has checked containment and accepts the documented ART
+assumption. They neither change device state nor substitute for verification.
+
+arm({
+  sha256: LOWERCASE_HEX64,
+  byteCount: EVEN_INTEGER,
+  pcmBase64: CANONICAL_STANDARD_BASE64_WITH_PADDING
+}) -> {armedCount,byteCount,sha256}
+Descriptor must exactly match a prepare() approval. Decoded bytes are rehashed.
+Only headerless PCM16LE, mono, 16000Hz is authorized. Positive even byteCount must
+be <=640000 (20s * 16000 samples/s * 2 bytes). No WAV/Ogg/FLAC/ID3 containers,
+URL, shell command, filename or transport service is accepted. The source format
+itself cannot be proven from headerless bytes: MAIN must generate/approve it.
+Base64 has exact declared size and canonical padding. Invalid payload/hash does
+not consume an arm. Do not log or echo arm input. Approval does not authorize more
+than the <=3 already-authorized controlled phrases; no personal speech/data.
+
+For each controlled phrase MAIN can read a pre-approved PRIVATE HOST file into
+memory, not log it, verify its expected hash and size, then call api.arm:
+    import base64, hashlib
+    with open(APPROVED_PRIVATE_HOST_PCM_PATH, 'rb') as f:
+        pcm = f.read(640001)
+    assert 0 < len(pcm) <= 640000 and len(pcm) % 2 == 0
+    assert len(pcm) == EXPECTED_BYTES
+    assert hashlib.sha256(pcm).hexdigest() == EXPECTED_SHA256
+    api.arm({'sha256': EXPECTED_SHA256, 'byteCount': EXPECTED_BYTES,
+             'pcmBase64': base64.b64encode(pcm).decode('ascii')})
+    del pcm
+Approval hashes/size must be fixed before prepare. No PCM or payload file needs to
+be written into this scratch directory, the repository, logs or any artifact store.
+
+Each successful arm consumes one of THREE lifetime arm slots, including an arm
+later stopped/cancelled. Exactly one pending arm, one recording at a time. The next
+aaqe constructor consumes that arm and resets the new recording's position/clock.
+An unarmed/additional constructor throws fixed IOException without calling either
+original constructor; read on unknown/pre-existing objects also fails closed.
+No cap-reset API, retries, silence padding, looping, replay fallback or auto-arm.
+Do not reload/recreate an agent to evade its lifetime cap.
+
+After the UI triggers ONE capture, require a constructor-bypass event with the
+matching source hash/count. Then require eof with deliveredBytes=byteCount and
+deliveredSha256=sha256 before arming the next phrase. Do not count an interrupted
+or cancelled recording as a successful EOF. All arm attempts across this lab run
+must stay within three, regardless of any host-side restart.
+
+stop() -> metadata phase=stopped; irreversible. Cancels pending/in-flight/future
+reads and refuses all future constructors/arms. It deliberately DOES NOT remove
+hooks. A cancelled in-flight read returns -1 without committing byte count. A copy
+already in progress may have touched the caller buffer before stop wins; the caller
+must ignore it when the return is -1. Read validation errors still throw; a valid
+zero-length read on a known recording returns 0 even at EOF/stopped.
+No forced detach/unload/session kill, shell or service operation is exposed.
+
+Read semantics and observation limits
+------------------------------------
+read([B,offset,length) validates null/bounds without integer-overflow arithmetic.
+Nonnegative positive reads deliver min(requested,remaining,640) bytes exactly;
+odd byte boundaries are supported by the stream contract. There is no silence
+padding and EOF returns -1, repeatedly. A zero request returns 0 without consuming.
+Pacing uses android.os.SystemClock.elapsedRealtime and at most 20ms sleep pieces;
+the deadline is firstReadTime + cumulativeDeliveredBytes/32 milliseconds. Delayed
+readers can catch up but cannot deliver ahead of that cumulative real-time bound.
+The entire approved stream is finite; the delivery duration is <=20s of PCM, not
+a guarantee that a stalled application finishes within 20s of wall time.
+
+The JS runtime serializes pure state transactions. A busy lease spans Java calls
+and sleep; concurrent/reentrant reads are denied with IOException rather than
+blocking on a Java lock and risking a Frida JS-lock/Java-lock deadlock. At most one
+read per object succeeds at a time; byte positions never duplicate or reset within
+that recording. Abort/cancellation stops only that finite recording; MAIN should
+stop the overall test on an unexpected read exception, not retry it.
+
+Observations: loaded/ready/armed/constructor-denied/constructor-bypass/eof/stopped/
+fatal events; SHA256, byte counts, IDs and state flags only. EOF additionally hashes
+actual bytes copied through successful reads using a per-recording MessageDigest.
+No audio bytes/base64, transcript, credentials, device file paths or phrase labels
+are sent by these events/status. Host must likewise avoid printing RPC arguments.
+No auth, TLS, attestation, feature, safety, response, encoder or generic AudioRecord
+handlers are hooked or changed. The original app's downstream behavior is not
+reimplemented or bypassed by this script.
