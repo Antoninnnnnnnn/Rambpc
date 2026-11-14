@@ -1,6 +1,46 @@
-# État du moteur — 2026-11-13
+# État du moteur — 2026-11-14
 
-## Parité, robustesse, profilage et MSRV
+## Consolidation backend native
+
+**262 tests Rust passent** sous Windows stable1.99.1 et1.88.0, ainsi que Linux
+x86_64/WSL Ubuntu24.04 avec Rust1.88. L'exemple `session_reuse` passe4 tests et la
+CLI sans audio27 tests ; Clippy strict et formatage passent, builds release avec
+et sans audio compris. L'oracle PyAV indépendant passe57 conteneurs séparément,
+et la référence Python/outils passe656 tests en13,82s. La matrice CI distante
+n'a pas été exécutée ; macOS reste non exécuté. [Builds](research/rust-build-validation.md).
+
+- Résultats : champs `language`/`spoken_language` corrigés ; conteneurs3/5/7 et
+  fallback complet décodés avec fusion/budgets/inconnus préservés. La sécurité
+  couvre tous ces candidats, sans les sélectionner arbitrairement.
+- API : politiques de rendu explicites avec provenance, partiels stables/provisoires,
+  collecte bornée de candidats avec ordinal, classification SEND/CLEAR sans effet.
+  Propositions toujours contrôlées par contexte/révision/UTF-16 ; aucun COMPOSE inventé.
+- Fiabilité : GOAWAY/reset/driver indépendants préservés. Deux pertes d'erreurs
+  moteur reproduites RED puis corrigées : driver écrasé par erreur session, et
+  cleanup secondaire perdu après erreur audio primaire. Treize nouveaux filets
+  couvrent annulation/concurrence/reaping ; les erreurs restent à relever par
+  `close()` successifs jusqu'à `Ok`, sans replay d'audio.
+- CLI Ogg : CRC/en-têtes/continuation/séquence/granules/EOS progressifs et bornés,
+  sans décodage ni modification des octets. EOS vide valide vérifié aussi avec
+  PyAV ; OpusTags doit commencer deuxième page. Limites applicatives explicites.
+- Performance : une allocation exacte pour sérialiser l'audio, octets identiques ;
+  [96 mesures CPU et40 sessions loopback](research/rust-backend-profiling.md).
+  Pas de gain global pipeline/WAN robuste déduit des micro-mesures.
+- Service réel : [trois cas synthétiques sur un même moteur](evidence/rust-native-session-reuse-public.json),
+  puis [trois extraits naturels EN/FR,18,885s au total](evidence/rust-native-natural-public.json),
+  PCM consommés/EOF/fermeture/hash vérifiés. Les trois textes naturels hashés
+  correspondent aux textes Python historiques ; comparaison rétrospective, pas
+  nouvelle garantie de qualité ou benchmark de vitesse entre implémentations.
+
+[Validation détaillée et provenance](research/rust-backend-validation-2026-11-14.md).
+Le premier lot de réutilisation reste inconclusif (`eleven`/`11`) ; l'incident
+historique282s n'est pas déclaré résolu. Le backend S3 vérifié est opérationnel,
+**pas toute l'application Gboard ni un moteur déclaré parfait** : COMPOSE/intentions
+non établies, services/modèles Android locaux, récupération après révocation et
+exécution macOS nécessitent des preuves/accès distincts. Microphone/GUI/insertion
+restent hors périmètre initial. Aucun autre ASR/API Gemini substitué.
+
+## Parité, robustesse, profilage et MSRV — jalon e427fb1 (13 novembre)
 
 **186 tests Rust passent** sur l'arbre intégré avec stable1.99.1 et Rust1.88.0,
 Windows x86_64/MSVC ; un oracle audio indépendant est ignoré par défaut, passé

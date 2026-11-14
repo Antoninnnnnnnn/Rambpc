@@ -1,0 +1,64 @@
+{
+  "report_kind": "native_rust_reuse_live_v1",
+  "date": "2026-11-14",
+  "platform": "Windows x86_64 MSVC",
+  "exit_code": 1,
+  "stderr_bytes": 0,
+  "elapsed_seconds": 3.5344604999991134,
+  "binary_sha256": "d881e3ab8c977d1767edd31be873362ca7147ef3f30c3cecb1cee97bdb133e03",
+  "cargo_lock_sha256": "340006ccff0fb2ea8ad682235fd30795d86a888e95d8cb0937c3454bb40ec26e",
+  "manifest_sha256": "0957ebb9486850c16c00320ef924088c1d4e8a8d27a5e54d06bf2c298a95b6aa",
+  "result": {
+    "connect_calls": 1,
+    "engine_instances": 1,
+    "physical_connections_observed": null,
+    "report_kind": "native_rust_session_reuse_v1",
+    "retry_count": 0,
+    "sessions": [
+      {
+        "case": 0,
+        "final_updates": 1,
+        "markers_found": [
+          true,
+          true,
+          false
+        ],
+        "metrics": {
+          "elapsed_seconds": 3.1675473,
+          "encoded_audio_bytes": 22932,
+          "encoded_audio_eof": true,
+          "first_response_seconds": 0.0238256,
+          "request_protobuf_bytes": 27952,
+          "requests_produced": 338,
+          "response_protobuf_bytes": 773,
+          "responses_received": 13
+        },
+        "ordered_finals_sha256": "da1713424b553f9659d1f601a20f1d4a0060ffcb670a8f24f71257c26f53ebcf",
+        "pcm": {
+          "bytes": 213070,
+          "closed": true,
+          "eof": true,
+          "expected_frames": 106535,
+          "matches": true,
+          "sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc"
+        },
+        "status": "failed_or_inconclusive",
+        "text_matches_expected": null,
+        "text_sha256": "af0d59a2f59a92412b3ec631ad1c4b85fb7227e1c91ff88d313c78ef1ce5f3ad"
+      }
+    ],
+    "status": "failed_or_inconclusive"
+  },
+  "limits": [
+    "At most three controlled sessions, stop first failed/inconclusive, no retry.",
+    "One Engine and one explicit connect; physical remote TCP count not observed independently.",
+    "Python/PyAV prepare inputs and launch only; native child PATH restricted to Windows system directories."
+  ],
+  "interpretation": {
+    "transport_and_pcm_completed": true,
+    "reuse_not_validated_by_this_batch": true,
+    "marker_mismatch": "eleven vs 11",
+    "controlled_rendered_hash_exactly_verified": true,
+    "original_batch_status_unchanged": true
+  }
+}

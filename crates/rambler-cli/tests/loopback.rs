@@ -1,4 +1,6 @@
 mod common;
+#[path = "support/ogg_fixture.rs"]
+mod ogg_fixture;
 use bytes::Bytes;
 use common::{TestServer, drain, replies};
 use serde_json::Value;
@@ -51,8 +53,7 @@ async fn native_loopback_cases() {
         .await;
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("audio.ogg");
-        let mut audio = b"OggS".to_vec();
-        audio.extend(vec![42; 20000]);
+        let audio = ogg_fixture::fixture(128);
         std::fs::write(&path, &audio).unwrap();
         let address = server.address.to_string();
         let output = tokio::task::spawn_blocking(move || {
@@ -113,16 +114,35 @@ async fn native_loopback_cases() {
         }
         let requests = received.lock().unwrap().clone();
         assert_eq!(requests.last().unwrap().as_ref(), b"\x10\x01\x18\x01");
+        assert_eq!(uploaded_audio(&requests), audio);
         let all = requests.concat();
-        assert!(
-            all.windows(audio.len().min(8192))
-                .any(|x| x == &audio[..8192])
-        );
         assert!(all.windows("été🙂".len()).any(|x| x == "été🙂".as_bytes()));
         assert!(all.windows(10).any(|x| x == b"suggestion"));
         drop(requests);
         server.close().await;
     }
+}
+
+fn uploaded_audio(requests: &[Bytes]) -> Vec<u8> {
+    use rambler_protocol::{
+        AUDIO_DATA,
+        wire::{Value, parse_fields},
+    };
+    let mut audio = Vec::new();
+    for request in requests {
+        for field in parse_fields(request).unwrap() {
+            if field.number == AUDIO_DATA
+                && let Value::Bytes(data) = field.value
+            {
+                for inner in parse_fields(&data).unwrap() {
+                    if let (1, Value::Bytes(bytes)) = (inner.number, inner.value) {
+                        audio.extend(bytes);
+                    }
+                }
+            }
+        }
+    }
+    audio
 }
 
 fn final_edit(intent: u64, text: &str) -> Bytes {
@@ -160,7 +180,7 @@ async fn empty_edited_text_is_successful_deletion() {
     .await;
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("audio.ogg");
-    std::fs::write(&path, b"OggS audio").unwrap();
+    std::fs::write(&path, ogg_fixture::fixture(3)).unwrap();
     let child_path = path.clone();
     let address = server.address.to_string();
     let output = tokio::time::timeout(

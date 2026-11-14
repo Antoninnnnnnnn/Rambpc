@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use bytes::Bytes;
-use futures_util::Stream;
+use futures_util::{Stream, StreamExt};
 use rambler_transport::{GrpcTransport, RawBytesCodec, TransportConfig};
 use std::{
     convert::Infallible,
@@ -60,6 +60,7 @@ where
 }
 pub struct TestServer {
     pub address: std::net::SocketAddr,
+    pub accepted_connections: Arc<std::sync::atomic::AtomicUsize>,
     stop: CancellationToken,
     task: Option<JoinHandle<()>>,
 }
@@ -74,18 +75,23 @@ impl TestServer {
         let service = RawService(Arc::new(move |request| Box::pin(handler(request))));
         let stop = CancellationToken::new();
         let done = stop.clone();
+        let accepted_connections = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counter = accepted_connections.clone();
+        let incoming = TcpListenerStream::new(listener).inspect(move |connection| {
+            if connection.is_ok() {
+                counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        });
         let task = tokio::spawn(async move {
             Server::builder()
                 .add_service(service)
-                .serve_with_incoming_shutdown(
-                    TcpListenerStream::new(listener),
-                    done.cancelled_owned(),
-                )
+                .serve_with_incoming_shutdown(incoming, done.cancelled_owned())
                 .await
                 .unwrap();
         });
         Self {
             address,
+            accepted_connections,
             stop,
             task: Some(task),
         }

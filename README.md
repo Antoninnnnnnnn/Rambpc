@@ -46,15 +46,22 @@ français et édition sur contexte, avec un PATH système sans Python/FFmpeg.
 [Preuves et limites](docs/evidence/rust-first-slice-public.json). Le lot audio ajoute
 l'entrée **WAV/PCM native optionnelle**, liée à libopus statique : quatre autres
 appels réels réussissent (accéléré/progressif, réécriture et sélection avec emoji).
-[Preuves PCM](docs/evidence/rust-pcm-functional-public.json). La consolidation passe
-**186 tests Rust et 656 tests Python/outils**, plus un oracle indépendant de
-57 flux exécuté séparément. Rust1.88 a été testé sous Windows ; la matrice
-CI multiplateforme est écrite mais pas exécutée. La [matrice de parité](docs/research/rust-feature-parity.md)
-distingue fonctions validées, inconnues et chemins Android. Un marqueur de sécurité
-jusqu'ici ignoré est maintenant interprété : rendu/proposition refusés si bloqués
-ou non interprétables. Le [profilage offline](docs/research/rust-audio-profiling.md)
-conserve les mesures et rejette une optimisation CRC sans gain robuste.
-Aucun gain de latence global n'est revendiqué.
+[Preuves PCM](docs/evidence/rust-pcm-functional-public.json). La consolidation du
+**14 novembre** passe **262 tests Rust** sous Windows (stable et1.88) et Linux1.88,
+plus4 tests de réutilisation et27 tests CLI sans audio, et **656 tests Python/outils**.
+L'oracle indépendant de57 conteneurs passe séparément. La matrice CI est écrite,
+pas exécutée à distance ; macOS n'a pas été exécuté. [Validation](docs/research/rust-build-validation.md).
+Trois sessions contrôlées réussissent sur un même moteur natif ; puis
+[trois voix naturelles EN/FR licenciées](docs/evidence/rust-native-natural-public.json)
+réussissent avec PCM intégral vérifié et textes hashés identiques aux références
+Python historiques (petit échantillon, pas une garantie de qualité générale).
+La [matrice de parité](docs/research/rust-feature-parity.md) distingue preuves,
+inconnues et chemins Android. Rendu opt-in avec provenance, partiels, collecte de
+candidats et classification de commandes sans effets sont exposés. Le validateur
+Ogg est progressif et borné ; les erreurs de connexion/nettoyage restent observables.
+Le [profil backend](docs/research/rust-backend-profiling.md) établit un gain local de
+sérialisation (8 allocations+3 réallocations →1), pas de gain global WAN robuste.
+L'ancien [candidat CRC](docs/research/rust-audio-profiling.md) reste rejeté.
 L'endurance conserve un échec intermittent ; le suivi instrumenté réussit sans
 établir sa cause ni prétendre l'avoir corrigé. Voir
 [l'état détaillé](docs/STATUS.md) et le [diagnostic](docs/evidence/rust-incomplete-diagnostic-followup.json).

@@ -71,13 +71,46 @@ and the release CLI build with audio. The PyAV independent oracle was run
 separately and passed57 complete containers. None of these local Windows runs
 establishes Linux/macOS compatibility or live-service equivalence for new fields.
 
+## Consolidated backend recheck — 2026-11-14
+
+The current snapshot (Linux transfer R5) includes response containers/fallbacks,
+progressive Ogg validation and the engine's primary/secondary shutdown-error fixes.
+
+| Execution | Workspace | CLI example | CLI audio feature off | Build / lint |
+|---|---:|---:|---:|---|
+| Windows11 MSVC, stable1.99.1 |262 passed,1 ignored|4 passed|27 passed|Strict Clippy, formatting, release with/without audio passed|
+| Windows11 MSVC,1.88.0 |262 passed,1 ignored|Not separately rerun on1.88|27 passed|Workspace compiled; release validator built with stable|
+| Linux x86_64, WSL2 Ubuntu24.04,1.88.0 |262 passed,1 ignored|4 passed|27 passed|Native ELF release audio build passed|
+| macOS |Not executed|Not executed|Not executed|No linked/runtime claim|
+
+The independent ignored audio oracle was explicitly run on Windows1.88 and passed
+57 complete containers with the installed development PyAV decoder. Python/tools
+also passed656 tests (13.82s) with asyncio debug and faulthandler enabled. The CLI's
+normal feature-off release build passed with a deliberately nonexistent `CMAKE`;
+feature-off tests still have native audio development dependencies.
+
+Linux used the already-running RelayTests WSL distro, GCC13.3 and isolated Rust1.88 /
+CMake3.31.10 tools with no profile/global installation changes. Source and fixtures
+were transferred without credentials into an isolated Linux directory; the distro's
+`/mnt/c` was not a Windows mount. No phone/Android/VM relay or live Google calls
+were used in these tests. Earlier8MiB fixture timeout and obsolete driver-error
+expectation failed before targeted fixture/contract corrections; R5 is the successful
+current-code run, not a relabelling of those failures.
+
+Reproduce the example tests explicitly (the ordinary workspace command does not
+run them):
+
+```sh
+cargo test -p rambler-cli --features audio --example session_reuse --locked --offline
+```
+
 ## Written CI matrix, not yet executed
 
 `.github/workflows/rust.yml` defines Windows, Linux and macOS jobs on 1.88.0 and
 stable, fetching the locked graph first and then testing offline with and
 without the CLI audio feature. A separate stable Linux job checks formatting and
 all-target, all-feature Clippy. Hosted runners must provide CMake and a native C
-toolchain. The matrix was authored but has **not** run remotely; Linux and macOS
-execution are not claimed by the local Windows results. Runner images and
-actions are not immutable, and fetch/setup needs network. No remote CI, push,
-PR, or commit was performed for this validation.
+toolchain. The matrix has **not** run remotely; local Linux execution is reported
+separately above, and macOS remains unexecuted. Runner images and actions are not
+immutable, and fetch/setup needs network. No remote CI, push or PR was triggered
+by this validation; code and documentation are committed separately.

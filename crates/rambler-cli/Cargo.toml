@@ -8,6 +8,10 @@ rust-version.workspace = true
 name = "rambler"
 path = "src/main.rs"
 
+[[example]]
+name = "session_reuse"
+required-features = ["audio"]
+
 [features]
 default = []
 audio = ["dep:rambler-audio"]
@@ -22,6 +26,8 @@ serde_json.workspace = true
 clap = { version = "4", features = ["derive"] }
 
 [dev-dependencies]
+serde.workspace = true
+sha2.workspace = true
 rambler-protocol = { path = "../rambler-protocol" }
 http.workspace = true
 futures-util.workspace = true

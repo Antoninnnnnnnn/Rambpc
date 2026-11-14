@@ -1,17 +1,15 @@
+mod ogg;
 #[cfg(test)]
 mod tests;
 
-use bytes::Bytes;
 use clap::{Args, Parser, Subcommand};
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext,
-    EncodedAudioProgress, Engine, EngineError, ProtocolConfig, SessionOptions, SourceError,
-    SourceFuture, collect_dictation,
+    EncodedAudioProgress, Engine, EngineError, ProtocolConfig, SessionOptions, collect_dictation,
 };
 use rambler_transport::{EnvironmentCredentials, TransportConfig, TransportError};
 use serde_json::{Value, json};
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 #[derive(Parser)]
 #[command(
@@ -24,7 +22,7 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
-    /// Stream Ogg/Opus (only the Ogg magic is checked).
+    /// Stream bounded, validated mono/16 kHz Ogg/Opus without decoding.
     Dictate {
         #[command(flatten)]
         common: CommonArgs,
@@ -80,18 +78,9 @@ enum InputKind {
 
 async fn open_audio(path: PathBuf, kind: InputKind) -> Result<Box<dyn AudioSource>, &'static str> {
     match kind {
-        InputKind::Ogg => {
-            let mut file = tokio::fs::File::open(path).await.map_err(|_| "audio")?;
-            let mut magic = [0; 4];
-            if file.read_exact(&mut magic).await.is_err()
-                || &magic != b"OggS"
-                || file.seek(std::io::SeekFrom::Start(0)).await.is_err()
-            {
-                drop(file.into_std().await);
-                return Err("audio");
-            }
-            Ok(Box::new(FileAudio(Some(file))))
-        }
+        InputKind::Ogg => Ok(Box::new(
+            ogg::OggAudio::open(path).await.map_err(|_| "audio")?,
+        )),
         #[cfg(feature = "audio")]
         InputKind::Wav {
             realtime,
@@ -121,31 +110,6 @@ async fn open_audio(path: PathBuf, kind: InputKind) -> Result<Box<dyn AudioSourc
     }
 }
 
-struct FileAudio(Option<tokio::fs::File>);
-impl AudioSource for FileAudio {
-    fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>> {
-        Box::pin(async move {
-            let mut buf = vec![0; 8192];
-            let n = self
-                .0
-                .as_mut()
-                .expect("source open")
-                .read(&mut buf)
-                .await
-                .map_err(SourceError::new)?;
-            buf.truncate(n);
-            Ok((n != 0).then(|| Bytes::from(buf)))
-        })
-    }
-    fn close(&mut self) -> SourceFuture<'_, Result<(), SourceError>> {
-        Box::pin(async move {
-            if let Some(file) = self.0.take() {
-                drop(file.into_std().await);
-            }
-            Ok(())
-        })
-    }
-}
 fn error_category(e: &EngineError) -> (&'static str, Option<String>) {
     match e {
         EngineError::Transport(TransportError::Grpc(code)) => ("grpc", Some(format!("{code:?}"))),

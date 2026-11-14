@@ -1,0 +1,160 @@
+{
+  "report_kind": "native_rust_reuse_live_v1",
+  "date": "2026-11-14",
+  "platform": "Windows x86_64 MSVC",
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "elapsed_seconds": 8.29798760000267,
+  "binary_sha256": "24d58949408a96e7c9a1b171a103be80375488f60a7b22c45125722e7159c987",
+  "cargo_lock_sha256": "340006ccff0fb2ea8ad682235fd30795d86a888e95d8cb0937c3454bb40ec26e",
+  "manifest_sha256": "a9cf81d61b6ee96d64776dd9458a9f785080f80dca5b19039ef0da6045e743a1",
+  "result": {
+    "connect_calls": 1,
+    "engine_instances": 1,
+    "physical_connections_observed": null,
+    "report_kind": "native_rust_session_reuse_v1",
+    "retry_count": 0,
+    "sessions": [
+      {
+        "case": 0,
+        "final_updates": 1,
+        "marker_alternatives_found": [
+          true
+        ],
+        "markers_found": [
+          true,
+          true
+        ],
+        "metrics": {
+          "elapsed_seconds": 2.8505355,
+          "encoded_audio_bytes": 22932,
+          "encoded_audio_eof": true,
+          "first_response_seconds": 0.0247581,
+          "request_protobuf_bytes": 27969,
+          "requests_produced": 338,
+          "response_protobuf_bytes": 757,
+          "responses_received": 12
+        },
+        "ordered_finals_sha256": "da1713424b553f9659d1f601a20f1d4a0060ffcb670a8f24f71257c26f53ebcf",
+        "pcm": {
+          "bytes": 213070,
+          "closed": true,
+          "eof": true,
+          "expected_frames": 106535,
+          "matches": true,
+          "sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc"
+        },
+        "status": "healthy",
+        "text_matches_expected": null,
+        "text_sha256": "af0d59a2f59a92412b3ec631ad1c4b85fb7227e1c91ff88d313c78ef1ce5f3ad"
+      },
+      {
+        "case": 1,
+        "final_updates": 1,
+        "marker_alternatives_found": [],
+        "markers_found": [
+          true,
+          true,
+          true
+        ],
+        "metrics": {
+          "elapsed_seconds": 1.2322054,
+          "encoded_audio_bytes": 7410,
+          "encoded_audio_eof": true,
+          "first_response_seconds": 0.0220945,
+          "request_protobuf_bytes": 9163,
+          "requests_produced": 114,
+          "response_protobuf_bytes": 553,
+          "responses_received": 9
+        },
+        "ordered_finals_sha256": "a2e2285af206dbeb66928d94c95980b899af8044923438028414a5e4933c4d60",
+        "pcm": {
+          "bytes": 69256,
+          "closed": true,
+          "eof": true,
+          "expected_frames": 34628,
+          "matches": true,
+          "sha256": "a9f5837a4bf8ece766a44dd2cb511e051e9f5c0123f7633f4a00a917c035a498"
+        },
+        "status": "healthy",
+        "text_matches_expected": true,
+        "text_sha256": "628de6ba4a332b1806af2203bbbc7f944ff487abcee56bbf409c4807ab4048df"
+      },
+      {
+        "case": 2,
+        "final_updates": 1,
+        "marker_alternatives_found": [],
+        "markers_found": [
+          true,
+          true,
+          true
+        ],
+        "metrics": {
+          "elapsed_seconds": 3.7835106,
+          "encoded_audio_bytes": 29946,
+          "encoded_audio_eof": true,
+          "first_response_seconds": 0.0197021,
+          "request_protobuf_bytes": 36108,
+          "requests_produced": 416,
+          "response_protobuf_bytes": 852,
+          "responses_received": 14
+        },
+        "ordered_finals_sha256": "59d28f0e4e25b3dc306f653fd38381d2170b995eace2a03047d9ab0070fd3e27",
+        "pcm": {
+          "bytes": 263158,
+          "closed": true,
+          "eof": true,
+          "expected_frames": 131579,
+          "matches": true,
+          "sha256": "2861435155f7593830be699bda8f69f9f1f9eff58ed6da748b63393107fd8a2e"
+        },
+        "status": "healthy",
+        "text_matches_expected": null,
+        "text_sha256": "9565bd619afe25a758e083594a8b69a322b78e1259f45858cea94f4ab3c64ca9"
+      }
+    ],
+    "status": "healthy"
+  },
+  "limits": [
+    "At most three controlled sessions, stop first failed/inconclusive, no retry.",
+    "One Engine and one explicit connect; physical remote TCP count not observed independently.",
+    "Python/PyAV prepare inputs and launch only; native child PATH restricted to Windows system directories."
+  ],
+  "qualification": {
+    "original_batch": "rust-reuse-initial-marker-failure.json",
+    "original_status_unchanged": true,
+    "numeric_aliases_declared_before_new_batch": [
+      [
+        "tomorrow at eleven",
+        "tomorrow at 11"
+      ]
+    ],
+    "context_emoji_exact_rendered_sha256": "628de6ba4a332b1806af2203bbbc7f944ff487abcee56bbf409c4807ab4048df"
+  },
+  "input_provenance": {
+    "controlled_synthetic_only": true,
+    "conversion": [
+      {
+        "input_file_sha256": "a053a19d8dd42238c7c6cfe7e09e5c99680118bb8bc09a7181e6b42c13bc0c57",
+        "output_file_sha256": "fb0527dc8a8037b90974433f26a8811fded886cfd445a580bae9c6484b872294",
+        "pcm_sha256": "a9f5837a4bf8ece766a44dd2cb511e051e9f5c0123f7633f4a00a917c035a498",
+        "samples": 34628,
+        "resampler": "PyAV development only"
+      },
+      {
+        "input_file_sha256": "59210dea592428a203f4f433e5f718277e5a347d5d34e1930dd010f516846a43",
+        "output_file_sha256": "a037f7e01b41a5a3cbad37c6b44cf554e20c34fee142f6ad086ef70a58a13887",
+        "pcm_sha256": "2861435155f7593830be699bda8f69f9f1f9eff58ed6da748b63393107fd8a2e",
+        "samples": 131579,
+        "resampler": "PyAV development only"
+      }
+    ],
+    "plain_pcm_sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc"
+  },
+  "source_sha256": {
+    "crates/rambler-cli/examples/session_reuse.rs": "955ad0f46368a88a566c45a0122643f005e5ab48d91b5b79ca94861ac15b1fb7",
+    "crates/rambler-protocol/src/request.rs": "0253bad9b3d1c155fe688b9f130205c63119e5f67156e5dbf68fec85c722e1e0",
+    "crates/rambler-transport/src/wire.rs": "f11bfdf89a03a65a6d4cca09164f901ef7da3cacae7ede1bfeb9c5d74a923f73",
+    "crates/rambler-engine/src/results.rs": "d1be71c47125a990e5e9997eba77267ec2afe68dcdd383fdcf6710592dcae3c5"
+  }
+}

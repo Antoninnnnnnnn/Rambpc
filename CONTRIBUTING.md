@@ -17,6 +17,7 @@ reste la référence de conformité. Voir [le guide Rust](docs/rust.md) et
 ```sh
 cargo fmt --all -- --check
 cargo test --workspace --all-features --locked
+cargo test -p rambler-cli --features audio --example session_reuse --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo build --release --locked -p rambler-cli --features audio
 ```

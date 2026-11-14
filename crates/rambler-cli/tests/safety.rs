@@ -1,4 +1,6 @@
 mod common;
+#[path = "support/ogg_fixture.rs"]
+mod ogg_fixture;
 use bytes::Bytes;
 use common::{TestServer, drain, replies};
 use rambler_protocol::{
@@ -47,7 +49,9 @@ async fn cli_safety_refusal_emits_no_candidate_context_or_result_and_still_drain
         .await;
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("audio.ogg");
-        std::fs::write(&path, b"OggS controlled audio").unwrap();
+        let audio = ogg_fixture::fixture(3);
+        let audio_bytes = audio.len();
+        std::fs::write(&path, audio).unwrap();
         let address = server.address.to_string();
         let output = tokio::time::timeout(
             Duration::from_secs(10),
@@ -98,7 +102,7 @@ async fn cli_safety_refusal_emits_no_candidate_context_or_result_and_still_drain
         } else {
             assert!(output.status.success(), "{value}");
             assert_eq!(value["text"], "CONTROLLED CANDIDATE");
-            assert_eq!(value["metrics"]["audio"]["bytes"], 21);
+            assert_eq!(value["metrics"]["audio"]["bytes"], audio_bytes);
             assert_eq!(value["metrics"]["audio"]["eof"], true);
             assert_eq!(value["metrics"]["audio"]["cleanup_succeeded"], true);
         }

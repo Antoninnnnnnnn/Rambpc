@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "report_kind": "native_rust_natural_speech_public_v1",
+  "date": "2026-11-14",
+  "platform": "Windows x86_64 MSVC",
+  "status": "healthy",
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "elapsed_seconds": 8.813732200011145,
+  "binary_sha256": "63c6a2368e376c7496c1d0285d5a8e745370ec46743c52a2994ad09998fc7cf1",
+  "cargo_lock_sha256": "340006ccff0fb2ea8ad682235fd30795d86a888e95d8cb0937c3454bb40ec26e",
+  "source_report_sha256": "c5695804acfbf585271a4f9d670c3427473848885330b3228ee638fb4005e31b",
+  "predeclared_plan_sha256": "5cff683d17f7293d8d1cfcbfd1868710947dd92ab85e0abaa59dd7cac9c1ba25",
+  "source_sha256": {
+    "Cargo.lock": "340006ccff0fb2ea8ad682235fd30795d86a888e95d8cb0937c3454bb40ec26e",
+    "Cargo.toml": "7343a994d018903abffbace669edd83cdc48aa5f8a3c17fa1e0ece2113a13766",
+    "crates/rambler-audio/Cargo.toml": "c325dffbcd79ff8a85f8a83053cad68dc5eacbdb2d516b7d22bdcda1003d0060",
+    "crates/rambler-audio/src/encode.rs": "cf645682eaeb2ebd5fcdb026b4bab21edd4b88db7b274a7820cae398e523d463",
+    "crates/rambler-audio/src/lib.rs": "240e57f76b1bb3456a02606370ef31050b37cea7d5c4cb5406a28373872906bd",
+    "crates/rambler-audio/src/lifecycle.rs": "921a1dcf7c11be75bab67cc527018f0be38f980fcbee156dad1c6b85588c1dd2",
+    "crates/rambler-audio/src/ogg.rs": "54a28d7e3fc999677e6b625a3f0ace9db812ac56330a15333f05cd19bda33828",
+    "crates/rambler-audio/src/ogg_tests.rs": "9d9c081e1a9cfb68b72421653929201063aa695b3231551959d959cb3aa79e76",
+    "crates/rambler-audio/src/wav.rs": "9ff1bcd59c005ea8236156f955eecb650eb86de04782d6fd9870adbdc00f5b93",
+    "crates/rambler-cli/Cargo.toml": "8d56f881d0db296c1179064c7ed4740d1ae84e10fd33be415c768d1319be75f2",
+    "crates/rambler-cli/examples/session_reuse.rs": "955ad0f46368a88a566c45a0122643f005e5ab48d91b5b79ca94861ac15b1fb7",
+    "crates/rambler-cli/src/main.rs": "f3e45f317da9d00fd68a12b5c6acf7d35cdc30cafeef0e813335cb191d5a69ed",
+    "crates/rambler-cli/src/ogg.rs": "2aca230ee851308c8b49a715bbcaa5087605fc4e37aaa4395d615077f544f149",
+    "crates/rambler-cli/src/ogg_tests.rs": "48ed2cb7bb32d867057a52877c402c0216dd808d472cdbad0cdaacf71a2d6a1a",
+    "crates/rambler-cli/src/tests.rs": "51b0c0680f61829e0542d7fb8d0eebeead795aacf507a5d376dbd435aedeb54d",
+    "crates/rambler-engine/Cargo.toml": "d73af38aed10a5d90f57008b6e2444dd1f608e33e4466d49a589938b9f4b5069",
+    "crates/rambler-engine/src/engine.rs": "be85ab38937edf14138609a99bb1c660431c09acc726f84272078c7cc23bcd4f",
+    "crates/rambler-engine/src/lib.rs": "6d7da9c236bc4a5d9489f31b7b116326a35db764d01f1b2448b37fa3c3f2a1ce",
+    "crates/rambler-engine/src/presentation.rs": "4dcfe1543146189e6767624b1e9362a1400798e8b7ce50fcb405591939bb783a",
+    "crates/rambler-engine/src/results.rs": "b98b798f33949be03c211e53ce44bc779089d73a1fafbdd15bd93b94b2150fa0",
+    "crates/rambler-protocol/Cargo.toml": "6787b04d729c945a7fa8b3feda6b885519e80e8bfd2607782dfb5140c06dfe4b",
+    "crates/rambler-protocol/src/decode.rs": "64b23076a03969d49167a0a9144f0a1f65429b7356c6421bb8077941acbedca5",
+    "crates/rambler-protocol/src/lib.rs": "a40191bbba735ff34625e1ac42f1619b4b2cee9bf2a03d158e68040d10276084",
+    "crates/rambler-protocol/src/models.rs": "de66fc20f5296d6397244f1f1702cd5bf5d4e86a9b3ee446b61ae1aa996e54e0",
+    "crates/rambler-protocol/src/request.rs": "0253bad9b3d1c155fe688b9f130205c63119e5f67156e5dbf68fec85c722e1e0",
+    "crates/rambler-protocol/src/wire.rs": "c9a6fac56e0497eb12d6104ee418e47b7e9f3c011c9b5fc5f52ae0c80edd2a6b",
+    "crates/rambler-transport/Cargo.toml": "2caf0a3f234709a7063d1a25aa00725bb114eae363b41a694da08fac8a673544",
+    "crates/rambler-transport/src/codec.rs": "277ff349cc0c4047177a5884cd6873aba3f76ba6c47a9c83dd532bc4f0e09651",
+    "crates/rambler-transport/src/connection.rs": "05d33fa79297a9b51bd075cb2b1761cf5fe8b831a85534b517322fabb5570bea",
+    "crates/rambler-transport/src/credentials.rs": "d08259a74443823145da418ee546e96e44622a0f9bc1543646ecb333f0113b44",
+    "crates/rambler-transport/src/lib.rs": "e0ced91c02d6339768d6202040b74199784bc61e0d15ad90e91f9aaf2ea55fa5",
+    "crates/rambler-transport/src/wire.rs": "f11bfdf89a03a65a6d4cca09164f901ef7da3cacae7ede1bfeb9c5d74a923f73"
+  },
+  "engine_instances": 1,
+  "connect_calls": 1,
+  "physical_connections_observed": null,
+  "retry_count": 0,
+  "total_audio_seconds": 18.885,
+  "inputs": [
+    {
+      "input_file": "en-5142-33396-0002.wav",
+      "utterance_id": "5142-33396-0002",
+      "language": "en",
+      "samples": 58720,
+      "duration_seconds": 3.67,
+      "wav_sha256": "bc8cfea374ab17c0798486f9c61889bf73b193e679699320df74af74a4798ae5",
+      "pcm_sha256": "cea1bc1614f738048b1a4f1bcad83f70aee42b9621b8b754f8aacbe1395b08c9",
+      "markers": [
+        "warriors",
+        "hall",
+        "battle"
+      ],
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "dataset_source": "https://www.openslr.org/12/",
+      "attribution": "V. Panayotov, G. Chen, D. Povey, S. Khudanpur, LibriSpeech: an ASR corpus based on public domain audio books, ICASSP 2015. Read audiobooks from LibriVox."
+    },
+    {
+      "input_file": "en-4446-2275-0005.wav",
+      "utterance_id": "4446-2275-0005",
+      "language": "en",
+      "samples": 71120,
+      "duration_seconds": 4.445,
+      "wav_sha256": "64da9812ac6d1150740dbd8d8caca358b7207487144ab91c49ffa6dfbb39b59a",
+      "pcm_sha256": "6c2576e0fc904f2be5573cd022af6e7e45e2bc6252dfbf288c9db533fd3d9d68",
+      "markers": [
+        "felt",
+        "bones",
+        "splendid"
+      ],
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "dataset_source": "https://www.openslr.org/12/",
+      "attribution": "V. Panayotov, G. Chen, D. Povey, S. Khudanpur, LibriSpeech: an ASR corpus based on public domain audio books, ICASSP 2015. Read audiobooks from LibriVox."
+    },
+    {
+      "input_file": "fr-12080_11650_000062.wav",
+      "utterance_id": "12080_11650_000062",
+      "language": "fr",
+      "samples": 172320,
+      "duration_seconds": 10.77,
+      "wav_sha256": "2d3e8f9469033d734a7cc69ca2546fd8e66a97046fd8bad1809cd54a446fa84c",
+      "pcm_sha256": "e6c0c564a608df0b0ad9c3efd7c1dbcfe4437a8521dd3a753ff821320d9bd19c",
+      "markers": [
+        "marquis",
+        "charpentier",
+        "jura"
+      ],
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "dataset_source": "https://www.openslr.org/94/",
+      "attribution": "V. Pratap et al., MLS: A Large-Scale Multilingual Dataset for Speech Research, Interspeech 2020. Read audiobooks from LibriVox."
+    }
+  ],
+  "sessions": [
+    {
+      "case": 0,
+      "final_updates": 1,
+      "marker_alternatives_found": [],
+      "markers_found": [
+        true,
+        true,
+        true
+      ],
+      "metrics": {
+        "elapsed_seconds": 1.7731421,
+        "encoded_audio_bytes": 15720,
+        "encoded_audio_eof": true,
+        "first_response_seconds": 0.0216328,
+        "request_protobuf_bytes": 18476,
+        "requests_produced": 188,
+        "response_protobuf_bytes": 665,
+        "responses_received": 10
+      },
+      "ordered_finals_sha256": "2f4405462a033742af32d662cfb2ac918e2a7ff96bc764458377d21e634e37cb",
+      "pcm": {
+        "bytes": 117440,
+        "closed": true,
+        "eof": true,
+        "expected_frames": 58720,
+        "matches": true,
+        "sha256": "cea1bc1614f738048b1a4f1bcad83f70aee42b9621b8b754f8aacbe1395b08c9"
+      },
+      "status": "healthy",
+      "text_matches_expected": null,
+      "text_sha256": "9248e44594f24403a05dc80aeab56d7822b33e180119c320132b2ba8e929572c"
+    },
+    {
+      "case": 1,
+      "final_updates": 1,
+      "marker_alternatives_found": [],
+      "markers_found": [
+        true,
+        true,
+        true
+      ],
+      "metrics": {
+        "elapsed_seconds": 2.2431121,
+        "encoded_audio_bytes": 19163,
+        "encoded_audio_eof": true,
+        "first_response_seconds": 0.0193602,
+        "request_protobuf_bytes": 22466,
+        "requests_produced": 227,
+        "response_protobuf_bytes": 825,
+        "responses_received": 11
+      },
+      "ordered_finals_sha256": "49c9f2faf8181bc8a172dcdb68d7788e2c5826eab2adb3c620364c10bd333fe4",
+      "pcm": {
+        "bytes": 142240,
+        "closed": true,
+        "eof": true,
+        "expected_frames": 71120,
+        "matches": true,
+        "sha256": "6c2576e0fc904f2be5573cd022af6e7e45e2bc6252dfbf288c9db533fd3d9d68"
+      },
+      "status": "healthy",
+      "text_matches_expected": null,
+      "text_sha256": "8a4c379ce155920611428c981325a33361f09187cd5855faa40ca3da4cb289a1"
+    },
+    {
+      "case": 2,
+      "final_updates": 1,
+      "marker_alternatives_found": [],
+      "markers_found": [
+        true,
+        true,
+        true
+      ],
+      "metrics": {
+        "elapsed_seconds": 4.4764371,
+        "encoded_audio_bytes": 44843,
+        "encoded_audio_eof": true,
+        "first_response_seconds": 0.0206994,
+        "request_protobuf_bytes": 52944,
+        "requests_produced": 543,
+        "response_protobuf_bytes": 1342,
+        "responses_received": 15
+      },
+      "ordered_finals_sha256": "3de3477793c0147b90fc267cf6f7689b1693db15ffe5222cfd73d934b7990673",
+      "pcm": {
+        "bytes": 344640,
+        "closed": true,
+        "eof": true,
+        "expected_frames": 172320,
+        "matches": true,
+        "sha256": "e6c0c564a608df0b0ad9c3efd7c1dbcfe4437a8521dd3a753ff821320d9bd19c"
+      },
+      "status": "healthy",
+      "text_matches_expected": null,
+      "text_sha256": "3f81c4f1a06c65661f8d17b782365ebf9ee51c619ca347ca1493ae8e002824ca"
+    }
+  ],
+  "retrospective_historical_text_comparison": [
+    {
+      "case": 0,
+      "historical_python_rendered_text_sha256": "9248e44594f24403a05dc80aeab56d7822b33e180119c320132b2ba8e929572c",
+      "matches_historical_python_text": true
+    },
+    {
+      "case": 1,
+      "historical_python_rendered_text_sha256": "8a4c379ce155920611428c981325a33361f09187cd5855faa40ca3da4cb289a1",
+      "matches_historical_python_text": true
+    },
+    {
+      "case": 2,
+      "historical_python_rendered_text_sha256": "3f81c4f1a06c65661f8d17b782365ebf9ee51c619ca347ca1493ae8e002824ca",
+      "matches_historical_python_text": true
+    }
+  ],
+  "limits": [
+    "At most three controlled sessions, stop first failed/inconclusive, no retry.",
+    "One Engine and one explicit connect; physical remote TCP count not observed independently.",
+    "Python/PyAV prepare inputs and launch only; native child PATH restricted to Windows system directories.",
+    "Only three already licensed read-audiobook clips, two English and one French; no representative quality or endurance claim.",
+    "Pass criteria (markers, PCM hashes, bounds) were declared before RPCs. Historical text hashes were compared retrospectively, not used to change pass/fail.",
+    "No raw payloads, transcript text, paths, credentials, cookies or service identifiers are published.",
+    "PCM consumption is measured before lossy Opus encoding; it is not an independent server acknowledgement or a bit-identical PCM round trip."
+  ],
+  "post_run_documentation_only_change": {
+    "file": "crates/rambler-engine/src/results.rs",
+    "measured_source_sha256": "b98b798f33949be03c211e53ce44bc779089d73a1fafbdd15bd93b94b2150fa0",
+    "delivered_source_sha256": "c682bf28ce196c2c4568395e0890a712e8d9676780d7851ac982a90aa03a57e6",
+    "old_comment": "/// Collect final-segment containers independently of recognition completion.",
+    "new_comment": "/// Collect hypothesis containers (fields3/5/7), irrespective of recognition state.",
+    "note": "One rustdoc comment clarified after the run; executable source logic and measured-source hashes unchanged."
+  }
+}

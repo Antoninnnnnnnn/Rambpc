@@ -4,6 +4,39 @@ use crate::{
 };
 use rambler_protocol::{HYPOTHESIS_SAFETY_STATUS, Hypothesis};
 
+/// Explicit text projection; no policy authorizes editor or system effects.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderPolicy {
+    /// Exactly the historical `DictationResult::text` contract.
+    Strict,
+    /// Only Hypothesis.text, never VoiceEdit.transcript; still safety/uniqueness gated.
+    AsrOnly,
+    /// Textual helper from ihm:192–224, not Android candidate filtering/selection.
+    /// Accepts intents 2/3 and fields 3/7; otherwise uses the ASR getter's default.
+    /// This static compatibility evidence does not establish live server behavior.
+    S3ClientCompatible,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextProvenance {
+    HypothesisText,
+    VoiceEditText,
+    VoiceEditContext,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FallbackReason {
+    VoiceEditAbsent,
+    UnsupportedIntent,
+    UnsupportedMember,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderedText {
+    pub text: String,
+    pub provenance: TextProvenance,
+    /// Raw VoiceEdit intention, even when it was rejected for rendering.
+    pub intent: Option<i32>,
+    pub fallback_reason: Option<FallbackReason>,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CollectorLimits {
     pub max_final_updates: usize,
@@ -26,6 +59,49 @@ pub struct DictationResult {
     pub context: Option<EditingContext>,
     pub metrics: Option<SessionMetrics>,
 }
+/// All hypothesis-container responses (fields3/5/7), including those preceding
+/// state1. Containers5/7 have no implicit Rambler finality or selection policy. There is
+/// deliberately no global text assembly: an edited segment may contain the full
+/// history and concatenating it would duplicate content.
+#[derive(Clone, Debug, Default)]
+pub struct SegmentResult {
+    pub updates: Vec<SegmentUpdate>,
+    pub context: Option<EditingContext>,
+    pub metrics: Option<SessionMetrics>,
+}
+#[derive(Clone, Debug)]
+pub struct SegmentUpdate {
+    /// One-based client response ordinal, including unretained heartbeats/partials.
+    /// Not a server segment ID. Language fields must never be used as IDs.
+    pub response_ordinal: u64,
+    pub response: S3Response,
+}
+impl SegmentResult {
+    pub fn check_safety(&self) -> Result<(), EngineError> {
+        check_response_safety(self.updates.iter().map(|update| &update.response))
+    }
+}
+fn check_response_safety<'a>(
+    responses: impl Iterator<Item = &'a S3Response>,
+) -> Result<(), EngineError> {
+    let mut unrecognized = false;
+    for hypothesis in responses.flat_map(S3Response::all_hypotheses) {
+        if hypothesis.safety_status == Some(1) {
+            return Err(EngineError::SafetyBlocked);
+        }
+        unrecognized |= hypothesis.safety_status.is_some_and(|value| value != 0)
+            || hypothesis
+                .unknown_fields
+                .iter()
+                .any(|field| field.number == HYPOTHESIS_SAFETY_STATUS);
+    }
+    if unrecognized {
+        Err(EngineError::UnrecognizedSafety)
+    } else {
+        Ok(())
+    }
+}
+
 impl DictationResult {
     /// Refuse simplified rendering and editor proposals when any retained final
     /// candidate is safety-blocked, or has an uninterpreted field-30 occurrence.
@@ -33,22 +109,7 @@ impl DictationResult {
     /// evidence covers accepted VoiceEdit candidates; applying this guard to all
     /// candidates and unknown values is intentionally conservative.
     pub fn check_safety(&self) -> Result<(), EngineError> {
-        let mut unrecognized = false;
-        for hypothesis in self.final_updates.iter().flat_map(S3Response::hypotheses) {
-            if hypothesis.safety_status == Some(1) {
-                return Err(EngineError::SafetyBlocked);
-            }
-            unrecognized |= hypothesis.safety_status.is_some_and(|value| value != 0)
-                || hypothesis
-                    .unknown_fields
-                    .iter()
-                    .any(|field| field.number == HYPOTHESIS_SAFETY_STATUS);
-        }
-        if unrecognized {
-            Err(EngineError::UnrecognizedSafety)
-        } else {
-            Ok(())
-        }
+        check_response_safety(self.final_updates.iter())
     }
     pub fn single_hypothesis(&self) -> Result<&Hypothesis, EngineError> {
         self.check_safety()?;
@@ -56,6 +117,76 @@ impl DictationResult {
             return Err(EngineError::AmbiguousResult);
         }
         Ok(&self.final_updates[0].hypotheses()[0])
+    }
+    /// Safety is checked across ALL finals before any policy-specific projection.
+    /// Multiple finals/hypotheses remain ambiguous, including identical candidates.
+    /// An accepted empty edit stays empty: it never falls back to ASR.
+    pub fn render(&self, policy: RenderPolicy) -> Result<RenderedText, EngineError> {
+        let hypothesis = self.single_hypothesis()?;
+        let edit = hypothesis.voice_edit.as_ref();
+        let intent = edit.and_then(|edit| edit.intent);
+        if policy == RenderPolicy::AsrOnly {
+            return Ok(RenderedText {
+                text: hypothesis
+                    .text
+                    .clone()
+                    .ok_or(EngineError::AmbiguousResult)?,
+                provenance: TextProvenance::HypothesisText,
+                intent,
+                fallback_reason: None,
+            });
+        }
+        if policy == RenderPolicy::Strict {
+            let text = self.text()?;
+            return Ok(RenderedText {
+                text,
+                provenance: match edit.map(|edit| edit.active_field) {
+                    Some(Some(3)) => TextProvenance::VoiceEditText,
+                    Some(Some(7)) => TextProvenance::VoiceEditContext,
+                    _ => TextProvenance::HypothesisText,
+                },
+                intent,
+                fallback_reason: edit.is_none().then_some(FallbackReason::VoiceEditAbsent),
+            });
+        }
+        let fallback_reason = match edit {
+            None => FallbackReason::VoiceEditAbsent,
+            Some(edit) if !matches!(edit.intent, Some(2 | 3)) => FallbackReason::UnsupportedIntent,
+            Some(edit) if !matches!(edit.active_field, Some(3 | 7)) => {
+                FallbackReason::UnsupportedMember
+            }
+            Some(edit) => {
+                let (text, provenance) = if edit.active_field == Some(3) {
+                    (
+                        edit.edited_text
+                            .clone()
+                            .ok_or(EngineError::AmbiguousResult)?,
+                        TextProvenance::VoiceEditText,
+                    )
+                } else {
+                    (
+                        join_context(
+                            edit.edited_context
+                                .as_ref()
+                                .ok_or(EngineError::AmbiguousResult)?,
+                        ),
+                        TextProvenance::VoiceEditContext,
+                    )
+                };
+                return Ok(RenderedText {
+                    text,
+                    provenance,
+                    intent,
+                    fallback_reason: None,
+                });
+            }
+        };
+        Ok(RenderedText {
+            text: hypothesis.text.clone().unwrap_or_default(),
+            provenance: TextProvenance::HypothesisText,
+            intent,
+            fallback_reason: Some(fallback_reason),
+        })
     }
     pub fn text(&self) -> Result<String, EngineError> {
         let hypothesis = self.single_hypothesis()?;
@@ -92,10 +223,48 @@ fn join_context(context: &EditingContext) -> String {
 /// Dropping the whole collecting future signals cancellation through session Drop;
 /// use Engine::close to await cleanup after external cancellation.
 pub async fn collect_session(
-    mut session: EngineSession,
+    session: EngineSession,
     limits: CollectorLimits,
 ) -> Result<DictationResult, EngineError> {
-    let result = collect_inner(&mut session, limits).await;
+    finish_collection(session, limits, Retention::GlobalFinals)
+        .await
+        .map(|(result, _)| result)
+}
+
+/// Collect hypothesis containers (fields3/5/7), irrespective of recognition state.
+/// All completion/error/cleanup checks are shared with `collect_session`.
+/// Limits count every retained response, including an empty state1 marker.
+pub async fn collect_segment_session(
+    session: EngineSession,
+    limits: CollectorLimits,
+) -> Result<SegmentResult, EngineError> {
+    let (result, ordinals) = finish_collection(session, limits, Retention::Segments).await?;
+    Ok(SegmentResult {
+        updates: result
+            .final_updates
+            .into_iter()
+            .zip(ordinals)
+            .map(|(response, response_ordinal)| SegmentUpdate {
+                response_ordinal,
+                response,
+            })
+            .collect(),
+        context: result.context,
+        metrics: result.metrics,
+    })
+}
+
+#[derive(Clone, Copy)]
+enum Retention {
+    GlobalFinals,
+    Segments,
+}
+async fn finish_collection(
+    mut session: EngineSession,
+    limits: CollectorLimits,
+    retention: Retention,
+) -> Result<(DictationResult, Vec<u64>), EngineError> {
+    let result = collect_inner(&mut session, limits, retention).await;
     let cleanup = session.close_unobserved().await;
     match result {
         Err(error) => Err(error),
@@ -105,6 +274,7 @@ pub async fn collect_session(
         }
     }
 }
+
 /// Takes ownership synchronously, before the returned future's first poll. Even
 /// dropping an entirely unpolled collector signals cleanup; Engine::close awaits
 /// it. Invalid limits are checked before RPC setup and still clean up audio.
@@ -114,15 +284,7 @@ pub fn collect_dictation(
     options: SessionOptions,
     limits: CollectorLimits,
 ) -> impl std::future::Future<Output = Result<DictationResult, EngineError>> + Send + 'static {
-    let invalid_limits = limits.max_final_updates == 0 || limits.max_result_bytes == 0;
-    let (session, rejected_cleanup) = if invalid_limits {
-        (
-            Err(EngineError::InvalidConfig),
-            Some(engine.cleanup_unstarted(audio)),
-        )
-    } else {
-        (engine.start(audio, options), None)
-    };
+    let (session, rejected_cleanup) = prepare_collection(engine, audio, options, limits);
     async move {
         if let Some(cleanup) = rejected_cleanup {
             cleanup.await?;
@@ -130,14 +292,51 @@ pub fn collect_dictation(
         collect_session(session?, limits).await
     }
 }
+/// Ownership is transferred synchronously, including when the returned future
+/// is never polled. Like dictation collection, failures do not trigger replay.
+pub fn collect_segments(
+    engine: &Engine,
+    audio: Box<dyn AudioSource>,
+    options: SessionOptions,
+    limits: CollectorLimits,
+) -> impl std::future::Future<Output = Result<SegmentResult, EngineError>> + Send + 'static {
+    let (session, rejected_cleanup) = prepare_collection(engine, audio, options, limits);
+    async move {
+        if let Some(cleanup) = rejected_cleanup {
+            cleanup.await?;
+        }
+        collect_segment_session(session?, limits).await
+    }
+}
+type PreparedCollection = (
+    Result<EngineSession, EngineError>,
+    Option<crate::SourceFuture<'static, Result<(), EngineError>>>,
+);
+fn prepare_collection(
+    engine: &Engine,
+    audio: Box<dyn AudioSource>,
+    options: SessionOptions,
+    limits: CollectorLimits,
+) -> PreparedCollection {
+    if limits.max_final_updates == 0 || limits.max_result_bytes == 0 {
+        (
+            Err(EngineError::InvalidConfig),
+            Some(engine.cleanup_unstarted(audio)),
+        )
+    } else {
+        (engine.start(audio, options), None)
+    }
+}
 async fn collect_inner(
     session: &mut EngineSession,
     limits: CollectorLimits,
-) -> Result<DictationResult, EngineError> {
+    retention: Retention,
+) -> Result<(DictationResult, Vec<u64>), EngineError> {
     if limits.max_final_updates == 0 || limits.max_result_bytes == 0 {
         return Err(EngineError::InvalidConfig);
     }
     let mut updates = Vec::new();
+    let mut ordinals = Vec::new();
     let mut size = 0usize;
     let mut eof = None;
     let mut end = false;
@@ -153,7 +352,21 @@ async fn collect_inner(
             if response.status == Some(2) || response.error_code.is_some_and(|code| code != 0) {
                 s3_error = Some(response.clone());
             }
-            if response.recognition_state() == Some(1) {
+            let keep = response.recognition_state() == Some(1)
+                || matches!(retention, Retention::Segments)
+                    && response
+                        .result
+                        .as_ref()
+                        .and_then(|result| result.recognition.as_ref())
+                        .is_some_and(|result| {
+                            result.hypothesis_result.is_some()
+                                || result.hypothesis_result_field5.is_some()
+                                || result.hypothesis_result_field7.is_some()
+                        });
+            if keep {
+                if matches!(retention, Retention::Segments) {
+                    ordinals.push(event.metrics.responses_received);
+                }
                 size = size
                     .checked_add(response.raw.len())
                     .ok_or(EngineError::ResultLimit)?;
@@ -175,11 +388,14 @@ async fn collect_inner(
     if !end || eof.is_none() {
         return Err(session.incomplete_error().await);
     }
-    Ok(DictationResult {
-        final_updates: updates,
-        context: session.captured_context(),
-        metrics: eof,
-    })
+    Ok((
+        DictationResult {
+            final_updates: updates,
+            context: session.captured_context(),
+            metrics: eof,
+        },
+        ordinals,
+    ))
 }
 
 /// Strings and arbitrary-size canonical decimal integers are distinct revision
@@ -302,4 +518,166 @@ pub fn replacement_proposal(
         replacement_text: text,
         replacement_context: context,
     })
+}
+
+/// Explicit opt-in to static client-compatible replacement of the captured
+/// context WINDOW (ihm:203–212, ffh:117–145, ffq:64–105). No mutation occurs.
+/// Strict delegates unchanged to the historical proposal contract. ASR-only and
+/// every ASR fallback are ineligible, even if the ASR text resembles an edit.
+pub fn replacement_proposal_with_policy(
+    result: &DictationResult,
+    expected_revision: Option<Revision>,
+    policy: RenderPolicy,
+) -> Result<ReplacementProposal, EngineError> {
+    if policy == RenderPolicy::Strict {
+        return replacement_proposal(result, expected_revision);
+    }
+    let hypothesis = result.single_hypothesis()?;
+    if policy == RenderPolicy::AsrOnly {
+        return Err(EngineError::UnsupportedEdit);
+    }
+    let edit = hypothesis
+        .voice_edit
+        .as_ref()
+        .ok_or(EngineError::UnsupportedEdit)?;
+    // The newly established rewrite replacement scope is specifically field7.
+    // A renderable rewrite string alone does not establish its editor range.
+    if edit.intent != Some(2) && !(edit.intent == Some(3) && edit.active_field == Some(7)) {
+        return Err(EngineError::UnsupportedEdit);
+    }
+    let rendered = result.render(policy)?;
+    if rendered.provenance == TextProvenance::HypothesisText {
+        return Err(EngineError::UnsupportedEdit);
+    }
+    let snapshot = result
+        .context
+        .as_ref()
+        .ok_or(EngineError::UnsupportedEdit)?;
+    let edit = hypothesis
+        .voice_edit
+        .as_ref()
+        .ok_or(EngineError::UnsupportedEdit)?;
+    Ok(ReplacementProposal {
+        snapshot: snapshot.clone(),
+        expected_revision,
+        replacement_text: rendered.text,
+        replacement_context: (edit.active_field == Some(7))
+            .then(|| edit.edited_context.clone())
+            .flatten(),
+    })
+}
+
+/// Versioned DEFAULT flag patterns from fgc:13–40 and muq:76–78. This is not
+/// a claim about runtime flag values, nor a configurable Java regex engine.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CommandProfile {
+    S3DefaultPatternsV1,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CommandKind {
+    Send,
+    DeleteLastSentence,
+    DeleteAll,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CommandDisposition {
+    /// ffh:771–773 recognizes CLEAR/CLEAR_ALL but refuses them.
+    RejectedByClientBranch,
+    /// SEND cannot be offered without the editor's IME action 4.
+    RequiresImeAction4,
+    /// Classification/preconditions only; the caller must explicitly act.
+    EligibleForExplicitSend,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CommandPreconditions {
+    pub required_ime_action: Option<i32>,
+    pub observed_ime_action: Option<i32>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CommandCandidate {
+    pub profile: CommandProfile,
+    pub command: CommandKind,
+    pub provenance: TextProvenance,
+    pub intent: Option<i32>,
+    pub preconditions: CommandPreconditions,
+    pub disposition: CommandDisposition,
+    /// Always false: classification never sends, clears, or mutates anything.
+    pub applied: bool,
+}
+impl DictationResult {
+    /// Opt-in, locale-independent DEFAULT-pattern classification from a unique
+    /// final accepted VoiceEdit only (ffh:683–695,767–780). Never uses transcript
+    /// or ASR, even when the client text helper would fall back. Does not imply
+    /// that Android's general feature gate is enabled or perform a VoiceAction.
+    pub fn classify_command(
+        &self,
+        profile: CommandProfile,
+        ime_action: Option<i32>,
+    ) -> Result<Option<CommandCandidate>, EngineError> {
+        self.single_hypothesis()?;
+        if self.final_updates[0].recognition_state() != Some(1) {
+            return Err(EngineError::AmbiguousResult);
+        }
+        let rendered = self.render(RenderPolicy::S3ClientCompatible)?;
+        if rendered.provenance == TextProvenance::HypothesisText {
+            return Err(EngineError::UnsupportedEdit);
+        }
+        let command = match profile {
+            CommandProfile::S3DefaultPatternsV1 => default_command(&rendered.text),
+        };
+        Ok(command.map(|command| {
+            let send = command == CommandKind::Send;
+            CommandCandidate {
+                profile,
+                command,
+                provenance: rendered.provenance,
+                intent: rendered.intent,
+                preconditions: CommandPreconditions {
+                    required_ime_action: send.then_some(4),
+                    observed_ime_action: ime_action,
+                },
+                disposition: if !send {
+                    CommandDisposition::RejectedByClientBranch
+                } else if ime_action != Some(4) {
+                    CommandDisposition::RequiresImeAction4
+                } else {
+                    CommandDisposition::EligibleForExplicitSend
+                },
+                applied: false,
+            }
+        }))
+    }
+}
+
+fn default_command(text: &str) -> Option<CommandKind> {
+    // Java String.trim removes code points <= U+0020, not Unicode whitespace
+    // and not just the six ASCII regex whitespace classes.
+    let text = text.trim_matches(|ch| ch <= '\u{20}');
+    let non_alphanumeric = |ch: char| !ch.is_ascii_alphanumeric();
+    let send = text.trim_matches(non_alphanumeric);
+    // ^[^a-z0-9]*sen[dt][^a-z0-9]*$; ASCII CASE_INSENSITIVE only.
+    if send.eq_ignore_ascii_case("send") || send.eq_ignore_ascii_case("sent") {
+        return Some(CommandKind::Send);
+    }
+    // ^clear[^a-z0-9]*$; then ^clear\sall[^a-z0-9]*$, in that order.
+    let clear = text
+        .get(..5)
+        .filter(|prefix| prefix.eq_ignore_ascii_case("clear"))?;
+    let rest = &text[clear.len()..];
+    if rest.chars().all(non_alphanumeric) {
+        return Some(CommandKind::DeleteLastSentence);
+    }
+    let bytes = rest.as_bytes();
+    if bytes
+        .first()
+        .is_some_and(|byte| matches!(byte, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r'))
+        && rest
+            .get(1..4)
+            .is_some_and(|word| word.eq_ignore_ascii_case("all"))
+        && rest[4..].chars().all(non_alphanumeric)
+    {
+        Some(CommandKind::DeleteAll)
+    } else {
+        None
+    }
 }

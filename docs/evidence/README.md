@@ -2,6 +2,24 @@
 
 ## Portage Rust
 
+- [rust-native-natural-public.json](rust-native-natural-public.json) : trois extraits
+  naturels licenciés EN/FR (18,885s), backend Rust consolidé, PCM réellement consommés
+  et hashés, trois rendus hashés identiques aux sorties Python historiques. Comparaison
+  rétrospective, pas un benchmark apparié ou une garantie de qualité générale.
+
+- [rust-native-session-reuse-public.json](rust-native-session-reuse-public.json) :
+  trois cas contrôlés, un même moteur natif et un seul appel de connexion explicite,
+  hash des PCM réellement consommés, édition avec emoji et français, sans retry.
+  Connexion TCP physique distante non comptée ; une connexion est prouvée en loopback.
+- [rust-reuse-initial-marker-failure.json](rust-reuse-initial-marker-failure.json) :
+  lot original arrêté au premier cas, marqueur `eleven` contre rendu `11`. Il reste
+  inconclusif ; le lot qualifié suivant a déclaré ses variantes avant exécution.
+- [rust-backend-offline-profile.json](rust-backend-offline-profile.json) :
+ 96 mesures CPU et40 sessions loopback, références et candidat à octets identiques.
+  Gain local d'allocation/sérialisation, pas de gain WAN revendiqué. Le snapshot
+  mesuré précède les modifications ultérieures ; [méthode et limites](../research/rust-backend-profiling.md).
+
+
 - [rust-incomplete-diagnostic-followup.json](rust-incomplete-diagnostic-followup.json) :
   consolidation avec diagnostic typé et revue Opus. Une qualification120s et
   un unique300s réussissent, sans reproduire ni résoudre l'ancien incident282s.
