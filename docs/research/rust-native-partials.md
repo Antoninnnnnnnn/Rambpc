@@ -62,7 +62,17 @@ pre/coincident/post-state1 previews, per-session reset, unique terminal completi
 late errors and result limits. Targeted strict Clippy, formatting and whitespace
 checks passed on Windows stable1.99.1; the release example built and its actual
 `--help` exposed the opt-in. Production library code/dependencies did not change;
-this observer's new example tests were not separately executed on Linux/macOS or1.88.
+this observer's10 example tests also passed separately on Windows/MSVC1.88.0
+and Linux x86_64/WSL1.88.0, offline with matching source hashes. This was not
+another workspace run or a live-service test. macOS remains unexecuted.
+[Targeted MSRV evidence](../evidence/rust-native-partials-msrv.json).
+
+The first Windows MSRV attempt failed before tests during Opus CMake compiler
+identification (`C1083`, invalid compiler-generated output file) with a deeply
+nested scratch target. The same source/toolchain passed using the ordinary
+repository Cargo target, without changing global settings or production code.
+Both reports and the failed compiler diagnostic are preserved; prefer a short
+Cargo build-output path on Windows.
 
 The [single predeclared live observation](../evidence/rust-native-partials-public.json)
 completed with a healthy dictation, all106,535 PCM samples consumed/hash-verified,

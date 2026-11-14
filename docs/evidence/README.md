@@ -20,6 +20,11 @@
 
 ## Portage Rust
 
+- [rust-native-partials-msrv.json](rust-native-partials-msrv.json) :
+ 10 tests ciblés de l'exemple passent sur chacun de Windows/MSVC1.88 et Linux1.88,
+  source hashée identique, zéro service/appareil. L'échec CMake initial Windows
+  dans un target profondément imbriqué reste distinct du succès au chemin ordinaire.
+
 - [rust-native-partials-public.json](rust-native-partials-public.json) :
   un essai synthétique natif à débit temps réel, audio intégral vérifié et finale
   saine ;20 réponses mais0 field4. Qualification des partiels **inconclusive**,

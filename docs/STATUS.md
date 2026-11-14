@@ -20,8 +20,11 @@ d'assembleur Python passants, pas présentées comme injecteur fonctionnel.
 
 Le validateur expose `--observe-partials` : compteurs par session et hashes cadrés
 stable/provisoire/rendu, distinction avant/première state1, sans texte ni promotion
-en finale.10 tests ciblés Windows stable et Clippy strict passent ; aucune API
-production/dépendance modifiée. [Méthode](research/rust-native-partials.md).
+en finale.10 tests ciblés passent sur Windows stable, Windows/MSVC1.88 et
+Linux1.88 ; Clippy strict Windows stable passe. Le premier essai MSRV Windows
+échoue en configuration CMake dans un target profondément imbriqué, puis passe
+avec le target Cargo ordinaire, sans modification de source ; échec préservé.
+Aucune API production/dépendance modifiée. [Méthode](research/rust-native-partials.md).
 Un unique essai synthétique natif à débit temps réel termine sainement avec audio
 intégral vérifié, mais20 réponses et **0 field4** : rendu partiel réel/progression
 pré-state1 restent **inconclusifs**, sans second appel ni retry. La première réponse

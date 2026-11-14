@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-14",
+  "source_base_commit": "e867154",
+  "scope": "session_reuse example tests only; no production source changes or new service calls",
+  "command": "cargo +1.88.0 test -p rambler-cli --features audio --example session_reuse --locked --offline",
+  "source_sha256": {
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "crates/rambler-cli/examples/session_reuse.rs": "7ab37d067c851b68df7a0958a5f8a5ada200fc311e5fed153544ee41cdc70ff5",
+    "crates/rambler-cli/examples/support/session_reuse_partial_tests.rs": "5f9eef016a4a9f5aed61ff5140aa4ade645b1284e8320528f39d401156183ca7",
+    "crates/rambler-cli/examples/support/session_reuse_tests.rs": "a67e2a45dc94351bc2e9af7ae6d70b6174165bbaf15c93370a4de3a528905540"
+  },
+  "platforms": [
+    {
+      "os": "Windows/MSVC",
+      "rust": "1.88.0",
+      "exit": 0,
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "private_log_sha256": "4f8bd3ddaa10d28bb0eeb933016a9c4dc48b8cfeb46faea5c152cdb52d3c3fc5"
+    },
+    {
+      "os": "Linux x86_64 / RelayTests WSL Ubuntu24.04",
+      "rust": "1.88.0",
+      "exit": 0,
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "private_log_sha256": "6393cbbd88e1ca58b27700f7322a65667902c67c84ab3440a0168ff669a48f6a",
+      "source_manifest_sha256": "30f39a97489f6a917276fe0f861f9a104499a32671035386d094318b0b931e30"
+    }
+  ],
+  "preserved_failed_setup": {
+    "os": "Windows/MSVC",
+    "exit": 101,
+    "tests_executed": 0,
+    "stage": "CMake C compiler identification for Opus",
+    "diagnostic": "C1083 Cannot open compiler generated file: Invalid argument",
+    "output_directory": "deep session scratch Cargo target",
+    "resolution": "same source and toolchain, ordinary repository Cargo target; no global settings or library source changes",
+    "private_log_sha256": "2e9d9ae4bafcd0aa225c8dbb88ce7b641e634573fe40c3d7be83d6c3221143f8",
+    "private_cmake_log_sha256": "fc7ed0ab3e30ecf62a6faf5fc6c859abbe5e336d23c8b26883258f17f78bd633"
+  },
+  "build_settings": {
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "cmake": "3.31.10"
+  },
+  "service_calls": 0,
+  "device_actions": 0,
+  "limits": [
+    "not a full workspace rerun",
+    "not macOS validation",
+    "not partial-text service qualification or Android parity",
+    "one source snapshot; platform timing not compared"
+  ]
+}
