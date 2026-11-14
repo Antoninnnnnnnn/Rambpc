@@ -1,5 +1,16 @@
 # État du moteur — 2026-11-14
 
+## Observation native des partiels
+
+Le validateur expose `--observe-partials` : compteurs par session et hashes cadrés
+stable/provisoire/rendu, distinction avant/première state1, sans texte ni promotion
+en finale.10 tests ciblés Windows stable et Clippy strict passent ; aucune API
+production/dépendance modifiée. [Méthode](research/rust-native-partials.md).
+Un unique essai synthétique natif à débit temps réel termine sainement avec audio
+intégral vérifié, mais20 réponses et **0 field4** : rendu partiel réel/progression
+pré-state1 restent **inconclusifs**, sans second appel ni retry. La première réponse
+n'est pas assimilée à un partiel. [Preuve](evidence/rust-native-partials-public.json).
+
 ## Décodage : allocations défensives
 
 **279 tests workspace passent** sur Windows stable1.99.1 et1.88, ainsi que

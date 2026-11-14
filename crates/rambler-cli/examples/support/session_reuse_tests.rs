@@ -4,6 +4,9 @@ mod common;
 use common::{TestServer, bounded, drain, replies};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+#[path = "session_reuse_partial_tests.rs"]
+mod partial_tests;
+
 fn wave(pcm: &[u8]) -> Vec<u8> {
     let mut out = b"RIFF".to_vec();
     out.extend((36_u32 + pcm.len() as u32).to_le_bytes());
@@ -36,6 +39,7 @@ fn args(manifest: PathBuf, loopback: Option<SocketAddr>) -> Args {
         allow_live: false,
         timeout: 3,
         realtime: false,
+        observe_partials: false,
     }
 }
 
@@ -136,6 +140,7 @@ async fn one_physical_tcp_for_three_sessions_and_stop_without_replay_on_inconclu
         assert_eq!(server.accepted_connections.load(Ordering::SeqCst), 1);
         assert_eq!(report["sessions"][0]["pcm"]["bytes"], 642);
         assert_eq!(report["sessions"][0]["pcm"]["matches"], true);
+        assert!(report["sessions"][0].get("partial_observations").is_none());
         let serialized = report.to_string();
         for private in [
             "private-audio",

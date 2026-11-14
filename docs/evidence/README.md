@@ -2,6 +2,11 @@
 
 ## Portage Rust
 
+- [rust-native-partials-public.json](rust-native-partials-public.json) :
+  un essai synthétique natif à débit temps réel, audio intégral vérifié et finale
+  saine ;20 réponses mais0 field4. Qualification des partiels **inconclusive**,
+  zéro retry et aucun second appel. [Observateur et limites](../research/rust-native-partials.md).
+
 - [rust-backend-decode-differential.json](rust-backend-decode-differential.json) :
  6 791 entrées uniques,95 074 comparaisons de modèles/erreurs complets,
   zéro différence avec la référence (limites production puis budget instrumenté).

@@ -106,7 +106,7 @@ contrôlées par l'intégrateur.
 |Annulation / délais|`EngineSession::{request_cancel,close}`, transport h2 par flux|Loopback/backpressure/concurrence et vrai Ctrl-C Windows ; pas de rejeu automatique.|
 |Contexte tardif|`iho.a/b/g`, `iho.java:96` ; `ContextInput`, `ContextProvider`|Édition réelle Rust ; ordre callback/cleanup borné testé offline. Pas de comparaison sur appareil.|
 |Sélection UTF-16|`ffq.java:64–74,84–105` ; `selection_utf16_range`, `validate_current`|Sélection `ten` avec emoji dans le contexte réelle Rust ; sélection de l'emoji lui-même non validée.|
-|Partiels|`ihm.java:310–355`, test score<0,9 ; `PartialTranscript`, parties empruntées et flag nonfini|Décodage offline. Pas de preuve dédiée publiée de rendu partiel Rust ; `first_text` ne suffit pas.|
+|Partiels|`ihm.java:310–355`, test score<0,9 ; `PartialTranscript`, parties empruntées et flag nonfini|Décodage/projection offline. [Un essai natif dédié](rust-native-partials.md) :20 réponses,0 field4, finale saine ; rendu partiel réel et progression pré-state1 restent inconclusifs. `first_text`/première réponse ne suffisent pas.|
 |Segments vs fin globale|`aaln.field3/4/5/7` indépendants ; `RecognitionCompletion`, événements, `collect_segments`|Collecteur strict state1 ; collecteur segments retient3/5/7 et marqueurs state1 sans finalité universelle. Pas d'assemblage implicite.|
 |Autres résultats oneof|`aapd.java:34` :1/2,5–13,15,16,18–21 ; champs3/4 indépendants|`active_field`, `active_raw`, inconnus préservés ; **pas de prise en charge sémantique** des variantes opaques.|
 |Extensions futures|Inconnus, fallback aalo, conteneurs5/7 et extension74956225|Raw/inconnus et bornes préservés. Pas de garantie de sémantique d'un futur oneof non connu.|

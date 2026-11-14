@@ -1,4 +1,5 @@
 //! Bounded developer validator: 2..=3 sessions on ONE Engine/transport.
+//! --observe-partials also allows one session for a no-replay observation probe.
 //! No retries. Outputs only hashes, counters and classifications, never text,
 //! paths, metadata or raw response fields. Live mode requires --allow-live.
 use bytes::Bytes;
@@ -6,7 +7,8 @@ use clap::Parser;
 use rambler_audio::{EncoderConfig, Pcm16Opus, WavAudio, WavConfig};
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext, Engine,
-    EngineError, ProtocolConfig, SessionOptions, SourceError, SourceFuture, collect_dictation,
+    EngineError, EngineSession, PartialTranscript, Presentation, PresentationContent,
+    ProtocolConfig, SessionOptions, SourceError, SourceFuture, collect_dictation,
 };
 use rambler_transport::{EnvironmentCredentials, TransportConfig, TransportError};
 use serde::Deserialize;
@@ -30,6 +32,9 @@ struct Args {
     timeout: u64,
     #[arg(long)]
     realtime: bool,
+    /// Add per-session native field4 preview counters and ordered output hashes.
+    #[arg(long)]
+    observe_partials: bool,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -99,6 +104,123 @@ impl AudioSource for MeasuredPcm {
 }
 fn hash(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
+}
+/// Constant-space observations of sequential previews, never final candidates.
+/// Each output hash covers ordered (u64 little-endian UTF-8 byte length, bytes)
+/// records, including empty previews. Previews are NOT concatenated as text.
+#[derive(Default)]
+struct PartialObservations {
+    updates: u64,
+    updates_before_first_state1: u64,
+    state1_coincident_updates: u64,
+    saw_state1: bool,
+    parts: u64,
+    missing_text_parts: u64,
+    empty_text_parts: u64,
+    stable_nonempty_updates: u64,
+    tentative_nonempty_updates: u64,
+    nonfinite_score_updates: u64,
+    stable: Sha256,
+    tentative: Sha256,
+    rendered: Sha256,
+}
+impl PartialObservations {
+    fn observe(&mut self, response: &rambler_engine::S3Response) {
+        // Latch on EVERY response, including state1 without any field4. A
+        // coincident or later preview is not evidence of pre-final progression.
+        let state1 = response.recognition_state() == Some(1);
+        self.saw_state1 |= state1;
+        let PresentationContent::Recognition { result, .. } = Presentation::new(response).content
+        else {
+            return;
+        };
+        let Some(partial) = &result.partial_result else {
+            return;
+        };
+        let preview = PartialTranscript::from_result(partial);
+        self.updates += 1;
+        self.updates_before_first_state1 += u64::from(!self.saw_state1);
+        self.state1_coincident_updates += u64::from(state1);
+        self.parts += preview.parts.len() as u64;
+        self.missing_text_parts += preview.parts.iter().filter(|p| p.text.is_none()).count() as u64;
+        self.empty_text_parts += preview
+            .parts
+            .iter()
+            .filter(|p| p.text.as_deref() == Some(""))
+            .count() as u64;
+        self.stable_nonempty_updates += u64::from(!preview.stable_prefix.is_empty());
+        self.tentative_nonempty_updates += u64::from(!preview.tentative_suffix.is_empty());
+        self.nonfinite_score_updates += u64::from(preview.has_nonfinite_scores);
+        let rendered = preview.text();
+        for (digest, text) in [
+            (&mut self.stable, preview.stable_prefix.as_str()),
+            (&mut self.tentative, preview.tentative_suffix.as_str()),
+            (&mut self.rendered, rendered.as_str()),
+        ] {
+            digest.update((text.len() as u64).to_le_bytes());
+            digest.update(text.as_bytes());
+        }
+    }
+    fn report(&self) -> Value {
+        json!({"updates":self.updates, "parts":self.parts,
+            "updates_before_first_state1":self.updates_before_first_state1,
+            "state1_coincident_updates":self.state1_coincident_updates,
+            "missing_text_parts":self.missing_text_parts, "empty_text_parts":self.empty_text_parts,
+            "stable_nonempty_updates":self.stable_nonempty_updates,
+            "tentative_nonempty_updates":self.tentative_nonempty_updates,
+            "nonfinite_score_updates":self.nonfinite_score_updates,
+            "hash_encoding":"ordered_u64le_length_prefixed_utf8_v1",
+            "stable_outputs_sha256":format!("{:x}",self.stable.clone().finalize()),
+            "tentative_outputs_sha256":format!("{:x}",self.tentative.clone().finalize()),
+            "rendered_outputs_sha256":format!("{:x}",self.rendered.clone().finalize())})
+    }
+}
+fn with_partials(mut row: Value, observations: Option<&PartialObservations>) -> Value {
+    if let Some(observations) = observations {
+        row["partial_observations"] = observations.report();
+    }
+    row
+}
+/// Example-only opt-in collector. The engine's terminal `next` enforces S3 END,
+/// full upload, cleanup and gRPC OK. Still require its unique EOF and await the
+/// terminal next: neither a partial nor a final response establishes success.
+/// On an early limit/error/drop, session Drop cancels; run always awaits Engine::close.
+async fn collect_observed(
+    session: Result<EngineSession, EngineError>,
+    observations: &mut PartialObservations,
+) -> Result<DictationResult, EngineError> {
+    let mut session = session?;
+    let limits = CollectorLimits::default();
+    let mut result = DictationResult::default();
+    let mut size = 0usize;
+    while let Some(event) = session.next().await? {
+        if let Some(response) = event.response {
+            if result.metrics.is_some() {
+                return Err(EngineError::Supervisor);
+            }
+            observations.observe(&response);
+            // Same strict state1 retention as collect_dictation. No secondary
+            // container selection or partial promotion, even when no final exists.
+            if response.recognition_state() == Some(1) {
+                size = size
+                    .checked_add(response.raw.len())
+                    .ok_or(EngineError::ResultLimit)?;
+                if result.final_updates.len() >= limits.max_final_updates
+                    || size > limits.max_result_bytes
+                {
+                    return Err(EngineError::ResultLimit);
+                }
+                result.final_updates.push(response);
+            }
+        } else if result.metrics.replace(event.metrics).is_some() {
+            return Err(EngineError::Supervisor);
+        }
+    }
+    if result.metrics.is_none() {
+        return Err(EngineError::Supervisor);
+    }
+    result.context = session.captured_context();
+    Ok(result)
 }
 fn normalized(text: &str) -> String {
     text.to_lowercase()
@@ -203,7 +325,8 @@ async fn run(args: Args) -> (Value, bool) {
         Ok(cases) => cases,
         Err(_) => return (json!({"status":"rejected", "category":"manifest"}), false),
     };
-    if !(2..=3).contains(&cases.len())
+    let minimum_cases = if args.observe_partials { 1 } else { 2 };
+    if !(minimum_cases..=3).contains(&cases.len())
         || cases.iter().any(|case| {
             case.pcm_sha256.len() != 64
                 || !case.pcm_sha256.bytes().all(|b| b.is_ascii_hexdigit())
@@ -322,14 +445,29 @@ async fn run(args: Args) -> (Value, bool) {
             },
             ..Default::default()
         };
+        let mut observations = args.observe_partials.then(PartialObservations::default);
         let result = {
-            let collection = collect_dictation(
-                &engine,
-                Box::new(source),
-                options,
-                CollectorLimits::default(),
-            );
-            tokio::pin!(collection);
+            // Transfer ownership synchronously, even if the signal wins before
+            // the collector's first poll: dropping it must still cancel cleanup.
+            let mut collection: std::pin::Pin<
+                Box<
+                    dyn std::future::Future<Output = Result<DictationResult, EngineError>>
+                        + Send
+                        + '_,
+                >,
+            > = if let Some(observations) = observations.as_mut() {
+                Box::pin(collect_observed(
+                    engine.start(Box::new(source), options),
+                    observations,
+                ))
+            } else {
+                Box::pin(collect_dictation(
+                    &engine,
+                    Box::new(source),
+                    options,
+                    CollectorLimits::default(),
+                ))
+            };
             tokio::select! {
                 biased;
                 _ = &mut signal => None,
@@ -337,14 +475,20 @@ async fn run(args: Args) -> (Value, bool) {
             }
         };
         let Some(result) = result else {
-            rows.push(failure(index, "cancelled"));
+            rows.push(with_partials(
+                failure(index, "cancelled"),
+                observations.as_ref(),
+            ));
             healthy = false;
             break;
         };
         let result = match result {
             Ok(result) => result,
             Err(error) => {
-                rows.push(engine_failure(index, &error));
+                rows.push(with_partials(
+                    engine_failure(index, &error),
+                    observations.as_ref(),
+                ));
                 healthy = false;
                 break;
             }
@@ -352,7 +496,10 @@ async fn run(args: Args) -> (Value, bool) {
         let text = match result.text() {
             Ok(text) => text,
             Err(error) => {
-                rows.push(engine_failure(index, &error));
+                rows.push(with_partials(
+                    engine_failure(index, &error),
+                    observations.as_ref(),
+                ));
                 healthy = false;
                 break;
             }
@@ -382,7 +529,7 @@ async fn run(args: Args) -> (Value, bool) {
             && markers.iter().all(|found| *found)
             && text_matches_expected != Some(false);
         let metrics = result.metrics.as_ref().unwrap();
-        rows.push(json!({"case":index, "status":if passed {"healthy"} else {"failed_or_inconclusive"},
+        rows.push(with_partials(json!({"case":index, "status":if passed {"healthy"} else {"failed_or_inconclusive"},
             "pcm":{"bytes":pcm.bytes, "sha256":pcm_hash, "eof":pcm.eof, "closed":pcm.closed,
                 "expected_frames":frames, "matches":consumed},
             "markers_found":markers, "marker_alternatives_found":alternatives, "text_sha256":hash(text.as_bytes()), "text_matches_expected":text_matches_expected,
@@ -394,7 +541,7 @@ async fn run(args: Args) -> (Value, bool) {
                 "elapsed_seconds":metrics.elapsed_seconds,
                 "first_response_seconds":metrics.first_response_seconds,
                 "encoded_audio_bytes":metrics.audio.bytes, "encoded_audio_eof":metrics.audio.eof},
-        }));
+        }), observations.as_ref()));
         if !passed {
             healthy = false;
             break;
