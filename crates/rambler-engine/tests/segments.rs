@@ -72,7 +72,7 @@ async fn keeps_all_segment_updates_and_global_marker_with_response_ordinals_no_a
         [2, 4, 5]
     );
     for (update, original) in result.updates.iter().zip([&data[1], &data[3], &data[4]]) {
-        assert_eq!(update.response.raw.as_slice(), original.as_ref());
+        assert_eq!(update.response.raw.as_ref(), original.as_ref());
     }
     assert_eq!(result.updates[0].response.hypotheses().len(), 2);
     assert_eq!(

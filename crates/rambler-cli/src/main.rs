@@ -63,6 +63,15 @@ struct CommonArgs {
     preference: Vec<String>,
     #[arg(long)]
     secondary_language: Vec<String>,
+    /// Explicit RecognizerInfo preference; omission preserves the server default.
+    #[arg(long, action = clap::ArgAction::Set)]
+    block_offensive_words: Option<bool>,
+    /// Explicit auto-punctuation preference (server effect unverified).
+    #[arg(long, action = clap::ArgAction::Set)]
+    auto_punctuation: Option<bool>,
+    /// Optional secondary S3 routing key; no automatic route discovery.
+    #[arg(long)]
+    secondary_routing: Option<String>,
     /// Test-only plaintext endpoint; only loopback addresses are accepted.
     #[arg(long)]
     loopback: Option<SocketAddr>,
@@ -273,6 +282,9 @@ async fn main() {
         bias_term,
         preference,
         secondary_language,
+        block_offensive_words,
+        auto_punctuation,
+        secondary_routing,
         loopback,
     } = common;
     let transport =
@@ -323,6 +335,9 @@ async fn main() {
             bias_terms: bias_term,
             preferences: preference,
             secondary_languages: secondary_language,
+            block_offensive_words,
+            auto_punctuation,
+            secondary_routing,
             ..Default::default()
         },
         context,

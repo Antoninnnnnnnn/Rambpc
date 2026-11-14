@@ -14,6 +14,21 @@
 //! fragments cannot heal one another. Opaque unknown payloads are not recursively
 //! interpreted. The global field budget charges each interpreted field once.
 //!
+//! # Prototype 0.1 raw-storage API
+//!
+//! Model `raw` fields and `RecognitionResponse::active_raw` use immutable
+//! [`bytes::Bytes`] instead of `Vec<u8>`. Decoding copies the exact root payload
+//! once, then shares that storage for single-occurrence children; merged raw is
+//! allocated as a logical concatenation. A retained child can keep its entire
+//! exact root payload alive (at most 8 MiB), but never an unrelated larger
+//! transport/framer allocation. Detach a small child explicitly with
+//! `bytes::Bytes::copy_from_slice(&child.raw)` or `child.raw.to_vec()` when needed.
+//! Unknown [`wire::Field`] / [`wire::Value`] and request return types are unchanged.
+//! Migrate construction with `vec.into()`, slice access with `raw.as_ref()` or
+//! `&raw[..]`, and explicit mutable copies with `raw.to_vec()`. `raw.clone()` now
+//! shares immutable storage; replace the field to change bytes. Read-only slice
+//! callers and the `decode_response(&[u8])` signature are unchanged.
+//!
 //! These are data only: no finality inference, collector, edit application, logging,
 //! network, credentials, Python/Android runtime, or alternative backend is included.
 //!

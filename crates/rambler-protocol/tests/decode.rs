@@ -366,11 +366,14 @@ fn all_verified_response_oneof_members_clear_and_keep_independent_strings() {
         assert_eq!(r.active_field, Some(last));
         assert_eq!(
             r.active_raw,
-            Some(if last == 2 {
-                join([scalar(1, 3), scalar(1, 44)])
-            } else {
-                scalar(1, 44)
-            })
+            Some(
+                (if last == 2 {
+                    join([scalar(1, 3), scalar(1, 44)])
+                } else {
+                    scalar(1, 44)
+                })
+                .into()
+            )
         );
         assert_eq!(r.language.as_deref(), Some("id"));
         assert_eq!(r.spoken_language.as_deref(), Some("independent"));
@@ -404,7 +407,7 @@ fn unknown_non_oneof_and_wrong_wire_do_not_clear_result_and_stay_opaque() {
     ))
     .unwrap();
     assert_eq!(d.recognition_state(), None);
-    assert_eq!(d.result.unwrap().active_raw, Some(vec![255, 8]));
+    assert_eq!(d.result.unwrap().active_raw, Some(vec![255, 8].into()));
 }
 
 #[test]
@@ -482,7 +485,10 @@ fn same_oneof_message_merges_across_independent_and_wrong_wire_fields() {
     assert_eq!(d.hypotheses()[0].text.as_deref(), Some("A"));
     let r = d.result.unwrap();
     assert_eq!(r.language.as_deref(), Some("id"));
-    assert_eq!(r.active_raw, Some(join([first.clone(), second.clone()])));
+    assert_eq!(
+        r.active_raw,
+        Some(join([first.clone(), second.clone()]).into())
+    );
     assert_eq!(r.recognition.as_ref().unwrap().raw, join([first, second]));
     assert_eq!(
         r.recognition.unwrap().unknown_fields,
@@ -508,7 +514,7 @@ fn oneof_member_change_resets_previous_message_before_later_merge() {
     assert_eq!(d.hypotheses()[0].text.as_deref(), Some("retained"));
     assert_eq!(
         d.result.unwrap().active_raw,
-        Some(join([new, scalar(1, 7)]))
+        Some(join([new, scalar(1, 7)]).into())
     );
 }
 

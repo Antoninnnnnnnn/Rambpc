@@ -2,6 +2,25 @@
 
 Ce document décrit un jalon, pas un backend déclaré parfait ou terminé. Les travaux de consolidation et de validation continuent ; les conteneurs vérifiés et le validateur Ogg sont maintenant intégrés. Les preuves ci-dessous ont chacune leur périmètre ; elles ne constituent pas une garantie générale d'absence de bugs.
 
+## Suite : raw partagé et options de requête
+
+Le snapshot R6 intègre ensuite le partage immuable des raw, le préflight des
+fichiers réguliers et les options RecognizerInfo7/40/64. **274 tests workspace**
+passent Windows stable/1.88 et Linux1.88 ; quatre tests d'exemple,30 feature-off,
+Clippy/format et builds release passent. Les nombres262 ci-dessous décrivent le
+jalon précédent, pas un résultat réécrit. Les tests restent offline/loopback.
+Trois essais réseau distincts ont ensuite terminé sur le nouveau binaire, avec
+champs7/40 omis puis explicitement faux/vrais : PCM hashés complets, trois textes
+hashés identiques, aucune erreur et aucun retry. C'est une preuve d'acceptation,
+pas d'efficacité de préférence ; [rapport fermé](../evidence/rust-recognizer-options-public.json).
+Le runner étendu a aussi été revalidé dans le snapshot Linux R7 (mêmes comptes).
+
+[Profil mémoire](rust-backend-profiling.md) : −70,82% de rétention logique à
+payloads identiques, pas une mesure RSS ; API raw migrée vers `Bytes` et petit
+enfant pouvant garder sa racine documentés. [Fichiers](rust-file-inputs.md) :
+les FIFO/pipes bloquants sont refusés avant RPC. [Options](rust-recognizer-options.md) :
+défauts omis identiques, effet serveur non démontré et safety inchangée.
+
 ## Résultats et présentation
 
 - Dans `RecognitionResponse`, les champs protobuf 3 et 4 sont respectivement `language` et `spoken_language`, et non `result_id` et `alternative_text`. C'est une rupture d'API source Rust 0.1, sans changement des numéros wire ni de l'oracle Python figé. Voir [l'analyse des champs](rust-response-language.md).

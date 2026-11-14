@@ -25,7 +25,14 @@ tokio.workspace = true
 serde_json.workspace = true
 clap = { version = "4", features = ["derive"] }
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
 [dev-dependencies]
+tokio = { workspace = true, features = ["process"] }
 serde.workspace = true
 sha2.workspace = true
 rambler-protocol = { path = "../rambler-protocol" }

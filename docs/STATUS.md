@@ -1,6 +1,39 @@
 # État du moteur — 2026-11-14
 
-## Consolidation backend native
+## Suite de consolidation : mémoire, entrées fichier et options S3
+
+**274 tests workspace passent** sur Windows stable1.99.1 et Rust1.88, ainsi que
+Linux1.88 (snapshot R6). L'exemple de réutilisation passe4 tests, la CLI sans audio
+30 ; Clippy strict, formatage et builds release avec/sans audio passent. macOS et
+la matrice CI distante restent non exécutés. Les preuves réseau antérieures ne
+sont pas réattribuées au nouveau binaire. Après les tests offline, trois appels
+synthétiques bornés ont accepté champs7/40 omis, faux puis vrais, sur un même
+moteur : PCM intégraux hashés, zéro retry et trois hashes de texte identiques.
+[Preuve](evidence/rust-recognizer-options-public.json) : acceptation de requête,
+pas efficacité du filtrage/ponctuation. Le routage secondaire n'a pas été essayé.
+
+- [Raw partagé](research/rust-backend-profiling.md) : payloads identiques et
+  **−70,82% de rétention logique** (12 635 008→3 686 912octets), texte/inconnus
+  conservés. Revue indépendante Opus sans finding concret ; ce n'est pas une
+  baisse RSS ou un gain WAN garanti. API Rust0.1 : `raw`/`active_raw` deviennent
+  `Bytes`, migration et enfant retenant sa racine documentés.
+- [Fichiers réguliers](research/rust-file-inputs.md) : FIFO Unix et pipe Windows
+  pouvaient bloquer avant le démarrage du timeout RPC. Ouverture Unix non bloquante
+  et contrôle du type du descripteur ; contrôle `GetFileType` sur Windows.
+  RED conservé, GREEN sur les deux OS, zéro TCP/RPC sur entrées refusées.
+- [Trois options RecognizerInfo](research/rust-recognizer-options.md) : préférence
+  de mots offensants field7=0/2, auto-punctuation field40, routage secondaire field64.
+  SDK et CLI, défauts `None` laissant les goldens identiques ; effet serveur non
+  testé, aucun switch COMPOSE ni changement de contrôle safety supposé.
+- La sélection legacy seule était déjà encodable via le champ texte plat ;
+  aucune proposition ne confond cette projection avec la fenêtre originale.
+
+Les autres frontières restent celles de la matrice : intentions non établies,
+services/modèles Android locaux, accès après révocation et macOS non exécuté.
+Aucun autre moteur ni API Gemini publique substitué. Le code n'est pas déclaré
+mathématiquement parfait et l'incident long historique n'est pas déclaré résolu.
+
+## Consolidation backend native — jalon fdc9fd9
 
 **262 tests Rust passent** sous Windows stable1.99.1 et1.88.0, ainsi que Linux
 x86_64/WSL Ubuntu24.04 avec Rust1.88. L'exemple `session_reuse` passe4 tests et la

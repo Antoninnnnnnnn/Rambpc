@@ -75,11 +75,29 @@ Elle ne convertit pas un WAV et ne simule pas le temps réel. Ne pas étiqueter 
 PCM comme Opus. Le SDK `AudioSource` reste un contrat d'octets encodés fournis par
 l'appelant ; cette validation fichier appartient à la CLI.
 
+Les commandes fichier exigent des **fichiers réguliers** (liens vers un fichier
+régulier permis), pas des FIFO, pipes, consoles ou périphériques. Sous Unix,
+l'ouverture non bloquante permet de vérifier le descripteur sans attendre un
+producteur ; sous Windows, son type est interrogé avant toute lecture. Les flux
+vivants restent possibles via une implémentation asynchrone `AudioSource`, pas en
+présentant un pipe comme un fichier. Le délai RPC ne borne pas tous les blocages
+possibles du système de fichiers ou d'un disque défaillant. Voir
+[préflight et régressions](research/rust-file-inputs.md).
+
 Options : `--timeout` (30 s), `--context-timeout` (2 s), ainsi que les listes
 répétables `--bias-term`, `--preference`, `--secondary-language`. Ces dernières
 sont émises à l'init ; le contexte texte est envoyé après l'audio. Leur encodage ne
 prouve pas leur effet sur le serveur. Ne pas placer de texte personnel dans les
 arguments si l'historique shell/la liste des processus peut être consulté.
+
+`ProtocolConfig` expose aussi `block_offensive_words: Option<bool>`,
+`auto_punctuation: Option<bool>` et `secondary_routing: Option<String>`.
+Les trois valeurs par défaut `None` préservent l'init historique octet pour octet.
+La CLI accepte `--block-offensive-words true|false`,
+`--auto-punctuation true|false` et `--secondary-routing VALEUR`. Ce sont des champs
+vérifiés du client S3, pas une preuve de leur effet serveur ni un déclencheur
+COMPOSE. La préférence de mots offensants ne modifie jamais les contrôles safety
+sur les réponses. [Schéma, conditions et limites](research/rust-recognizer-options.md).
 
 La sortie est une ligne JSON UTF-8 après collecte **et** nettoyage. Elle contient
 les finales connues ordonnées, le contexte et les métriques, mais pas les octets
@@ -200,6 +218,23 @@ un ordre wire global. Les helpers `hypotheses()` et le rendu restent limités au
 conteneur primaire. `RecognitionResponse.language` et `spoken_language` sont
 les champs3/4, pas des identifiants de résultat. Voir
 [schéma et provenance](research/rust-response-containers.md).
+
+### Octets bruts partagés : migration du prototype Rust0.1
+
+Les champs `raw` des modèles décodés et `RecognitionResponse.active_raw` utilisent
+maintenant `bytes::Bytes`, pas `Vec<u8>`. Les signatures des fonctions et les types
+wire `Field`/`Value` ne changent pas. Utiliser `raw.as_ref()` pour emprunter les
+octets, `raw.to_vec()` lorsqu'un `Vec` indépendant est nécessaire, et
+`raw: vec![...].into()` dans les constructions manuelles de modèles.
+
+Le décodeur copie une seule fois le payload racine borné, puis partage les vues
+enfants ; il ne conserve pas un gros buffer de transport extérieur au message.
+Une véritable fusion de plusieurs occurrences garde sa concaténation logique.
+Un petit enfant peut toutefois garder toute sa racine (au plus8Mio) : pour une
+conservation isolée prolongée, détacher explicitement son `raw` avec
+`bytes::Bytes::copy_from_slice(child.raw.as_ref())`. Texte, présence et champs
+inconnus ne sont pas supprimés. Le [profil mémoire](research/rust-backend-profiling.md)
+mesure −70,82% de rétention logique sur son banc, pas une baisse RSS garantie.
 
 ## Finalité, annulation et résultats
 
@@ -327,7 +362,9 @@ seul moteur/connexion explicite et s'arrête au premier échec sans retry. Chaqu
 cas déclare `input`, `language`, `pcm_sha256`, `markers` ; options
 `marker_alternatives`, `expected_text_sha256` et contexte/hints documentées dans
 [son source](../crates/rambler-cli/examples/session_reuse.rs). La sortie ne contient
-que hashes, compteurs et catégories, pas texte/chemin/credentials. Les tests
+que hashes, compteurs et catégories, pas texte/chemin/credentials. Le manifeste
+accepte aussi `block_offensive_words`, `auto_punctuation`, `secondary_routing` ;
+les valeurs ne sont pas échoées dans le rapport. Les tests
 loopback comptent physiquement une connexion TCP ; ce nombre n'est pas inventé
 pour la preuve distante. Le premier lot avec marqueur `eleven` au lieu de `11`
 reste [inconclusif](evidence/rust-reuse-initial-marker-failure.json) ; le lot

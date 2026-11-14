@@ -2,6 +2,17 @@
 
 ## Portage Rust
 
+- [rust-recognizer-options-public.json](rust-recognizer-options-public.json) :
+  trois appels synthétiques du nouveau binaire, champs7/40 omis puis faux/vrais,
+  source PCM intégrale, même texte hashé, zéro retry. Acceptation sur le profil
+  testé, pas efficacité générale du filtre ou de la ponctuation. Field64 non essayé.
+
+- [rust-backend-shared-raw-profile.json](rust-backend-shared-raw-profile.json) :
+  A/B du partage immuable des octets décodés,100 lignes CPU et40 sessions loopback.
+  Rétention logique12 635 008→3 686 912octets à payload identique (−70,82%).
+  Ce n'est pas une mesure RSS ni un gain WAN ; types `raw`/`active_raw` migrés
+  vers `Bytes`, avec conservation possible de la racine par un petit enfant.
+
 - [rust-native-natural-public.json](rust-native-natural-public.json) : trois extraits
   naturels licenciés EN/FR (18,885s), backend Rust consolidé, PCM réellement consommés
   et hashés, trois rendus hashés identiques aux sorties Python historiques. Comparaison

@@ -3,7 +3,7 @@ use bytes::Bytes;
 use rambler_engine::{AudioSource, SourceError, SourceFuture};
 use std::{path::Path, time::Duration};
 use tokio::{
-    fs::File,
+    fs::{File, OpenOptions},
     io::{AsyncReadExt, AsyncSeekExt},
     time::Instant,
 };
@@ -61,7 +61,14 @@ pub struct WavAudio {
 impl WavAudio {
     pub async fn open(path: impl AsRef<Path>, config: WavConfig) -> Result<Self, AudioError> {
         let chunk_bytes = config.chunk_bytes()?;
-        let file = File::open(path).await.map_err(|_| AudioError::Io)?;
+        let mut options = OpenOptions::new();
+        options.read(true);
+        // A FIFO must not block open before its descriptor can be rejected.
+        // O_NONBLOCK has no effect on ordinary file reads and avoids a
+        // path-metadata/open race when a path is replaced with a FIFO.
+        #[cfg(unix)]
+        options.custom_flags(libc::O_NONBLOCK);
+        let file = options.open(path).await.map_err(|_| AudioError::Io)?;
         // Establish ownership before any async metadata/header work; Drop can
         // supervise cleanup even if this open future is cancelled mid-parse.
         let mut audio = Self {
@@ -204,8 +211,26 @@ impl Drop for WavAudio {
         }
     }
 }
+#[cfg(windows)]
+fn is_disk_file(file: &File) -> bool {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_DISK, GetFileType};
+    // SAFETY: file owns this live handle throughout the query. GetFileType
+    // neither closes it nor retains the handle or any borrowed memory.
+    unsafe { GetFileType(file.as_raw_handle()) == FILE_TYPE_DISK }
+}
 async fn parse_header(file: &mut File) -> Result<u64, AudioError> {
-    let file_len = file.metadata().await.map_err(|_| AudioError::Io)?.len();
+    // Windows metadata alone can classify a pipe as a file. Query the opened
+    // handle before any metadata/header operation that could wait for pipe data.
+    #[cfg(windows)]
+    if !is_disk_file(file) {
+        return Err(AudioError::InvalidWav);
+    }
+    let metadata = file.metadata().await.map_err(|_| AudioError::Io)?;
+    if !metadata.is_file() {
+        return Err(AudioError::InvalidWav);
+    }
+    let file_len = metadata.len();
     let mut header = [0; 12];
     exact(file, &mut header).await?;
     if &header[..4] != b"RIFF" || &header[8..] != b"WAVE" {

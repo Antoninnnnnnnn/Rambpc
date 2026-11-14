@@ -19,6 +19,7 @@ static REALLOCS: AtomicU64 = AtomicU64::new(0);
 static REQUESTED: AtomicU64 = AtomicU64::new(0);
 static LIVE: AtomicU64 = AtomicU64::new(0);
 static PEAK: AtomicU64 = AtomicU64::new(0);
+static RETAINED: AtomicU64 = AtomicU64::new(0);
 
 fn allocated(size: usize, realloc: bool) {
     if ENABLED.load(Relaxed) {
@@ -105,6 +106,7 @@ fn bench_at(
     REQUESTED.store(0, Relaxed);
     let baseline = LIVE.load(Relaxed);
     PEAK.store(baseline, Relaxed);
+    RETAINED.store(baseline, Relaxed);
     ENABLED.store(true, Relaxed);
     for _ in 0..iterations {
         black_box(run());
@@ -119,7 +121,8 @@ fn bench_at(
         "{}",
         serde_json::json!({"kind":"allocations", "case":name,
         "iterations":iterations,"units_per_iteration":units, "alloc_calls":allocations,
-        "realloc_calls":reallocations, "requested_bytes":requested, "peak_increment_bytes":peak})
+        "realloc_calls":reallocations, "requested_bytes":requested, "peak_increment_bytes":peak,
+        "retained_increment_bytes":RETAINED.load(Relaxed).saturating_sub(baseline)})
     );
 }
 
@@ -129,37 +132,40 @@ fn main() {
     assert!(!cfg!(debug_assertions), "use --release");
     let iterations = profile_support::arg("--iterations", 20_000);
     let repeats = profile_support::arg("--repeats", 5);
-    let config = ProtocolConfig::default();
-    let context = profile_support::context();
-    bench("initial", iterations, repeats, 1, || {
-        black_box(initial_request(black_box(&config), 0).unwrap()).len()
-    });
-    bench("context", iterations, repeats, 1, || {
-        black_box(context_request(black_box(&context)).unwrap()).len()
-    });
-    for size in [640, 4096, 65_536] {
-        let chunk = profile_support::audio(7, size);
-        assert_eq!(
-            audio_request(&chunk, 123_456),
-            profile_support::reference_audio_request(&chunk, 123_456)
-        );
-        for repeat in 0..repeats {
-            for offset in 0..2 {
-                let reference = (repeat + offset) % 2 == 0;
-                let name = if reference {
-                    format!("audio_reference_{size}")
-                } else {
-                    format!("audio_{size}")
-                };
-                bench_at(&name, iterations, 1, 1, repeat, || {
-                    let payload = if reference {
-                        profile_support::reference_audio_request(black_box(&chunk), 123_456)
+    let decode_only = std::env::args().any(|arg| arg == "--decode-only");
+    if !decode_only {
+        let config = ProtocolConfig::default();
+        let context = profile_support::context();
+        bench("initial", iterations, repeats, 1, || {
+            black_box(initial_request(black_box(&config), 0).unwrap()).len()
+        });
+        bench("context", iterations, repeats, 1, || {
+            black_box(context_request(black_box(&context)).unwrap()).len()
+        });
+        for size in [640, 4096, 65_536] {
+            let chunk = profile_support::audio(7, size);
+            assert_eq!(
+                audio_request(&chunk, 123_456),
+                profile_support::reference_audio_request(&chunk, 123_456)
+            );
+            for repeat in 0..repeats {
+                for offset in 0..2 {
+                    let reference = (repeat + offset) % 2 == 0;
+                    let name = if reference {
+                        format!("audio_reference_{size}")
                     } else {
-                        audio_request(black_box(&chunk), 123_456)
-                    }
-                    .unwrap();
-                    black_box(payload).len()
-                });
+                        format!("audio_{size}")
+                    };
+                    bench_at(&name, iterations, 1, 1, repeat, || {
+                        let payload = if reference {
+                            profile_support::reference_audio_request(black_box(&chunk), 123_456)
+                        } else {
+                            audio_request(black_box(&chunk), 123_456)
+                        }
+                        .unwrap();
+                        black_box(payload).len()
+                    });
+                }
             }
         }
     }
@@ -171,6 +177,43 @@ fn main() {
         assert_eq!(expected.hypotheses()[0].safety_status, Some(0));
         assert_eq!(expected.unknown_fields.len(), 1);
         assert_eq!(expected.hypotheses()[0].unknown_fields.len(), 1);
+        let result = expected.result.as_ref().unwrap();
+        let recognition = result.recognition.as_ref().unwrap();
+        let list = recognition.hypothesis_result.as_ref().unwrap();
+        let hypothesis = &list.hypotheses[0];
+        let edit = hypothesis.voice_edit.as_ref().unwrap();
+        let unknown_heap: usize = [&expected.unknown_fields, &hypothesis.unknown_fields]
+            .into_iter()
+            .map(|fields| {
+                fields.capacity() * std::mem::size_of::<rambler_protocol::wire::Field>()
+                    + fields
+                        .iter()
+                        .map(|field| {
+                            field.raw.capacity()
+                                + match &field.value {
+                                    rambler_protocol::wire::Value::Bytes(value) => value.capacity(),
+                                    _ => 0,
+                                }
+                        })
+                        .sum::<usize>()
+            })
+            .sum();
+        println!(
+            "{}",
+            serde_json::json!({"kind":"retention_census", "text_size":size,
+            "wire_bytes":raw.len(),
+            "raw_lengths":{"root":expected.raw.len(),"result":result.raw.len(),
+                "active_raw":result.active_raw.as_ref().unwrap().len(),
+                "recognition":recognition.raw.len(),"hypotheses":list.raw.len(),
+                "hypothesis":hypothesis.raw.len(),"voice_edit":edit.raw.len()},
+            "string_capacity_bytes":result.language.as_ref().unwrap().capacity()
+                + hypothesis.text.as_ref().unwrap().capacity()
+                + edit.transcript.as_ref().unwrap().capacity()
+                + edit.edited_text.as_ref().unwrap().capacity(),
+            "unknown_heap_bytes":unknown_heap,
+            "hypotheses_vec_bytes":list.hypotheses.capacity() * std::mem::size_of::<rambler_protocol::Hypothesis>(),
+            "s3_response_size":std::mem::size_of::<rambler_protocol::S3Response>()})
+        );
         let name = format!("decode_{size}");
         bench(&name, iterations, repeats, 1, || {
             let response = decode_response(black_box(&raw)).unwrap();
@@ -190,6 +233,9 @@ fn main() {
                 updates.push(response);
             }
             black_box(&updates);
+            if ENABLED.load(Relaxed) {
+                RETAINED.fetch_max(LIVE.load(Relaxed), Relaxed);
+            }
             bytes
         });
     }

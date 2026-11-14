@@ -83,6 +83,21 @@ opaques, sans troncature int32 susceptible de les faire passer pour0.
 Un varint long représentant effectivement0/1 reste reconnu. Aucun cas de blocage
 sécurité n'a été observé sur le service ; validation synthétique/offline seulement.
 
+## Paramètres S3 ajoutés après la consolidation initiale
+
+Le mutateur `knv` est bien injecté sur le chemin Rambler NewS3, pas seulement sur
+un ASR générique. `ProtocolConfig` expose maintenant les champs RecognizerInfo7
+(INT32 0/2, préférence de mots offensants),40 (BOOL auto-punctuation),64 (STRING
+routage secondaire non vide). Ils sont opt-in et absents par défaut ; leurs effets
+serveur ne sont pas validés. La CLI les expose aussi. Aucun changement safety ni
+activation COMPOSE n'en est déduit. [Chaîne d'appel et schéma](rust-recognizer-options.md).
+
+La projection legacy d'une sélection seule est déjà encodable via
+`EditingContext { before: selection, ..Default::default() }` ; elle ne constitue
+pas une capacité wire manquante. Ne pas assimiler ce contexte projeté au snapshot
+original complet pour remplacer la fenêtre : portée et révision doivent rester
+contrôlées par l'intégrateur.
+
 ## Autres capacités et frontières
 
 | Capacité | Preuve statique / API Rust | Qualification |

@@ -5,7 +5,8 @@ use crate::{
 use std::fmt;
 
 /// Public fields are convenient for struct-update syntax; `validate` and request
-/// assembly check all bounds before wire allocation. Hints are excluded from Debug.
+/// assembly check all bounds before wire allocation. Hints and optional recognizer
+/// settings are excluded from Debug.
 #[derive(Clone, PartialEq, Eq)]
 pub struct ProtocolConfig {
     pub language: String,
@@ -14,6 +15,15 @@ pub struct ProtocolConfig {
     pub encoding: i32,
     pub channels: i32,
     pub routing: String,
+    /// RecognizerInfo field7 INT32: false=0, true=2 (not a protobuf BOOL).
+    /// None omits the field; it does not assert false (the APK schema default is 2).
+    /// This request setting is unrelated to hypothesis safety field30.
+    pub block_offensive_words: Option<bool>,
+    /// RecognizerInfo field40 BOOL; None omits, Some(false) sends an explicit 0.
+    pub auto_punctuation: Option<bool>,
+    /// Nonempty RecognizerInfo field64 routing key, observed on the Jetson S3 path.
+    /// Preserved verbatim and bounded like routing; no backend effect is guaranteed.
+    pub secondary_routing: Option<String>,
     pub platform: String,
     pub bias_terms: Vec<String>,
     pub preferences: Vec<String>,
@@ -28,6 +38,9 @@ impl Default for ProtocolConfig {
             encoding: 10,
             channels: 1,
             routing: "gboard_gemini_v3_streaming_voice_edit_mul".into(),
+            block_offensive_words: None,
+            auto_punctuation: None,
+            secondary_routing: None,
             platform: "Rust".into(),
             bias_terms: vec![],
             preferences: vec![],
@@ -55,7 +68,10 @@ impl ProtocolConfig {
             &self.application_id,
             &self.routing,
             &self.platform,
-        ] {
+        ]
+        .into_iter()
+        .chain(self.secondary_routing.as_ref())
+        {
             if value.is_empty() {
                 return Err(Error::InvalidConfig("nonempty text required"));
             }
@@ -123,7 +139,16 @@ pub fn initial_request(config: &ProtocolConfig, elapsed_ms: u64) -> Result<Vec<u
     for number in [5, 13, 20, 41] {
         append(&mut recognizer, v(number, 1)?)?;
     }
+    if let Some(block) = config.block_offensive_words {
+        append(&mut recognizer, v(7, if block { 2 } else { 0 })?)?;
+    }
+    if let Some(punctuation) = config.auto_punctuation {
+        append(&mut recognizer, v(40, u64::from(punctuation))?)?;
+    }
     append(&mut recognizer, s(50, &config.routing)?)?;
+    if let Some(routing) = &config.secondary_routing {
+        append(&mut recognizer, s(64, routing)?)?;
+    }
     let mut client = s(2, &config.application_id)?;
     append(&mut client, s(8, &config.platform)?)?;
     append(&mut client, v(26, 1)?)?;

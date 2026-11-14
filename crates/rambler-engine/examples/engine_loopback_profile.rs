@@ -191,7 +191,7 @@ async fn run(
                     assert_eq!(response.raw, responses[index].as_ref());
                     final_count += usize::from(response.recognition_state() == Some(1));
                 } else {
-                    assert_eq!(response.raw, b"\x08\x01");
+                    assert_eq!(response.raw.as_ref(), b"\x08\x01");
                 }
                 index += 1;
                 if mode.consumer_stall && index % 64 == 0 {

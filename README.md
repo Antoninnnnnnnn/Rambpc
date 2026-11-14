@@ -47,8 +47,8 @@ français et édition sur contexte, avec un PATH système sans Python/FFmpeg.
 l'entrée **WAV/PCM native optionnelle**, liée à libopus statique : quatre autres
 appels réels réussissent (accéléré/progressif, réécriture et sélection avec emoji).
 [Preuves PCM](docs/evidence/rust-pcm-functional-public.json). La consolidation du
-**14 novembre** passe **262 tests Rust** sous Windows (stable et1.88) et Linux1.88,
-plus4 tests de réutilisation et27 tests CLI sans audio, et **656 tests Python/outils**.
+**14 novembre** passe **274 tests Rust** sous Windows (stable et1.88) et Linux1.88,
+plus4 tests de réutilisation et30 tests CLI sans audio, et **656 tests Python/outils**.
 L'oracle indépendant de57 conteneurs passe séparément. La matrice CI est écrite,
 pas exécutée à distance ; macOS n'a pas été exécuté. [Validation](docs/research/rust-build-validation.md).
 Trois sessions contrôlées réussissent sur un même moteur natif ; puis
@@ -62,6 +62,9 @@ Ogg est progressif et borné ; les erreurs de connexion/nettoyage restent observ
 Le [profil backend](docs/research/rust-backend-profiling.md) établit un gain local de
 sérialisation (8 allocations+3 réallocations →1), pas de gain global WAN robuste.
 L'ancien [candidat CRC](docs/research/rust-audio-profiling.md) reste rejeté.
+Le partage des raw réduit de70,82% la rétention logique du banc sans perdre les
+inconnus ; migration `Bytes` explicitée. Les entrées pipe/FIFO sont refusées sans
+bloquer, et trois options RecognizerInfo vérifiées sont exposées avec défauts inchangés.
 L'endurance conserve un échec intermittent ; le suivi instrumenté réussit sans
 établir sa cause ni prétendre l'avoir corrigé. Voir
 [l'état détaillé](docs/STATUS.md) et le [diagnostic](docs/evidence/rust-incomplete-diagnostic-followup.json).

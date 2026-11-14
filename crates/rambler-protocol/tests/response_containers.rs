@@ -2,6 +2,12 @@
 //! Independent test encoder and operation-level oracle; no production encoders.
 use rambler_protocol::{wire::parse_fields, *};
 
+// Immutable raw migration: the independent oracle builds its own copied bytes.
+fn append_raw(raw: &mut bytes::Bytes, suffix: impl AsRef<[u8]>) {
+    let mut owned = raw.to_vec();
+    owned.extend_from_slice(suffix.as_ref());
+    *raw = owned.into();
+}
 fn uint(mut n: u64) -> Vec<u8> {
     let mut out = Vec::new();
     while n > 127 {
@@ -153,10 +159,10 @@ fn exhaustive_small_interleavings_merge_independent_containers_and_fallbacks() {
                     let list = expected.partial_result.get_or_insert_with(Default::default);
                     list.partials.push(PartialHypothesis {
                         text: Some(text),
-                        raw: item_raw,
+                        raw: item_raw.into(),
                         ..Default::default()
                     });
-                    list.raw.extend_from_slice(&list_raw);
+                    append_raw(&mut list.raw, &list_raw);
                     blob(4, list_raw)
                 } else {
                     let index = op % 3;
@@ -170,7 +176,7 @@ fn exhaustive_small_interleavings_merge_independent_containers_and_fallbacks() {
                         list.hypotheses.push(Hypothesis {
                             text: Some(text),
                             safety_status: Some((step % 2) as i32),
-                            raw: hyp_raw.clone(),
+                            raw: hyp_raw.clone().into(),
                             ..Default::default()
                         });
                         blob(3, &hyp_raw)
@@ -180,15 +186,15 @@ fn exhaustive_small_interleavings_merge_independent_containers_and_fallbacks() {
                             let hyp = fallback.hypothesis.get_or_insert_with(Default::default);
                             hyp.text = Some(text);
                             hyp.safety_status = Some((step % 2) as i32);
-                            hyp.raw.extend_from_slice(&hyp_raw);
+                            append_raw(&mut hyp.raw, &hyp_raw);
                             blob(1, &hyp_raw)
                         } else {
                             vec![]
                         };
-                        fallback.raw.extend_from_slice(&fallback_raw);
+                        append_raw(&mut fallback.raw, &fallback_raw);
                         blob(5, fallback_raw)
                     };
-                    list.raw.extend_from_slice(&list_raw);
+                    append_raw(&mut list.raw, &list_raw);
                     blob([3, 5, 7][index], list_raw)
                 };
                 recognition_raw.extend_from_slice(&rec_part);
@@ -198,7 +204,7 @@ fn exhaustive_small_interleavings_merge_independent_containers_and_fallbacks() {
             if len == 0 {
                 wire = response(b"");
             }
-            expected.raw = recognition_raw;
+            expected.raw = recognition_raw.into();
             let decoded = decode_response(&wire).unwrap();
             let rec = recognition(&decoded);
             assert_eq!(*rec, expected, "len={len}, wire={wire:?}");

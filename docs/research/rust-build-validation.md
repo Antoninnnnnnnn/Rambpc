@@ -104,6 +104,22 @@ run them):
 cargo test -p rambler-cli --features audio --example session_reuse --locked --offline
 ```
 
+## Shared raw / file preflight / recognizer options recheck
+
+The next integrated snapshot R6 passed **274 workspace tests** (one independent
+audio oracle ignored by default), four reuse-example tests and30 feature-off CLI
+tests. This ran on Windows stable1.99.1 and Linux1.88; Windows1.88 separately passed
+the274 workspace tests and30 feature-off tests. Strict all-target Clippy, formatting,
+feature-off release with deliberately invalid CMake, release audio and the native
+reuse-validator build passed. Linux release audio passed too. No remote CI or
+macOS run is implied.
+
+The Linux FIFO CLI probe changed from externally killed exit124 after2s to immediate
+audio-error exit1 with53 bytes of JSON on both commands. Windows named-pipe testing
+first exposed a remaining metadata-only check failure; the final descriptor-type
+check passed with a fresh no-data pipe instance per command. See
+[rust-file-inputs.md](rust-file-inputs.md). No credentials or live RPC were used.
+
 ## Written CI matrix, not yet executed
 
 `.github/workflows/rust.yml` defines Windows, Linux and macOS jobs on 1.88.0 and

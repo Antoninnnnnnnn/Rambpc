@@ -1,4 +1,5 @@
 use crate::wire::Field;
+use bytes::Bytes;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(i32)]
@@ -25,7 +26,7 @@ pub struct EditingContext {
     pub selected: String,
     pub after: String,
     pub cursor_aware: bool,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
     pub unknown_fields: Vec<Field>,
 }
 impl PartialEq for EditingContext {
@@ -47,7 +48,7 @@ pub struct VoiceEditResult {
     /// Active oneof member 2, 3, or 7. These candidates are never auto-applied.
     pub active_field: Option<u32>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Hypothesis {
@@ -62,21 +63,21 @@ pub struct Hypothesis {
     pub safety_status: Option<i32>,
     pub voice_edit: Option<VoiceEditResult>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PartialHypothesis {
     pub text: Option<String>,
     pub confidence: Option<f64>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 /// Structural wrapper (`aalo`), not an automatic fallback-selection policy.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct HypothesisFallback {
     pub hypothesis: Option<Hypothesis>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct HypothesisResult {
@@ -84,7 +85,7 @@ pub struct HypothesisResult {
     /// Independent singular field 5; an empty wrapper still has presence.
     pub fallback_field5: Option<HypothesisFallback>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 impl HypothesisResult {
     /// Structural traversal: repeated field 3, then field 5's optional hypothesis.
@@ -101,7 +102,7 @@ impl HypothesisResult {
 pub struct PartialResult {
     pub partials: Vec<PartialHypothesis>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RecognitionResult {
@@ -112,7 +113,7 @@ pub struct RecognitionResult {
     pub hypothesis_result_field5: Option<HypothesisResult>,
     pub hypothesis_result_field7: Option<HypothesisResult>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 impl RecognitionResult {
     /// Visit containers in canonical field order 3, 5, 7, including each fallback.
@@ -141,7 +142,7 @@ impl RecognitionResult {
 pub struct SpeechEventResult {
     pub event: Option<i32>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RecognitionResponse {
@@ -152,9 +153,9 @@ pub struct RecognitionResponse {
     /// Recognition response field 4 (`spoken_language`); preserved independently.
     pub spoken_language: Option<String>,
     pub active_field: Option<u32>,
-    pub active_raw: Option<Vec<u8>>,
+    pub active_raw: Option<Bytes>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct S3Response {
@@ -163,7 +164,7 @@ pub struct S3Response {
     pub error_message: Option<String>,
     pub result: Option<RecognitionResponse>,
     pub unknown_fields: Vec<Field>,
-    pub raw: Vec<u8>,
+    pub raw: Bytes,
 }
 impl S3Response {
     /// Structural traversal of the active recognition result; see

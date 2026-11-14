@@ -15,6 +15,12 @@ impl Rng {
         self.0 % bound
     }
 }
+// Immutable raw migration: the independent oracle builds its own copied bytes.
+fn append_raw(raw: &mut bytes::Bytes, suffix: impl AsRef<[u8]>) {
+    let mut owned = raw.to_vec();
+    owned.extend_from_slice(suffix.as_ref());
+    *raw = owned.into();
+}
 fn uint(mut n: u64, padded: bool) -> Vec<u8> {
     let mut bytes = Vec::new();
     loop {
@@ -82,10 +88,10 @@ fn activate(model: &mut RecognitionResponse, n: u32, raw: &[u8]) {
     if model.active_field != Some(n) {
         model.recognition = None;
         model.speech = None;
-        model.active_raw = Some(Vec::new());
+        model.active_raw = Some(Default::default());
     }
     model.active_field = Some(n);
-    model.active_raw.as_mut().unwrap().extend_from_slice(raw);
+    append_raw(model.active_raw.as_mut().unwrap(), raw);
 }
 fn generated_response(seed: u64, sample: usize) -> (Vec<u8>, S3Response, usize) {
     let mut rng = Rng(seed);
@@ -125,13 +131,13 @@ fn generated_response(seed: u64, sample: usize) -> (Vec<u8>, S3Response, usize) 
                     let list = rec.hypothesis_result.get_or_insert_with(Default::default);
                     list.hypotheses.push(Hypothesis {
                         text: Some(text),
-                        raw: hyp_raw.clone(),
+                        raw: hyp_raw.clone().into(),
                         ..Default::default()
                     });
-                    list.raw.extend(blob(3, &hyp_raw, padded));
+                    append_raw(&mut list.raw, blob(3, &hyp_raw, padded));
                 }
                 rec.unknown_fields.push(extra);
-                rec.raw.extend_from_slice(&rec_raw);
+                append_raw(&mut rec.raw, &rec_raw);
                 blob(1, &rec_raw, padded)
             }
             2 => {
@@ -140,7 +146,7 @@ fn generated_response(seed: u64, sample: usize) -> (Vec<u8>, S3Response, usize) 
                 activate(&mut model, 2, &speech_raw);
                 let speech = model.speech.get_or_insert_with(Default::default);
                 speech.event = Some(v as u32 as i32);
-                speech.raw.extend_from_slice(&speech_raw);
+                append_raw(&mut speech.raw, &speech_raw);
                 nested_cost = 1;
                 blob(2, &speech_raw, padded)
             }
@@ -194,7 +200,7 @@ fn generated_response(seed: u64, sample: usize) -> (Vec<u8>, S3Response, usize) 
             }
         };
         cost += 1 + nested_cost;
-        model.raw.extend_from_slice(&raw);
+        append_raw(&mut model.raw, &raw);
         part.extend(raw);
         if rng.pick(5) == 0 || step == 63 {
             payload.extend(blob(RECOGNITION_RESPONSE, &part, padded));
@@ -208,7 +214,7 @@ fn generated_response(seed: u64, sample: usize) -> (Vec<u8>, S3Response, usize) 
             cost += 1;
         }
     }
-    root.raw = payload.clone();
+    root.raw = payload.clone().into();
     root.result = Some(model);
     (payload, root, cost)
 }

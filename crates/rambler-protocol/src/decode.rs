@@ -3,21 +3,48 @@ use crate::{
     *,
 };
 
+use bytes::Bytes;
+
+struct Budget<'a> {
+    root: &'a Bytes,
+    fields: usize,
+}
+
+// Single occurrences view the exact, independently owned root payload. A true
+// proto2 merge needs a contiguous logical concatenation, allocated exactly once.
+fn raw_parts(parts: &[&[u8]], root: &Bytes) -> Result<Bytes, Error> {
+    let mut len = 0usize;
+    for part in parts {
+        len = len.checked_add(part.len()).ok_or(Error::SizeLimit)?;
+        bounded(len)?;
+    }
+    if let [part] = parts {
+        return Ok(root.slice_ref(part));
+    }
+    let mut raw = Vec::with_capacity(len);
+    for part in parts {
+        raw.extend_from_slice(part);
+    }
+    Ok(raw.into())
+}
+
 struct Message<'a> {
     fields: Vec<RefField<'a>>,
-    raw: Vec<u8>,
+    raw: Bytes,
     unknown: Vec<Field>,
 }
 impl<'a> Message<'a> {
-    fn new(parts: Vec<&'a [u8]>, known: &[(u32, u8)], budget: &mut usize) -> Result<Self, Error> {
+    fn new(
+        parts: Vec<&'a [u8]>,
+        known: &[(u32, u8)],
+        budget: &mut Budget<'_>,
+    ) -> Result<Self, Error> {
         let mut fields = Vec::new();
-        let mut raw = Vec::new();
-        for part in parts {
-            bounded(raw.len().checked_add(part.len()).ok_or(Error::SizeLimit)?)?;
+        for part in &parts {
             // Deliberately parse each occurrence before concatenating its raw bytes.
-            fields.extend(parse_ref(part, budget)?);
-            raw.extend_from_slice(part);
+            fields.extend(parse_ref(part, &mut budget.fields)?);
         }
+        let raw = raw_parts(&parts, budget.root)?;
         let unknown = fields
             .iter()
             .filter(|f| !known.contains(&(f.number, f.wire_type)))
@@ -64,8 +91,8 @@ impl<'a> Message<'a> {
     fn message<T>(
         &self,
         number: u32,
-        budget: &mut usize,
-        parser: impl FnOnce(Vec<&'a [u8]>, &mut usize) -> Result<T, Error>,
+        budget: &mut Budget<'_>,
+        parser: impl FnOnce(Vec<&'a [u8]>, &mut Budget<'_>) -> Result<T, Error>,
     ) -> Result<Option<T>, Error> {
         let parts = self.data(number, 2);
         if parts.is_empty() {
@@ -100,7 +127,7 @@ fn text_last(values: Vec<&[u8]>) -> Result<Option<String>, Error> {
     }
     Ok(last.map(str::to_owned))
 }
-fn context(parts: Vec<&[u8]>, budget: &mut usize) -> Result<EditingContext, Error> {
+fn context(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<EditingContext, Error> {
     let m = Message::new(parts, &[(1, 2), (2, 2), (3, 2)], budget)?;
     Ok(EditingContext {
         before: m.string(1)?.unwrap_or_default(),
@@ -111,7 +138,7 @@ fn context(parts: Vec<&[u8]>, budget: &mut usize) -> Result<EditingContext, Erro
         unknown_fields: m.unknown,
     })
 }
-fn voice_edit(parts: Vec<&[u8]>, budget: &mut usize) -> Result<VoiceEditResult, Error> {
+fn voice_edit(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<VoiceEditResult, Error> {
     let m = Message::new(parts, &[(1, 2), (2, 2), (3, 2), (4, 0), (7, 2)], budget)?;
     let mut out = VoiceEditResult {
         transcript: m.string(1)?,
@@ -133,7 +160,7 @@ fn voice_edit(parts: Vec<&[u8]>, budget: &mut usize) -> Result<VoiceEditResult, 
     out.unknown_fields = m.unknown;
     Ok(out)
 }
-fn hypothesis(parts: Vec<&[u8]>, budget: &mut usize) -> Result<Hypothesis, Error> {
+fn hypothesis(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<Hypothesis, Error> {
     let mut m = Message::new(parts, &[(1, 2), (2, 5), (VOICE_EDITING_RESULT, 2)], budget)?;
     // Unlike open numeric enums, this safety marker only recognizes the two
     // verified wire values. Unknown occurrences remain opaque and never clear
@@ -157,7 +184,7 @@ fn hypothesis(parts: Vec<&[u8]>, budget: &mut usize) -> Result<Hypothesis, Error
         raw: m.raw,
     })
 }
-fn partial(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialHypothesis, Error> {
+fn partial(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<PartialHypothesis, Error> {
     let m = Message::new(parts, &[(1, 2), (2, 1)], budget)?;
     Ok(PartialHypothesis {
         text: m.string(1)?,
@@ -166,7 +193,10 @@ fn partial(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialHypothesis, E
         raw: m.raw,
     })
 }
-fn hypothesis_fallback(parts: Vec<&[u8]>, budget: &mut usize) -> Result<HypothesisFallback, Error> {
+fn hypothesis_fallback(
+    parts: Vec<&[u8]>,
+    budget: &mut Budget<'_>,
+) -> Result<HypothesisFallback, Error> {
     let m = Message::new(parts, &[(1, 2)], budget)?;
     Ok(HypothesisFallback {
         hypothesis: m.message(1, budget, hypothesis)?,
@@ -174,7 +204,7 @@ fn hypothesis_fallback(parts: Vec<&[u8]>, budget: &mut usize) -> Result<Hypothes
         raw: m.raw,
     })
 }
-fn hypotheses(parts: Vec<&[u8]>, budget: &mut usize) -> Result<HypothesisResult, Error> {
+fn hypotheses(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<HypothesisResult, Error> {
     let m = Message::new(parts, &[(3, 2), (5, 2)], budget)?;
     let items = m
         .data(3, 2)
@@ -188,7 +218,7 @@ fn hypotheses(parts: Vec<&[u8]>, budget: &mut usize) -> Result<HypothesisResult,
         raw: m.raw,
     })
 }
-fn partials(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialResult, Error> {
+fn partials(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<PartialResult, Error> {
     let m = Message::new(parts, &[(1, 2)], budget)?;
     let items = m
         .data(1, 2)
@@ -201,7 +231,7 @@ fn partials(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialResult, Erro
         raw: m.raw,
     })
 }
-fn recognition(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionResult, Error> {
+fn recognition(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<RecognitionResult, Error> {
     let m = Message::new(parts, &[(1, 0), (3, 2), (4, 2), (5, 2), (7, 2)], budget)?;
     Ok(RecognitionResult {
         state: m.integer(1),
@@ -213,7 +243,7 @@ fn recognition(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionResul
         raw: m.raw,
     })
 }
-fn speech(parts: Vec<&[u8]>, budget: &mut usize) -> Result<SpeechEventResult, Error> {
+fn speech(parts: Vec<&[u8]>, budget: &mut Budget<'_>) -> Result<SpeechEventResult, Error> {
     let m = Message::new(parts, &[(1, 0)], budget)?;
     Ok(SpeechEventResult {
         event: m.integer(1),
@@ -222,7 +252,10 @@ fn speech(parts: Vec<&[u8]>, budget: &mut usize) -> Result<SpeechEventResult, Er
     })
 }
 const RESULT_ONEOF: &[u32] = &[1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 19, 20, 21];
-fn response_result(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionResponse, Error> {
+fn response_result(
+    parts: Vec<&[u8]>,
+    budget: &mut Budget<'_>,
+) -> Result<RecognitionResponse, Error> {
     let m = Message::new(parts, &[(1, 2), (2, 2), (3, 2), (4, 2)], budget)?;
     let mut out = RecognitionResponse {
         language: m.string(3)?,
@@ -231,14 +264,23 @@ fn response_result(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionR
     };
     for (number, values) in m.oneof(RESULT_ONEOF) {
         out.active_field = Some(number);
-        out.active_raw = Some(values.concat());
         out.recognition = None;
         out.speech = None;
-        match number {
-            1 => out.recognition = Some(recognition(values, budget)?),
-            2 => out.speech = Some(speech(values, budget)?),
-            _ => (), // Unknown oneof contents stay opaque, but clear the preceding member.
-        }
+        out.active_raw = Some(match number {
+            1 => {
+                let parsed = recognition(values, budget)?;
+                let raw = parsed.raw.clone();
+                out.recognition = Some(parsed);
+                raw
+            }
+            2 => {
+                let parsed = speech(values, budget)?;
+                let raw = parsed.raw.clone();
+                out.speech = Some(parsed);
+                raw
+            }
+            _ => raw_parts(&values, budget.root)?, // Opaque oneofs still clear the preceding member.
+        });
     }
     out.raw = m.raw;
     out.unknown_fields = m.unknown;
@@ -247,9 +289,15 @@ fn response_result(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionR
 /// Decode with a single 100000-field global budget and an 8MiB root bound.
 /// Every known occurrence is validated, even when overwritten. S3 errors are data.
 pub fn decode_response(payload: &[u8]) -> Result<S3Response, Error> {
-    let mut budget = MAX_FIELDS;
+    bounded(payload.len())?;
+    // Never retain a transport/framer allocation beyond this exact payload.
+    let root = Bytes::copy_from_slice(payload);
+    let mut budget = Budget {
+        root: &root,
+        fields: MAX_FIELDS,
+    };
     let m = Message::new(
-        vec![payload],
+        vec![root.as_ref()],
         &[(1, 0), (2, 0), (3, 2), (RECOGNITION_RESPONSE, 2)],
         &mut budget,
     )?;

@@ -76,6 +76,20 @@ async fn one_physical_tcp_for_three_sessions_and_stop_without_replay_on_inconclu
                 let ordinal = observed.fetch_add(1, Ordering::SeqCst);
                 let requests = drain(request.into_inner()).await;
                 assert_eq!(requests.last().unwrap().as_ref(), b"\x10\x01\x18\x01");
+                use rambler_protocol::{RECOGNIZER_INFO, wire};
+                let fields = wire::parse_fields(&requests[0]).unwrap();
+                let recognizer = fields.iter().find(|f| f.number == RECOGNIZER_INFO).unwrap();
+                let wire::Value::Bytes(body) = &recognizer.value else {
+                    panic!("not a message")
+                };
+                let fields = wire::parse_fields(body).unwrap();
+                for (number, value) in [
+                    (7, [None, Some(0), Some(2)][ordinal]),
+                    (40, [None, Some(0), Some(1)][ordinal]),
+                ] {
+                    let actual = fields.iter().find(|f| f.number == number).map(|f| &f.value);
+                    assert_eq!(actual, value.map(wire::Value::Varint).as_ref());
+                }
                 let terminal = if mode == 3 && ordinal == 1 {
                     Err(tonic::Status::unavailable("PRIVATE SERVER DETAILS"))
                 } else {
@@ -96,6 +110,10 @@ async fn one_physical_tcp_for_three_sessions_and_stop_without_replay_on_inconclu
             "pcm_sha256":hash(&pcm), "markers":["hello", "controlled source"], "marker_alternatives":[["missing alternative", "hello"]]});
             3
         ];
+        cases[1]["block_offensive_words"] = json!(false);
+        cases[1]["auto_punctuation"] = json!(false);
+        cases[2]["block_offensive_words"] = json!(true);
+        cases[2]["auto_punctuation"] = json!(true);
         if mode == 1 {
             cases[1]["markers"] = json!(["hellos"]);
         }

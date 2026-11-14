@@ -176,3 +176,160 @@ aux deux `main` pour conserver le rejet runtime du mode debug. Ils ne changent
 pas le workload ; ce n'est pas présenté comme un nouveau benchmark. Le lot
 source mesuré précède les nouvelles politiques de rendu/segments et corrections
 transport ultérieures, donc ne représente pas rétroactivement tout le code final.
+
+## Prototype de rétention `raw` partagée (2026-11-14, non intégré)
+
+Baseline actuelle **`fdc9fd9`**, distincte du profil historique ci-dessus.
+[Preuve structurée : 100 lignes CPU et 40 sessions h2](../evidence/rust-backend-shared-raw-profile.json).
+Le prototype reste dans le worktree, sans commit ni intégration à `main`.
+
+### Diagnostic avant modification
+
+Pour le même lot de **128 réponses de 12 430 octets**, soit **1 591 040 octets
+protobuf**, la baseline actuelle retient **12 635 008 octets** logiques et atteint
+un pic de **12 635 840 octets**. La différence avec l'ancien pic de 12 463 808
+vient des modèles enrichis depuis le profil historique ; ces mesures ne sont
+pas comparées comme si les modèles étaient identiques.
+
+Le recensement des capacités et `size_of` explique exactement la rétention par
+réponse, sans assimilations au RSS :
+
+| Allocation retenue par réponse | Baseline `Vec` | Prototype `Bytes` |
+|---|---:|---:|
+| Backing des `raw` et `active_raw` | 82 625 | 12 430 |
+| Métadonnées de partage `Bytes` | 0 | 24 |
+| Capacités des chaînes de texte | 12 360 | 12 360 |
+| Vecteurs/champs/valeurs inconnus | 502 | 502 |
+| Allocation du vecteur d'hypothèses | 1 408 | 1 504 |
+| Élément du vecteur racine `S3Response` | 1 816 | 1 984 |
+| **Total** | **98 711** | **28 804** |
+
+Les sept copies baseline sont les `raw` racine (12 430), réponse (12 410),
+reconnaissance (12 390), liste (12 385), hypothèse (12 382), VoiceEdit (8 238),
+et `active_raw` (12 390). Leurs **82 625 octets représentent 83,7 %** de la
+rétention. Les allocations temporaires de parsing ne dominent pas la rétention :
+le pic ne dépasse le vivant du lot complet que de **832 octets**, avant comme
+après. Les doublons des inconnus (`Field::raw` et `Value::Bytes`) restent présents
+et ne sont pas supprimés.
+
+### Choix minimal et invariants
+
+Conserver plusieurs `Vec<u8>` publics indépendants et mutables interdit de
+partager sûrement leur backing. Réduire leurs capacités ne supprime pas les
+copies des mêmes octets à chaque niveau. Le prototype limité à l'API 0.1 change
+donc **uniquement** le stockage `raw` des modèles en `bytes::Bytes`, ainsi que
+`RecognitionResponse::active_raw` en `Option<Bytes>`.
+
+Le décodeur vérifie la borne racine **avant allocation**, copie exactement le
+payload racine une seule fois, puis utilise `Bytes::slice_ref` pour les enfants
+à occurrence unique. Une vraie fusion proto2 alloue une concaténation logique
+contiguë, de taille exacte ; chaque occurrence est toujours parsée séparément
+avant cette concaténation. Pour les membres oneof connus, `active_raw` partage
+le `raw` du modèle décodé, y compris après fusion. Le parseur continue à visiter
+les membres écrasés et à charger chaque champ interprété une seule fois sur le
+budget global. Les inconnus restent opaques, ordonnés et intacts.
+
+Aucun nouveau code `unsafe`, aucune dépendance nouvelle au workspace (`bytes`
+y existait déjà), aucun changement transport, suppression d'inconnus, décodage
+permissif, GC ou modification des bornes **8 MiB / 100 000 champs**. La copie
+racine est volontaire : ce n'est pas du zero-copy transport.
+
+**Compromis d'ownership :** garder un petit `raw` enfant peut garder vivant tout
+son payload racine exact, jusqu'à **8 MiB**. Cela ne retient jamais un buffer
+framer/transport plus grand non lié au payload. Pour détacher explicitement un
+petit enfant, utiliser `bytes::Bytes::copy_from_slice(&child.raw)` ou
+`child.raw.to_vec()` ; le premier conserve un type immuable `Bytes`, le second
+produit un `Vec` mutable indépendant. Les fusions multiples peuvent toujours
+retenir leurs concaténations supplémentaires : le gain mesuré n'est pas une
+nouvelle garantie de borne heap du collecteur.
+
+### Mesures matched A/B
+
+Cinq paires de processus, ordre baseline/candidat alterné à chaque paire,
+fixtures identiques inchangées. Chaque cas CPU garde 128 échauffements puis une
+passe wall de 20 000 réponses (156 lots de 128 pour la rétention), et une passe
+d'allocations **séparée**. Les compteurs sont désactivés pendant le wall ; leur
+branche d'allocateur reste présente. Nouveau relevé `retained_increment_bytes`
+juste après remplissage du lot et avant destruction, hors formatage/sortie.
+Toutes les passes retrouvent leur vivant initial après destruction.
+
+| Cas | Baseline médiane ns/réponse (min–max) | Prototype médiane ns/réponse (min–max) |
+|---|---:|---:|
+| decode 128 | 4 965,54 (2 939,31–5 568,70) | 2 806,84 (2 657,80–4 069,25) |
+| decode 4096 | 6 185,47 (5 782,81–10 048,85) | 4 280,60 (2 971,53–5 774,55) |
+| rétention 128 × petit | 9 482,36 (7 168,98–10 638,64) | 5 896,12 (4 915,88–8 147,60) |
+| rétention 128 × gros | 23 052,54 (18 714,34–27 205,86) | 16 781,54 (10 830,02–20 183,81) |
+
+Sur chaque réponse grosse isolée : **44 → 39 allocations**, aucun realloc,
+**99 586 → 29 511 octets demandés**. Le lot conserve son unique allocation
+initiale de vecteur et ses sept reallocations de croissance ; le mouvement des
+réponses n'est pas remplacé par un collecteur artificiel. Sur le lot gros :
+
+- vivant retenu **12 635 008 → 3 686 912 octets**, soit **−70,82 %** ;
+- pic supplémentaire **12 635 840 → 3 687 744 octets** ;
+- sur le lot petit, vivant **953 216 → 639 488 octets**.
+
+Les tailles logiques de tous les `raw` et les volumes wire sont inchangés. Les
+264 octets supplémentaires de métadonnées par réponse sont inclus, pas masqués.
+**Aucun gain RSS n'est déduit de ces tailles `GlobalAlloc`** et les octets
+alloués ne sont pas présentés comme une mesure physique du trafic de copies.
+
+Le vrai moteur/collecteur h2 a exécuté 40 sessions supplémentaires de 16 384
+chunks, 10 MiB audio opaque et 128 finales, avec les mêmes vérifications de
+payloads, ordre, EOF et cleanup. Les quatre modes sont exécutés dans le même
+ordre dans chaque processus (`--repeats 1`) ; l'ordre des variantes alterne entre
+processus. Médianes baseline → prototype : `collect_active` **1 087,32 →
+1 116,04 ms**, `observe_active` **1 219,85 → 1 011,45 ms**, lecture suspendue
+**2 979,01 → 2 819,98 ms**, consommateur suspendu **3 996,50 → 3 997,72 ms**.
+La dispersion est forte et les intervalles se recouvrent : **aucun gain de
+pipeline global revendiqué**. Seul le gain de rétention logique est retenu
+comme résultat robuste de ce prototype.
+
+### API publique et migration
+
+Types concernés par `raw: Vec<u8> → Bytes` : `EditingContext`, `VoiceEditResult`,
+`Hypothesis`, `PartialHypothesis`, `HypothesisFallback`, `HypothesisResult`,
+`PartialResult`, `RecognitionResult`, `SpeechEventResult`,
+`RecognitionResponse`, `S3Response`. `RecognitionResponse::active_raw` devient
+`Option<Bytes>`. C'est une rupture source explicitement assumée pour ce
+prototype 0.1, pas une promesse de compatibilité silencieuse.
+
+- Construction depuis un `Vec` : `raw: vector.into()` ; option :
+  `Some(vector.into())`.
+- Lecture en slice : `raw.as_ref()` ou `&raw[..]`, à la place de `as_slice()`.
+- Mutation : créer explicitement `let mut owned = raw.to_vec()`, modifier ce
+  `Vec`, puis remplacer le champ avec `raw = owned.into()` si nécessaire.
+- `raw.clone()` partage désormais des octets immuables ; utiliser le détachement
+  décrit ci-dessus si l'ownership doit devenir indépendant.
+- `decode_response(&[u8])`, tous les helpers wire, `wire::Field`, `wire::Value`,
+  les retours de requêtes, chaînes et autres champs publics restent inchangés.
+  Le moteur n'a nécessité **aucun changement de production**, seulement des
+  adaptations de tests/exemples qui supposaient `Vec`.
+
+### Validation et reproduction
+
+**144 tests protocol + engine all-targets** passent sous Windows stable 1.99.1
+et MSRV **1.88.0**, avec **2 doctests** et Clippy `-D warnings`. Les deux tests
+supplémentaires vérifient la copie exacte hors d'un gros buffer framer, les vues
+enfants partagées, leur survie après destruction du parent et de l'entrée, le
+détachement explicite, et l'alias `active_raw` après fusion. Les tests existants
+conservent leurs oracles indépendants : Unicode, NaN, presence/vides, oneofs,
+fragments invalides qui ne guérissent pas et budgets exacts.
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 \
+  CARGO_TARGET_DIR=t cargo test --locked -p rambler-protocol -p rambler-engine --all-targets
+CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 \
+  CARGO_TARGET_DIR=t cargo +1.88.0 test --locked -p rambler-protocol -p rambler-engine --all-targets
+CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=t cargo build --release -p rambler-engine --examples
+./t/release/examples/backend_cpu_profile --decode-only --iterations 20000 --repeats 1
+./t/release/examples/engine_loopback_profile --chunks 16384 --repeats 1
+```
+
+Les SHA256 des quatre binaires conservés, les blobs git baseline, les sources
+mesurées du candidat, les lignes brutes et les résumés calculés figurent dans la
+preuve structurée. Les binaires baseline comprennent uniquement le recensement
+commun ajouté au profiler ; leur codec est celui de `fdc9fd9`. La fenêtre A/B a
+été coordonnée sans autre build/benchmark. Aucun benchmark n'a été relancé pour
+faire disparaître sa dispersion. Les mesures ci-dessus ne prétendent pas
+valider tout le workspace ni Linux après ce prototype.

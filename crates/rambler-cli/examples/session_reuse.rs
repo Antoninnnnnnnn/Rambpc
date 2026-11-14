@@ -56,6 +56,12 @@ struct Case {
     preferences: Vec<String>,
     #[serde(default)]
     secondary_languages: Vec<String>,
+    #[serde(default)]
+    block_offensive_words: Option<bool>,
+    #[serde(default)]
+    auto_punctuation: Option<bool>,
+    #[serde(default)]
+    secondary_routing: Option<String>,
 }
 #[derive(Default)]
 struct Receipt {
@@ -302,6 +308,9 @@ async fn run(args: Args) -> (Value, bool) {
                 bias_terms: case.bias_terms,
                 preferences: case.preferences,
                 secondary_languages: case.secondary_languages,
+                block_offensive_words: case.block_offensive_words,
+                auto_punctuation: case.auto_punctuation,
+                secondary_routing: case.secondary_routing,
                 ..Default::default()
             },
             context,

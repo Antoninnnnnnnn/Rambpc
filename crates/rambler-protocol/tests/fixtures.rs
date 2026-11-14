@@ -114,7 +114,7 @@ fn four_payloads_pinned_by_sha256_and_decoded_against_reviewed_expectations() {
         assert_eq!(result.active_field, Some(1));
         assert_eq!(
             result.active_raw.as_deref(),
-            Some(result.recognition.as_ref().unwrap().raw.as_slice())
+            Some(result.recognition.as_ref().unwrap().raw.as_ref())
         );
         if id == "rewrite-en" {
             assert!(decoded.unknown_fields.is_empty());

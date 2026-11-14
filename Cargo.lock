@@ -692,6 +692,7 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "futures-util",
+ "libc",
  "ogg",
  "opus",
  "opusic-sys",
@@ -700,6 +701,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -711,6 +713,7 @@ dependencies = [
  "futures-util",
  "hex",
  "http",
+ "libc",
  "ogg",
  "opus",
  "rambler-audio",
@@ -725,6 +728,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tonic",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -750,6 +754,7 @@ dependencies = [
 name = "rambler-protocol"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "hex",
  "serde",
  "serde_json",

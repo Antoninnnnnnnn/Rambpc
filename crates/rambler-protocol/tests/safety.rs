@@ -64,7 +64,7 @@ fn verified_safety_enum_values_are_known_not_opaque_unknowns() {
             decoded.hypotheses()[0].safety_status,
             Some(i32::from(value))
         );
-        assert_eq!(decoded.hypotheses()[0].raw, raw);
+        assert_eq!(decoded.hypotheses()[0].raw.as_ref(), raw.as_slice());
         assert!(decoded.hypotheses()[0].unknown_fields.is_empty());
     }
 }

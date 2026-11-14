@@ -4,7 +4,10 @@
 use bytes::Bytes;
 use rambler_engine::{AudioSource, SourceError, SourceFuture};
 use std::path::Path;
-use tokio::{fs::File, io::AsyncReadExt};
+use tokio::{
+    fs::{File, OpenOptions},
+    io::AsyncReadExt,
+};
 
 const MAX_PAGE_BYTES: usize = 27 + 255 + 255 * 255;
 // Explicit application policy: 64 KiB accommodates the 48 * 1275-byte
@@ -47,7 +50,13 @@ pub(crate) struct OggAudio {
 }
 impl OggAudio {
     pub(crate) async fn open(path: impl AsRef<Path>) -> Result<Self, SourceError> {
-        let mut file = File::open(path).await.map_err(SourceError::new)?;
+        let mut options = OpenOptions::new();
+        options.read(true);
+        // Reject FIFOs from their opened descriptor without blocking open or
+        // relying on a racy path precheck. Regular-file semantics are unchanged.
+        #[cfg(unix)]
+        options.custom_flags(libc::O_NONBLOCK);
+        let mut file = options.open(path).await.map_err(SourceError::new)?;
         // Also cap Tokio's internal blocking-read staging allocation.
         file.set_max_buf_size(MAX_PAGE_BYTES);
         let mut source = Self {
@@ -70,7 +79,23 @@ impl OggAudio {
             closed: false,
             failure: None,
         };
-        if let Err(error) = source.prepare_page().await {
+        #[cfg(windows)]
+        if !is_disk_file(source.file.as_ref().expect("new file source")) {
+            source.close_file().await;
+            return Err(invalid("Ogg input must be a regular disk file"));
+        }
+        let preflight = match source
+            .file
+            .as_ref()
+            .expect("new file source")
+            .metadata()
+            .await
+        {
+            Ok(metadata) if metadata.is_file() => source.prepare_page().await,
+            Ok(_) => Err("Ogg input must be a regular file"),
+            Err(_) => Err("Ogg metadata failed"),
+        };
+        if let Err(error) = preflight {
             source.close_file().await;
             return Err(invalid(error));
         }
@@ -338,6 +363,14 @@ impl Drop for OggAudio {
             runtime.spawn(closing);
         }
     }
+}
+#[cfg(windows)]
+fn is_disk_file(file: &File) -> bool {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_DISK, GetFileType};
+    // SAFETY: the source owns a live handle throughout this read-only query;
+    // GetFileType neither closes it nor stores a pointer to borrowed memory.
+    unsafe { GetFileType(file.as_raw_handle()) == FILE_TYPE_DISK }
 }
 fn invalid(message: &'static str) -> SourceError {
     SourceError::new(std::io::Error::new(

@@ -111,10 +111,10 @@ async fn segment_collection_keeps_field5_and_field7_updates_without_claiming_fin
     .raw;
     let completion = response(&[v(1, 1).unwrap(), b(3, &[]).unwrap()].concat()).raw;
     let messages = vec![
-        Bytes::from(first.clone()),
+        first.clone(),
         Bytes::from_static(b"\x08\x00"),
-        Bytes::from(second.clone()),
-        Bytes::from(completion),
+        second.clone(),
+        completion,
         Bytes::from_static(b"\x08\x01"),
     ];
     let server = TestServer::new(move |request| {
