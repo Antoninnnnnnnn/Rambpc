@@ -20,6 +20,13 @@
 
 ## Portage Rust
 
+- [rust-http2-boundaries.json](rust-http2-boundaries.json) :
+  revue parallèle de10 périmètres, deux corrections HTTP/2 reproduites RED/GREEN
+  et contre-revues : type MIME en casse mixte et validation précoce de cinq noms
+  de métadonnées interdits.305 tests workspace passent sur Windows stable/1.88
+  et Linux1.88 (un oracle ignoré), builds/smokes natifs et sources hashées identiques.
+  Zéro appel Rambler/appareil. [Contrats et limites](../research/rust-http2-boundaries.md).
+
 - [rust-pcm-channel.json](rust-pcm-channel.json) :
   nouvelle entrée PCM à producteur unique et capacité1, arrêt normal explicite,
   abandon distinct de l'EOF sain, réservations annulables et19 tests dédiés.

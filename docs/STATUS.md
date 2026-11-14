@@ -1,5 +1,19 @@
 # État du moteur — 2026-11-14
 
+## Deux frontières HTTP/2 corrigées et reproduites localement
+
+Un workflow couvre10 périmètres en parallèle, avec2 contre-vérifications et une
+synthèse (13 agents Sol). Deux suites séparées établissent ensuite RED/GREEN et
+contre-revue : type MIME gRPC valide en casse mixte désormais accepté, cinq noms
+de métadonnées interdits en HTTP/2 refusés explicitement dès leur validation.
+Les frontières de sous-type, doublons, limites, encodages, safety et credentials
+valides restent préservés ; aucun en-tête n'est retiré silencieusement.
+**305 tests workspace passent** sur Windows stable1.99.1, Windows/MSVC1.88 et
+Linux1.88, avec un oracle ignoré et sources hashées identiques.10 tests d'exemple,
+30 tests CLI feature-off, Clippy strict/formatage Windows, builds release et
+smokes PCM passent. Zéro nouvel appel Rambler/appareil, aucun gain WAN revendiqué.
+[Reproductions, contrats et limites](research/rust-http2-boundaries.md).
+
 ## Entrée PCM producteur et arrêt normal explicite
 
 `pcm_channel()` ajoute un producteur unique avec une file d'un seul chunk et des

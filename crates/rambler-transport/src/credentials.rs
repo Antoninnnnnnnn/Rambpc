@@ -26,6 +26,12 @@ impl fmt::Debug for Metadata {
     }
 }
 impl Metadata {
+    /// Validates and snapshots caller metadata without stripping or rewriting it.
+    ///
+    /// Returns [`TransportError::InvalidMetadata`] for invalid names, values, or size,
+    /// including the HTTP/2-prohibited connection-specific names `connection`,
+    /// `keep-alive`, `proxy-connection`, `transfer-encoding`, and `upgrade`.
+    /// This fail-fast client validation does not establish remote authentication.
     pub fn new(
         entries: impl IntoIterator<Item = (String, CredentialValue)>,
     ) -> Result<Self, TransportError> {
@@ -35,6 +41,14 @@ impl Metadata {
             if index >= 100
                 || key.is_empty()
                 || key.len() > 65536
+                || matches!(
+                    key.as_str(),
+                    "connection"
+                        | "keep-alive"
+                        | "proxy-connection"
+                        | "transfer-encoding"
+                        | "upgrade"
+                )
                 || !key
                     .bytes()
                     .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"_.-".contains(&b))
@@ -147,6 +161,58 @@ impl MetadataProvider for EnvironmentCredentials {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn connection_specific_metadata_survives_tonic_conversion_but_h2_rejects_it() {
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            for key in [
+                "connection",
+                "keep-alive",
+                "proxy-connection",
+                "transfer-encoding",
+                "upgrade",
+                "x-invented-control",
+            ] {
+                // Bypass input validation so the underlying transport guard remains tested.
+                let mut raw = MetadataMap::new();
+                let mut value = MetadataValue::<Ascii>::from_static("invented");
+                value.set_sensitive(true);
+                raw.insert(
+                    MetadataKey::<Ascii>::from_bytes(key.as_bytes()).unwrap(),
+                    value,
+                );
+                let mut request = tonic::Request::new(());
+                *request.metadata_mut() = Metadata(raw).into_map();
+                let headers = request.into_parts().0.into_headers();
+                let value = headers.get(key).expect("tonic must preserve the header");
+                assert_eq!(value, "invented");
+                assert!(value.is_sensitive());
+
+                let (client_io, _peer_io) = tokio::io::duplex(4096);
+                let (mut sender, _connection) = h2::client::handshake(client_io)
+                    .await
+                    .expect("in-memory client handshake must succeed");
+                let mut request = http::Request::builder()
+                    .uri("http://127.0.0.1/metadata-premise")
+                    .version(http::Version::HTTP_2)
+                    .body(())
+                    .unwrap();
+                *request.headers_mut() = headers;
+                // h2 checks these headers synchronously, before its connection is driven.
+                let result = sender.send_request(request, true);
+                if key == "x-invented-control" {
+                    assert!(result.is_ok(), "h2 must accept valid custom metadata");
+                } else {
+                    assert!(
+                        result.is_err(),
+                        "h2 must reject connection-specific metadata"
+                    );
+                }
+            }
+        })
+        .await
+        .expect("in-memory metadata checks must finish within five seconds");
+    }
 
     #[test]
     fn duplicate_text_and_binary_values_keep_sensitive_flags_when_converted_to_headers() {

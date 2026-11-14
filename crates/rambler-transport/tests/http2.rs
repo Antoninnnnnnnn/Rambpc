@@ -534,6 +534,104 @@ async fn fragmented_and_coalesced_envelopes_preserve_all_payloads_and_empty_mess
 }
 
 #[tokio::test]
+async fn media_type_mixed_case_base_suffix_and_parameters_accept_data_and_ok() {
+    bounded(async {
+        for content_type in [
+            "Application/Grpc",
+            "APPLICATION/GRPC",
+            "Application/Grpc+proto",
+            "APPLICATION/GRPC; charset=utf-8",
+            "aPpLiCaTiOn/gRpC+proto; charset=utf-8",
+            "application/grpc",
+            "application/grpc+proto",
+            "application/grpc; charset=utf-8",
+        ] {
+            let peer = Peer::new(move |request, mut reply| async move {
+                drain(request).await;
+                let mut head = headers();
+                head.headers_mut()
+                    .insert("content-type", content_type.parse().unwrap());
+                let mut response = reply.send_response(head, false).unwrap();
+                response
+                    .send_data(frame(b"\x00response\xff"), false)
+                    .unwrap();
+                response.send_trailers(trailers("0")).unwrap();
+            })
+            .await;
+            let transport = peer.transport().await;
+            let mut session = transport
+                .start(
+                    source(b"request"),
+                    Metadata::default(),
+                    Duration::from_secs(2),
+                )
+                .unwrap();
+            let result = collect(&mut session).await;
+            assert!(result.is_ok(), "{content_type}: {result:?}");
+            assert_eq!(
+                result.unwrap(),
+                vec![Bytes::from_static(b"\x00response\xff")]
+            );
+            let done = session.finish().await.unwrap();
+            assert_eq!(done.terminal_code, Some(Code::Ok), "{content_type}");
+            assert_eq!(done.responses_received, 1, "{content_type}");
+            transport.close().await.unwrap();
+            peer.close().await;
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn media_type_lookalikes_and_duplicate_content_type_remain_protocol_errors() {
+    bounded(async {
+        for (content_type, duplicate) in [
+            ("application/grpc-web", false),
+            ("application/grpcX", false),
+            ("Application/Grpc-web", false),
+            ("APPLICATION/GRPCX", false),
+            ("application/grp", false),
+            ("application/grpc +proto", false),
+            ("application/grpc", true),
+            ("Application/Grpc+proto", true),
+        ] {
+            let peer = Peer::new(move |request, mut reply| async move {
+                drain(request).await;
+                let mut head = headers();
+                head.headers_mut()
+                    .insert("content-type", content_type.parse().unwrap());
+                if duplicate {
+                    head.headers_mut()
+                        .append("content-type", "application/grpc".parse().unwrap());
+                }
+                let mut response = reply.send_response(head, false).unwrap();
+                // Rejection may reset the stream before DATA/trailers are queued.
+                let _ = response.send_data(frame(b"response"), false);
+                let _ = response.send_trailers(trailers("0"));
+            })
+            .await;
+            let transport = peer.transport().await;
+            let mut session = transport
+                .start(
+                    source(b"request"),
+                    Metadata::default(),
+                    Duration::from_secs(2),
+                )
+                .unwrap();
+            let result = collect(&mut session).await;
+            assert!(
+                matches!(result, Err(TransportError::Protocol)),
+                "{content_type}, duplicate={duplicate}: {result:?}"
+            );
+            assert_eq!(session.completion().responses_received, 0);
+            transport.close().await.unwrap();
+            peer.close().await;
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
 async fn strict_status_http_compression_and_truncated_frames_never_succeed() {
     for case in 1..18 {
         let peer = Peer::new(move |request, mut reply| async move {

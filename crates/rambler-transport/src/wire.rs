@@ -152,10 +152,12 @@ fn response_headers(headers: &http::HeaderMap) -> Result<(), TransportError> {
         return Err(TransportError::Protocol);
     };
     let value = content_type.as_bytes();
+    let base = b"application/grpc";
     if types.next().is_some()
-        || !(value == b"application/grpc"
-            || value.starts_with(b"application/grpc+")
-            || value.starts_with(b"application/grpc;"))
+        || !(value
+            .get(..base.len())
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(base))
+            && matches!(value.get(base.len()), None | Some(b'+' | b';')))
     {
         return Err(TransportError::Protocol);
     }

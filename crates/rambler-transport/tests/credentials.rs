@@ -64,6 +64,45 @@ fn strict_validation_and_all_formatting_are_redacted() {
 }
 
 #[test]
+fn metadata_rejects_the_five_http2_connection_specific_names() {
+    let rejected = [
+        "connection",
+        "keep-alive",
+        "proxy-connection",
+        "transfer-encoding",
+        "upgrade",
+    ]
+    .into_iter()
+    .filter(|key| {
+        matches!(
+            Metadata::new([((*key).into(), CredentialValue::Text("invented".into()))]),
+            Err(TransportError::InvalidMetadata)
+        )
+    })
+    .count();
+    assert_eq!(rejected, 5, "all five names must fail metadata validation");
+}
+
+#[test]
+fn metadata_keeps_custom_grpc_and_control_names_outside_the_five_name_guard() {
+    assert!(
+        Metadata::new(
+            [
+                "x-invented",
+                "grpc-invented",
+                "content-type",
+                "te",
+                "connection-id",
+                "upgrade-token"
+            ]
+            .into_iter()
+            .map(|key| (key.into(), CredentialValue::Text("invented".into())))
+        )
+        .is_ok()
+    );
+}
+
+#[test]
 fn validation_snapshots_binary_duplicates_printable_ascii_and_limits() {
     let mut value = "original".to_owned();
     let metadata = Metadata::new([
