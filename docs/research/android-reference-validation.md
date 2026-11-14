@@ -140,6 +140,16 @@ les trois méthodes applicatives remplacées. Elle n'est pas une revue Opus.
   d'autres chemins : elle n'est ni activée ni présentée comme injection externe.
   Source : `kmy.java:11,27–42,65–68`, `kmw.java:25–47,90–93`,
   `kla.java:183–257`, `knt.java:318–344`, `iho.java:250–308` du même APK.
+- Une revue statique Kimi complémentaire ne trouve pas de couture normale pour
+  fournir un `InputStream` externe : le champ de session reste figé à null, le
+  builder n'a pas de setter et `kkv.java:10–13` lit puis abandonne cette valeur.
+  Le paramètre générique de `iho.j` n'est pas une configuration exposée : son
+  appelant S3 fournit uniquement `new aaqe()` ou null. Les variantes Jetson Lite
+  (`fom.java:68–89`) et on-device (`kme.java:52–69`) construisent également `aaqe` ;
+  la sélection de factory (`kki.java:63–111`) ne démontre aucune entrée externe.
+  Aucune action appareil. `klb.g`, `kjo.run` et `kml.a` restent non décompilés :
+  ce constat n'est pas une preuve exhaustive instruction par instruction, ni une
+  justification de contourner ces chemins ou de relancer les hooks constructeurs.
 
 Les [sources originales du prototype audio/UI](../../tools/reference/android_audio/README.md)
 sont conservées avec29 tests Node offline passants et un assembleur local qui

@@ -149,6 +149,40 @@ mod tests {
     use super::*;
 
     #[test]
+    fn duplicate_text_and_binary_values_keep_sensitive_flags_when_converted_to_headers() {
+        let metadata = Metadata::new([
+            (
+                "authorization".into(),
+                CredentialValue::Text("invented-first".into()),
+            ),
+            (
+                "authorization".into(),
+                CredentialValue::Text("invented-second".into()),
+            ),
+            (
+                "proof-bin".into(),
+                CredentialValue::Binary(Bytes::from_static(b"\0\xff")),
+            ),
+        ])
+        .unwrap();
+        // Exercise the same tonic Request conversion as the h2 RPC writer.
+        let mut request = tonic::Request::new(());
+        *request.metadata_mut() = metadata.into_map();
+        request.set_timeout(std::time::Duration::from_secs(5));
+        let headers = request.into_parts().0.into_headers();
+        assert_eq!(headers.get_all("authorization").iter().count(), 2);
+        assert_eq!(headers.get_all("proof-bin").iter().count(), 1);
+        for key in ["authorization", "proof-bin"] {
+            assert!(
+                headers
+                    .get_all(key)
+                    .iter()
+                    .all(|value| value.is_sensitive())
+            );
+        }
+    }
+
+    #[test]
     fn fake_lookup_snapshots_exact_headers_rotation_and_sensitive_flags() {
         let provider = EnvironmentCredentials;
         let first = provider

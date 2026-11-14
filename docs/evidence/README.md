@@ -20,6 +20,14 @@
 
 ## Portage Rust
 
+- [rust-credential-snapshots.json](rust-credential-snapshots.json) :
+  isolation de snapshots d'un fournisseur partagé, rotation puis retrait pendant
+  trois RPCs sur un seul TCP loopback, doublons/binaires exacts. Sensibilité
+  pré-envoi vérifiée séparément ; ni inspection HPACK ni renouvellement distant.
+  Suite transport :63 tests passent sur Windows stable/1.88 et Linux1.88 avec
+  sources hashées identiques ; zéro appel service/appareil.
+  [Contrat et limites](../research/rust-credential-snapshots.md).
+
 - [rust-native-partials-msrv.json](rust-native-partials-msrv.json) :
  10 tests ciblés de l'exemple passent sur chacun de Windows/MSVC1.88 et Linux1.88,
   source hashée identique, zéro service/appareil. L'échec CMake initial Windows

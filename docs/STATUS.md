@@ -1,5 +1,19 @@
 # État du moteur — 2026-11-14
 
+## Métadonnées natives : snapshots par session
+
+Deux nouveaux tests couvrent le fournisseur partagé avec rotation puis retrait
+pendant trois RPCs simultanément ouverts sur un seul TCP loopback : doublons et
+binaire exacts, aucune ancienne valeur sur la session vide, un appel fournisseur
+par session jusqu'à fermeture. La sensibilité est contrôlée après conversion des
+en-têtes **avant envoi**, pas inférée du décodeur HPACK du pair.
+La suite transport passe **63 tests** sur Windows stable1.99.1, Windows/MSVC1.88
+et Linux1.88 avec sources hashées identiques ; Clippy strict et formatage Windows
+passent. Ce n'est pas une nouvelle exécution de tout le workspace.
+Aucun changement de comportement production, aucun appel service/appareil et
+aucun renouvellement ou accès après révocation démontré.
+[Contrat et validation ciblée](research/rust-credential-snapshots.md).
+
 ## Référence Android de développement : préparation, pas parité acquise
 
 PixelBoard officiel est installé côte à côte avec Gboard sur le téléphone de test
@@ -130,7 +144,7 @@ La matrice CI Windows/Linux/macOS ×1.88/stable est écrite mais **pas exécuté
 
 La [matrice de parité](research/rust-feature-parity.md) relie les symboles APK,
 API Rust et preuves réseau sans confondre enums et capacités validées. La revue
-Opus a trouvé un marqueur `hypothesis.field30` sécurité ignoré : décodage0/1,
+de parité a trouvé un marqueur `hypothesis.field30` sécurité ignoré : décodage0/1,
 préservation des inconnus et refus de rendu/proposition sont maintenant testés.
 La CLI n'affiche aucun candidat ni contexte pour `safety_blocked` ou
 `unrecognized_safety`. Revue ciblée finale sans constat ; aucun cas bloqué réel
