@@ -120,6 +120,17 @@ first exposed a remaining metadata-only check failure; the final descriptor-type
 check passed with a fresh no-data pipe instance per command. See
 [rust-file-inputs.md](rust-file-inputs.md). No credentials or live RPC were used.
 
+## Provenance des revues : correction du modèle
+
+Le2026-11-14, les métadonnées `assistant.message.model` des agents récents demandés
+avec `model: opus` indiquent `gpt-6.1-sol`, y compris la revue des buffers partagés
+et les travaux transport/ledger concernés. Ces lectures comptent comme contextes
+indépendants Sol, **pas comme validations Opus**. L'ancienne attribution nominative
+ne doit pas renforcer artificiellement le niveau de preuve. Les tests et mesures
+réellement exécutés restent inchangés. Les nouvelles tentatives de revue Opus ont
+été arrêtées avant analyse ; aucune erreur de quota n'a été constatée, le routage
+Opus reste à rétablir. Aucune substitution de cette revue n'est annoncée.
+
 ## Written CI matrix, not yet executed
 
 `.github/workflows/rust.yml` defines Windows, Linux and macOS jobs on 1.88.0 and

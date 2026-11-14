@@ -14,7 +14,8 @@ pas efficacité du filtrage/ponctuation. Le routage secondaire n'a pas été ess
 
 - [Raw partagé](research/rust-backend-profiling.md) : payloads identiques et
   **−70,82% de rétention logique** (12 635 008→3 686 912octets), texte/inconnus
-  conservés. Revue indépendante Opus sans finding concret ; ce n'est pas une
+  conservés. Revue indépendante sans finding concret, exécutée par Sol selon les
+  métadonnées (ancienne attribution Opus corrigée) ; ce n'est pas une
   baisse RSS ou un gain WAN garanti. API Rust0.1 : `raw`/`active_raw` deviennent
   `Bytes`, migration et enfant retenant sa racine documentés.
 - [Fichiers réguliers](research/rust-file-inputs.md) : FIFO Unix et pipe Windows
@@ -126,7 +127,7 @@ réussit, puis [un unique essai300s](evidence/rust-diagnostic-endurance-300-publ
 termine en290,904s avec14 422 requêtes et les mêmes finales connues ordonnées que
 le premier essai long sain. **L'incident282s n'est pas reproduit, pas déclaré résolu.**
 
-La revue indépendante Opus, avec neuf contrôles loopback ciblés, ne démontre aucun
+La revue indépendante, avec neuf contrôles loopback ciblés, ne démontre aucun
 défaut client compatible avec cet incident et recommande de ne pas multiplier les
 appels service. Il manque les flags/timeline de l'échec original, impossibles à
 récupérer après coup ; cela interdit d'en attribuer la cause au client ou au service.

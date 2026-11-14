@@ -32,7 +32,8 @@
 
 
 - [rust-incomplete-diagnostic-followup.json](rust-incomplete-diagnostic-followup.json) :
-  consolidation avec diagnostic typé et revue Opus. Une qualification120s et
+  consolidation avec diagnostic typé et revue indépendante (attribution initiale
+  du modèle non certifiée ; voir la correction dans [les validations](../research/rust-build-validation.md)). Une qualification120s et
   un unique300s réussissent, sans reproduire ni résoudre l'ancien incident282s.
   [Qualification](rust-diagnostic-endurance-120-public.json) ·
   [essai long diagnostique](rust-diagnostic-endurance-300-public.json).
