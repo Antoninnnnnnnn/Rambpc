@@ -2,6 +2,18 @@
 
 ## Portage Rust
 
+- [rust-backend-decode-differential.json](rust-backend-decode-differential.json) :
+ 6 791 entrées uniques,95 074 comparaisons de modèles/erreurs complets,
+  zéro différence avec la référence (limites production puis budget instrumenté).
+  Test Sol fini, pas preuve d'équivalence universelle ni revue Opus.
+
+- [rust-backend-decode-defensive-capacity-profile.json](rust-backend-decode-defensive-capacity-profile.json) :
+  variante finale bornée,39→24 allocations/réponse et médianes CPU locales favorables.
+  Pics temporaires sparse environ+18,5% et outliers conservés ; pas de gain WAN.
+  [Méthode et limites](../research/rust-backend-decode-defensive-capacity.md).
+  [rust-backend-decode-allocations-profile.json](rust-backend-decode-allocations-profile.json)
+  conserve les mesures historiques de la variante V2 **rejetée**, pas du code livré.
+
 - [rust-recognizer-options-public.json](rust-recognizer-options-public.json) :
   trois appels synthétiques du nouveau binaire, champs7/40 omis puis faux/vrais,
   source PCM intégrale, même texte hashé, zéro retry. Acceptation sur le profil

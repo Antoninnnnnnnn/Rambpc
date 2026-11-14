@@ -17,6 +17,7 @@ static ENABLED: AtomicBool = AtomicBool::new(false);
 static ALLOCS: AtomicU64 = AtomicU64::new(0);
 static REALLOCS: AtomicU64 = AtomicU64::new(0);
 static REQUESTED: AtomicU64 = AtomicU64::new(0);
+static MAX_REQUEST: AtomicU64 = AtomicU64::new(0);
 static LIVE: AtomicU64 = AtomicU64::new(0);
 static PEAK: AtomicU64 = AtomicU64::new(0);
 static RETAINED: AtomicU64 = AtomicU64::new(0);
@@ -30,6 +31,7 @@ fn allocated(size: usize, realloc: bool) {
             ALLOCS.fetch_add(1, Relaxed);
         }
         REQUESTED.fetch_add(size as u64, Relaxed);
+        MAX_REQUEST.fetch_max(size as u64, Relaxed);
         PEAK.fetch_max(live, Relaxed);
     }
 }
@@ -104,6 +106,7 @@ fn bench_at(
     ALLOCS.store(0, Relaxed);
     REALLOCS.store(0, Relaxed);
     REQUESTED.store(0, Relaxed);
+    MAX_REQUEST.store(0, Relaxed);
     let baseline = LIVE.load(Relaxed);
     PEAK.store(baseline, Relaxed);
     RETAINED.store(baseline, Relaxed);
@@ -122,8 +125,156 @@ fn bench_at(
         serde_json::json!({"kind":"allocations", "case":name,
         "iterations":iterations,"units_per_iteration":units, "alloc_calls":allocations,
         "realloc_calls":reallocations, "requested_bytes":requested, "peak_increment_bytes":peak,
+        "max_request_bytes":MAX_REQUEST.load(Relaxed),
         "retained_increment_bytes":RETAINED.load(Relaxed).saturating_sub(baseline)})
     );
+}
+
+// Additional allocation/capacity shapes. Fixtures and assertions are outside both
+// timing and allocation passes; baseline and candidate use this identical harness.
+fn decode_shapes(iterations: usize, repeats: usize) {
+    use rambler_protocol::{RECOGNITION_RESPONSE, wire::bytes_field};
+    fn blob(number: u32, body: &[u8]) -> Vec<u8> {
+        bytes_field(number, body).unwrap()
+    }
+    fn response(recognition: &[u8]) -> Vec<u8> {
+        blob(RECOGNITION_RESPONSE, &blob(1, recognition))
+    }
+    let mut cases = vec![
+        ("empty".to_owned(), Vec::new(), iterations),
+        ("status".to_owned(), vec![8, 0], iterations),
+        (
+            "speech".to_owned(),
+            blob(RECOGNITION_RESPONSE, &blob(2, &[8, 0])),
+            iterations,
+        ),
+    ];
+    for count in [0, 1, 2, 4, 16, 257] {
+        let hypothesis = blob(1, b"candidate e/UTF8");
+        let list = blob(3, &hypothesis).repeat(count);
+        let raw = response(&blob(3, &list));
+        let decoded = decode_response(&raw).unwrap();
+        assert_eq!(decoded.hypotheses().len(), count);
+        let items = &decoded
+            .result
+            .as_ref()
+            .unwrap()
+            .recognition
+            .as_ref()
+            .unwrap()
+            .hypothesis_result
+            .as_ref()
+            .unwrap()
+            .hypotheses;
+        println!(
+            "{}",
+            serde_json::json!({"kind":"shape_census", "count":count,
+            "hypotheses_capacity":items.capacity(),
+            "hypothesis_size":std::mem::size_of::<rambler_protocol::Hypothesis>(),
+            "root_size":std::mem::size_of::<rambler_protocol::S3Response>(),
+            "wire_bytes":raw.len()})
+        );
+        cases.push((
+            format!("hypotheses_{count}"),
+            raw,
+            (iterations / count.max(1)).max(256),
+        ));
+    }
+    let partial = blob(1, &blob(1, b"partial candidate"));
+    cases.push((
+        "partials_16".into(),
+        response(&blob(4, &partial.repeat(16))),
+        iterations / 16,
+    ));
+    let item = blob(3, &blob(1, b"merged candidate"));
+    let merged = blob(3, &item).repeat(16);
+    let raw = response(&merged);
+    assert_eq!(decode_response(&raw).unwrap().hypotheses().len(), 16);
+    cases.push(("merged_16".into(), raw, iterations / 16));
+    let switches = [blob(1, &[8, 1]), blob(2, &[8, 0])].concat().repeat(8);
+    let raw = blob(RECOGNITION_RESPONSE, &switches);
+    assert_eq!(decode_response(&raw).unwrap().speech_event(), Some(0));
+    cases.push(("oneof_runs_16".into(), raw, iterations / 16));
+    cases.push((
+        "root_fields_100000".into(),
+        [8, 0].repeat(100_000),
+        (iterations / 1000).max(16),
+    ));
+    for (name, raw, iterations) in cases {
+        let iterations = iterations.max(1);
+        bench(&format!("shape_{name}"), iterations, repeats, 1, || {
+            let decoded = decode_response(black_box(&raw)).unwrap();
+            black_box(&decoded);
+            decoded.raw.len()
+        });
+    }
+}
+
+// Error fixtures deliberately keep all wrappers within the global field budget.
+// A bad first child must not speculatively reserve a large output model Vec.
+fn decode_errors(iterations: usize, repeats: usize) {
+    use rambler_protocol::{Error, RECOGNITION_RESPONSE, wire::bytes_field};
+    for (kind, container, child) in [("hypotheses", 3, 3), ("partials", 4, 1)] {
+        for (count, valid_prefix) in [(1, 0), (2, 0), (4, 0), (257, 0), (90_000, 0), (90_000, 1)] {
+            let good = bytes_field(child, b"").unwrap();
+            let bad = bytes_field(child, &[0]).unwrap();
+            let list = [good.repeat(valid_prefix), bad.repeat(count - valid_prefix)].concat();
+            let recognition = bytes_field(container, &list).unwrap();
+            let result = bytes_field(1, &recognition).unwrap();
+            let raw = bytes_field(RECOGNITION_RESPONSE, &result).unwrap();
+            assert_eq!(decode_response(&raw), Err(Error::FieldNumber));
+            let name = format!("error_{kind}_{count}_prefix{valid_prefix}");
+            bench(&name, iterations.min(32), repeats, 1, || {
+                let decoded = decode_response(black_box(&raw));
+                assert_eq!(black_box(&decoded), &Err(Error::FieldNumber));
+                raw.len()
+            });
+        }
+    }
+}
+
+fn decode_sparse(iterations: usize, repeats: usize) {
+    use rambler_protocol::{RECOGNITION_RESPONSE, wire::bytes_field};
+    for count in [1, 2] {
+        let child = bytes_field(3, &bytes_field(1, b"candidate").unwrap()).unwrap();
+        let list = [
+            child.clone(),
+            [0x98, 0x06, 0].repeat(20_000),
+            child.repeat(count - 1),
+        ]
+        .concat();
+        let recognition = bytes_field(3, &list).unwrap();
+        let result = bytes_field(1, &recognition).unwrap();
+        let raw = bytes_field(RECOGNITION_RESPONSE, &result).unwrap();
+        let decoded = decode_response(&raw).unwrap();
+        assert_eq!(decoded.hypotheses().len(), count);
+        assert_eq!(
+            decoded
+                .result
+                .as_ref()
+                .unwrap()
+                .recognition
+                .as_ref()
+                .unwrap()
+                .hypothesis_result
+                .as_ref()
+                .unwrap()
+                .unknown_fields
+                .len(),
+            20_000
+        );
+        bench(
+            &format!("sparse_{count}_unknown20000"),
+            iterations.min(64),
+            repeats,
+            1,
+            || {
+                let decoded = decode_response(black_box(&raw)).unwrap();
+                black_box(&decoded);
+                decoded.raw.len()
+            },
+        );
+    }
 }
 
 // Runtime rejection keeps debug test builds possible; timing requires release.
@@ -133,6 +284,18 @@ fn main() {
     let iterations = profile_support::arg("--iterations", 20_000);
     let repeats = profile_support::arg("--repeats", 5);
     let decode_only = std::env::args().any(|arg| arg == "--decode-only");
+    if std::env::args().any(|arg| arg == "--decode-sparse") {
+        decode_sparse(iterations, repeats);
+        return;
+    }
+    if std::env::args().any(|arg| arg == "--decode-errors") {
+        decode_errors(iterations, repeats);
+        return;
+    }
+    if std::env::args().any(|arg| arg == "--decode-shapes") {
+        decode_shapes(iterations, repeats);
+        return;
+    }
     if !decode_only {
         let config = ProtocolConfig::default();
         let context = profile_support::context();

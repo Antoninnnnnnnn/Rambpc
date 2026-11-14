@@ -120,6 +120,34 @@ first exposed a remaining metadata-only check failure; the final descriptor-type
 check passed with a fresh no-data pipe instance per command. See
 [rust-file-inputs.md](rust-file-inputs.md). No credentials or live RPC were used.
 
+## Defensive decoder allocation recheck
+
+The final bounded decoder snapshot R9 passed **279 workspace tests** on Linux
+x86_64 / Ubuntu24.04 / Rust1.88, with one independent audio oracle ignored;
+the reuse example passed4 tests and the audio-feature-off CLI passed30.
+Windows11 MSVC passed the same279 workspace tests on stable1.99.1 and1.88;
+stable also passed the4 example tests,30 feature-off tests, strict all-target /
+all-feature Clippy and formatting. Windows release builds passed with audio and
+without it (the latter with a deliberately nonexistent `CMAKE`).
+The Linux native release audio build passed. R8 already exited successfully, but its
+combined stdout/stderr file capture was incomplete; R9 used pipe capture and
+preserved the full log instead of inferring missing totals. No service calls,
+credentials, dependency changes or new system installation were involved.
+The [decoder report](rust-backend-decode-defensive-capacity.md) separates the
+rejected V2 and records the final sparse-memory tradeoffs.
+
+A separate bounded Sol differential check compared6,791 unique inputs (at most
+64KiB each) against commit `29fc0d143f255bf581faca595be290713993543d`:
+47,537 complete Debug model/error comparisons with production limits, then47,537
+with both scratch-only source copies instrumented to a100-field budget.
+**Zero differences** were found, including raw/unknown bytes, ordering, earlier
+invalid UTF-8, merges, oneofs and budget boundaries. The production source and
+limits were not changed by instrumentation. This is finite regression evidence,
+not a proof of equivalence or an Opus review. Seed, corpus digest, output digests,
+source and harness hashes are in the [public summary](../evidence/rust-backend-decode-differential.json).
+The scripts/corpus/source snapshots remain local development artifacts; the
+checked-in `decode_capacity` tests reproduce the focused regression cases.
+
 ## Provenance des revues : correction du modèle
 
 Le2026-11-14, les métadonnées `assistant.message.model` des agents récents demandés
@@ -130,6 +158,10 @@ ne doit pas renforcer artificiellement le niveau de preuve. Les tests et mesures
 réellement exécutés restent inchangés. Les nouvelles tentatives de revue Opus ont
 été arrêtées avant analyse ; aucune erreur de quota n'a été constatée, le routage
 Opus reste à rétablir. Aucune substitution de cette revue n'est annoncée.
+La lecture sans authentification du catalogue du proxy local confirme ensuite
+qu'il annonce GPT et Kimi, mais aucun modèle Claude/Opus. Les variables usuelles
+de sélection/forçage de sous-agent sont absentes de l'environnement contrôlé ;
+aucune inférence supplémentaire ni modification de configuration n'a été tentée.
 
 ## Written CI matrix, not yet executed
 

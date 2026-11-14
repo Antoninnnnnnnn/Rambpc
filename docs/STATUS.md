@@ -1,5 +1,21 @@
 # État du moteur — 2026-11-14
 
+## Décodage : allocations défensives
+
+**279 tests workspace passent** sur Windows stable1.99.1 et1.88, ainsi que
+Linux1.88 (R9), avec un oracle audio ignoré. Les4 tests d'exemple et30 tests CLI
+sans audio passent sur Windows stable et Linux ; Clippy strict et formatage
+Windows passent, ainsi que les builds release Windows avec/sans audio et Linux
+audio. [Détail des validations](research/rust-build-validation.md).
+
+Le [raffinement du décodeur](research/rust-backend-decode-defensive-capacity.md)
+réduit les allocations mesurées de39 à24 par réponse, sans changement d'API.
+Le premier enfant est validé avant allocation de la liste ; l'indication initiale
+inspecte au plus quatre champs, avant filtrage. La variante V2 préallouant depuis
+un compte non validé a été rejetée, avec ses mesures conservées séparément.
+Les médianes CPU locales sont favorables, mais certains pics temporaires sparse
+augmentent d'environ18,5% : ni optimum universel de mémoire ni gain WAN revendiqué.
+
 ## Suite de consolidation : mémoire, entrées fichier et options S3
 
 **274 tests workspace passent** sur Windows stable1.99.1 et Rust1.88, ainsi que
