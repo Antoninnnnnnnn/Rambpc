@@ -155,12 +155,58 @@ pub fn initial_request(config: &ProtocolConfig, elapsed_ms: u64) -> Result<Vec<u
     }
     Ok(out)
 }
+fn varint_len(mut value: u64) -> usize {
+    let mut len = 1;
+    while value >= 128 {
+        value >>= 7;
+        len += 1;
+    }
+    len
+}
+fn push_varint(out: &mut Vec<u8>, mut value: u64) {
+    while value >= 128 {
+        out.push((value as u8 & 127) | 128);
+        value >>= 7;
+    }
+    out.push(value as u8);
+}
+
 /// Wrap bytes from one continuous Ogg/Opus stream; no re-encoding or splitting.
 pub fn audio_request(chunk: &[u8], elapsed_ms: u64) -> Result<Vec<u8>, Error> {
     bounded(chunk.len())?;
     elapsed(elapsed_ms)?;
-    let mut out = b(AUDIO_INFO, &v(9, elapsed_ms)?)?;
-    append(&mut out, b(AUDIO_DATA, &b(1, chunk)?)?)?;
+    // Validate every nested wrapper and the complete message before allocation.
+    // This is the same field order and canonical wire encoding as b/v assembly,
+    // but copies the opaque audio only once instead of through three Vecs.
+    let audio_info = 1 + varint_len(elapsed_ms);
+    let audio_data = chunk
+        .len()
+        .checked_add(1 + varint_len(chunk.len() as u64))
+        .ok_or(Error::SizeLimit)?;
+    bounded(audio_data)?;
+    let wrapped_data = audio_data
+        .checked_add(varint_len((u64::from(AUDIO_DATA) << 3) | 2) + varint_len(audio_data as u64))
+        .ok_or(Error::SizeLimit)?;
+    bounded(wrapped_data)?;
+    let total = wrapped_data
+        .checked_add(
+            varint_len((u64::from(AUDIO_INFO) << 3) | 2)
+                + varint_len(audio_info as u64)
+                + audio_info,
+        )
+        .ok_or(Error::SizeLimit)?;
+    bounded(total)?;
+    let mut out = Vec::with_capacity(total);
+    push_varint(&mut out, (u64::from(AUDIO_INFO) << 3) | 2);
+    push_varint(&mut out, audio_info as u64);
+    push_varint(&mut out, 9 << 3);
+    push_varint(&mut out, elapsed_ms);
+    push_varint(&mut out, (u64::from(AUDIO_DATA) << 3) | 2);
+    push_varint(&mut out, audio_data as u64);
+    push_varint(&mut out, (1 << 3) | 2);
+    push_varint(&mut out, chunk.len() as u64);
+    out.extend_from_slice(chunk);
+    debug_assert_eq!(out.len(), total);
     Ok(out)
 }
 /// Build extension1203 only, after audio and before end. No hints are copied here.

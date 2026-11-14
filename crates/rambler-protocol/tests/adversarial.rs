@@ -167,9 +167,9 @@ fn generated_response(seed: u64, sample: usize) -> (Vec<u8>, S3Response, usize) 
                 };
                 let raw = blob(n, text.as_bytes(), padded);
                 if n == 3 {
-                    model.result_id = Some(text);
+                    model.language = Some(text);
                 } else {
-                    model.alternative_text = Some(text);
+                    model.spoken_language = Some(text);
                 }
                 raw
             }

@@ -262,8 +262,8 @@ fn nested_models_raw_unknowns_float_and_double_confidences() {
     assert_eq!(rec.raw, recognition_raw);
     assert_eq!(r.raw, result);
     assert_eq!(r.unknown_fields, [unknown(85, 8)]);
-    assert_eq!(r.result_id.as_deref(), Some("result-id"));
-    assert_eq!(r.alternative_text.as_deref(), Some("auxiliary"));
+    assert_eq!(r.language.as_deref(), Some("result-id"));
+    assert_eq!(r.spoken_language.as_deref(), Some("auxiliary"));
     assert_eq!(d.raw, root);
     assert_eq!(d.unknown_fields, [unknown(86, 9)]);
 }
@@ -309,6 +309,49 @@ fn voice_oneof_last_member_wins_and_empty_string_presence() {
 }
 
 #[test]
+fn response_language_fields_are_independent_and_preserve_values() {
+    let empty = decode_response(&blob(RECOGNITION_RESPONSE, b""))
+        .unwrap()
+        .result
+        .unwrap();
+    assert_eq!((empty.language, empty.spoken_language), (None, None));
+
+    let payload = join([
+        blob(3, "fr-FR"),
+        blob(4, "fr-FR"),
+        blob(3, ""),
+        blob(3, "en-US"),
+    ]);
+    let decoded = decode_response(&blob(RECOGNITION_RESPONSE, &payload))
+        .unwrap()
+        .result
+        .unwrap();
+    assert_eq!(decoded.language.as_deref(), Some("en-US"));
+    assert_eq!(decoded.spoken_language.as_deref(), Some("fr-FR"));
+    assert_eq!(decoded.raw, payload);
+
+    let same = decode_response(&blob(
+        RECOGNITION_RESPONSE,
+        join([blob(3, "fr-FR"), blob(4, "fr-FR")]),
+    ))
+    .unwrap()
+    .result
+    .unwrap();
+    assert_eq!(same.language.as_deref(), Some("fr-FR"));
+    assert_eq!(same.spoken_language.as_deref(), Some("fr-FR"));
+
+    let present_empty = decode_response(&blob(
+        RECOGNITION_RESPONSE,
+        join([blob(3, ""), blob(4, "")]),
+    ))
+    .unwrap()
+    .result
+    .unwrap();
+    assert_eq!(present_empty.language.as_deref(), Some(""));
+    assert_eq!(present_empty.spoken_language.as_deref(), Some(""));
+}
+
+#[test]
 fn all_verified_response_oneof_members_clear_and_keep_independent_strings() {
     for last in [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 19, 20, 21] {
         let result = join([
@@ -329,8 +372,8 @@ fn all_verified_response_oneof_members_clear_and_keep_independent_strings() {
                 scalar(1, 44)
             })
         );
-        assert_eq!(r.result_id.as_deref(), Some("id"));
-        assert_eq!(r.alternative_text.as_deref(), Some("independent"));
+        assert_eq!(r.language.as_deref(), Some("id"));
+        assert_eq!(r.spoken_language.as_deref(), Some("independent"));
         assert_eq!(
             d.recognition_state(),
             if last == 1 { Some(44) } else { None }
@@ -416,7 +459,7 @@ fn literal_singular_response_extension_merge_preserves_root_and_logical_raw() {
     let d = decode_response(&payload).unwrap();
     assert_eq!(d.recognition_state(), Some(1));
     assert_eq!(d.hypotheses()[0].text.as_deref(), Some("A"));
-    assert_eq!(d.result.as_ref().unwrap().result_id.as_deref(), Some("id"));
+    assert_eq!(d.result.as_ref().unwrap().language.as_deref(), Some("id"));
     assert_eq!(d.raw, payload);
     assert_eq!(
         d.result.unwrap().raw,
@@ -438,7 +481,7 @@ fn same_oneof_message_merges_across_independent_and_wrong_wire_fields() {
     assert_eq!(d.recognition_state(), Some(1));
     assert_eq!(d.hypotheses()[0].text.as_deref(), Some("A"));
     let r = d.result.unwrap();
-    assert_eq!(r.result_id.as_deref(), Some("id"));
+    assert_eq!(r.language.as_deref(), Some("id"));
     assert_eq!(r.active_raw, Some(join([first.clone(), second.clone()])));
     assert_eq!(r.recognition.as_ref().unwrap().raw, join([first, second]));
     assert_eq!(

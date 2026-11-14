@@ -166,8 +166,16 @@ fn partial(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialHypothesis, E
         raw: m.raw,
     })
 }
+fn hypothesis_fallback(parts: Vec<&[u8]>, budget: &mut usize) -> Result<HypothesisFallback, Error> {
+    let m = Message::new(parts, &[(1, 2)], budget)?;
+    Ok(HypothesisFallback {
+        hypothesis: m.message(1, budget, hypothesis)?,
+        unknown_fields: m.unknown,
+        raw: m.raw,
+    })
+}
 fn hypotheses(parts: Vec<&[u8]>, budget: &mut usize) -> Result<HypothesisResult, Error> {
-    let m = Message::new(parts, &[(3, 2)], budget)?;
+    let m = Message::new(parts, &[(3, 2), (5, 2)], budget)?;
     let items = m
         .data(3, 2)
         .into_iter()
@@ -175,6 +183,7 @@ fn hypotheses(parts: Vec<&[u8]>, budget: &mut usize) -> Result<HypothesisResult,
         .collect::<Result<_, _>>()?;
     Ok(HypothesisResult {
         hypotheses: items,
+        fallback_field5: m.message(5, budget, hypothesis_fallback)?,
         unknown_fields: m.unknown,
         raw: m.raw,
     })
@@ -193,11 +202,13 @@ fn partials(parts: Vec<&[u8]>, budget: &mut usize) -> Result<PartialResult, Erro
     })
 }
 fn recognition(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionResult, Error> {
-    let m = Message::new(parts, &[(1, 0), (3, 2), (4, 2)], budget)?;
+    let m = Message::new(parts, &[(1, 0), (3, 2), (4, 2), (5, 2), (7, 2)], budget)?;
     Ok(RecognitionResult {
         state: m.integer(1),
         hypothesis_result: m.message(3, budget, hypotheses)?,
         partial_result: m.message(4, budget, partials)?,
+        hypothesis_result_field5: m.message(5, budget, hypotheses)?,
+        hypothesis_result_field7: m.message(7, budget, hypotheses)?,
         unknown_fields: m.unknown,
         raw: m.raw,
     })
@@ -214,8 +225,8 @@ const RESULT_ONEOF: &[u32] = &[1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 
 fn response_result(parts: Vec<&[u8]>, budget: &mut usize) -> Result<RecognitionResponse, Error> {
     let m = Message::new(parts, &[(1, 2), (2, 2), (3, 2), (4, 2)], budget)?;
     let mut out = RecognitionResponse {
-        result_id: m.string(3)?,
-        alternative_text: m.string(4)?,
+        language: m.string(3)?,
+        spoken_language: m.string(4)?,
         ..Default::default()
     };
     for (number, values) in m.oneof(RESULT_ONEOF) {

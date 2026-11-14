@@ -143,7 +143,25 @@ fn four_payloads_pinned_by_sha256_and_decoded_against_reviewed_expectations() {
                 )
             );
             let recognition = result.recognition.as_ref().unwrap();
-            assert_eq!(recognition.unknown_fields[0].number, 5); // opaque duplicate branch
+            // The formerly opaque duplicate container is now structurally
+            // decoded, without changing any captured bytes or fixture hashes.
+            let extra = recognition.hypothesis_result_field5.as_ref().unwrap();
+            let expected_raw: Vec<_> = wire::parse_fields(&recognition.raw)
+                .unwrap()
+                .into_iter()
+                .filter(|field| field.number == 5)
+                .flat_map(|field| match field.value {
+                    Value::Bytes(bytes) => bytes,
+                    _ => Vec::new(),
+                })
+                .collect();
+            assert_eq!(extra.raw, expected_raw);
+            assert!(
+                recognition
+                    .unknown_fields
+                    .iter()
+                    .all(|field| field.number != 5)
+            );
             let list = recognition.hypothesis_result.as_ref().unwrap();
             assert_eq!(
                 list.unknown_fields

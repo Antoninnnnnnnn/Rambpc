@@ -71,11 +71,31 @@ pub struct PartialHypothesis {
     pub unknown_fields: Vec<Field>,
     pub raw: Vec<u8>,
 }
+/// Structural wrapper (`aalo`), not an automatic fallback-selection policy.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct HypothesisFallback {
+    pub hypothesis: Option<Hypothesis>,
+    pub unknown_fields: Vec<Field>,
+    pub raw: Vec<u8>,
+}
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct HypothesisResult {
     pub hypotheses: Vec<Hypothesis>,
+    /// Independent singular field 5; an empty wrapper still has presence.
+    pub fallback_field5: Option<HypothesisFallback>,
     pub unknown_fields: Vec<Field>,
     pub raw: Vec<u8>,
+}
+impl HypothesisResult {
+    /// Structural traversal: repeated field 3, then field 5's optional hypothesis.
+    /// This is neither a ranking nor a selection/fallback policy.
+    pub fn all_hypotheses(&self) -> impl Iterator<Item = &Hypothesis> {
+        self.hypotheses.iter().chain(
+            self.fallback_field5
+                .as_ref()
+                .and_then(|fallback| fallback.hypothesis.as_ref()),
+        )
+    }
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PartialResult {
@@ -88,10 +108,26 @@ pub struct RecognitionResult {
     pub state: Option<i32>,
     pub hypothesis_result: Option<HypothesisResult>,
     pub partial_result: Option<PartialResult>,
+    /// Independent singular containers, not oneof members or ranked alternatives.
+    pub hypothesis_result_field5: Option<HypothesisResult>,
+    pub hypothesis_result_field7: Option<HypothesisResult>,
     pub unknown_fields: Vec<Field>,
     pub raw: Vec<u8>,
 }
 impl RecognitionResult {
+    /// Visit containers in canonical field order 3, 5, 7, including each fallback.
+    /// Not ranking, global wire order, finality, or automatic text selection.
+    /// The public containers retain the provenance of each hypothesis.
+    pub fn all_hypotheses(&self) -> impl Iterator<Item = &Hypothesis> {
+        [
+            self.hypothesis_result.as_ref(),
+            self.hypothesis_result_field5.as_ref(),
+            self.hypothesis_result_field7.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .flat_map(HypothesisResult::all_hypotheses)
+    }
     pub fn hypotheses(&self) -> &[Hypothesis] {
         self.hypothesis_result
             .as_ref()
@@ -111,8 +147,10 @@ pub struct SpeechEventResult {
 pub struct RecognitionResponse {
     pub recognition: Option<RecognitionResult>,
     pub speech: Option<SpeechEventResult>,
-    pub result_id: Option<String>,
-    pub alternative_text: Option<String>,
+    /// Recognition response field 3 (`language`); preserved without normalization.
+    pub language: Option<String>,
+    /// Recognition response field 4 (`spoken_language`); preserved independently.
+    pub spoken_language: Option<String>,
     pub active_field: Option<u32>,
     pub active_raw: Option<Vec<u8>>,
     pub unknown_fields: Vec<Field>,
@@ -128,6 +166,15 @@ pub struct S3Response {
     pub raw: Vec<u8>,
 }
 impl S3Response {
+    /// Structural traversal of the active recognition result; see
+    /// [`RecognitionResult::all_hypotheses`] for ordering and policy limits.
+    pub fn all_hypotheses(&self) -> impl Iterator<Item = &Hypothesis> {
+        self.result
+            .as_ref()
+            .and_then(|r| r.recognition.as_ref())
+            .into_iter()
+            .flat_map(RecognitionResult::all_hypotheses)
+    }
     pub fn recognition_state(&self) -> Option<i32> {
         self.result.as_ref()?.recognition.as_ref()?.state
     }
