@@ -418,3 +418,30 @@ cargo +stable build --offline --locked --release -p rambler-audio --example prof
 
 Sur Unix, omettre `.exe` ; le chemin du binaire suppose le target Cargo par
 défaut. Utiliser `cargo +1.88.0 test` pour la vérification MSRV correspondante.
+
+## Qualification CI distante du banc — 2026-11-15
+
+Depuis le snapshot local ci-dessus, les deux workflows du commit source
+`72fd4affa561619745e9d642500467d41364458f` ont terminé avec succès : huit
+jobs Rust natifs (Windows, Linux, macOS ARM et Intel × 1.88/stable), un lint
+Rust et quatre jobs Python. Les huit étapes du nouveau gate exécutent chacune
+les huit tests de l'exemple (cinq du banc et trois Ogg) ; elles ne lancent pas
+la campagne de chronométrage. Chaque workspace rapporte 402 tests réussis sous
+Windows, 403 ailleurs, zéro échec et deux ignorés. Les groupes rejoués comptent
+par job 10, 8, 1, 3 et 38 réussites, sans les additionner aux tests distincts.
+Les quatre pytest rapportent 663/71 ignorés sur Python 3.11 ou 733/1 sur 3.14,
+avec 335 sous-tests rapportés séparément.
+
+[Preuve CI, étapes, comptes et empreintes](../evidence/rust-codec-attribution-ci-20261115.json) ·
+[mesures Windows locales distinctes](../evidence/rust-codec-attribution-20261115.json).
+La mention « CI distante en attente » ci-dessus décrit le moment de publication
+historique du jeu local. Cette CI qualifie seulement tests, builds et contrôles
+de cette source ; elle ne prouve ni gain de vitesse ou précision, ni ASR réel,
+parité générale ou autorisation live. Pas d'optimisation de production ; les
+fonctionnalités de production sont inchangées et l'ISA native liée n'est pas
+attestée. Le refus historique du préflight reste conservé. Une
+[remédiation locale distincte](../evidence/rust-private-capture-root-20261115.json)
+a créé un répertoire privé accepté par le contrôle d'origine, sans modifier les
+permissions existantes : 30 tests synthétiques et le contrôle de verrouillage
+réel passent. Cela ne qualifie aucun nouvel appel ; intégration du lanceur et
+budgets natifs restent distincts.

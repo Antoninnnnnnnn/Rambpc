@@ -1,5 +1,25 @@
 # État du moteur — 2026-11-15
 
+## CI attribution codec — qualification de la source
+
+Les 13 jobs Rust/Python du commit `72fd4affa561619745e9d642500467d41364458f`
+ont réussi. Les huit jobs natifs passent chacun le nouveau gate de huit tests de
+l'exemple ; aucune campagne de chronométrage n'est exécutée en CI. Cette
+qualification couvre tests, builds et contrôles, sans changement des fonctionnalités
+de production ni preuve de gain, d'ASR réel, de parité ou d'autorisation live.
+La mesure Windows locale reste distincte et l'ISA native liée n'est pas attestée.
+[Preuve CI](evidence/rust-codec-attribution-ci-20261115.json) ·
+[protocole et limites](research/rust-audio-profiling.md#qualification-ci-distante-du-banc--2026-11-15).
+
+## Répertoire privé de validation — remédiation locale
+
+Un nouveau répertoire est créé et accepté par le contrôle strict d'origine,
+sans modification des permissions existantes. Les 30 tests synthétiques passent ;
+le contrôle réel confirme que le verrouillage empêche une ouverture avec droit de
+suppression pendant sa tenue. Aucun renommage, suppression, identifiant chargé
+ou appel Rambler. L'intégration du lanceur reste distincte de cette admission.
+[Preuve et limites](evidence/rust-private-capture-root-20261115.json).
+
 ## CI budgets et fermeture — nouveau résultat
 
 Sur `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442`, les 13 jobs Rust/Python
