@@ -1,7 +1,27 @@
 # Rust build validation
 
-Current cross-platform evidence: [expanded PCM/admission CI](../evidence/rust-pcm-admission-expanded-ci-20261115.json).
+Current cross-platform evidence: [close-ledger and zero-budget CI](../evidence/rust-close-ledger-zero-budgets-ci-20261115.json).
 Earlier sections retain their original local/static checkpoint scope and failures.
+
+## Corrected close-ledger CI — 2026-11-15
+
+At `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442`, all 13 jobs succeeded:
+eight native, Rust lint and four Python. Each native job has five Rust test
+groups: workspace 402/0/2 on Windows and 403/0/2 elsewhere
+(passed/failed/ignored), session reuse 10, exact release finalization 1,
+release invalid-budget gate 3, and feature-off 38. These are reruns, not a sum
+of distinct tests. The named connection-dying regression passes in all eight
+workspaces. Its first bounded close accepts only `Ok` or independent `Connect`;
+the second must succeed, with ownership, no-replay and recovery checks retained.
+The release budget gate validates three zero-argument rejections on all four
+runner families and both toolchains; library zero behavior is unchanged.
+
+The earlier Rust run on `7327f51` failed three macOS jobs due to the old test's
+strict close result, not initial connection failure. It remains a historical
+failure; this later success does not requalify that run. Between these commits
+only the lifecycle test, this document, and its local proof changed; production
+is unchanged. Root-helper, PCM, ignored PyAV and offline-only limitations remain
+as described below; no real service, phone or new kernel evidence is implied.
 
 ## Expanded PCM/admission CI — 2026-11-15
 

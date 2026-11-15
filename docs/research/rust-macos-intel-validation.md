@@ -1,6 +1,19 @@
 # Qualification native macOS Intel
 
-## Matrice native exécutée — 15 novembre 2026
+## Validation corrigée — 15 novembre 2026
+
+Sur `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442`, les deux jobs Intel
+natifs (Rust 1.88.0 et stable 1.100.0) réussissent, avec 403/0/2 au
+workspace, puis 10, 1, 3 et 38 réussites dans les quatre groupes rejoués.
+Le groupe de trois vérifie le rejet des budgets zéro sur le binaire release ;
+la régression de fermeture passe aussi. Le premier close borné peut renvoyer
+`Ok` ou l'erreur indépendante `Connect`, le second doit réussir. Le run
+précédent `7327f51` reste historiquement en échec sur trois jobs macOS à cause
+de l'ancienne assertion de close. Cette réussite ne modifie pas ce résultat.
+[Preuve et provenance](../evidence/rust-close-ledger-zero-budgets-ci-20261115.json).
+Pas de preuve de version minimale macOS ou de service réel.
+
+## Matrice native exécutée — 15 novembre 2026 (historique)
 
 Sur le commit `4264126852b2c03e25fc231c60f9582569a84ae9`, les deux jobs
 GitHub `macos-26-intel` ont réussi avec Rust 1.88.0 et stable (1.100.0),

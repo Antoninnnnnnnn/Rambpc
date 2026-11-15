@@ -5,6 +5,17 @@ Android, téléphone relais ni processus FFmpeg dans le chemin Rust. Il utilise 
 même service S3Bidi Rambler et le même routage, pas une API Gemini publique.
 Voir [le contrat de portage](architecture/portage-rust.md).
 
+## Validation CI récente
+
+La CI hors service réel de `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442`
+a réussi sur quatre familles natives avec Rust 1.88.0 et stable. Chacun des
+huit jobs vérifie trois rejets de budgets CLI zéro sur le binaire release et
+la régression de fermeture ; ces restrictions CLI ne changent pas la sémantique
+zéro de la bibliothèque. La première fermeture bornée de ce test accepte `Ok`
+ou l'erreur indépendante `Connect`, et la seconde doit réussir. L'échec des
+trois jobs macOS du précédent run `7327f51` reste historique.
+[Résultats et limites](evidence/rust-close-ledger-zero-budgets-ci-20261115.json).
+
 ## Construire et vérifier hors service réel
 
 Depuis la racine, avec Rust/Cargo et les outils de compilation natifs de la

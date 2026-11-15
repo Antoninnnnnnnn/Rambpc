@@ -1,6 +1,24 @@
 # État du moteur — 2026-11-15
 
-## CI PCM et admission — matrice étendue
+## CI budgets et fermeture — nouveau résultat
+
+Sur `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442`, les 13 jobs Rust/Python
+ont réussi, dont huit natifs sur quatre familles et deux toolchains. Chaque
+workspace rapporte 402/0/2 sous Windows, 403/0/2 ailleurs (réussis/échecs/
+ignorés) ; les quatre autres groupes rapportent respectivement 10, 1, 3 et
+38 réussites. Le groupe de trois vérifie le refus des budgets CLI zéro sur le
+binaire release. Ces groupes rejoués ne sont pas des tests distincts à sommer.
+La régression de fermeture passe dans les huit workspaces : le premier close
+borné accepte uniquement succès ou erreur indépendante `Connect`, puis le
+second doit réussir ; les assertions de propriété et de non-rejeu restent.
+
+Le run Rust de `7327f51` a échoué sur trois jobs macOS à cause de l'ancienne
+attente stricte sur close, et reste un échec historique, pas une requalification.
+Aucun changement de production entre ces deux commits. Les limites de service
+réel, téléphone et liaison noyau Linux restent inchangées.
+[Preuve détaillée et provenance](evidence/rust-close-ledger-zero-budgets-ci-20261115.json).
+
+## CI PCM et admission — matrice étendue (historique)
 
 Sur `4264126852b2c03e25fc231c60f9582569a84ae9`, les 13 jobs Rust/Python
 ont réussi : huit natifs, lint Rust et quatre Python. Windows rapporte 399
