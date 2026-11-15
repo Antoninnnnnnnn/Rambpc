@@ -1,5 +1,29 @@
 # État du moteur — 2026-11-15
 
+## Point de fiabilité courant — code `b0591f5`
+
+Le dernier snapshot de code qualifié localement passe **382 tests workspace,
+0 échoué, 1 ignoré** sur Windows stable 1.99.1, Windows/MSVC 1.88 et Linux/WSL
+1.88. Les dix tests d'exemple, 31 tests CLI sans audio et le test du véritable
+CLI release de finalisation passent sous Windows stable et Linux. Windows passe
+ses 26 étapes, Linux ses 16 phases ; les exclusions Linux restent explicites.
+Clippy/fmt/rustdoc stricts, 716 tests Python et l'oracle PyAV séparé (57 conteneurs)
+sont qualifiés sous Windows, pas déduits pour Linux.
+
+Ce lot durcit l'admission avant lecture audio, les erreurs persistantes et de
+cleanup, le pacing TCP, la finalisation et le commit de succès. Le setup des
+racines TLS est déporté hors du runtime async ; un loader déjà démarré reste
+non interruptible. Les contrats, limites et preuves sont dans
+[la validation R4](research/rust-build-validation.md#setup-tls-déporté--r4) et
+[le cycle de vie](research/rust-reliability-lifecycle.md).
+
+Aucun appel service/appareil supplémentaire ni gain WAN n'est déduit de ce lot.
+macOS et CI distante restent non exécutés ; l'inspection macOS statique n'est
+pas une qualification native. Parité Android, intentions non établies et
+provisionnement/récupération après révocation restent ouverts. Les sections
+suivantes conservent leurs **snapshots historiques** : leurs comptes et empreintes
+ne désignent pas le code courant.
+
 ## Canal PCM jusqu'au moteur : cinq tests loopback qualifiés
 
 Publication du15 novembre, **exécutions du14 novembre2026** : les deux fichiers
