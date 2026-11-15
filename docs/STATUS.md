@@ -1,6 +1,39 @@
 # État du moteur — 2026-11-15
 
-## Point de fiabilité courant — code `b0591f5`
+## Qualification CI native — code `1561f87`
+
+La matrice distante Windows/Linux/macOS × Rust 1.88/stable a réellement terminé
+avec succès, ainsi que le lint Rust et les quatre jobs Python. Les comptes Rust
+ci-dessous sont **par job**, pas une somme de répétitions :
+
+| Plateforme | Workspace | Exemple reuse | CLI sans audio | CLI release finalisation |
+|---|---:|---:|---:|---:|
+| Windows, 1.88 et stable |382 réussis, 0 échoué, 1 ignoré|10|31|1|
+| Ubuntu, 1.88 et stable |383 réussis, 0 échoué, 1 ignoré|10|31|1|
+| macOS, 1.88 et stable |383 réussis, 0 échoué, 1 ignoré|10|31|1|
+
+Le contrôle positif supplémentaire de descripteur explique le test Unix de plus.
+Le smoke PCM release passe aussi dans les six jobs (1017→3051 échantillons à
+48 kHz, un EOS, zéro appel service). PyAV reste ignoré dans cette CI. Python
+3.11 passe 640 tests avec 71 ignorés par job ; Python 3.14 en passe 710 avec un
+ignoré. Les 259 sous-tests rapportés séparément ne s'ajoutent pas à ces totaux.
+[Résultats, versions et exclusions](research/rust-build-validation.md) ·
+[Preuve CI](evidence/rust-remote-ci-20261115.json).
+
+Cette exécution lève le blocage des builds/tests natifs macOS et de la CI pour
+ce commit, pas les limites de TLS réel/Keychain, parité Android, intentions non
+établies, provisionnement/révocation ou performance WAN. Les notices antérieures
+« non exécuté » restent des instantanés historiques, pas le statut courant.
+
+Un seul appel Rambler synthétique supplémentaire termine sainement : la sélection
+`🙂` est remplacée par `😎`, avec avant/après conservés et source intégrale nettoyée.
+Le résultat ne reproduit pas le mot « eleven » obtenu avec cet audio dans un autre
+contexte : c'est une observation structurelle Unicode, pas une validation de
+qualité sémantique ou de déterminisme. Les plages UTF-16 publiées sont dérivées
+offline ; la CLI n'exerce pas l'API de proposition ni une insertion dans un éditeur.
+[Observation et limites](evidence/rust-native-non-bmp-selection-public.json).
+
+## Point de fiabilité R4 — code `b0591f5`
 
 Le snapshot production R4, conservé comme référence historique, passe **382 tests workspace,
 0 échoué, 1 ignoré** sur Windows stable 1.99.1, Windows/MSVC 1.88 et Linux/WSL

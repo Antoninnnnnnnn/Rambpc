@@ -105,7 +105,7 @@ contrôlées par l'intégrateur.
 |Session, audio, stop normal|`ihv.a`, `iho.java:40` ; `Engine`, `AudioSource`, init/audio/contexte/END puis half-close|**Rust réel** Ogg et PCM natif. Fin exige END S3 + upload complet + cleanup + gRPC OK ; pas une finale précoce.|
 |Annulation / délais|`EngineSession::{request_cancel,close}`, transport h2 par flux|Loopback/backpressure/concurrence et vrai Ctrl-C Windows ; pas de rejeu automatique.|
 |Contexte tardif|`iho.a/b/g`, `iho.java:96` ; `ContextInput`, `ContextProvider`|Édition réelle Rust ; ordre callback/cleanup borné testé offline. Pas de comparaison sur appareil.|
-|Sélection UTF-16|`ffq.java:64–74,84–105` ; `selection_utf16_range`, `validate_current`|Sélection `ten` avec emoji dans le contexte réelle Rust ; sélection de l'emoji lui-même non validée.|
+|Sélection UTF-16|`ffq.java:64–74,84–105` ; `selection_utf16_range`, `validate_current`|Sélection `ten` après emoji déjà observée en Rust réel ; [un cas natif supplémentaire](../evidence/rust-native-non-bmp-selection-public.json) sélectionne U+1F642 et renvoie U+1F60E, tous deux non-BMP (2 unités UTF-16). Interop structurée observée, sémantique non confirmée ; plages dérivées offline, pas de validation des API de proposition ni de parité Android appariée.|
 |Partiels|`ihm.java:310–355`, test score<0,9 ; `PartialTranscript`, parties empruntées et flag nonfini|Décodage/projection offline. [Un essai natif dédié](rust-native-partials.md) :20 réponses,0 field4, finale saine ; rendu partiel réel et progression pré-state1 restent inconclusifs. `first_text`/première réponse ne suffisent pas.|
 |Segments vs fin globale|`aaln.field3/4/5/7` indépendants ; `RecognitionCompletion`, événements, `collect_segments`|Collecteur strict state1 ; collecteur segments retient3/5/7 et marqueurs state1 sans finalité universelle. Pas d'assemblage implicite.|
 |Autres résultats oneof|`aapd.java:34` :1/2,5–13,15,16,18–21 ; champs3/4 indépendants|`active_field`, `active_raw`, inconnus préservés ; **pas de prise en charge sémantique** des variantes opaques.|
@@ -118,6 +118,20 @@ contrôlées par l'intégrateur.
 |Jetson Lite / génération locale|`kkj.a`, `ohq.java:69` Binder Speech Services, `enm.java:38` Binder AICore|Chemin Android distinct, services/modèles/gates requis. Non porté ; prompts embarqués ≠ activation S3. Aucun autre ASR/API Gemini substitué.|
 |Authentification / cycle de vie accès|Métadonnées applicatives injectées, branche Zwieback conditionnelle|Profil réel sans compte/Zwieback. Pas de provisionnement automatique, renouvellement/révocation ni garantie d'accès durable.|
 |Microphone, GUI, insertion OS|Non implémentés|Hors périmètre moteur initial ; pas présentés comme fonctions cloud manquantes.|
+
+Observation non-BMP du 2026-11-15 : un seul appel synthétique natif, sans rejeu,
+CLI0,4581 octets jusqu'à EOF et cleanup réussi ; intention2/champ7, frontières
+`Answer: ` et `.` et indicateur `cursor_aware` préservés. Les plages d'entrée et de
+remplacement `[8,10)` sont **dérivées offline**, pas retournées sur le wire ni par
+une API de proposition. La CLI n'a exercé ni proposition, ni validation de révision,
+ni application éditeur. Le même audio avait donné `eleven` dans l'ancien contexte
+`ten` ; ici le remplacement est U+1F60E, ni `eleven` ni `11`. Cette différence
+inattendue reste publiée : `structured_unicode_interop_observed_semantics_unconfirmed`,
+`asr_matches_prior_known_word_variant=false`, `prior_result_word_reproduced=false`.
+C'est une observation contextuelle, pas une comparaison contrôlée de qualité ASR
+ni la preuve d'un bug client. Référence source qualifiée :
+`1561f878a0b8714af669771fc7bd091784b1f3d9`, binaire inchangé (SHA-256 dans la preuve) ;
+aucune qualification d'un futur commit documentaire n'en découle.
 
 ## Suites utiles et véritables blocages
 

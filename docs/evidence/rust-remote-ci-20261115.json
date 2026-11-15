@@ -1,0 +1,610 @@
+{
+  "schema_version": 1,
+  "proof_status": "verified_completed_success_with_explicit_exclusions",
+  "date": "2026-11-15",
+  "repository": "Antoninnnnnnnn/Rambpc",
+  "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+  "branch": "feat/rust-engine",
+  "event": "push",
+  "qualification": "Only the stated source commit; later documentation commits are not represented as tested. GitHub head SHA, not byte equality against local CRLF source selectors.",
+  "runs": [
+    {
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759",
+      "status": "completed",
+      "conclusion": "success",
+      "native_jobs": 6,
+      "lint_jobs": 1
+    },
+    {
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181718",
+      "status": "completed",
+      "conclusion": "success",
+      "python_jobs": 4
+    }
+  ],
+  "commands": {
+    "workspace": "cargo test --workspace --all-features --locked --offline",
+    "reuse_example": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+    "release_cli_build": "cargo build -p rambler-cli --bin rambler --features audio --release --locked --offline",
+    "release_finalization": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+    "release_pcm": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+    "cli_feature_off": "cargo test -p rambler-cli --no-default-features --locked --offline",
+    "audio_boundary_tests": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+    "audio_boundary_check": "python tools/check_rust_audio_boundary.py",
+    "fetch": "cargo fetch --locked",
+    "fmt": "cargo fmt --all -- --check",
+    "strict_clippy": "cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
+    "python_tests": "python -m pytest -q -W error -o faulthandler_timeout=30",
+    "python_cli_help": "python -m rambler.cli --help",
+    "python_wheel": "python -m pip wheel --no-deps . -w dist"
+  },
+  "command_provenance": "Native commands from reports and matching checked-in rust.yml; Python commands from checked-in tests.yml with corresponding successful report steps, not independent runtime-banner evidence.",
+  "native_jobs": [
+    {
+      "runner": "windows-latest",
+      "toolchain": "stable",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759/job/132836349423",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "platform": {
+        "os": "Microsoft Windows Server 2025",
+        "os_version": "10.0.26100",
+        "architecture": "x86_64"
+      },
+      "versions": {
+        "rustc": "1.100.0 (0ef1bc386 2026-11-09)",
+        "cargo": "1.100.0 (3acc79c0c 2026-11-05)",
+        "cmake": "4.4.5",
+        "rust_host": "x86_64-pc-windows-msvc"
+      },
+      "version_evidence": "executed rustc/cargo/CMake version output; host from rustc verbose output",
+      "counts": {
+        "workspace": {
+          "passed": 382,
+          "failed": 0,
+          "ignored": 1
+        },
+        "reuse_example": {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        "release_finalization": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "cli_feature_off": {
+          "passed": 31,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      "file_cleanup_passed_in_workspace": 3,
+      "descriptor_positive_control": "not_applicable_windows_exclusive_open",
+      "release_cli_build": "passed",
+      "release_finalization_binary": "logged override selects built release CLI; debug test harness, loopback; no independent spawn instrumentation",
+      "release_pcm": {
+        "input_samples": 1017,
+        "decoded_samples_48k": 3051,
+        "ogg_eos": 1,
+        "service_calls": 0
+      },
+      "audio_boundary_unit_tests": {
+        "passed": 17,
+        "failed": 0
+      },
+      "production_audio_boundary": "passed_off_normal_build_edges_and_on_positive_control"
+    },
+    {
+      "runner": "windows-latest",
+      "toolchain": "1.88.0",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759/job/132836349330",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "platform": {
+        "os": "Microsoft Windows Server 2025",
+        "os_version": "10.0.26100",
+        "architecture": "x86_64"
+      },
+      "versions": {
+        "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+        "cargo": "1.88.0 (873a06493 2025-05-10)",
+        "cmake": "4.4.5",
+        "rust_host": "x86_64-pc-windows-msvc"
+      },
+      "version_evidence": "executed rustc/cargo/CMake version output; host from rustc verbose output",
+      "counts": {
+        "workspace": {
+          "passed": 382,
+          "failed": 0,
+          "ignored": 1
+        },
+        "reuse_example": {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        "release_finalization": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "cli_feature_off": {
+          "passed": 31,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      "file_cleanup_passed_in_workspace": 3,
+      "descriptor_positive_control": "not_applicable_windows_exclusive_open",
+      "release_cli_build": "passed",
+      "release_finalization_binary": "logged override selects built release CLI; debug test harness, loopback; no independent spawn instrumentation",
+      "release_pcm": {
+        "input_samples": 1017,
+        "decoded_samples_48k": 3051,
+        "ogg_eos": 1,
+        "service_calls": 0
+      },
+      "audio_boundary_unit_tests": {
+        "passed": 17,
+        "failed": 0
+      },
+      "production_audio_boundary": "passed_off_normal_build_edges_and_on_positive_control"
+    },
+    {
+      "runner": "ubuntu-latest",
+      "toolchain": "1.88.0",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759/job/132836349282",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "platform": {
+        "os": "Ubuntu 26.04.1",
+        "architecture": "x86_64"
+      },
+      "versions": {
+        "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+        "cargo": "1.88.0 (873a06493 2025-05-10)",
+        "cmake": "4.4.5",
+        "rust_host": "x86_64-unknown-linux-gnu"
+      },
+      "version_evidence": "executed rustc/cargo/CMake version output; host from rustc verbose output",
+      "counts": {
+        "workspace": {
+          "passed": 383,
+          "failed": 0,
+          "ignored": 1
+        },
+        "reuse_example": {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        "release_finalization": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "cli_feature_off": {
+          "passed": 31,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      "file_cleanup_passed_in_workspace": 4,
+      "descriptor_positive_control": "passed_named_test",
+      "release_cli_build": "passed",
+      "release_finalization_binary": "logged override selects built release CLI; debug test harness, loopback; no independent spawn instrumentation",
+      "release_pcm": {
+        "input_samples": 1017,
+        "decoded_samples_48k": 3051,
+        "ogg_eos": 1,
+        "service_calls": 0
+      },
+      "audio_boundary_unit_tests": {
+        "passed": 17,
+        "failed": 0
+      },
+      "production_audio_boundary": "passed_off_normal_build_edges_and_on_positive_control"
+    },
+    {
+      "runner": "ubuntu-latest",
+      "toolchain": "stable",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759/job/132836349339",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "platform": {
+        "os": "Ubuntu 26.04.1",
+        "architecture": "x86_64"
+      },
+      "versions": {
+        "rustc": "1.100.0 (0ef1bc386 2026-11-09)",
+        "cargo": "1.100.0 (3acc79c0c 2026-11-05)",
+        "cmake": "4.4.5",
+        "rust_host": "x86_64-unknown-linux-gnu"
+      },
+      "version_evidence": "executed rustc/cargo/CMake version output; host from rustc verbose output",
+      "counts": {
+        "workspace": {
+          "passed": 383,
+          "failed": 0,
+          "ignored": 1
+        },
+        "reuse_example": {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        "release_finalization": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "cli_feature_off": {
+          "passed": 31,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      "file_cleanup_passed_in_workspace": 4,
+      "descriptor_positive_control": "passed_named_test",
+      "release_cli_build": "passed",
+      "release_finalization_binary": "logged override selects built release CLI; debug test harness, loopback; no independent spawn instrumentation",
+      "release_pcm": {
+        "input_samples": 1017,
+        "decoded_samples_48k": 3051,
+        "ogg_eos": 1,
+        "service_calls": 0
+      },
+      "audio_boundary_unit_tests": {
+        "passed": 17,
+        "failed": 0
+      },
+      "production_audio_boundary": "passed_off_normal_build_edges_and_on_positive_control"
+    },
+    {
+      "runner": "macos-latest",
+      "toolchain": "stable",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759/job/132836349246",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "platform": {
+        "os": "macOS",
+        "version": "26.7.2",
+        "build": "25G332",
+        "architecture": "aarch64 / arm64"
+      },
+      "versions": {
+        "rustc": "1.100.0 (0ef1bc386 2026-11-09)",
+        "cargo": "1.100.0 (3acc79c0c 2026-11-05)",
+        "cmake": "4.4.5",
+        "rust_host": "aarch64-apple-darwin"
+      },
+      "version_evidence": "executed rustc/cargo/CMake version output; host from rustc verbose output",
+      "counts": {
+        "workspace": {
+          "passed": 383,
+          "failed": 0,
+          "ignored": 1
+        },
+        "reuse_example": {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        "release_finalization": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "cli_feature_off": {
+          "passed": 31,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      "file_cleanup_passed_in_workspace": 4,
+      "descriptor_positive_control": "passed_named_test",
+      "release_cli_build": "passed",
+      "release_finalization_binary": "logged override selects built release CLI; debug test harness, loopback; no independent spawn instrumentation",
+      "release_pcm": {
+        "input_samples": 1017,
+        "decoded_samples_48k": 3051,
+        "ogg_eos": 1,
+        "service_calls": 0
+      },
+      "audio_boundary_unit_tests": {
+        "passed": 17,
+        "failed": 0
+      },
+      "production_audio_boundary": "passed_off_normal_build_edges_and_on_positive_control"
+    },
+    {
+      "runner": "macos-latest",
+      "toolchain": "1.88.0",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759/job/132836349337",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "platform": {
+        "os": "macOS",
+        "version": "26.7.2",
+        "build": "25G332",
+        "architecture": "aarch64 / arm64"
+      },
+      "versions": {
+        "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+        "cargo": "1.88.0 (873a06493 2025-05-10)",
+        "cmake": "4.4.5",
+        "rust_host": "aarch64-apple-darwin"
+      },
+      "version_evidence": "executed rustc/cargo/CMake version output; host from rustc verbose output",
+      "counts": {
+        "workspace": {
+          "passed": 383,
+          "failed": 0,
+          "ignored": 1
+        },
+        "reuse_example": {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        "release_finalization": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        "cli_feature_off": {
+          "passed": 31,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      "file_cleanup_passed_in_workspace": 4,
+      "descriptor_positive_control": "passed_named_test",
+      "release_cli_build": "passed",
+      "release_finalization_binary": "logged override selects built release CLI; debug test harness, loopback; no independent spawn instrumentation",
+      "release_pcm": {
+        "input_samples": 1017,
+        "decoded_samples_48k": 3051,
+        "ogg_eos": 1,
+        "service_calls": 0
+      },
+      "audio_boundary_unit_tests": {
+        "passed": 17,
+        "failed": 0
+      },
+      "production_audio_boundary": "passed_off_normal_build_edges_and_on_positive_control"
+    }
+  ],
+  "lint_job": {
+    "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759/job/132836349169",
+    "status": "completed",
+    "conclusion": "success",
+    "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+    "fmt": "passed",
+    "strict_clippy": "passed",
+    "toolchain": "stable (setup selection; no independent runtime version recorded in this report)",
+    "scope": "lint_not_tests"
+  },
+  "python_jobs": [
+    {
+      "label": "windows-python311",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181718/job/132836349365",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "python_setup_reported": "3.11.9",
+      "python_runtime_banner": "not_logged_quiet_mode",
+      "counts": {
+        "passed": 640,
+        "skipped": 71
+      },
+      "subtests_passed_separate": 259,
+      "ignored_count": null,
+      "ignored_count_qualification": "not_available_in_summary; not inferred from flags",
+      "optional_audio_install": "skipped",
+      "cli_help": "success",
+      "wheel_build": "success"
+    },
+    {
+      "label": "windows-python314",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181718/job/132836349548",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "python_setup_reported": "3.14.10",
+      "python_runtime_banner": "not_logged_quiet_mode",
+      "counts": {
+        "passed": 710,
+        "skipped": 1
+      },
+      "subtests_passed_separate": 259,
+      "ignored_count": null,
+      "ignored_count_qualification": "not_available_in_summary; not inferred from flags",
+      "optional_audio_install": "success",
+      "cli_help": "success",
+      "wheel_build": "success"
+    },
+    {
+      "label": "ubuntu-python311",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181718/job/132836349623",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "python_setup_reported": "3.11.18",
+      "python_runtime_banner": "not_logged_quiet_mode",
+      "counts": {
+        "passed": 640,
+        "skipped": 71
+      },
+      "subtests_passed_separate": 259,
+      "ignored_count": null,
+      "ignored_count_qualification": "not_available_in_summary; not inferred from flags",
+      "optional_audio_install": "skipped",
+      "cli_help": "success",
+      "wheel_build": "success"
+    },
+    {
+      "label": "ubuntu-python314",
+      "job_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181718/job/132836349634",
+      "status": "completed",
+      "conclusion": "success",
+      "source_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+      "python_setup_reported": "3.14.10",
+      "python_runtime_banner": "not_logged_quiet_mode",
+      "counts": {
+        "passed": 710,
+        "skipped": 1
+      },
+      "subtests_passed_separate": 259,
+      "ignored_count": null,
+      "ignored_count_qualification": "not_available_in_summary; not inferred from flags",
+      "optional_audio_install": "success",
+      "cli_help": "success",
+      "wheel_build": "success"
+    }
+  ],
+  "counting": "Per command and toolchain; workspace includes doc-tests. No sums across repeated toolchains or overlapping groups. File-cleanup counts are workspace subsets. Python subtests are separate, not additional test totals; historical local 716 tests are not CI totals. Empty harnesses are not ignored tests.",
+  "windows_unix_difference": "One Unix-only descriptor positive-control test: Windows file cleanup 3, Ubuntu/macOS 4. macOS exact descriptor_audit_detects_an_independently_opened_file_and_its_release actually passed on both toolchains, not a no-op/empty harness.",
+  "historical_snapshots": [
+    "Python/lint report and Ubuntu report captured the Rust run in_progress with null conclusion before completion; retained as earlier observations, not failures. Later Windows completed/success and macOS success observations supersede that run status only.",
+    "Earlier local FAILED, NOT_RUN and setup failures remain historical at their source snapshots; this CI run does not relabel them."
+  ],
+  "exclusions": [
+    "Independent Rust PyAV decoder explicitly ignored once per native workspace job, not run in this CI.",
+    "Native macOS Keychain/trust-store behavior and live TLS not proven by injected TLS tests or loopback.",
+    "macOS native runtime scope covers descriptor/WAV, PCM and release CLI loopback, not GUI or microphone.",
+    "Only logged macOS aarch64/arm64 tested; no Intel macOS claim. No Linux 32-bit qualification.",
+    "No live service/device, WAN quality/performance, complete Android/service parity, provisioning or revocation qualification.",
+    "Hosted images, stable toolchains and actions move; fetch/setup use network, offline tests may use loopback. No bit-for-bit reproducibility claim.",
+    "Python setup-reported versions are not independently observed pytest runtime versions. Optional audio installation on Python 3.14 is not a Rust PyAV-oracle run.",
+    "This evidence consolidation performs no build/test, network/service/device operation, merge or PR."
+  ],
+  "evidence_verification": {
+    "reports_verified": 4,
+    "referenced_files_verified": 17,
+    "method": "Read-only SHA-256 and byte-length checks; evidence names relative to the local evidence bundle, not repository artifact links. Logs/API bodies are not published.",
+    "reports": [
+      {
+        "relative_name": "remote-ci-python-lint-20261115.json",
+        "bytes": 15516,
+        "sha256": "3c9b5b71fece960d56415096d7cef111c5634cd50dc86ba5d3b7f5dbd3107c1f",
+        "evidence": [
+          {
+            "relative_name": "remote-ci-python-lint-20261115-logs/windows-python311.log",
+            "bytes": 22552,
+            "sha256": "dac38eba07dd547332a2e963769835228767cdbf98a96d5f383b611ff332704c"
+          },
+          {
+            "relative_name": "remote-ci-python-lint-20261115-logs/windows-python314.log",
+            "bytes": 26318,
+            "sha256": "69ad31b22379c4755cf8d03250cc85aab01ea2c204bad773228e402f8a76afea"
+          },
+          {
+            "relative_name": "remote-ci-python-lint-20261115-logs/ubuntu-python311.log",
+            "bytes": 22669,
+            "sha256": "1ec1ac03f0b82ee39a13a2a377d945f3c4ff55d7f5dcb44c582c2aa973457f6a"
+          },
+          {
+            "relative_name": "remote-ci-python-lint-20261115-logs/ubuntu-python314.log",
+            "bytes": 26491,
+            "sha256": "3e4b5b9466db905aaa829f57228b1ff2ad96695321fa0831120680012d621128"
+          },
+          {
+            "relative_name": "remote-ci-python-lint-20261115-logs/rust-lint.log",
+            "bytes": 47219,
+            "sha256": "6ecc0983614176e41f994c451736cc91ffb0bc4f8a83c48d00d514afd0171daf"
+          }
+        ]
+      },
+      {
+        "relative_name": "remote-ci-macos-latest-20261115.json",
+        "bytes": 88102,
+        "sha256": "e8b59c85a112983d7241d392df403bdfc4ecaa9a318318435cef59c9ab1dd417",
+        "evidence": [
+          {
+            "relative_name": "remote-ci-macos-latest-20261115-logs/132836349246.log",
+            "bytes": 151896,
+            "sha256": "f0d76d17acbe334591accff808ba018009a9fa77cb15db3161967d6843fd19a1"
+          },
+          {
+            "relative_name": "remote-ci-macos-latest-20261115-logs/132836349337.log",
+            "bytes": 148013,
+            "sha256": "6127037a8bc5533135449d7a2c8f689497fd98d047ce3e87046c9cdfadf155cb"
+          },
+          {
+            "relative_name": "remote-ci-macos-latest-20261115-logs/jobs.json",
+            "bytes": 25289,
+            "sha256": "7c8a8070610025202ee49153d1342c3cb94aec48c046f3e6d5d8264af713f4ec"
+          },
+          {
+            "relative_name": "remote-ci-macos-latest-20261115-logs/run.json",
+            "bytes": 12802,
+            "sha256": "cec9b8f030d0a2696e26327ab576ab0773330034841437c3d149210e044cae5a"
+          }
+        ]
+      },
+      {
+        "relative_name": "remote-ci-ubuntu-latest-20261115.json",
+        "bytes": 80066,
+        "sha256": "39970899b56499e4acf9a83c5e2ac4ca19287716c34fe5588e3a467d58835d2c",
+        "evidence": [
+          {
+            "relative_name": "remote-ci-ubuntu-latest-20261115-logs/132836349282.log",
+            "bytes": 147166,
+            "sha256": "669af3301873058ae5239c26dd006b57b948bdeaa8b6a4ccb29cc61ae24e102e"
+          },
+          {
+            "relative_name": "remote-ci-ubuntu-latest-20261115-logs/132836349339.log",
+            "bytes": 151051,
+            "sha256": "4fb31da84213f45a98177233e8510277c1db7658be319e8d73e2d1128021796f"
+          },
+          {
+            "relative_name": "remote-ci-ubuntu-latest-20261115-logs/jobs.json",
+            "bytes": 25289,
+            "sha256": "7c8a8070610025202ee49153d1342c3cb94aec48c046f3e6d5d8264af713f4ec"
+          },
+          {
+            "relative_name": "remote-ci-ubuntu-latest-20261115-logs/run.json",
+            "bytes": 12799,
+            "sha256": "7a5ada9e279867ea376d5954dc7be62990465330515f9e493eb025a044e0dbd2"
+          }
+        ]
+      },
+      {
+        "relative_name": "remote-ci-windows-latest-20261115.json",
+        "bytes": 13565,
+        "sha256": "cbf2aaff4ee2f151357aeee6d71215110921f2eca9e99f194df3f1895b3dcb08",
+        "evidence": [
+          {
+            "relative_name": "remote-ci-windows-latest-20261115-logs/1.88.0.log",
+            "bytes": 148629,
+            "sha256": "a672331cf8db516b20760dd371c42149de2694e469a8fe8e68df8193cc9745b5"
+          },
+          {
+            "relative_name": "remote-ci-windows-latest-20261115-logs/jobs.json",
+            "bytes": 25571,
+            "sha256": "2de43856a382abbc031da40dfac51d637d7a55c742feda0b1e8cfbdf4455c175"
+          },
+          {
+            "relative_name": "remote-ci-windows-latest-20261115-logs/run.json",
+            "bytes": 12802,
+            "sha256": "cec9b8f030d0a2696e26327ab576ab0773330034841437c3d149210e044cae5a"
+          },
+          {
+            "relative_name": "remote-ci-windows-latest-20261115-logs/stable.log",
+            "bytes": 152776,
+            "sha256": "f09b5343fe0ed6ed18da6cbc01c8f4eef96b5ea5c6cccb60b3a90e605d53ac7f"
+          }
+        ]
+      }
+    ]
+  }
+}

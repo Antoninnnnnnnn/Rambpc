@@ -1,5 +1,8 @@
 # Rust build validation
 
+Current cross-platform evidence: [executed remote CI matrix, 2026-11-15](#executed-remote-ci-matrix--2026-11-15).
+Earlier sections retain their original local/static checkpoint scope and failures.
+
 ## Scope and prerequisites
 
 The workspace declares Rust 1.88. The checked-in `Cargo.lock` is the dependency
@@ -295,8 +298,9 @@ At `b0591f5`, `assert_released` in
 `crates/rambler-audio/tests/file_cleanup.rs` was a no-op outside Windows/Linux.
 A macOS test pass at that snapshot would therefore not establish descriptor
 release through that helper. This was a coverage limitation, not evidence of a
-production descriptor leak. The focused follow-up below replaces the macOS no-op;
-its native runtime remains **NOT RUN**, as does remote CI.
+production descriptor leak. The focused follow-up below replaced the macOS no-op;
+at that local checkpoint its native runtime and remote CI were **NOT RUN**.
+The later executed CI section below qualifies the named macOS control separately.
 
 ## Focused platform-gate follow-up — 2026-11-15
 
@@ -329,9 +333,10 @@ Both initial release PCM smokes check 1017→3051 samples at 48 kHz, one EOS and
 zero service calls. Counts across toolchains/reruns are not distinct tests.
 
 The full workspace, feature-off suite, Python suite, PyAV and rustdoc were not
-rerun in this follow-up; the 382-test R4 workspace results remain historical,
-not a claimed current 383-test workspace pass. macOS and Linux 32-bit native
-runtime, remote CI, service/device, WAN/parity and provisioning remain unqualified.
+rerun in this local follow-up; the 382-test R4 workspace results remained historical
+at that checkpoint, not a claimed current 383-test workspace pass. macOS and Linux
+32-bit native runtime, remote CI, service/device, WAN/parity and provisioning were
+then unqualified; the later CI section updates only its explicitly executed scope.
 Two background harness preparations are retained as
 `setup_failed_before_commands` (line-ending assertion and temporary-driver syntax),
 not engine runtime REDs; the initial Windows fmt failure remains separate.
@@ -342,15 +347,90 @@ The written OS/MSRV matrix now adds an actual audio release CLI build and the
 exact loopback test `s3_end_without_grpc_trailers_exits_with_finalize_timeout`,
 selecting that executable through the dev-only `RAMBLER_TEST_CLI_EXECUTABLE`
 (platform `.exe` path on Windows), plus a release `pcm_channel` synthetic smoke.
-These CI gates are **written only; remote CI NOT_RUN**.
+At that local checkpoint these CI gates were **written only; remote CI NOT_RUN**.
+This historical observation is superseded only for the executed scope below.
 
-## Written CI matrix, not yet executed
+## Executed remote CI matrix — 2026-11-15
 
-`.github/workflows/rust.yml` defines Windows, Linux and macOS jobs on 1.88.0 and
-stable, fetching the locked graph first and then testing offline with and
-without the CLI audio feature. A separate stable Linux job checks formatting and
-all-target, all-feature Clippy. Hosted runners must provide CMake and a native C
-toolchain. The matrix has **not** run remotely; local Linux execution is reported
-separately above, and macOS remains unexecuted. Runner images and actions are not
-immutable, and fetch/setup needs network. No remote CI, push or PR was triggered
-by this validation; code and documentation are committed separately.
+The push on `feat/rust-engine` executed both public workflows at source commit
+`1561f878a0b8714af669771fc7bd091784b1f3d9`:
+[Rust run 43722181759](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759)
+and [Python run 43722181718](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181718).
+**Both completed successfully: six native jobs, one Rust lint job and four Python
+jobs.** The [allowlisted proof](../evidence/rust-remote-ci-20261115.json) records
+job URLs, source SHA, commands, counts, versions and verified report/log hashes.
+It qualifies that source commit, not later documentation-only commits or byte
+equality with earlier local CRLF source selectors. No merge or PR is implied.
+
+| Native runner / logged architecture | Toolchain / executed rustc | Workspace passed / failed / ignored | Reuse passed | Feature-off passed | Release CLI exact test passed |
+|---|---|---:|---:|---:|---:|
+| Windows Server 2025 / x86_64 MSVC | 1.88.0 / 1.88.0 |382 / 0 / 1|10|31|1|
+| Windows Server 2025 / x86_64 MSVC | stable / 1.100.0 |382 / 0 / 1|10|31|1|
+| Ubuntu 26.04.1 / x86_64 | 1.88.0 / 1.88.0 |383 / 0 / 1|10|31|1|
+| Ubuntu 26.04.1 / x86_64 | stable / 1.100.0 |383 / 0 / 1|10|31|1|
+| macOS 26.7.2 / aarch64 (arm64) | 1.88.0 / 1.88.0 |383 / 0 / 1|10|31|1|
+| macOS 26.7.2 / aarch64 (arm64) | stable / 1.100.0 |383 / 0 / 1|10|31|1|
+
+Counts are per invocation/toolchain, **not additive across rows or overlapping
+groups**; workspace includes doc-tests. The one-test Unix difference is the
+positive descriptor control: file cleanup has four passes on Unix versus three
+on Windows, already included in workspace totals. On both macOS toolchains,
+`descriptor_audit_detects_an_independently_opened_file_and_its_release` genuinely
+ran and passed, replacing the earlier no-op coverage limitation. Empty harnesses
+are not ignored tests. Rustc verbose host output supports the listed architectures;
+this is Apple Silicon evidence, not an Intel-and-Apple-Silicon matrix. Executed
+version output also records Cargo 1.88.0 / 1.100.0 and CMake 4.4.5. The separate
+lint job passed fmt and strict all-target/all-feature Clippy; its report establishes
+the stable setup selection, not an independently recorded runtime version.
+
+Each native job fetched with `cargo fetch --locked`, then executed these gates:
+
+```sh
+python -m unittest discover -s tests -p test_rust_audio_boundary.py -v
+python tools/check_rust_audio_boundary.py
+cargo test --workspace --all-features --locked --offline
+cargo test -p rambler-cli --features audio --example session_reuse --locked --offline
+cargo build -p rambler-cli --bin rambler --features audio --release --locked --offline
+cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact
+cargo run -p rambler-audio --example pcm_channel --release --locked --offline
+cargo test -p rambler-cli --no-default-features --locked --offline
+```
+
+The finalization test uses a **debug test harness** with the logged dev-only
+`RAMBLER_TEST_CLI_EXECUTABLE` override selecting the built release CLI (`.exe` on
+Windows), not a release harness. This is logged selection plus exact loopback-test
+success, not independent instrumentation of the spawned executable. Each release
+PCM smoke reports **1017 input samples → 3051 at 48 kHz, one EOS, zero service
+calls**. Each dependency-boundary checker suite passed 17 tests and its production
+check passed both feature-off normal/build edges and the audio-on positive control.
+
+| Python runner | Setup-reported Python | Passed | Skipped | Subtests passed, separately |
+|---|---|---:|---:|---:|
+| Windows |3.11.9|640|71|259|
+| Ubuntu |3.11.18|640|71|259|
+| Windows |3.14.10|710|1|259|
+| Ubuntu |3.14.10|710|1|259|
+
+Python ran `python -m pytest -q -W error -o faulthandler_timeout=30`, CLI help and
+wheel build successfully. Versions above come from setup-python success messages;
+quiet pytest did not log an independent runtime version banner. The 259 subtests
+are **not additional test totals**; ignored-file counts are unavailable, not inferred.
+Optional audio installation was skipped on 3.11 and succeeded on 3.14. The earlier
+local 716-test result is not requalified as a CI total. Exact Python commands are
+from the checked-in workflow with corresponding successful report steps.
+
+Four source reports and 17 referenced evidence files were checked for SHA-256 and
+byte length without publishing raw logs/API bodies or private paths. The Python/lint
+and Ubuntu reports captured an earlier Rust `in_progress`/null-conclusion snapshot;
+later Windows completed/success and macOS success observations establish the final
+status. These earlier observations, prior local failures and scoped `NOT_RUN`
+records remain historical, not relabelled successes.
+
+**Limits:** the independent Rust PyAV oracle was explicitly ignored once per native
+workspace job, not run in CI. macOS descriptor/WAV, PCM and release CLI loopback
+runtime are now tested; GUI/microphone, native Keychain/trust-store behavior and
+live TLS are not proven. Service/device interoperability, WAN quality/performance,
+complete Android/service parity, provisioning/revocation and Linux 32-bit remain
+outside this evidence. Hosted images/actions and stable toolchains move; setup/fetch
+needs network, and offline tests may open loopback sockets. No bit-for-bit
+reproducibility claim or new build/test execution accompanies this consolidation.
