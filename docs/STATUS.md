@@ -1,5 +1,30 @@
 # État du moteur — 2026-11-15
 
+## PCM et admission stricte — qualification locale du 15 novembre
+
+Sur le snapshot A (base `1813602` et changements locaux), le workspace passe
+399 tests, 0 échec, 2 ignorés sur Windows stable et 1.88, et 400/0/2 sur
+Linux 1.88. Le contrôle Windows R1 reste cependant **non qualifié** : Clippy
+strict échoue sur `never_loop` dans un test, pas sur une régression runtime.
+Sur B, seule cette boucle redondante de test est retirée : Windows repasse les
+6 tests progress sur chaque toolchain, fmt et Clippy strict ; Linux repasse
+400/0/2. Pas de relance complète Windows ni de rebuild release sur B ; les
+preuves release restent celles de A, malgré des octets de production identiques.
+
+La CLI exige un snapshot strict avant connexion et attend la fermeture de l'entrée
+si elle le rejette ; bibliothèque permissive et loopback explicite restent inchangés.
+Les compteurs PCM optionnels ne sont ni hashes, ni acquittements, ni garantie
+contre les pertes ; l'EOF naturel reste distinct d'un close ou d'une erreur.
+[Qualification et limites](research/rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15) ·
+[Preuve](evidence/rust-pcm-progress-admission.json).
+
+Aucun nouvel essai service ou appareil : le préflight Linux live est bloqué par
+un collecteur de crash dumps observé, sans suppression vérifiée, credentials
+chargés, réservation, RPC ou modification système. Ce blocage ne signifie pas
+que le moteur Linux est unsupported. Le téléphone reste à 0 armement, 0 voix,
+0 phrase sur 3. Le nouveau code n'est pas encore qualifié sur macOS, ni commité
+ou poussé à ce point ; aucune CI distante de ce code n'est revendiquée.
+
 ## Qualification CI native et racines publiques — code `9069059`
 
 Les deux runs CI3 du push `906905988c5c51d83b05b259cd642a165325b7d2`

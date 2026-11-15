@@ -85,8 +85,10 @@ pub struct Pcm16Opus<S: AudioSource> {
     eof: bool,
     done: bool,
     failure: Option<SourceError>,
+    progress: Option<PcmProgressHandle>,
 }
 impl<S: AudioSource> Pcm16Opus<S> {
+    /// Create an encoder without allocating or locking an observer.
     pub fn new(source: S, config: EncoderConfig) -> Self {
         Self {
             upstream: SourceOwner::new(source),
@@ -102,8 +104,21 @@ impl<S: AudioSource> Pcm16Opus<S> {
             eof: false,
             done: false,
             failure: None,
+            progress: None,
         }
     }
+
+    /// Create an encoder and a bounded, thread-safe local progress observer.
+    /// Encoding, framing, validation and cleanup are identical to [`Self::new`].
+    /// Snapshots survive close, failure and drop, and contain no audio or source
+    /// identity. Counters describe local work, not network acknowledgement.
+    pub fn new_with_progress(source: S, config: EncoderConfig) -> (Self, PcmProgressHandle) {
+        let mut encoder = Self::new(source, config);
+        let progress = PcmProgressHandle::new();
+        encoder.progress = Some(progress.clone());
+        (encoder, progress)
+    }
+
     fn stop(&mut self) {
         self.done = true;
         self.native = None;
@@ -127,6 +142,11 @@ impl<S: AudioSource> Pcm16Opus<S> {
             .encoded_samples
             .checked_add(FRAME_SAMPLES as u64)
             .ok_or(AudioError::CounterOverflow)?;
+        if let Some(progress) = &self.progress {
+            // Count successful codec work even if granule/mux accounting fails
+            // below; pending_len includes real input only, never zero padding.
+            progress.frame(self.pending_len / 2);
+        }
         let granule = if final_packet {
             (self.input_bytes / 2)
                 .checked_add(native.lookahead)
@@ -159,6 +179,9 @@ impl<S: AudioSource> Pcm16Opus<S> {
             }
             if self.done {
                 self.native = None;
+                if let Some(progress) = &self.progress {
+                    progress.output_eof();
+                }
                 return Ok(None);
             }
             if self.eof {
@@ -169,6 +192,9 @@ impl<S: AudioSource> Pcm16Opus<S> {
                 self.upstream.close().await?;
                 if self.input_bytes == 0 {
                     self.done = true;
+                    if let Some(progress) = &self.progress {
+                        progress.output_eof();
+                    }
                     return Ok(None);
                 }
                 if self.native.is_none() {
@@ -215,7 +241,12 @@ impl<S: AudioSource> Pcm16Opus<S> {
                 None => None,
             };
             match next {
-                None => self.eof = true,
+                None => {
+                    self.eof = true;
+                    if let Some(progress) = &self.progress {
+                        progress.input_eof();
+                    }
+                }
                 Some(chunk) => {
                     if chunk.len() > MAX_INPUT_BYTES {
                         return Err(SourceError::new(AudioError::InputLimit));
@@ -224,6 +255,9 @@ impl<S: AudioSource> Pcm16Opus<S> {
                         .input_bytes
                         .checked_add(chunk.len() as u64)
                         .ok_or_else(|| SourceError::new(AudioError::CounterOverflow))?;
+                    if let Some(progress) = &self.progress {
+                        progress.input(self.input_bytes);
+                    }
                     self.input = chunk;
                 }
             }

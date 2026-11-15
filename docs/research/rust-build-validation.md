@@ -3,6 +3,38 @@
 Current cross-platform evidence: [executed remote CI matrix, 2026-11-15](#executed-remote-ci-matrix--2026-11-15).
 Earlier sections retain their original local/static checkpoint scope and failures.
 
+## PCM progress and strict admission — local checkpoint 2026-11-15
+
+Snapshot A is based on `1813602` plus local changes, with 173 selected source
+inputs. Windows R1 ran 24 steps: workspace 399 passed, 0 failed, 2 ignored
+on each of stable and 1.88; reuse 10, feature-off 35, exact release finalization
+1, fmt, docs, boundary and release checks passed. The independent ignored PyAV
+oracle was explicitly run on Windows: one test verifies 57 containers. The PCM
+release smoke reports 1017 input samples, 3051 after trim, one EOS and zero
+service calls. R1 is nevertheless **not qualified**: strict Clippy exited 101
+on `never_loop` in a test scaffold, not a runtime regression.
+
+Linux R1 passed 12 scoped phases, including workspace 400/0/2 on 1.88,
+reuse 10, feature-off 35, release finalization 1 and PCM smoke. Snapshot B
+changes only `crates/rambler-audio/tests/progress.rs`, removing a redundant
+one-shot loop around the same select; selected production bytes are unchanged.
+Windows R2 passed all six focused steps: source checks, fmt, six progress tests
+on each toolchain and strict workspace/all-targets/all-features Clippy. Linux R2
+passed five scoped phases including workspace 400/0/2 on 1.88. No full Windows
+workspace rerun or release rebuild on B is claimed; release evidence is for A.
+
+The native-root smoke and PyAV oracle are ignored by default. No explicit native
+root control was rerun in this lot; the older OS-root qualification concerns
+unchanged root code, not a new control run. The full Python suite was not rerun;
+Python source was unchanged. The healthy synthetic loopback returns one final
+recognition; the default-endpoint admission check is an in-process no-network unit.
+No service or device action occurred. Linux live preflight remains blocked by an
+observed piped crash-dump collector, with suppression unverified; no credentials
+loaded, reservation, RPC or global setting change. This is not a claim that Linux
+is unsupported. Phone remains at zero arms, zero voice, zero of three phrases.
+At this checkpoint the new code is uncommitted and unpushed, macOS qualification
+and remote CI for it remain pending. [Evidence](../evidence/rust-pcm-progress-admission.json).
+
 ## Scope and prerequisites
 
 The workspace declares Rust 1.88. The checked-in `Cargo.lock` is the dependency

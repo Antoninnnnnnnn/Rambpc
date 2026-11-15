@@ -121,8 +121,52 @@ impl EnvironmentCredentials {
             "RAMBLER_ANDROID_CERT",
         ]
         .map(|name| lookup(name).unwrap_or_default());
+        Self::validate_snapshot(values, false)
+    }
+
+    /// Requires all three credentials and returns an immutable, validated snapshot.
+    /// Each exact variable is read once, including when another value is invalid.
+    /// No credential values are logged or included in errors.
+    pub fn required_snapshot_with(
+        &self,
+        lookup: impl FnMut(&str) -> Result<String, std::env::VarError>,
+    ) -> Result<Metadata, TransportError> {
+        Self::environment_snapshot_with(true, lookup)
+    }
+
+    /// Strict admission for callers that must reject anonymous sessions locally.
+    /// The general [`MetadataProvider`] implementation remains anonymous-capable.
+    pub fn required_snapshot(&self) -> Result<Metadata, TransportError> {
+        self.required_snapshot_with(|name| std::env::var(name))
+    }
+
+    fn environment_snapshot_with(
+        required: bool,
+        mut lookup: impl FnMut(&str) -> Result<String, std::env::VarError>,
+    ) -> Result<Metadata, TransportError> {
+        let mut invalid = false;
+        let values = [
+            "RAMBLER_API_KEY",
+            "RAMBLER_ANDROID_PACKAGE",
+            "RAMBLER_ANDROID_CERT",
+        ]
+        .map(|name| match lookup(name) {
+            Ok(value) => value,
+            Err(std::env::VarError::NotPresent) => String::new(),
+            Err(std::env::VarError::NotUnicode(_)) => {
+                invalid = true;
+                String::new()
+            }
+        });
+        if invalid {
+            return Err(TransportError::InvalidMetadata);
+        }
+        Self::validate_snapshot(values, required)
+    }
+
+    fn validate_snapshot(values: [String; 3], required: bool) -> Result<Metadata, TransportError> {
         let present = values.iter().filter(|v| !v.is_empty()).count();
-        if present == 0 {
+        if present == 0 && !required {
             return Ok(Metadata::default());
         }
         if present != 3 {
@@ -138,23 +182,7 @@ impl EnvironmentCredentials {
 }
 impl MetadataProvider for EnvironmentCredentials {
     fn metadata(&self) -> MetadataFuture<'_> {
-        Box::pin(async {
-            // Invalid Unicode must not silently become an absent credential.
-            let mut invalid = false;
-            let metadata = self.metadata_with(|name| match std::env::var(name) {
-                Ok(value) => Some(value),
-                Err(std::env::VarError::NotPresent) => None,
-                Err(std::env::VarError::NotUnicode(_)) => {
-                    invalid = true;
-                    None
-                }
-            });
-            if invalid {
-                Err(TransportError::InvalidMetadata)
-            } else {
-                metadata
-            }
-        })
+        Box::pin(async { Self::environment_snapshot_with(false, |name| std::env::var(name)) })
     }
 }
 

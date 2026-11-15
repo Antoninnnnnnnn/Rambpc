@@ -1,6 +1,25 @@
 # Métadonnées natives : snapshots, rotation et retrait
 
-## Contrat exercé
+## Préflight strict de la CLI — qualification locale
+
+Sur l'endpoint normal, la CLI ouvre d'abord l'entrée, puis exige les trois champs
+exacts `RAMBLER_API_KEY`, `RAMBLER_ANDROID_PACKAGE` et `RAMBLER_ANDROID_CERT`
+avant `Engine::connect`. Toute absence, valeur vide, configuration partielle,
+valeur Unicode invalide ou erreur `Metadata` est rejetée localement ; en cas
+d'échec, la fermeture de l'entrée ouverte est attendue. Cela ne garantit pas
+l'absence d'I/O lors de l'ouverture. Le snapshot `Metadata` immuable est transmis
+à `SessionOptions`, sans relecture de l'environnement. Le loopback explicite
+n'inspecte pas ces variables.
+
+Pour la bibliothèque, `EnvironmentCredentials` reste un provider permissif :
+tout absent produit des métadonnées vides. Le choix strict explicite est
+`EnvironmentCredentials::required_snapshot_with(&self, lookup: impl FnMut(&str) -> Result<String, std::env::VarError>) -> Result<Metadata, TransportError>` ;
+`required_snapshot(&self)` lit l'environnement. Snapshots et diagnostics restent
+expurgés à l'affichage. Ce préflight ne démontre ni authentification réelle ni
+provisionnement renouvelable. La qualification locale offline distingue les
+snapshots A et B ; voir [résultats et limites](rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15) et [preuve](../evidence/rust-pcm-progress-admission.json).
+
+## Contrat historique exercé
 
 Deux filets offline supplémentaires vérifient le transport existant ; aucune API,
 implémentation de production, dépendance ou politique de retry n'est modifiée.

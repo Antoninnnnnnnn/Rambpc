@@ -34,9 +34,10 @@ pas une DLL Opus, Python ou FFmpeg.
 Rust **1.88.0 a été exécuté sur Windows x86_64/MSVC et Linux x86_64/GCC**.
 Les snapshots exacts et les limites de chaque revalidation sont dans la
 [validation du backend](research/rust-backend-validation-2026-11-14.md).
-La matrice Windows/Linux/macOS 1.88/stable est écrite, pas encore exécutée
-à distance ; macOS n’a pas été exécuté localement. Voir aussi la
-[validation des builds](research/rust-build-validation.md). Les tests n'utilisent
+La CI native antérieure a exécuté Windows/Linux/macOS 1.88/stable sur le code
+`9069059`, mais ne qualifie pas les nouvelles fonctions locales ; macOS et CI
+distante pour celles-ci restent à exécuter. Voir la
+[validation des builds](research/rust-build-validation.md). Les tests de ce lot utilisent
 que des fixtures et des serveurs loopback, jamais Google. Le téléchargement initial
 nécessite Internet ; `--locked` fixe les versions, pas leur disponibilité locale.
 
@@ -48,9 +49,14 @@ dépendance du binaire.
 ## CLI fichier Ogg/Opus
 
 Fournir les trois variables d'[authentification](research/authentication.md) dans
-l'environnement : `RAMBLER_API_KEY`, `RAMBLER_ANDROID_PACKAGE`,
-`RAMBLER_ANDROID_CERT`, toutes présentes ou toutes absentes. Aucun secret n'est
-fourni dans un argument de commande ; la CLI ne charge pas `.env` implicitement.
+l'environnement : `RAMBLER_API_KEY`, `RAMBLER_ANDROID_PACKAGE` et
+`RAMBLER_ANDROID_CERT`, toutes présentes et non vides. Sur l'endpoint normal,
+la CLI ouvre d'abord l'entrée puis valide les trois champs avant `Engine::connect` ;
+une absence, une configuration partielle, une valeur Unicode invalide ou une
+métadonnée invalide échoue localement et la fermeture de l'entrée est attendue.
+Le snapshot immuable est transmis à `SessionOptions` sans relecture ; snapshots et
+diagnostics sont expurgés à l'affichage. Aucun secret n'est fourni dans un argument
+de commande ; la CLI ne charge pas `.env` implicitement.
 Le chargement explicite Git Bash est décrit dans le README.
 
 ```sh
@@ -141,6 +147,14 @@ source fichier, pas un microphone ; le premier chunk n'attend pas artificielleme
 `--page-duration-ms` accepte les multiples de 20 entre 20 et 1000, défaut 20.
 Les autres options de contexte, langues et métadonnées sont les mêmes que `dictate`.
 Le build sans feature audio ne propose pas cette commande.
+Sur la sortie finale, `dictate-wav` ajoute un objet `pcm` lorsque l'observateur
+existe : `input_bytes`, `encoded_input_samples`, `encoded_frames`, `input_eof` et
+`output_eof`. La sortie Ogg et celle sans feature audio restent inchangées. Ces
+compteurs locaux sont distincts des métriques encodées et ne prouvent ni réception
+serveur ni absence de perte ou de rejeu. Leurs définitions et l'API optionnelle
+sont dans le [contrat PCM](research/rust-pcm-channel.md). La
+[qualification locale A/B](research/rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15)
+précise les périmètres ; voir aussi la [preuve](evidence/rust-pcm-progress-admission.json).
 
 Les [quatre essais réels complémentaires](evidence/rust-pcm-functional-public.json)
 valident PCM accéléré/progressif au même texte final, réécriture intention 3 et
@@ -256,7 +270,13 @@ qu'après EOF audio et cleanup réussi. Son échéance ne dépasse jamais le dé
 même pour une durée énorme ; `Some(Duration::ZERO)` est invalide. Un provider de
 contexte est appelé une seule fois après ce cleanup, sous le minimum de son budget
 de contexte et des délais restants. Les credentials sont injectables par session ;
-`EnvironmentCredentials` est une implémentation fournie. Le commit terminal de ce
+`EnvironmentCredentials` est une implémentation fournie et reste permissive si
+les trois variables sont absentes. Pour imposer leur présence, utiliser
+`required_snapshot()` ou `required_snapshot_with(...)` ; la CLI normale utilise
+un snapshot strict, contrairement au loopback explicite. Ce contrôle ne prouve
+pas une authentification distante ni un provisionnement renouvelable ; sa
+qualification locale et ses limites sont décrites dans le [contrat des snapshots](research/rust-credential-snapshots.md).
+Le commit terminal de ce
 budget et ses preuves sont décrits dans le [contrat de fiabilité](research/rust-reliability-lifecycle.md).
 
 Migration du prototype Rust 0.1 : un littéral exhaustif `SessionOptions` doit

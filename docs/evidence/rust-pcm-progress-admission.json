@@ -1,0 +1,357 @@
+{
+  "date": "2026-11-15",
+  "scope": "Local offline synthetic and loopback qualification only. Selected working tree plus base; not universal build-input identity.",
+  "source": {
+    "base_commit": "181360277846a570679bf4890044213542d0ded3",
+    "selection_count": 173,
+    "manifest_encoding": "sorted compact ensure_ascii JSON mapping relative POSIX paths to raw-byte SHA256 (no newline normalization), ASCII, no newline",
+    "A": {
+      "manifest_sha256": "100c2eb5860b89eb30f8aaeaf0dcd610320c1b363ca14908f23387c9980bd33d",
+      "bytes": 1952942
+    },
+    "B": {
+      "manifest_sha256": "9bd54aeadf11c28a51ed5a664d85ff76a1d370893dd0cf68942eb7847d7d6abd",
+      "bytes": 1952847
+    },
+    "delta": "Only crates/rambler-audio/tests/progress.rs: redundant one-shot loop removed around identical select; selected production bytes unchanged.",
+    "changed_rust_sha256": {
+      "crates/rambler-audio/src/encode.rs": {
+        "A": "909018cfb526b5054a2332a374801eb158159feafce5433c3ae8255d8dc61a37",
+        "B": "909018cfb526b5054a2332a374801eb158159feafce5433c3ae8255d8dc61a37"
+      },
+      "crates/rambler-audio/src/lib.rs": {
+        "A": "3ea5ffe18214040cb872f83054b41ae9c5468cd65d0462047758dc43a030d856",
+        "B": "3ea5ffe18214040cb872f83054b41ae9c5468cd65d0462047758dc43a030d856"
+      },
+      "crates/rambler-audio/src/progress.rs": {
+        "A": "b8cc85f7ada9933f1e46ce97111a1232cf9fc926c0bfdf97aabe909debc47997",
+        "B": "b8cc85f7ada9933f1e46ce97111a1232cf9fc926c0bfdf97aabe909debc47997"
+      },
+      "crates/rambler-audio/tests/progress.rs": {
+        "A": "28eb488063ca8d77c68183b8c6ec0bcc6821af16e536c9dadd16566ef7c3b3db",
+        "B": "c5ae1ce0ccda7e2029495b7db6c252fcf48a838623f68f6f83db61fd7badd6f4"
+      },
+      "crates/rambler-cli/src/main.rs": {
+        "A": "d374049cdfd40efdff354e358a9d9d1e452101dbc6f31ea25330ac0848e4dac2",
+        "B": "d374049cdfd40efdff354e358a9d9d1e452101dbc6f31ea25330ac0848e4dac2"
+      },
+      "crates/rambler-cli/src/tests.rs": {
+        "A": "9e0b7b6dcafe47d02adea5d5236c682d214997d687e2c03920619d4a1871d1ac",
+        "B": "9e0b7b6dcafe47d02adea5d5236c682d214997d687e2c03920619d4a1871d1ac"
+      },
+      "crates/rambler-cli/tests/pcm_progress.rs": {
+        "A": "29188695807b0b6f084d521287b59944bcde51294b9f362d3d01a2d50b62a008",
+        "B": "29188695807b0b6f084d521287b59944bcde51294b9f362d3d01a2d50b62a008"
+      },
+      "crates/rambler-transport/src/credentials.rs": {
+        "A": "e6aa31fddcb679b5d17ece24ecbdd0031fa66829563d87be2970c4bdc710d959",
+        "B": "e6aa31fddcb679b5d17ece24ecbdd0031fa66829563d87be2970c4bdc710d959"
+      },
+      "crates/rambler-transport/tests/required_credentials.rs": {
+        "A": "ad1ddfe9b528463f4094f01238c3336d145f15e121d4352ecb25fd54d4731d0e",
+        "B": "ad1ddfe9b528463f4094f01238c3336d145f15e121d4352ecb25fd54d4731d0e"
+      }
+    },
+    "cargo_lock_sha256": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68"
+  },
+  "qualification": [
+    {
+      "platform": "Windows",
+      "round": "R1",
+      "source": "A",
+      "status": "FAILED",
+      "qualified": false,
+      "steps": 24,
+      "failed_step": {
+        "label": "strict-clippy",
+        "exit": 101,
+        "diagnostic": "never_loop in test-only progress.rs; not a runtime regression",
+        "log_sha256": "cc8a5ea398182c061827cd3bec4fa12a18ff3c0e5661159e6396067ddf9fc4f6"
+      },
+      "selected_results": [
+        {
+          "label": "workspace-stable",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 2,
+            "measured": 0,
+            "passed": 399
+          },
+          "log_sha256": "88465444deb67530c498646dea6071ddcdf69b0f9ca11dbf938e4cad1b03c8dc"
+        },
+        {
+          "label": "workspace-msrv",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 2,
+            "measured": 0,
+            "passed": 399
+          },
+          "log_sha256": "b9b2c2aaec53303ca3cacbb282d96f53cbd305a102b020493636aaa35bad5324"
+        },
+        {
+          "label": "session-reuse-example",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 10
+          },
+          "log_sha256": "7555e188b3445cf1545af5e4c8dc1141c9a8b111bb829daff74f7b017fbefc87"
+        },
+        {
+          "label": "cli-feature-off",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 35
+          },
+          "log_sha256": "525744dc7c598b4cf7e97b9db5edfe81e28f7613d1d0ad095b853c313498ff5c"
+        },
+        {
+          "label": "independent-pyav",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 1
+          },
+          "log_sha256": "e642e47bef9f403d2a7ea2d3934757869b814cec03236e92e09b9edc28c7fa38"
+        },
+        {
+          "label": "finalization-cli-release",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 1
+          },
+          "log_sha256": "78d37dba317a01f4861777488ac63e8e0562b5fbc531049c3b61c34242c6330f"
+        }
+      ],
+      "other_checks": "format, strict documentation, audio boundary and releases passed; 23 of 24 steps passed",
+      "independent_pyav_containers": 57
+    },
+    {
+      "platform": "Linux x86_64 WSL2",
+      "round": "R1",
+      "source": "A",
+      "status": "passed scoped with explicit ignored tests",
+      "rust": "1.88.0",
+      "phases": 12,
+      "selected_results": [
+        {
+          "label": "workspace-all-features",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 2,
+            "measured": 0,
+            "passed": 400
+          },
+          "log_sha256": "6dfb48c6b4a6bb8f622fa586034700ef9a0e678dd2ed4f08de6efeae3223d75b"
+        },
+        {
+          "label": "session-reuse-audio",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 10
+          },
+          "log_sha256": "818bedf0652a6c376018d49dc8442b95cc660ca3d1eb4010a563063ccb70b42c"
+        },
+        {
+          "label": "cli-feature-off",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 35
+          },
+          "log_sha256": "4a0512206bae6fcd9870e29a4d94241d1bcf2da8674e136b650846c6009176ac"
+        },
+        {
+          "label": "release-finalization-cli",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 1
+          },
+          "log_sha256": "87d6cefc518d8f6e44aa771aebd696dd00ae6871d572515f76a982f3babeecee"
+        }
+      ],
+      "other_checks": "release builds and PCM smoke passed; no Linux format, clippy, doc or explicit PyAV"
+    },
+    {
+      "platform": "Windows",
+      "round": "R2",
+      "source": "B",
+      "status": "passed focused post-lint",
+      "qualified_focused": true,
+      "steps": 6,
+      "selected_results": [
+        {
+          "label": "format",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 0
+          },
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "label": "audio-progress-stable",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 6
+          },
+          "log_sha256": "dd87002a031f436c707e6d841da01af81bba007f4a78ca1d80e25d30fdd55e50"
+        },
+        {
+          "label": "audio-progress-msrv",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 6
+          },
+          "log_sha256": "4978ac5b78834420317fe81f18304b477139e6c7ee254345f5df043becc4cb7b"
+        },
+        {
+          "label": "strict-clippy",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 0
+          },
+          "log_sha256": "7f6f034fbd93d5f686ad0fb31347d4d644b8aa66281a86cd17b8adf5918e787b"
+        }
+      ],
+      "limits": "No full workspace rerun, release rebuild or PyAV repeat; R1 remains failed."
+    },
+    {
+      "platform": "Linux x86_64 WSL2",
+      "round": "R2",
+      "source": "B",
+      "status": "passed scoped with explicit ignored tests",
+      "rust": "1.88.0",
+      "phases": 5,
+      "selected_results": [
+        {
+          "label": "workspace-all-features",
+          "exit": 0,
+          "counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 2,
+            "measured": 0,
+            "passed": 400
+          },
+          "log_sha256": "a8a5777186a6573549aac7f2b0d89fb0a9dac0792d0adcbd89f01e7320328689"
+        }
+      ],
+      "limits": "Full workspace follow-up only; no release rebuild."
+    }
+  ],
+  "interpretation": {
+    "test_counts": "Counts are per execution, not additive distinct tests. Workspace includes two ignored tests: native-root smoke and independent PyAV. Only Windows R1 explicitly ran PyAV; native-root smoke was not re-executed.",
+    "pcm_smoke": {
+      "input_samples_16k": 1017,
+      "decoded_trimmed_samples_48k": 3051,
+      "ogg_eos": 1,
+      "service_calls": 0
+    },
+    "required_api": "required_snapshot_with(FnMut(&str)->Result<String,VarError>) and required_snapshot",
+    "loopback": "Healthy fixture sends one final recognition; default-endpoint risk replaced with an in-process no-network admission unit.",
+    "phone": "unchanged: 0 arms, 0 voice, 0 phrases of 3"
+  },
+  "release_binaries_A_only": {
+    "Windows_audio_cli": "56f384d02847660b4f4557b44b639572a5691f6d65b459cfeb7a8c647df59172",
+    "Linux": {
+      "examples/pcm_channel": "d6590d3cc1d44aac95bc4b8c0bfec9ff4b5df5b520083f9d42baed7715411675",
+      "rambler": "e1577bb92695ea2ee92d0ed28f89633d5010416f75e7632705a68b1bb9c70b06"
+    },
+    "identity": "R1 artifacts only, not rebuilt in R2; selected production bytes identical, not a universal build-input identity claim."
+  },
+  "reviewer": {
+    "scope": "focused admission/observation review",
+    "actual_assistant_model": "claude-opus-5-5",
+    "assistant_model_messages": 54,
+    "provenance_sha256": "04fca77fceeaecf35ec3abab3d8c4d16465f224071e43300bf044a63f17c0acd"
+  },
+  "linux_live_preflight": {
+    "status": "blocked before credentials and reservation",
+    "reason": "core_pattern pipe observed; suppression not independently verified",
+    "service_launches": 0,
+    "reservations": 0,
+    "credential_reads": 0,
+    "system_settings_changes": 0,
+    "interpretation": "Not a claim that the engine is unsupported on Linux."
+  },
+  "evidence_sha256": {
+    "reports": {
+      "pcm-admission-windows-20261115-r1": "6724eb3d1af7b4b0b24d5ffe4346c2bc41a13d34cf2d9da333d0d01ea8ce3eef",
+      "pcm-admission-windows-20261115-r2": "4133486898c73d03c157e91e112d93ebac3bf8fa3f5a0e7e1092baa15d3e1ed5",
+      "pcm-admission-linux-20261115-r1": "f80d24bcf8e70894094623b1ffe0faf112de780a728416e97d05c12ff70aa3c3",
+      "pcm-admission-linux-20261115-r2": "140e74d24cf4490555e1f9f881ee28d3f85ec06454612408b64082f605989663"
+    },
+    "main_audits_and_provenance": {
+      "pcm-admission-windows-r1-main-audit-20261115.json": "f5b35513ff3b781b65fd083326bf5b1c031ad57308cec44cb19ed692ca528f92",
+      "pcm-admission-linux-r1-main-audit-20261115.json": "b4b20b930a141748022cb68ad89d757dbcda01fafb4caac3773ca8a124a827b0",
+      "pcm-admission-model-provenance-20261115.json": "04fca77fceeaecf35ec3abab3d8c4d16465f224071e43300bf044a63f17c0acd",
+      "native-linux-live-blocker-20261115.json": "fce97a9dc96f0e83d34d43b42fee089a87dd743f8fe93371d64fae06753633f2"
+    },
+    "controllers": {
+      "qualify_pcm_admission_windows_r1.py": "3a16adc8b190a3ae97cfb3ac8b4847d315eb1bff3dce7546e026f9cb29438e23",
+      "recheck_pcm_admission_windows_r2.py": "89f3bb64c041f168914ec6930302eb4324baebcbbbe5b9a95a44ec58fa1d9072",
+      "qualify_pcm_admission_linux_r1.py": "8da1a3925f3e4e3c04d16e5db514a871ae87ce7d1e072441f5bb10996fc8957f",
+      "recheck_pcm_admission_linux_r2.py": "ddbcddf6540a56ffd285738a657286492590052ca8739959ad20f9cb70b9029d"
+    },
+    "helpers": {
+      "qualify_reliability_windows_r4.py": "70713c92b7a94b8767e0cdec5dea551033ab9a099484a6ab025322eda56c502b",
+      "reliability_inputs_20261115.py": "9c18a45528bb071a2f81b89d6c038576a67dd53fba8084d82af1b2d0372f5b50",
+      "qualify_reliability_linux_r4.py": "4f3e991a15d331026dab223a676fb06d528eeb942f6999887c90d4588f592794"
+    }
+  },
+  "limits": [
+    "No real service or device action in this lot.",
+    "No authentication or provisioning qualification, Linux live-service result, or new macOS feature validation.",
+    "Future remote CI pending, not failed.",
+    "Python full suite not run; Python source unchanged.",
+    "No universal correctness or optimality claim."
+  ]
+}

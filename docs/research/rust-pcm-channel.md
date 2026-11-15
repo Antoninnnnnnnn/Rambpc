@@ -40,6 +40,36 @@ Ce n'est pas une borne RSS globale de 8 Mio. Producteur et consommateur doivent
 être conduits **en concurrence** : remplir plusieurs chunks avant de démarrer le
 consommateur attendrait légitimement sur la capacité.
 
+## Observation PCM optionnelle — qualification locale
+
+`Pcm16Opus::new_with_progress(source, config)` retourne l'encodeur et un
+`PcmProgressHandle` ; `handle.snapshot()` donne un `PcmProgress` cohérent et
+monotone, dont les compteurs restent disponibles après fermeture :
+
+- `input_bytes: u64` compte les octets des chunks acceptés en amont, y compris
+  ceux encore tamponnés sans encodage lors d'une fermeture précoce ; les chunks
+  surdimensionnés rejetés ne comptent pas.
+- `encoded_input_samples: u64` compte les vrais échantillons PCM des trames
+  encodées et comptabilisées, sans padding nul ni flush de seul lookahead.
+- `encoded_frames: u64` compte les trames codec, padding et flush compris.
+- `input_eof: bool` indique seulement un `None` naturel de la source amont.
+- `output_eof: bool` indique l'EOF encodé naturel après cleanup amont et drainage
+  du mux, jamais un simple close explicite, une erreur ou Drop.
+
+```rust,ignore
+let (encoder, progress) = Pcm16Opus::new_with_progress(input, config);
+// Conduire encoder puis attendre sa terminaison ou son nettoyage.
+let snapshot = progress.snapshot();
+```
+
+Le constructeur `Pcm16Opus::new` reste sans allocation ni verrou d'observateur ;
+aucun coût CPU nul ou performance optimale n'est revendiqué. Ces mesures locales
+ne sont ni des hashes PCM, ni des acquittements serveur, ni des flags terminaux
+de requête, ni une preuve contre toute perte ou rejeu. Les métriques encodées du
+moteur restent distinctes. La [qualification locale A/B](rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15)
+et sa [preuve](../evidence/rust-pcm-progress-admission.json) distinguent les
+suites complètes et la reprise ciblée après échec Clippy.
+
 ## Fin normale, abandon et annulation
 
 - `writer.finish()` consomme le producteur et annonce un EOF volontaire. La source

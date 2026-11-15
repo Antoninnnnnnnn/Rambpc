@@ -7,7 +7,9 @@ use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext,
     EncodedAudioProgress, Engine, EngineError, ProtocolConfig, SessionOptions, collect_dictation,
 };
-use rambler_transport::{EnvironmentCredentials, TransportConfig, TransportError};
+use rambler_transport::{
+    EnvironmentCredentials, Metadata, MetadataProvider, TransportConfig, TransportError,
+};
 use serde_json::{Value, json};
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
@@ -88,10 +90,44 @@ enum InputKind {
     },
 }
 
-async fn open_audio(path: PathBuf, kind: InputKind) -> Result<Box<dyn AudioSource>, &'static str> {
+#[derive(Default)]
+struct PcmObservation {
+    #[cfg(feature = "audio")]
+    handle: Option<rambler_audio::PcmProgressHandle>,
+}
+impl PcmObservation {
+    /// Read only after source/session cleanup; these are encoder, not network, counters.
+    fn append_to(&self, value: Value) -> Value {
+        #[cfg(feature = "audio")]
+        {
+            let mut value = value;
+            if let Some(handle) = &self.handle {
+                let progress = handle.snapshot();
+                value["pcm"] = json!({
+                    "input_bytes": progress.input_bytes,
+                    "encoded_input_samples": progress.encoded_input_samples,
+                    "encoded_frames": progress.encoded_frames,
+                    "input_eof": progress.input_eof,
+                    "output_eof": progress.output_eof,
+                });
+            }
+            value
+        }
+        #[cfg(not(feature = "audio"))]
+        {
+            value
+        }
+    }
+}
+
+async fn open_audio(
+    path: PathBuf,
+    kind: InputKind,
+) -> Result<(Box<dyn AudioSource>, PcmObservation), &'static str> {
     match kind {
-        InputKind::Ogg => Ok(Box::new(
-            ogg::OggAudio::open(path).await.map_err(|_| "audio")?,
+        InputKind::Ogg => Ok((
+            Box::new(ogg::OggAudio::open(path).await.map_err(|_| "audio")?),
+            PcmObservation::default(),
         )),
         #[cfg(feature = "audio")]
         InputKind::Wav {
@@ -117,7 +153,13 @@ async fn open_audio(path: PathBuf, kind: InputKind) -> Result<Box<dyn AudioSourc
             )
             .await
             .map_err(|_| "audio")?;
-            Ok(Box::new(Pcm16Opus::new(wav, encoder)))
+            let (encoder, handle) = Pcm16Opus::new_with_progress(wav, encoder);
+            Ok((
+                Box::new(encoder),
+                PcmObservation {
+                    handle: Some(handle),
+                },
+            ))
         }
     }
 }
@@ -211,6 +253,32 @@ fn failure_output(error: &EngineError, cleanup: Option<&EngineError>) -> Value {
     value
 }
 
+/// Preserve the pre-session error shape and await cleanup without polling audio.
+async fn pre_session_failure_output(audio: &mut dyn AudioSource, error: &EngineError) -> Value {
+    let cleanup_failed = audio.close().await.is_err();
+    let (category, code) = error_category(error);
+    let mut value = json!({"type":"error", "category":category, "grpc_code":code});
+    if cleanup_failed {
+        value["close_error_category"] = json!("cleanup");
+    }
+    value
+}
+
+async fn admit_credentials(
+    audio: &mut dyn AudioSource,
+    loopback: bool,
+    required_snapshot: impl FnOnce() -> Result<Metadata, TransportError>,
+) -> Result<Option<Arc<dyn MetadataProvider>>, Value> {
+    if loopback {
+        // Explicit loopback must not even inspect real credential variables.
+        return Ok(None);
+    }
+    match required_snapshot() {
+        Ok(snapshot) => Ok(Some(Arc::new(snapshot))),
+        Err(error) => Err(pre_session_failure_output(audio, &EngineError::Transport(error)).await),
+    }
+}
+
 async fn supervise<T, E, C, Close, Signal>(
     collection: C,
     close: impl FnOnce() -> Close,
@@ -300,26 +368,29 @@ async fn main() {
                 std::process::exit(2);
             }
         };
-    let mut audio = match open_audio(input, input_kind).await {
+    let (mut audio, pcm) = match open_audio(input, input_kind).await {
         Ok(audio) => audio,
         Err(category) => {
             print_error(category, None);
             std::process::exit(1);
         }
     };
+    let credentials = match admit_credentials(audio.as_mut(), loopback.is_some(), || {
+        EnvironmentCredentials.required_snapshot()
+    })
+    .await
+    {
+        Ok(credentials) => credentials,
+        Err(value) => {
+            println!("{}", pcm.append_to(value));
+            std::process::exit(1);
+        }
+    };
     let engine = match Engine::connect(transport).await {
         Ok(e) => e,
         Err(e) => {
-            let cleanup_failed = audio.close().await.is_err();
-            let (c, g) = error_category(&e);
-            if cleanup_failed {
-                println!(
-                    "{}",
-                    json!({"type":"error", "category":c, "grpc_code":g, "close_error_category":"cleanup"})
-                );
-            } else {
-                print_error(c, g);
-            }
+            let value = pre_session_failure_output(audio.as_mut(), &e).await;
+            println!("{}", pcm.append_to(value));
             std::process::exit(1);
         }
     };
@@ -349,11 +420,7 @@ async fn main() {
         timeout: Duration::from_secs(timeout),
         finalize_timeout: finalize_timeout.map(Duration::from_secs),
         context_timeout: Duration::from_secs(context_timeout),
-        credentials: if loopback.is_some() {
-            None
-        } else {
-            Some(Arc::new(EnvironmentCredentials))
-        },
+        credentials,
     };
     let collection = collect_dictation(&engine, audio, options, CollectorLimits::default());
     let (result, cleanup, interrupted) = supervise(collection, || engine.close(), async {
@@ -368,21 +435,24 @@ async fn main() {
             .map_or((None, None), |(c, g)| (Some(c), g));
         println!(
             "{}",
-            json!({"type":"error", "category": if signal_ok { "cancelled" } else { "signal" }, "grpc_code":null, "close_error_category":close_category, "close_grpc_code":close_code})
+            pcm.append_to(json!({"type":"error", "category": if signal_ok { "cancelled" } else { "signal" }, "grpc_code":null, "close_error_category":close_category, "close_grpc_code":close_code}))
         );
         std::process::exit(if signal_ok { 130 } else { 1 });
     }
     let result = result.expect("collection or interrupt");
     match (result, cleanup) {
         (Err(e), cleanup) => {
-            println!("{}", failure_output(&e, cleanup.as_ref().err()));
+            println!(
+                "{}",
+                pcm.append_to(failure_output(&e, cleanup.as_ref().err()))
+            );
             std::process::exit(1);
         }
         (Ok(_), Err(e)) => {
             let (c, g) = error_category(&e);
             println!(
                 "{}",
-                json!({"type":"error", "category":"cleanup", "grpc_code":null, "close_error_category":c, "close_grpc_code":g})
+                pcm.append_to(json!({"type":"error", "category":"cleanup", "grpc_code":null, "close_error_category":c, "close_grpc_code":g}))
             );
             std::process::exit(1);
         }
@@ -391,14 +461,14 @@ async fn main() {
             let mut value = match output(&r) {
                 Ok(value) => value,
                 Err(error) => {
-                    println!("{}", failure_output(&error, None));
+                    println!("{}", pcm.append_to(failure_output(&error, None)));
                     std::process::exit(1);
                 }
             };
             if ambiguous {
                 value["type"] = json!("ambiguous");
             }
-            println!("{value}");
+            println!("{}", pcm.append_to(value));
             if ambiguous {
                 std::process::exit(1);
             }

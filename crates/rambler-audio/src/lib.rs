@@ -26,9 +26,11 @@ mod encode;
 mod input;
 mod lifecycle;
 mod ogg;
+mod progress;
 mod wav;
 pub use encode::{EncoderConfig, Pcm16Opus};
 pub use input::{PcmInput, PcmInputError, PcmPermit, PcmSendError, PcmSender, pcm_channel};
+pub use progress::{PcmProgress, PcmProgressHandle};
 pub use wav::{PcmFormat, WavAudio, WavConfig};
 
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;

@@ -35,6 +35,13 @@ sont maintenant des dépendances directes ciblées pour ces constantes/API. La
 feature Tokio `process` ajoutée à la CLI est **dev-only**, pour tuer les enfants
 de test sur timeout, pas pour exécuter un encodeur ou interpréteur au runtime.
 
+Pour l'endpoint normal, le préflight strict des credentials intervient après
+l'ouverture de l'entrée et avant `Engine::connect` ; un échec attend sa fermeture.
+Il ne dispense donc pas des opérations d'ouverture ci-dessus. Le loopback explicite
+n'inspecte pas l'environnement. Détails et qualification locale :
+[snapshots de credentials](rust-credential-snapshots.md) ·
+[preuve A/B](../evidence/rust-pcm-progress-admission.json).
+
 ## Filets de régression
 
 `crates/rambler-cli/tests/file_inputs.rs` vérifie : répertoire, FIFO Unix sans
