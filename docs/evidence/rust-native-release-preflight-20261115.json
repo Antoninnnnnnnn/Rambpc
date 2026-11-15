@@ -1,0 +1,68 @@
+{
+  "kind": "preflight_observation_not_budget_record",
+  "date": "2026-11-15",
+  "head": "50daac4e021588cdc7109228dbb335c9313caa1c",
+  "scope": "Latest-code native Windows release regression preflight; no Rust source, transport or authentication changes",
+  "initial_observations": {
+    "offline_tests": "PASS: 10 test function groups",
+    "preflight": "NO_GO, exit 2",
+    "diagnostic_pass": ["source", "pinned helper", "scratch chain", "durable parent", "unconsumed state"],
+    "diagnostic_refused": ["base executable read", "artifact executable read", "scratch ACL"],
+    "base_runtime_and_chain": "PASS: executable, base executable, prefixes, flags and base chain",
+    "source_manifest_sha256": "3204d17218f30ee9e8cf900bd7fdaa059f84ce953e8873fe913e4b53ec7f146d",
+    "other_source_checks": "CLI, lockfile and R4 checks passed",
+    "executable_read_diagnostic": "Windows lstat and fstat matched device, inode, size, mtime and birth time and both reported regular file type, but full mode differed.",
+    "scratch_acl_diagnostic": "An allow ACE failed the unchanged admission policy; it was neither Creator Owner nor inherit-only. No identity or rights are reported."
+  },
+  "corrections": {
+    "status": "OFFLINE_VALIDATED_LIVE_STILL_BLOCKED",
+    "changes": ["Compare file-type mode bits while retaining other identity and path checks", "Validate Windows directory and credentials before creating the live workspace", "Require delayed descendant-marker absence and typed sentinel proof", "Label interpreter hash as launcher-only"],
+    "acl_policy": "UNCHANGED; actual privacy gate remains blocking",
+    "post_correction_offline_tests": {
+      "category": "OFFLINE_TESTS_OK",
+      "exit": 0,
+      "test_function_groups": 11,
+      "scope": "Pure synthetic in-memory fixtures and source-order checks; not live execution or runtime descendant containment"
+    },
+    "post_correction_preflight": {
+      "category": "NO_GO",
+      "exit": 2,
+      "gates": {
+        "base_launcher": "PASS",
+        "source_manifest": "PASS",
+        "artifact": "PASS",
+        "pinned_helper": "PASS",
+        "scratch_chain": "PASS",
+        "scratch_acl": "REFUSED",
+        "durable_parent": "PASS",
+        "unconsumed": "PASS"
+      }
+    },
+    "private_main_audit_sha256": "ad71e41e1c2e9e187c7ae029ed4b001037e3decbf32478073c9b3b4fa38bb43b",
+    "controller_source_sha256": "443105b16dd5e9c768251c0fd7acebb41923418ca2d6c3e14bab55258234de54",
+    "offline_tests_source_sha256": "a9466b9f5ea9a538d845f61f8d5c7715029d5c83feeeb86abeed9377d2deb1b3",
+    "generator_source_sha256": "2c8559fe60222b628155b058dae03e010a75bc0815293eb34194e2920072f6d7",
+    "runtime_descendant_containment": "NOT_TESTED; sentinel not launched",
+    "reservation_input_and_workspace_markers": "All absent after validation"
+  },
+  "qualification": {
+    "live": "NO_GO: actual privacy gate",
+    "terminal_sample_cleanup": "UNQUALIFIED",
+    "strict_render": "UNQUALIFIED",
+    "live_quality": "UNQUALIFIED",
+    "generator_async_path_and_argument_risks": "UNVERIFIED; generator not executed",
+    "credentials_read": 0,
+    "audio_generations": 0,
+    "sentinel_launches": 0,
+    "reserved_opportunities": 0,
+    "native_cli_or_service_attempts": 0,
+    "server_receipt": "Not observed; a reservation would not establish receipt",
+    "future_attempts": "No generator, sentinel or service attempt planned under this boundary",
+    "compose_or_android_parity": "NO_CASE; no claim",
+    "linux_live": "NO_GO unchanged",
+    "phone_budget": "0 arms / 0 starts / 0 phrases unchanged"
+  },
+  "interpretation": "Artifact/source/read-mode diagnostics are verifier findings, not a backend regression or failed network call. Prior successful CI and Windows live evidence remain unchanged.",
+  "residuals": ["Launcher hash does not attest the Python DLL or standard library", "Same-user access and local time-of-check/time-of-use races remain", "Private capture and retention limitations remain", "No complete build-environment attestation"],
+  "prior_evidence": ["docs/evidence/rust-zero-cli-budgets-20261115.json", "docs/evidence/rust-pcm-progress-admission.json", "docs/evidence/rust-pcm-engine-loopback.json", "docs/research/rust-build-validation.md", "docs/research/rust-reliability-lifecycle.md"]
+}

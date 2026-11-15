@@ -233,3 +233,17 @@ Windows/Linux sont séparés des anciens 12 scénarios dans le
 ci-dessus ne qualifient pas ce lot. Aucun rejeu/reconnect automatique, keepalive ou
 gain de performance n'est revendiqué, ni nouvelle qualification Android/ART,
 authentification, COMPOSE, macOS ou service réel.
+
+## Préflight natif du code récent — 15 novembre 2026
+
+La [preuve de préflight](../evidence/rust-native-release-preflight-20261115.json)
+consigne un refus NO_GO à une barrière réelle de confidentialité, sans appel
+service. Après correction du vérificateur, les 11 groupes de tests offline passent ;
+les contrôles interpréteur/sources/binaire passent, mais le contrôle ACL refuse
+encore. Ni les permissions ni la politique d'admission n'ont été modifiées.
+La qualification live du code récent, notamment terminal/échantillons/nettoyage
+et rendu, **n'a pas été effectuée**. Aucun audio ni identifiant chargé, aucun
+sentinel, réservation ou lancement CLI/service ; une réservation ne prouverait
+pas une réception serveur. Le confinement de descendants n'a pas été testé en exécution.
+Les anciennes preuves CI et Windows live restent inchangées ; Linux reste NO_GO,
+le budget téléphone 0/0/0, sans revendication COMPOSE ou parité Android.
