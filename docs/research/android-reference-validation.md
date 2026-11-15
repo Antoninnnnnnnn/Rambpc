@@ -159,6 +159,37 @@ qualifié ; son nouveau SDK composé n'est pas réattribué aux essais passés.
 Le fragment source audio retenu est égal à celui du SDK de préflight observé.
 Le code tiers du bridge, les binaires/APK, clés et fichiers privés ne sont pas livrés.
 
+## Inspection DEX ciblée : portée et correction des flags — 15 novembre 2026
+
+Une extraction statique ciblée du même APK a inspecté la structure DEX de `aaqe`
+et revérifié les métadonnées ciblées de cycle de vie. La décompilation source de
+`klb.g`, `kjo.run` et `kml.a` reste incomplète : cette limite n'est plus une
+absence d'inspection structurelle DEX, mais ne devient pas une analyse exhaustive
+des instructions. Deux constructeurs et deux surcharges `read` sont déclarés ;
+les contrôles antérieurs ne visaient que le constructeur sans argument. Cela
+n'établit ni chemin audio externe utilisable ni cause du crash natif, toujours
+non observée.
+
+Le lecteur intermédiaire avait mal nommé les bits : `0x10000` est
+`ACC_CONSTRUCTOR`, pas declared-synchronized ; `0x20000` est
+`ACC_DECLARED_SYNCHRONIZED`, pas inconnu. Avec `ACC_PUBLIC=0x1`, les flags
+`0x10001` désignent donc public + constructeur. Le flag declared-synchronized
+porte sur la déclaration/réflexion, sans effet d'exécution par lui-même, selon la
+[référence officielle DEX](https://source.android.com/docs/core/runtime/dex-format#access-flags).
+L'extraction corrigée R2 a réussi ; les rapports intermédiaires erronés sont
+conservés comme tels, leurs interprétations retirées. La comparaison exacte des
+sorties initiales et corrigées confirme que seules trois listes de libellés de
+flags changent : valeurs numériques et hashes de code sont identiques. Les huit
+empreintes de code concordent avec le parseur ; aucune donnée DEX n'est modifiée.
+Les sorties privées ne constituent pas une preuve reproductible archivée dans le dépôt.
+
+Aucun état AOT/JIT/interpréteur ou présence sur pile n'est observé par ces
+métadonnées. Un petit laboratoire jouet reste **NO-GO** : il ne discriminerait pas
+l'état réel du runtime concerné. Aucun nouvel acte appareil, audio ou service :
+**0 armement PCM, 0 départ vocal, 0 phrase** ; le budget de trois phrases reste
+intact. Aucune parité ni capacité de service réel n'est établie ; aucun
+contournement n'est autorisé.
+
 ## Prochain essai borné, sans résultat anticipé
 
 **Bloqué à ce stade sur la construction instrumentée compatible ART et confinée.**

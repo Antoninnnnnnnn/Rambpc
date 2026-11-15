@@ -283,6 +283,20 @@ contrôles négatifs et revue statique, sans réétiqueter les preuves R3. Ce r�
 local ne prouve ni performance WAN, parité Android/service, rotation réelle des
 certificats, macOS ni CI distante.
 
+## macOS read-only scout — 2026-11-15
+
+A static, read-only scout at `b0591f5` inspected the five crate manifests and
+platform cfg, file inputs, CLI subprocess tests, native Opus and TLS setup.
+No concrete code-local macOS defect survived review. Native macOS builds and
+tests, Keychain/TLS, FIFO and file runtime checks were **NOT RUN**; this is not a
+macOS qualification. The 382-test Windows/Linux R4 results above are unchanged.
+
+One test blind spot remains: `assert_released` in
+`crates/rambler-audio/tests/file_cleanup.rs` is a no-op outside Windows/Linux.
+A macOS test pass would therefore not establish descriptor release through that
+helper. This is a coverage limitation, not evidence of a production descriptor
+leak. The GitHub matrix remains configuration only; remote CI was **NOT RUN**.
+
 ## Written CI matrix, not yet executed
 
 `.github/workflows/rust.yml` defines Windows, Linux and macOS jobs on 1.88.0 and
