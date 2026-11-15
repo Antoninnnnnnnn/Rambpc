@@ -1,0 +1,124 @@
+{
+  "base_commit": "7327f51b89aeec537e8bf5ebaf6db3b0c25e5cef",
+  "correction": {
+    "accepted_first_close": "Ok or Connect only; Grpc and Supervisor still fail",
+    "base_git_blob": "18799aa8d06d9ac12a60254dc1c7e3418ba90fb9",
+    "corrected_raw_sha256": "4c207d4b67225205272998acf196327c34e767d33d8290eefdc06163b3eb253b",
+    "file": "crates/rambler-transport/tests/lifecycle.rs",
+    "no_gate_retry_sleep_ignore": true,
+    "preserved": "first echo, four accepted failed-session cleanups, no reopen/replay, old clone Closed rejections, explicit replacement echo and connection counts",
+    "second_bounded_close": "must succeed, verifying driver fault acknowledged once"
+  },
+  "date": "2026-11-15",
+  "failed_CI": {
+    "conclusion": "failure",
+    "failed_jobs": [
+      {
+        "bytes": 123622,
+        "file": "job-132903778863.log",
+        "id": 132903778863,
+        "sha256": "9c5d32063fa06008941d713e4f62d3a0866e50aa25bc98296eeaac5a059b4852"
+      },
+      {
+        "bytes": 123418,
+        "file": "job-132903778997.log",
+        "id": 132903778997,
+        "sha256": "3ab1cc6d9f13829865b6eec5a2a82eb9011e60f37ab9106dcc3506a9791ae953"
+      },
+      {
+        "bytes": 126702,
+        "file": "job-132903779046.log",
+        "id": 132903779046,
+        "sha256": "ba6e19097b94dc17bd51670ed11da5dd73a377e893af48a9db0bf41344b8ac3e"
+      }
+    ],
+    "original_failures_preserved": true,
+    "panic": "transport.close() returned independent driver Connect; not initial connect failure",
+    "panic_location": "crates/rambler-transport/tests/lifecycle.rs:514:42",
+    "python_conclusion": "success",
+    "python_metadata_sha256": "9b6ab69b8b476f8983be8cd52127201d967d2211437b0354a6787967943fa732",
+    "run": 43744193442,
+    "rust_metadata_sha256": "2a0c1628aaeb6b8347c7e98e1ad1897c1408a05ef38b620549b2cc6da8560ca6",
+    "test": "connection_dying_between_sessions_never_reopens_or_loses_accepted_sources"
+  },
+  "limits": [
+    "New remote CI pending; no corrected macOS outcome claimed yet.",
+    "Original CI7327f51 remains failed, earlier4264126 remains successful in its exact scope.",
+    "No live service, credentials, phone, kernel or OS change."
+  ],
+  "local_validation": {
+    "controller_sha256": "71b28df4875b6c1dd385fb19e1ce0fee5be0e1b5b99ecfdd5edd9289b121afce",
+    "phases": [
+      {
+        "exit": 0,
+        "label": "source-before",
+        "log_bytes": 7237,
+        "log_sha256": "5d8403a40d4442e4a2edf538a63bd722acdd0a67db140bd2a8730a7954a219df",
+        "rust_counts": null
+      },
+      {
+        "exit": 0,
+        "label": "format",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "rust_counts": null
+      },
+      {
+        "exit": 0,
+        "label": "lifecycle-stable",
+        "log_bytes": 1527,
+        "log_sha256": "b825c4d492b3d662b93bbd474590583d1536579d083cc96784a102eb001fb465",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 14
+        }
+      },
+      {
+        "exit": 0,
+        "label": "lifecycle-msrv",
+        "log_bytes": 1850,
+        "log_sha256": "d03fc043d5cbb09f4982103e042fff0c95a0d375e1631f32273525b182225885",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 14
+        }
+      },
+      {
+        "exit": 0,
+        "label": "strict-transport-clippy",
+        "log_bytes": 164,
+        "log_sha256": "bdec03c8ac63bbc71d80bbc4e69e90415917e8e3af8b796d3da1fded7122e4a3",
+        "rust_counts": null
+      },
+      {
+        "exit": 0,
+        "label": "source-after",
+        "log_bytes": 7237,
+        "log_sha256": "5d8403a40d4442e4a2edf538a63bd722acdd0a67db140bd2a8730a7954a219df",
+        "rust_counts": null
+      }
+    ],
+    "platform": "Windows",
+    "report_sha256": "8260943bbbb5fd1d499095b300937f5f4008224aff9c25635f483f02fe26a0e1",
+    "scope": "lifecycle14 tests per local stable/MSRV selector, format and strict transport clippy; no local macOS result",
+    "selected_count": 174,
+    "source_manifest_raw": "aae0639b87615fd3eb7ffd6ff71602b84514ab4ea76197e15e96d95d2bf2fd14",
+    "source_unchanged": true
+  },
+  "review": {
+    "actual_models": {
+      "Sol": "gpt-6.1-sol x20",
+      "decision": "claude-opus-5-5 x30",
+      "independent": "k3.1-pro x31"
+    },
+    "decision": "approve exact test-only correction; no production fix or handshake gate",
+    "model_provenance_sha256": "2dd089930d01fc673f6f63f39ffd39ca1c8f0b11670570d51ec3e171406bfebd"
+  },
+  "scope": "Test expectation corrected; production transport, protocol, codec, credentials, and retry policy unchanged."
+}

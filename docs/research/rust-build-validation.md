@@ -551,3 +551,20 @@ complete Android/service parity, provisioning/revocation and Linux 32-bit remain
 outside this evidence. Hosted images/actions and stable toolchains move; setup/fetch
 needs network, and offline tests may open loopback sockets. No bit-for-bit
 reproducibility claim or new build/test execution accompanies this consolidation.
+
+## Suivi CI 7327f51 : erreur indépendante à la fermeture
+
+La CI Rust `43744193442` échoue sur trois jobs macOS ; Python `43744193492`
+réussit. Le panic de `lifecycle.rs:514` vient du premier `transport.close()`,
+pas de la connexion initiale : le premier echo et les quatre nettoyages de
+sessions acceptées avaient déjà réussi. Après une coupure volontaire du pair,
+le driver peut rapporter `Connect` selon la plateforme. Le test exigeait à tort
+`Ok` systématiquement, contrairement au contrat de conservation de cette faute.
+
+Le correctif du test accepte seulement `Ok` ou `Connect`, puis exige un second
+close borné réussi, sans modifier la production ni retirer les assertions
+de propriété, non-rejeu et remplacement explicite. La suite lifecycle passe
+localement sur Windows (14 tests par toolchain stable/1.88), ainsi que fmt et
+Clippy strict transport. La nouvelle qualification macOS reste en attente de
+la CI corrigée ; les trois échecs initiaux restent conservés dans
+[la preuve et ses limites](../evidence/rust-macos-close-ledger-fix-20261115.json).

@@ -511,7 +511,12 @@ async fn connection_dying_between_sessions_never_reopens_or_loses_accepted_sourc
         }
         assert_eq!(peer.calls.load(Ordering::SeqCst), 1);
         assert_eq!(peer.connections.load(Ordering::SeqCst), 1);
-        bounded(transport.close()).await.unwrap();
+        let driver = bounded(transport.close()).await;
+        assert!(
+            matches!(driver, Ok(()) | Err(TransportError::Connect)),
+            "goaway={goaway}: unexpected independent driver outcome: {driver:?}"
+        );
+        assert!(bounded(transport.close()).await.is_ok());
         let clone = transport.clone();
         assert!(matches!(
             clone.start(
