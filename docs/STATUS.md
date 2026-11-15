@@ -1,4 +1,33 @@
-# État du moteur — 2026-11-14
+# État du moteur — 2026-11-15
+
+## Canal PCM jusqu'au moteur : cinq tests loopback qualifiés
+
+Publication du15 novembre, **exécutions du14 novembre2026** : les deux fichiers
+CLI `pcm_channel_engine.rs` (2 tests) et `pcm_engine_failure.rs` (3 tests) composent
+le vrai canal PCM, encodeur, moteur et transport face à tonic. Le premier contrôle
+les octets Ogg reçus par le pair, CRC/durée décodée, égalité des paquets Opus et
+ordre init/audio/contexte/END ; le second couvre abandon typé, réveil d'une
+réservation réellement bloquée et END/OK précoce refusé comme succès.
+**Dans le cas d'abandon, seule l'arrivée d'une page/en-tête Ogg est prouvée,
+pas celle d'échantillons audio.** Les réponses S3 restent synthétiques.
+
+**310 tests workspace passent,0 échoué,1 ignoré**, sur chacun de Windows stable,
+Windows/MSVC1.88 et Linux/WSL1.88. Les10 tests d'exemple et30 tests CLI feature-off
+passent sur Windows et Linux. Clippy strict, formatage et builds release CLI
+avec/sans audio passent sur Windows ; Linux couvre le build release CLI audio.
+L'exemple PCM release est construit et son smoke passe sur les deux OS
+(1017→3051 échantillons après trim,1 EOS). Les96 entrées des manifestes sources
+Windows/Linux concordent exactement avec les fichiers actuels ; les noms finaux
+des deux tests sont vérifiés dans les trois logs workspace. Aucun nouveau
+comportement production ni dépendance, zéro appel service/appareil.
+
+Deux contre-revues statiques finales ne trouvent aucun défaut concret bloquant ;
+les limites complémentaires de chaque fichier restent explicites. La première
+revue, bloquée par un mauvais nom de cible, n'est pas comptée comme réussie.
+[Preuve et provenance](evidence/rust-pcm-engine-loopback.json) ·
+[Contrats et limites](research/rust-pcm-channel.md).
+Ni dictée distante supplémentaire, ni gain WAN, ni perfection ou parité Gboard
+déduite de ces tests. Les sections suivantes conservent leurs comptes historiques.
 
 ## Deux frontières HTTP/2 corrigées et reproduites localement
 

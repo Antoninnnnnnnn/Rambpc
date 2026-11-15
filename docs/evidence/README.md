@@ -20,6 +20,18 @@
 
 ## Portage Rust
 
+- [rust-pcm-engine-loopback.json](rust-pcm-engine-loopback.json) :
+  publication du15 novembre2026 d'exécutions du14 : cinq tests CLI du vrai canal
+  PCM/encodeur/moteur/transport avec pair tonic synthétique. CRC/durée et paquets
+  Ogg/Opus reçus, ordre sain/contexte tardif, abandon, réservation bloquée annulée
+  et END/OK précoce. L'abandon ne prouve que l'arrivée d'un en-tête/page Ogg,
+  pas celle d'échantillons.310 tests workspace passent sur chacun de Windows
+  stable/1.88 et Linux1.88 (0 échoué,1 ignoré), avec96 hashes sources identiques.
+  Exemple10 et feature-off30 passent sur les deux OS ; Clippy/fmt Windows et
+  builds/smokes release qualifiés. Zéro service/appareil, aucune dictée distante
+  supplémentaire ni changement production/dépendance.
+  [Contrats, périmètres exacts et limites](../research/rust-pcm-channel.md).
+
 - [rust-http2-boundaries.json](rust-http2-boundaries.json) :
   revue parallèle de10 périmètres, deux corrections HTTP/2 reproduites RED/GREEN
   et contre-revues : type MIME en casse mixte et validation précoce de cinq noms
