@@ -147,9 +147,10 @@ temporaire `tcp-first-poll-20261115` :
   SHA-256 `5cc8ad1534668904bf05523afb92e629a9086d0f0d130e435e0065c1e6614565`.
 
 Il s'agit d'oracles bornés d'**initiation applicative**, ni d'une mesure des SYN,
-ni d'un banc de performance. Windows R3 intègre ensuite ce correctif dans son
-snapshot qualifié ; Linux R2 reste en échec sur son test CLI release distinct,
-sans diagnostic de cause déduit du pacing. Windows R2 et Linux R1 restent
+ni d'un banc de performance. Windows R3 et Linux R3 intègrent ensuite ce correctif
+dans le même snapshot qualifié localement, avec exclusions explicites. Linux R2
+reste en échec sur son test CLI release distinct : le diagnostic identifie un
+exécutable périmé, sans cause déduite du pacing. Windows R2 et Linux R1/R2 restent
 historiques et intacts. Voir [les résultats intégrés et leurs limites](rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
 
 ## Offline coverage and limits (lot historique)

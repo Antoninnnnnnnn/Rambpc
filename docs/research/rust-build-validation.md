@@ -191,6 +191,7 @@ dispose désormais de ces résultats sur un même manifeste sélectionné :
 | Windows R3, MSVC / stable 1.99.1 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|Qualifié Windows seulement|
 | Windows R3, MSVC / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|Non relancé séparément|Non relancé séparément|Workspace MSRV réussi|
 | Linux R2, WSL2 x86_64 / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|**FAILED** : test CLI release de finalisation|
+| Linux R3, WSL2 x86_64 / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|Qualifié localement avec exclusions ci-dessous|
 
 Windows R3 termine ses 26 étapes avec sortie 0 : Clippy strict all-target/all-feature,
 formatage, rustdoc strict, 716 tests Python, frontière audio normal/build avec
@@ -217,21 +218,30 @@ Les phases release exemple PCM, smoke PCM et hashes binaires finaux de R2 sont
 `not_run` ; R2 reste **FAILED**, même après diagnostic. Les deux groupes Python
 ciblés passent (17 tests frontière audio, 38 tests dex-methods), pas la suite Python
 complète. PyAV, Clippy, fmt et rustdoc n'ont pas été exécutés dans ce lot Linux.
-Le résultat Linux suivant est en attente ; aucune réussite release après réparation
-n'est encore revendiquée.
+Linux R3 applique les deux nettoyages, reconstruit le véritable release puis passe
+les **16 phases**, dont le test CLI de finalisation (1 réussi), le build exemple
+PCM, son smoke (1017 échantillons vers 3051 à 48 kHz, un EOS), les hashes binaires
+finaux et la vérification des sources après exécution. Le report indique
+`completed_with_explicit_ignored_tests`, sortie 0 : le test PyAV ignoré reste une
+exclusion Linux, pas un succès implicite. Les deux groupes Python ciblés passent
+à nouveau ; la suite Python complète, Clippy, fmt et rustdoc restent exécutés sous
+Windows seulement pour ce lot. Aucun code du moteur n'a changé pour réparer cette
+qualification ; R1/R2 restent des échecs historiques.
 
-Les rapports locaux `reliability-windows-20261115-r3.json` (`qualified=true`) et
-`reliability-linux-20261115-r2-private/report.json` (`status=failed`) conservent
-les codes de sortie et le même digest canonique avant/après des **167 fichiers
-sélectionnés**, hors docs/evidence :
+Les rapports locaux Windows R3 (`qualified=true`), Linux R2 (`status=failed`) et
+Linux R3 (`completed_with_explicit_ignored_tests`, sortie 0) conservent les codes de
+sortie et le même digest canonique avant/après des **167 fichiers sélectionnés**,
+hors docs/evidence :
 `3059408291b04f4cf79c518b5e6d49cadcb87de5d04e4a5aa78f93679546f87e`.
 Ce sélecteur ne couvre pas toutes les dépendances de build. La
 [preuve Windows R3](../evidence/rust-reliability-windows-r3.json) publie les résultats
 courants ; la [preuve Windows R2](../evidence/rust-reliability-windows.json) reste
 historique. Le [premier échec Windows](../evidence/rust-reliability-r1-failed.json)
 et les [échecs Linux R1/R2](../evidence/rust-reliability-linux-attempts.json) sont
-conservés sans les réétiqueter en succès. L'acceptation du lot Windows/Linux reste
-en attente du prochain résultat Linux et de sa publication.
+conservés sans les réétiqueter en succès. La
+[preuve Linux R3](../evidence/rust-reliability-linux-r3.json) complète la
+qualification locale de ce snapshot avec les exclusions explicites ci-dessus,
+sans qualification macOS, CI distante ni service réel.
 
 Le commit terminal place les attentes fallibles avant la publication irréversible
 du succès ; les régressions dédiées passent dans Windows R3. Le

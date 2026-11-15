@@ -1,0 +1,399 @@
+{
+  "schema_version": 1,
+  "evidence_id": "reliability-linux-20261115-r3",
+  "publication_date": "2026-11-15",
+  "status": "completed_with_explicit_ignored_tests",
+  "qualification_exit": 0,
+  "qualification_scope": "Linux Rust 1.88 local synthetic/loopback attempt; explicit exclusions apply",
+  "provenance": {
+    "report": {
+      "name": "report.json",
+      "bytes": 302841,
+      "sha256": "0bdcbd17b8b5da4f8651b9d0c0c8f045f71a3630e19835feb2e84e266756c27d",
+      "hash_verified": true
+    },
+    "runner": {
+      "name": "qualify_reliability_linux_r3.py",
+      "bytes": 55686,
+      "sha256": "6fe951c87f7593ca76a83ed28847831e45a5cbc4443c61f26017b51402a6da7b",
+      "hash_verified": true
+    },
+    "inputs_helper": {
+      "name": "reliability_inputs_20261115.py",
+      "bytes": 14589,
+      "sha256": "9c18a45528bb071a2f81b89d6c038576a67dd53fba8084d82af1b2d0372f5b50",
+      "hash_verified": true
+    },
+    "phase_logs_rehashed": 16,
+    "test_counts_recomputed_from_logs": true,
+    "publication_execution": "Read/hash existing artifacts only; no builds or tests rerun"
+  },
+  "source_snapshot": {
+    "canonical_manifest_evidence": "docs/evidence/rust-reliability-windows-r3.json",
+    "canonical_manifest_json_pointer": "/source_snapshot/files_sha256",
+    "canonical_evidence_sha256": "d793370c2cb6df38c98aca341838ccac023d167aa037c8802ccb9e4806d56453",
+    "manifest_encoding": "sorted compact ensure_ascii JSON path-to-sha256; ASCII bytes; no newline",
+    "before_sha256": "3059408291b04f4cf79c518b5e6d49cadcb87de5d04e4a5aa78f93679546f87e",
+    "after_sha256": "3059408291b04f4cf79c518b5e6d49cadcb87de5d04e4a5aa78f93679546f87e",
+    "file_count": 167,
+    "source_bytes": 1882180,
+    "before_after_maps_equal": true,
+    "maps_equal_windows_r3_canonical_manifest": true,
+    "manifest_digest_recomputed": true,
+    "scope": "Immutable selected-source manifests only; not every external input, dependency or environment"
+  },
+  "build_scope": {
+    "rust_1_88_verified": true,
+    "workspace_packages": [
+      "rambler-protocol",
+      "rambler-transport",
+      "rambler-engine",
+      "rambler-audio",
+      "rambler-cli"
+    ],
+    "workspace_packages_clean": {
+      "status": "passed",
+      "dev_actual_exit": 0,
+      "release_actual_exit": 0,
+      "source_unchanged_reported": true,
+      "lock_unchanged_reported": true,
+      "preserved_cache_unchanged_reported": true
+    },
+    "clean_scope": "Five workspace packages in dev and release profiles, not a fully empty dependency cache",
+    "fetch": "One locked public crates.io fetch; subsequent Cargo phases offline (reported)"
+  },
+  "phases": [
+    {
+      "label": "preflight-msrv",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "preflight-msrv.log",
+        "bytes": 227,
+        "sha256": "91fcf5ff6c9bbe33d8d7c5e42b0f4b5b14e58233c0b73f3f87d0b67a05dc6c64",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "source-transfer",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "source-transfer.log",
+        "bytes": 129,
+        "sha256": "466cc5cea787885e3420275da3b57858277c2d90ab7c7c3085c26a179bd34fcc",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "fetch-locked-public",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "fetch-locked-public.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "workspace-packages-clean",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "workspace-packages-clean.log",
+        "bytes": 72347,
+        "sha256": "72664f971b21936ca17be2475c930c88777d9f0c39744741cfa94afad67de440",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "python-audio-boundary-unit",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "python-audio-boundary-unit.log",
+        "bytes": 2825,
+        "sha256": "80db8c016868397cb9718a10ea53131860c7a7c97463e28ae4e82462780de208",
+        "hash_verified": true
+      },
+      "python_counts": {
+        "run": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "label": "python-dex-methods-unit",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "python-dex-methods-unit.log",
+        "bytes": 5840,
+        "sha256": "68e0d80df2025fde7a31b6ddf9d439b2a53d67a2d12171f055354b4eaf5317e7",
+        "hash_verified": true
+      },
+      "python_counts": {
+        "run": 38,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      }
+    },
+    {
+      "label": "production-audio-graph",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "production-audio-graph.log",
+        "bytes": 91,
+        "sha256": "235cb676ee674a81a0f4097b5e3f040107b71af219aa8a08cfee66043b3029ee",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "workspace-all-features",
+      "status": "completed_with_ignored_tests",
+      "actual_exit": 0,
+      "log": {
+        "name": "workspace-all-features.log",
+        "bytes": 51249,
+        "sha256": "50c3605d1ee3516351387f63b37fa940522d1d251f836bdd6b91ea56415eab42",
+        "hash_verified": true
+      },
+      "rust_counts": {
+        "passed": 376,
+        "failed": 0,
+        "ignored": 1,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "label": "session-reuse-audio",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "session-reuse-audio.log",
+        "bytes": 2278,
+        "sha256": "d14ebf612e4dce41af3114adbd7c99988d7c819b35f581944b44ae4f3dd46db2",
+        "hash_verified": true
+      },
+      "rust_counts": {
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "label": "cli-feature-off",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "cli-feature-off.log",
+        "bytes": 6676,
+        "sha256": "1a8906374a39ce6b730078c5a06ac7d74cafc6f2fee0984b40b87b159e9e3146",
+        "hash_verified": true
+      },
+      "rust_counts": {
+        "passed": 31,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "label": "release-audio-cli",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "release-audio-cli.log",
+        "bytes": 1199,
+        "sha256": "c3c7dbd96ab363c0bc9ebe02acfaf7e83e7b02249822b2ac7f41d7c52df26026",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "release-finalization-cli",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "release-finalization-cli.log",
+        "bytes": 715,
+        "sha256": "000660c3bf615d14aef445c994d9bf7b6de0f21b6d8b1df65ef717304f47ca30",
+        "hash_verified": true
+      },
+      "rust_counts": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "label": "release-pcm-example",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "release-pcm-example.log",
+        "bytes": 771,
+        "sha256": "1e65081f19de5a6f0f64549a6dd111422c583298f9e5386069a52b137c883b83",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "pcm-public-smoke",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "pcm-public-smoke.log",
+        "bytes": 94,
+        "sha256": "486ea2dd91040a1edd7bef7ae76d98e1f073afef2bf174a136345620874b4b67",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "binary-hashes",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "binary-hashes.log",
+        "bytes": 509,
+        "sha256": "196d90a7fd3fd0476a19a76fed4697e21c313bb7463a22b54e77e3151ad46006",
+        "hash_verified": true
+      }
+    },
+    {
+      "label": "source-copy-after",
+      "status": "passed",
+      "actual_exit": 0,
+      "log": {
+        "name": "source-copy-after.log",
+        "bytes": 129,
+        "sha256": "466cc5cea787885e3420275da3b57858277c2d90ab7c7c3085c26a179bd34fcc",
+        "hash_verified": true
+      }
+    }
+  ],
+  "results": {
+    "phases_passed": 15,
+    "phases_completed_with_ignored_tests": 1,
+    "phases_failed": 0,
+    "phases_not_run": 0,
+    "workspace": {
+      "passed": 376,
+      "failed": 0,
+      "ignored": 1
+    },
+    "session_reuse": {
+      "passed": 10,
+      "failed": 0
+    },
+    "feature_off": {
+      "passed": 31,
+      "failed": 0
+    },
+    "release_finalization": {
+      "test": "s3_end_without_grpc_trailers_exits_with_finalize_timeout",
+      "passed": 1,
+      "failed": 0,
+      "actual_release_executable_override_verified_in_driver": true
+    },
+    "pcm_smoke": {
+      "input_samples": 1017,
+      "decoded_samples_48k": 3051,
+      "ogg_eos": 1,
+      "service_calls": 0,
+      "actual_exit": 0
+    },
+    "count_note": "Overlapping targeted/example/feature-off executions are not added to a distinct-test total; ignored tests are not passes"
+  },
+  "binary_identity": {
+    "existing_binaries_rehashed": true,
+    "tested_binary_hashes_match_final": true,
+    "binaries": [
+      {
+        "name": "release_audio_cli",
+        "bytes": 6478192,
+        "sha256": "c2699966b27cfbb3c932254173f712981bebdff47f3587ab5c0139c3413b92c8",
+        "hash_verified": true,
+        "matches_tested_before_and_after": true
+      },
+      {
+        "name": "release_pcm_example",
+        "bytes": 1584984,
+        "sha256": "4ce2e3b2bf965d444606897a5b73d95fd250d032e1b57e9c670d0cf3e9311a05",
+        "hash_verified": true,
+        "matches_tested_before_and_after": true
+      }
+    ]
+  },
+  "excluded_from_linux_attempt": [
+    "Windows-only tests",
+    "Linux PyAV independent decoder",
+    "full Python suite",
+    "Clippy",
+    "fmt",
+    "doc command"
+  ],
+  "historical_attempts": [
+    {
+      "evidence": "docs/evidence/rust-reliability-r1-failed.json",
+      "evidence_id": "reliability-windows-20261115-r1",
+      "status": "FAILED",
+      "sha256": "2dda4fbdd37f7136530a2d5bab22fb5ac70890eb69a4b3cf5d370e07a2136cfd",
+      "hash_verified": true
+    },
+    {
+      "evidence": "docs/evidence/rust-reliability-windows.json",
+      "evidence_id": "reliability-windows-20261115-r2",
+      "status": "QUALIFIED_WINDOWS_ONLY",
+      "sha256": "c62f6a5420cc0000e9f41c33078ec980b2f4e6fc142f73ff1a2bb1b86e4f8e20",
+      "hash_verified": true
+    },
+    {
+      "evidence": "docs/evidence/rust-reliability-linux-attempts.json",
+      "evidence_id": "linux-r1",
+      "status": "FAILED",
+      "sha256": "50eb9332ded25dd90cbd45cf071cdef673fde72375dcf88896d845ff0facd298",
+      "hash_verified": true,
+      "json_pointer": "/attempts/0",
+      "private_report_sha256": "4d46818e1cf7c4cb8144f2a01d5a266fc4b3ab044df579041b8b2d1bf36723a9"
+    },
+    {
+      "evidence": "docs/evidence/rust-reliability-linux-attempts.json",
+      "evidence_id": "linux-r2",
+      "status": "FAILED",
+      "sha256": "50eb9332ded25dd90cbd45cf071cdef673fde72375dcf88896d845ff0facd298",
+      "hash_verified": true,
+      "json_pointer": "/attempts/1",
+      "private_report_sha256": "a53ba2f8f0df39846411901cce4b835625fb071480f42efd78180bcc622098c1"
+    }
+  ],
+  "r2_diagnosis": {
+    "report": {
+      "name": "linux-r2-failure-diagnosis-current.json",
+      "bytes": 104475,
+      "sha256": "b33d73e62da871acab51e58253c1fd4cc4bd6de0fd12150c2be6ed5b43c3a680",
+      "hash_verified": true
+    },
+    "summary": "R2 default package clean removed debug artifacts only. Its stale release CLI rejected --finalize-timeout before upload. R3 dual-profile package clean and rebuild fixes this attempt.",
+    "scope": "Bounded R2 diagnosis and R3 result; not an explanation of all past incidents. Historical statuses remain unchanged."
+  },
+  "limits": [
+    "No production-source or OS change is claimed; this publication adds evidence only.",
+    "No universal Linux, cross-platform, live-service, device, Android, WAN or performance qualification.",
+    "Windows R1/R2 and Linux R1/R2 evidence remains historical and is not relabeled by R3.",
+    "No raw commands, environments, logs, private paths, host/account identifiers, credentials or audio are published.",
+    "Binary equality is identity evidence, not a dependency/import audit."
+  ]
+}

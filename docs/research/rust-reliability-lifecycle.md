@@ -1,8 +1,9 @@
 # Contrats de fiabilité Rust : admission, erreurs et finalisation
 
 État documentaire au **15 novembre 2026**, lot construit depuis la base
-`90a773a`. **Windows R3 est qualifié localement ; Linux R2 reste FAILED
-et le résultat Linux suivant est en attente.** Les 310 tests du snapshot précédent
+`90a773a`, intégré dans `58da700`. **Windows R3 et Linux R3 qualifient localement
+le même snapshot, avec exclusions explicites. Linux R1/R2 restent FAILED.** Les
+310 tests du snapshot précédent
 qualifient uniquement la base commitée, pas ce lot. Les résultats intégrés et leurs
 limites sont séparés dans [la validation des builds](rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
 
@@ -227,13 +228,16 @@ avant/après. Ses tests workspace, exemple et feature-off passent, mais le test
 Le diagnostic contre-vérifié identifie un binaire release périmé : il rejette
 `--finalize-timeout` avant upload, car le nettoyage par paquet ne couvrait que le
 profil dev. Le test identique passe avec le debug reconstruit ; ce n'est pas une
-réussite release. **Linux R2 reste non qualifié.** Les phases release PCM/smoke
-suivantes n'ont pas été exécutées. Le résultat Linux avec nettoyage des deux profils
-reste en attente.
+réussite release. **Linux R2 reste non qualifié.** Ses phases release PCM/smoke
+suivantes n'ont pas été exécutées. Linux R3, après nettoyage des deux profils,
+passe ensuite le même workspace, le test du release reconstruit, le smoke PCM et
+le postflight source, sans changement du moteur. Son test PyAV reste ignoré ;
+les autres exclusions de plateforme sont conservées.
 
 Les compteurs, rapports locaux exacts et preuves publiques déjà disponibles sont
 référencés dans [la validation des builds](rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
-L'acceptation du lot Windows/Linux reste en attente du résultat Linux suivant et de sa publication.
+La qualification locale du snapshot est publiée avec ses exclusions ; les échecs
+historiques ne sont pas réétiquetés.
 Une réussite locale ne vaut ni CI distante ni qualification téléphone/service/WAN.
 
 La revue architecturale Opus réelle du 15 novembre est **statique**, sans tests
