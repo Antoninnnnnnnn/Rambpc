@@ -178,6 +178,42 @@ where
     }
 }
 
+/// Aborting prevents a queued blocking job from starting, but cannot interrupt
+/// one already running. Dropping its handle discards that job's eventual result.
+struct AbortOnDrop<T>(JoinHandle<T>);
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+async fn blocking_tls_setup<T: Send + 'static>(
+    prepare: impl FnOnce() -> Result<T, TransportError> + Send + 'static,
+) -> Result<T, TransportError> {
+    let mut job = AbortOnDrop(tokio::task::spawn_blocking(prepare));
+    (&mut job.0).await.map_err(|_| TransportError::Supervisor)?
+}
+
+fn build_tls_config(
+    load: impl FnOnce() -> rustls_native_certs::CertificateResult,
+) -> Result<rustls::ClientConfig, TransportError> {
+    let certs = load();
+    let mut roots = rustls::RootCertStore::empty();
+    let (accepted, _) = roots.add_parsable_certificates(certs.certs);
+    if accepted == 0 {
+        return Err(TransportError::Connect);
+    }
+    let mut tls = rustls::ClientConfig::builder_with_provider(Arc::new(
+        rustls::crypto::ring::default_provider(),
+    ))
+    .with_safe_default_protocol_versions()
+    .map_err(|_| TransportError::Connect)?
+    .with_root_certificates(roots)
+    .with_no_client_auth();
+    tls.alpn_protocols = vec![b"h2".to_vec()];
+    Ok(tls)
+}
+
 pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, TransportError> {
     let authority: http::uri::Authority = config
         .target
@@ -203,20 +239,11 @@ pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, Trans
     let io: Box<dyn Io> = if config.plaintext_loopback {
         Box::new(tcp)
     } else {
-        let certs = rustls_native_certs::load_native_certs();
-        let mut roots = rustls::RootCertStore::empty();
-        let (accepted, _) = roots.add_parsable_certificates(certs.certs);
-        if accepted == 0 {
-            return Err(TransportError::Connect);
-        }
-        let mut tls = rustls::ClientConfig::builder_with_provider(Arc::new(
-            rustls::crypto::ring::default_provider(),
-        ))
-        .with_safe_default_protocol_versions()
-        .map_err(|_| TransportError::Connect)?
-        .with_root_certificates(roots)
-        .with_no_client_auth();
-        tls.alpn_protocols = vec![b"h2".to_vec()];
+        // Only root loading/parsing/configuration enter the blocking pool. Keep
+        // the winning socket here so dropping the outer timeout closes it even
+        // when a started OS loader cannot be interrupted. TLS starts after await.
+        let tls =
+            blocking_tls_setup(|| build_tls_config(rustls_native_certs::load_native_certs)).await?;
         let name =
             ServerName::try_from(host.to_owned()).map_err(|_| TransportError::InvalidConfig)?;
         let stream = TlsConnector::from(Arc::new(tls))
@@ -252,8 +279,312 @@ pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, Trans
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{pin::Pin, sync::Mutex as StdMutex};
-    use tokio::sync::watch;
+    use std::{
+        pin::Pin,
+        sync::{
+            Condvar, Mutex as StdMutex,
+            atomic::{AtomicBool, AtomicUsize, Ordering},
+            mpsc,
+        },
+    };
+    use tokio::sync::{oneshot, watch};
+
+    // Every intentionally blocked worker has an independent OS-thread watchdog.
+    // It releases even if the runtime is blocked or unwinding during shutdown.
+    struct BlockingGate {
+        open: Arc<(StdMutex<bool>, Condvar)>,
+        release: Option<mpsc::Sender<()>>,
+        watchdog: Option<std::thread::JoinHandle<()>>,
+        expired: Arc<AtomicBool>,
+    }
+    impl BlockingGate {
+        fn new() -> Self {
+            let open = Arc::new((StdMutex::new(false), Condvar::new()));
+            let expired = Arc::new(AtomicBool::new(false));
+            let (release, wait) = mpsc::channel();
+            let state = open.clone();
+            let fired = expired.clone();
+            let watchdog = std::thread::spawn(move || {
+                if matches!(
+                    wait.recv_timeout(Duration::from_secs(5)),
+                    Err(mpsc::RecvTimeoutError::Timeout)
+                ) {
+                    fired.store(true, Ordering::SeqCst);
+                }
+                *state.0.lock().unwrap() = true;
+                state.1.notify_all();
+            });
+            Self {
+                open,
+                release: Some(release),
+                watchdog: Some(watchdog),
+                expired,
+            }
+        }
+        fn blocker(&self) -> (oneshot::Receiver<()>, impl FnOnce() + Send + 'static) {
+            let open = self.open.clone();
+            let (started, wait) = oneshot::channel();
+            (wait, move || {
+                let _ = started.send(());
+                let mut ready = open.0.lock().unwrap();
+                while !*ready {
+                    ready = open.1.wait(ready).unwrap();
+                }
+            })
+        }
+        fn release(&mut self) {
+            if let Some(release) = self.release.take() {
+                let _ = release.send(());
+            }
+            if let Some(watchdog) = self.watchdog.take() {
+                watchdog.join().unwrap();
+            }
+        }
+        fn assert_not_expired(&self) {
+            assert!(
+                !self.expired.load(Ordering::SeqCst),
+                "out-of-runtime watchdog had to release the worker"
+            );
+        }
+    }
+    impl Drop for BlockingGate {
+        fn drop(&mut self) {
+            self.release();
+        }
+    }
+
+    fn tls_test(future: impl Future<Output = ()>) {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .max_blocking_threads(1)
+            .build()
+            .unwrap()
+            .block_on(async {
+                tokio::time::timeout(Duration::from_secs(3), future)
+                    .await
+                    .expect("TLS setup test exceeded its runtime deadline");
+            });
+    }
+
+    struct DropSignal(Option<oneshot::Sender<()>>);
+    impl Drop for DropSignal {
+        fn drop(&mut self) {
+            if let Some(signal) = self.0.take() {
+                let _ = signal.send(());
+            }
+        }
+    }
+
+    fn fake_roots() -> rustls_native_certs::CertificateResult {
+        // Minimal synthetic v1 trust-anchor DER accepted by the root parser.
+        // Parser/configuration fixture ONLY: not a usable TLS certificate, and
+        // not evidence of certificate/hostname verification or a TLS handshake.
+        let mut roots = rustls_native_certs::CertificateResult::default();
+        roots.certs.push(rustls::pki_types::CertificateDer::from(
+            b"\x30\x14\x30\x0d\x02\x01\x01\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x03\x01\x00"
+                .to_vec(),
+        ));
+        roots
+    }
+
+    fn fake_provider_error() -> rustls_native_certs::Error {
+        rustls_native_certs::Error {
+            context: "injected provider error",
+            kind: rustls_native_certs::ErrorKind::Os(Box::new(io::Error::other("fake provider"))),
+        }
+    }
+
+    #[test]
+    fn tls_setup_keeps_current_thread_heartbeat_live_while_loader_blocks() {
+        let mut gate = BlockingGate::new();
+        let (started, block) = gate.blocker();
+        tls_test(async {
+            let mut setup = Box::pin(blocking_tls_setup(move || {
+                build_tls_config(|| {
+                    block();
+                    fake_roots()
+                })
+            }));
+            assert!(futures_util::poll!(setup.as_mut()).is_pending());
+            started.await.unwrap();
+            let mut beats = 0;
+            for _ in 0..3 {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+                beats += 1;
+                assert!(futures_util::poll!(setup.as_mut()).is_pending());
+            }
+            assert_eq!(beats, 3);
+            gate.release();
+            assert_eq!(setup.await.unwrap().alpn_protocols, [b"h2".to_vec()]);
+        });
+        gate.assert_not_expired();
+    }
+
+    #[test]
+    fn tls_setup_outer_timeout_closes_caller_owned_socket_before_loader_returns() {
+        use tokio::{io::AsyncReadExt, net::TcpListener};
+
+        let mut gate = BlockingGate::new();
+        let (started, block) = gate.blocker();
+        tls_test(async {
+            let listener = TcpListener::bind(v4(0)).await.unwrap();
+            let (tcp, peer) = tokio::join!(
+                TcpStream::connect(listener.local_addr().unwrap()),
+                listener.accept()
+            );
+            let tcp = tcp.unwrap();
+            let (mut peer, _) = peer.unwrap();
+            let after_setup = Arc::new(AtomicUsize::new(0));
+            let continued = after_setup.clone();
+            // Mirror connect's ownership boundary without calling the OS loader
+            // or attempting TLS. The socket NEVER enters the blocking closure.
+            let mut setup = Box::pin(async move {
+                let tls = blocking_tls_setup(move || {
+                    build_tls_config(|| {
+                        block();
+                        fake_roots()
+                    })
+                })
+                .await?;
+                continued.fetch_add(1, Ordering::SeqCst);
+                drop((tls, tcp));
+                Ok::<_, TransportError>(())
+            });
+            assert!(futures_util::poll!(setup.as_mut()).is_pending());
+            started.await.unwrap();
+            let result = tokio::time::timeout(Duration::from_millis(20), setup)
+                .await
+                .map_err(|_| TransportError::Timeout);
+            assert!(matches!(result, Err(TransportError::Timeout)));
+            assert_eq!(peer.read(&mut [0]).await.unwrap(), 0);
+            assert_eq!(after_setup.load(Ordering::SeqCst), 0);
+            gate.release();
+            // A one-thread blocking pool makes this a completion fence.
+            tokio::task::spawn_blocking(|| ()).await.unwrap();
+            assert_eq!(after_setup.load(Ordering::SeqCst), 0);
+        });
+        gate.assert_not_expired();
+    }
+
+    #[test]
+    fn tls_setup_drop_aborts_queued_loader_in_single_worker_pool() {
+        let mut gate = BlockingGate::new();
+        let (started, block) = gate.blocker();
+        tls_test(async {
+            let occupied = tokio::task::spawn_blocking(block);
+            started.await.unwrap();
+            let calls = Arc::new(AtomicUsize::new(0));
+            let called = calls.clone();
+            let (discarded, wait) = oneshot::channel();
+            let guard = DropSignal(Some(discarded));
+            let mut setup = Box::pin(blocking_tls_setup(move || {
+                let _guard = guard;
+                called.fetch_add(1, Ordering::SeqCst);
+                build_tls_config(fake_roots)
+            }));
+            assert!(futures_util::poll!(setup.as_mut()).is_pending());
+            drop(setup);
+            gate.release();
+            occupied.await.unwrap();
+            wait.await.unwrap();
+            assert_eq!(calls.load(Ordering::SeqCst), 0);
+        });
+        gate.assert_not_expired();
+    }
+
+    #[test]
+    fn tls_setup_drop_discards_started_result_without_continuation() {
+        struct TrackedConfig {
+            _config: rustls::ClientConfig,
+            _discarded: DropSignal,
+        }
+
+        let mut gate = BlockingGate::new();
+        let (started, block) = gate.blocker();
+        tls_test(async {
+            let (discarded, wait) = oneshot::channel();
+            let after_setup = Arc::new(AtomicUsize::new(0));
+            let continued = after_setup.clone();
+            let mut setup = Box::pin(async move {
+                let _tls = blocking_tls_setup(move || {
+                    let config = build_tls_config(|| {
+                        block();
+                        fake_roots()
+                    })?;
+                    Ok(TrackedConfig {
+                        _config: config,
+                        _discarded: DropSignal(Some(discarded)),
+                    })
+                })
+                .await?;
+                // Neither TLS nor any source work belongs in the blocking job.
+                continued.fetch_add(1, Ordering::SeqCst);
+                Ok::<_, TransportError>(())
+            });
+            assert!(futures_util::poll!(setup.as_mut()).is_pending());
+            started.await.unwrap();
+            drop(setup);
+            assert_eq!(after_setup.load(Ordering::SeqCst), 0);
+            gate.release();
+            wait.await.unwrap();
+            assert_eq!(after_setup.load(Ordering::SeqCst), 0);
+        });
+        gate.assert_not_expired();
+    }
+
+    #[test]
+    fn tls_setup_panic_is_fixed_supervisor_error() {
+        tls_test(async {
+            let error =
+                blocking_tls_setup(|| build_tls_config(|| panic!("injected root loader panic")))
+                    .await
+                    .unwrap_err();
+            assert!(matches!(error, TransportError::Supervisor));
+            assert_eq!(error.to_string(), "session supervisor failed");
+        });
+    }
+
+    #[test]
+    fn tls_setup_preserves_fresh_roots_partial_success_and_provider_errors() {
+        tls_test(async {
+            let calls = Arc::new(AtomicUsize::new(0));
+            let runtime_thread = std::thread::current().id();
+            for _ in 0..2 {
+                let called = calls.clone();
+                let tls = blocking_tls_setup(move || {
+                    build_tls_config(|| {
+                        assert_ne!(std::thread::current().id(), runtime_thread);
+                        called.fetch_add(1, Ordering::SeqCst);
+                        let mut roots = fake_roots();
+                        roots.errors.push(fake_provider_error());
+                        roots.certs.push(vec![0xff].into());
+                        roots
+                    })
+                })
+                .await
+                .unwrap();
+                assert_eq!(tls.alpn_protocols, [b"h2".to_vec()]);
+                assert!(!tls.enable_early_data);
+            }
+            assert_eq!(calls.load(Ordering::SeqCst), 2);
+            for invalid in [false, true] {
+                let error = blocking_tls_setup(move || {
+                    build_tls_config(|| {
+                        let mut roots = rustls_native_certs::CertificateResult::default();
+                        roots.errors.push(fake_provider_error());
+                        if invalid {
+                            roots.certs.push(vec![0xff].into());
+                        }
+                        roots
+                    })
+                })
+                .await
+                .unwrap_err();
+                assert!(matches!(error, TransportError::Connect));
+                assert_eq!(error.to_string(), "transport connection failed");
+            }
+        });
+    }
 
     // No Tokio test-util dependency or paused time: this clock affects only
     // injected, no-I/O attempts, never the numeric-loopback test below.

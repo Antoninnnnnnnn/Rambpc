@@ -251,6 +251,38 @@ Les limites Android/ART, authentification/provisionnement/révocation, COMPOSE,
 macOS, CI distante et service/WAN restent inchangées. Aucun gain de performance,
 détail propriétaire d'APK, journal privé ou secret n'est publié ici.
 
+### Setup TLS déporté — R4
+
+Après `99c5ff4`, seul `connection.rs` change dans le sélecteur de sources :
+chargement/analyse des racines natives et construction TLS passent dans un unique
+travail bloquant attendu, après le gagnant TCP. Le socket reste hors du travail,
+les racines restent fraîches et les paramètres TLS inchangés. L'annulation peut
+empêcher un travail encore en file de démarrer, pas interrompre un loader OS déjà
+lancé. La revue statique Opus 5.5 accepte le source, dont les limites de pool,
+shutdown et panic hook sont décrites dans le [contrat de connexion](rust-connection-lifecycle.md#setup-tls-hors-du-runtime--qualification-locale-du-15-novembre).
+
+| Exécution R4 locale | Workspace | Exemple reuse | CLI sans audio | CLI release finalisation |
+|---|---:|---:|---:|---:|
+| Windows MSVC / stable 1.99.1 |382 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|1 réussi|
+| Windows MSVC / 1.88.0 |382 réussis, 0 échoué, 1 ignoré|Non relancé séparément|Non relancé séparément|Non relancé séparément|
+| Linux WSL2 x86_64 / 1.88.0 |382 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|1 réussi|
+
+Windows termine ses 26 étapes avec sortie 0, dont Clippy/fmt/rustdoc stricts,
+716 tests Python, le test PyAV séparé (57 conteneurs), frontière de dépendances
+avec contrôle positif, builds release audio/minimal et smoke PCM. Linux termine
+ses 16 phases avec sortie 0, dont les deux groupes Python ciblés (17 et 38 tests),
+le release audio reconstruit, son test CLI et le smoke PCM. PyAV, suite Python
+complète, Clippy, fmt et rustdoc restent exclus de cette exécution Linux. Aucun
+magasin de certificats OS ni handshake TLS réel n'est exercé par les six nouveaux
+tests injectés ; le smoke PCM ne fait aucun appel service.
+
+Les sources avant/après et entre plateformes correspondent aux mêmes 167 fichiers :
+`b04990f230464b9926a407b58143ec80b4f5ac6a413b0dd309808718743f7a84`.
+La [preuve TLS R4](../evidence/rust-tls-setup-offload.json) distingue rapports,
+contrôles négatifs et revue statique, sans réétiqueter les preuves R3. Ce résultat
+local ne prouve ni performance WAN, parité Android/service, rotation réelle des
+certificats, macOS ni CI distante.
+
 ## Written CI matrix, not yet executed
 
 `.github/workflows/rust.yml` defines Windows, Linux and macOS jobs on 1.88.0 and

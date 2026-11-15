@@ -153,6 +153,43 @@ reste en échec sur son test CLI release distinct : le diagnostic identifie un
 exécutable périmé, sans cause déduite du pacing. Windows R2 et Linux R1/R2 restent
 historiques et intacts. Voir [les résultats intégrés et leurs limites](rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
 
+## Setup TLS hors du runtime — qualification locale du 15 novembre
+
+Après le gagnant TCP et `TCP_NODELAY`, un unique `spawn_blocking` attendu charge
+les racines natives, les parse et construit `ClientConfig`. Pas de cache : chaque
+connexion recharge ses racines. Le socket reste dans la future appelante ; le délai
+externe DNS/TCP/TLS/h2 peut donc progresser sur un runtime mono-thread et ferme le
+socket à l'expiration. Nom vérifié, authority, ALPN `h2`, ordre et erreurs ordinaires
+restent inchangés (zéro racine acceptée : `Connect`, succès partiel conservé).
+Un échec de jointure/panic devient `Supervisor` sous le profil unwind testé ; seul
+le texte de l'erreur retournée est expurgé. Le panic hook de l'application peut
+encore écrire sur stderr.
+
+Le guard Drop appelle `abort` : un travail encore en file peut être annulé ; un
+travail **déjà démarré ne peut pas être interrompu**. Son résultat est alors jeté,
+sans démarrer TLS ni accéder à une source. L'appelant doit borner sa concurrence de
+connexions : aucun sémaphore global n'est ajouté, et le pool borne ses threads,
+pas sa file. Des loaders OS bloqués peuvent aussi retarder le DNS qui partage ce
+pool. L'arrêt du runtime peut attendre les travaux bloquants déjà démarrés.
+Aucun fallback TLS, racine personnalisée, 0-RTT, PING ou reconnect n'est ajouté.
+
+Qualification Windows ciblée, offline/locked : **25 tests de connexion** (les 19
+existants + 6 nouveaux), format et Clippy bibliothèque. Les loaders injectés et
+un DER synthétique ne lisent aucun magasin OS. Heartbeat mono-thread, timeout,
+annulation en file (pool d'un thread), résultat démarré jeté, panic et erreurs du
+provider sont couverts ; chaque attente bloquante a un watchdog OS indépendant.
+Deux contrôles négatifs ciblés échouent comme attendu (sortie 101) : sans `abort`,
+le loader en file est appelé ; inline, le watchdog libère après 5 s, sans hang.
+L'EOF loopback à l'expiration teste une portée de possession analogue à `connect`,
+pas un handshake TLS réel ni le magasin système, la rotation ou un service externe.
+La revue statique Opus 5.5 accepte ce source. Les qualifications intégrées R4 passent
+ensuite sur Windows stable/1.88 et Linux 1.88 : **382 réussis, 0 échoué, 1 ignoré**
+par workspace, avec le même manifeste sélectionné de 167 fichiers. Le test PyAV
+ignoré est activé séparément sous Windows seulement ; les autres exclusions Linux
+restent explicites. Les résultats R3 restent ceux du snapshot précédent. Voir
+[la preuve TLS R4](../evidence/rust-tls-setup-offload.json) et
+[le détail des builds](rust-build-validation.md#setup-tls-déporté--r4).
+
 ## Offline coverage and limits (lot historique)
 
 The 13 lifecycle tests cover invalid initial SETTINGS, active/idle TCP loss, typed and flow-blocked GOAWAY cases, RST CANCEL mapping, sibling isolation, graceful GOAWAY with an active stream, distinct/same-reason successive non-OK GOAWAYs, queue-full responses, interrupted close, cleanup precedence, explicit replacement and no replay. PING/PONG, oneshots, semaphores and counters determine event order; sleeps do not choose failure timing. TCP_NODELAY is explicit in the lifecycle peer fixtures.
