@@ -1,7 +1,27 @@
 # Rust build validation
 
-Current cross-platform evidence: [executed remote CI matrix, 2026-11-15](#executed-remote-ci-matrix--2026-11-15).
+Current cross-platform evidence: [expanded PCM/admission CI](../evidence/rust-pcm-admission-expanded-ci-20261115.json).
 Earlier sections retain their original local/static checkpoint scope and failures.
+
+## Expanded PCM/admission CI — 2026-11-15
+
+At `4264126852b2c03e25fc231c60f9582569a84ae9`, all 13 jobs completed
+successfully: eight native jobs, Rust lint, and four Python jobs. The nine Rust
+files changed in `b2a960a` and `Cargo.lock` have identical Git blobs at both
+commits; only the workflow and Intel checkpoint document differ between them.
+
+Each native job on Rust 1.88.0 and stable 1.100.0 reported workspace
+passed/failed/ignored of 399/0/2 on Windows, 400/0/2 on Linux, macOS ARM64,
+and native GitHub Intel (`macos-26-intel`, observed `x86_64-apple-darwin`).
+Each additionally reported session-reuse 10, exact release-finalization 1,
+and feature-off 35; reruns are not distinct-test totals. Each ran the stdlib
+boundary suite (17) and roots-helper suite (23). The root marker represents
+unique selection and direct executable exit zero, not an exposed libtest result.
+Release PCM reports 1017 input, 3051 decoded samples at 48 kHz, one EOS and
+zero service calls. Rust PyAV remains ignored by default. Python pytest results
+and exact runner versions, commands, job metadata and hashes are in the proof.
+No real service call, handshake, private keys or minimum macOS version is
+established. Linux live preflight remains blocked; phone remains 0/3 phrases.
 
 ## PCM progress and strict admission — local checkpoint 2026-11-15
 

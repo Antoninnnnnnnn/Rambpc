@@ -34,11 +34,12 @@ pas une DLL Opus, Python ou FFmpeg.
 Rust **1.88.0 a été exécuté sur Windows x86_64/MSVC et Linux x86_64/GCC**.
 Les snapshots exacts et les limites de chaque revalidation sont dans la
 [validation du backend](research/rust-backend-validation-2026-11-14.md).
-La CI native antérieure a exécuté Windows/Linux/macOS 1.88/stable sur le code
-`9069059`, mais ne qualifie pas les nouvelles fonctions locales ; macOS et CI
-distante pour celles-ci restent à exécuter. Voir la
-[validation des builds](research/rust-build-validation.md). Les tests de ce lot utilisent
-que des fixtures et des serveurs loopback, jamais Google. Le téléchargement initial
+La CI du commit `4264126852b2c03e25fc231c60f9582569a84ae9` a exécuté avec
+succès Windows, Linux, macOS ARM64 et macOS Intel natif sous 1.88.0 et stable.
+Les résultats PCM/admission, comptes et limites figurent dans la
+[validation des builds](research/rust-build-validation.md) et sa
+[preuve CI](evidence/rust-pcm-admission-expanded-ci-20261115.json). Les tests de ce lot utilisent
+seulement des fixtures et des serveurs loopback, sans appel réel au service. Le téléchargement initial
 nécessite Internet ; `--locked` fixe les versions, pas leur disponibilité locale.
 
 Le binaire est `target/release/rambler.exe` sur Windows et

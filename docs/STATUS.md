@@ -1,5 +1,25 @@
 # État du moteur — 2026-11-15
 
+## CI PCM et admission — matrice étendue
+
+Sur `4264126852b2c03e25fc231c60f9582569a84ae9`, les 13 jobs Rust/Python
+ont réussi : huit natifs, lint Rust et quatre Python. Windows rapporte 399
+réussis, 0 échec, 2 ignorés au workspace par toolchain ; Linux et macOS ARM64
+et Intel 400/0/2. Les deux jobs `macos-26-intel` sont natifs
+`x86_64-apple-darwin`, Rust 1.88.0 et stable 1.100.0. Chaque job natif passe
+également réutilisation 10, finalisation release exacte 1 et feature-off 35 ;
+ces réexécutions ne sont pas additionnées comme tests distincts. PyAV Rust
+reste ignoré par défaut. Les contrôles Python stdlib et pytest sont distincts.
+
+Le lanceur de racines publiques rapporte son marqueur après sélection unique et
+sortie zéro du test direct, sans exposer son stdout libtest ; aucun handshake
+n'est revendiqué. Le PCM release synthétique rapporte 1017 échantillons en
+entrée, 3051 décodés, un EOS et zéro appel service. Aucun nouvel appel réel,
+clé privée, audio privé ou preuve de version minimale macOS. Le blocage du live
+Linux reste ouvert sans nouvelle tentative ; téléphone inchangé à 0/3 phrases.
+[Preuve, comptes par job et provenance](evidence/rust-pcm-admission-expanded-ci-20261115.json).
+Le checkpoint local ci-dessous conserve ses échecs et limites historiques.
+
 ## PCM et admission stricte — qualification locale du 15 novembre
 
 Sur le snapshot A (base `1813602` et changements locaux), le workspace passe
