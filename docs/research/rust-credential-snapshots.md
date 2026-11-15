@@ -72,3 +72,52 @@ cargo fmt -p rambler-transport -- --check
 La [preuve ciblée](../evidence/rust-credential-snapshots.json) conserve les sources
 hashées, plateformes, résultats, logs hashés et limites. Il s'agit de la suite
 transport, pas d'un nouveau run de tout le workspace ou du service Rambler.
+
+## Refus du pair, remplacement explicite et voisin actif — 16 novembre 2026
+
+Deux nouveaux tests `credential_rejection.rs` couvrent séparément
+`UNAUTHENTICATED` et `PERMISSION_DENIED`. Un seul TCP loopback porte trois
+sessions explicites : voisin actif, session refusée, puis nouvelle session après
+remplacement explicite des métadonnées fictives du fournisseur. Le listener reste
+observé jusqu'à fermeture : toute seconde connexion acceptée fait échouer le test.
+
+Les stream IDs 1/3/5, les valeurs inventées exactes et les messages distincts
+excluent un rejeu observé dans cette trace. Le fournisseur partagé est appelé deux
+fois, celui du voisin une fois ; le compteur intermédiaire n'est qu'un contrôle
+de cohérence, pas une preuve indépendante de non-rejeu. Le voisin continue après
+refus et remplacement ; l'ancienne session conserve son erreur typée. Toutes les
+sources sont fermées et détruites exactement une fois, puis la fermeture du
+transport est attendue et vérifiée idempotente. Un nouveau start sur transport
+fermé ne rappelle pas le fournisseur.
+
+La revue ciblée Opus a relevé que supprimer le listener ne détectait pas une
+tentative de reconnexion. Main a gardé une branche d'acceptation prioritaire avant
+l'exécution. Aucun défaut de production n'est revendiqué : ce lot ajoute des
+tests, sans changement de Cargo, TLS, authentification ou politique de retry.
+
+### Validation Windows locale
+
+- Transport : **107 réussis, 0 échec, 1 ignoré** sur stable 1.99.1 et MSRV 1.88.0.
+- Workspace stable, toutes features : **404 réussis, 0 échec, 2 ignorés**.
+- Formatage global et Clippy transport tous targets avec `-D warnings` passent.
+- Les deux noms de tests sont confirmés dans chacun des trois groupes ; ces
+  réexécutions ne sont pas des tests distincts à additionner.
+- Les 175 sources sélectionnées restent identiques avant/après ; CLI release
+  inchangée. Pas de nouveau build release ou de qualification Linux/macOS déduit.
+
+```sh
+cargo test -p rambler-transport --test credential_rejection --locked --offline
+cargo +1.88.0 test -p rambler-transport --locked --offline
+cargo test --workspace --all-features --locked --offline
+```
+
+[Preuve, hashes et commandes par groupe](../evidence/rust-credential-rejection-offline-20261116.json).
+Les délais de 5 s par étape et 20 s par scénario bornent les blocages ; ce ne sont
+pas des seuils de performance. Pas de sleep ni de vrai credential, audio ou service.
+
+Le refus est envoyé **après upload complet**, en headers HTTP 200 puis trailers
+gRPC séparés. Le refus précoce headers-only et un voisin encore en upload ne sont
+pas combinés avec le remplacement ici. Une trace finie ne prouve pas tout
+comportement futur ; la rotation explicite fictive n'est ni un provisionnement,
+ni une autorisation ou récupération après révocation auprès du vrai service.
+Le smoke racines et l'oracle PyAV ignorés ne sont pas requalifiés par ces commandes.

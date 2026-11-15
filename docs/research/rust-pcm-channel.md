@@ -247,3 +247,45 @@ sentinel, réservation ou lancement CLI/service ; une réservation ne prouverait
 pas une réception serveur. Le confinement de descendants n'a pas été testé en exécution.
 Les anciennes preuves CI et Windows live restent inchangées ; Linux reste NO_GO,
 le budget téléphone 0/0/0, sans revendication COMPOSE ou parité Android.
+
+## Régression native release — résultat distinct de la réservation — 16 novembre 2026
+
+Le NO_GO ci-dessus reste l'observation correcte du préflight précédent. La
+[remédiation de racine privée](../evidence/rust-private-capture-root-20261115.json)
+a ensuite permis une nouvelle admission sans modifier l'ancienne ACL ni la
+politique ; aucune administration ni modification de réglages. Les protections
+ne garantissent pas contre un processus hostile du même utilisateur ou un
+administrateur, les écritures de contenu ou toutes les courses locales.
+
+Le contrôleur gelé `78ce29130fef8ac828d0dac58e7bc2183ddc8861a985ab01c2f9eb753a5bc1f4`
+a passé 20 groupes offline, un préflight, un sentinel renforcé de commande
+verrouillée et descendants, puis une génération locale SAPI supervisée. Une seule
+opportunité et capture ont été consommées, sans retry ni rejeu. Le processus du
+contrôleur est sorti à 0 avec `REGRESSION_HEALTHY_STRICT` ; le candidat n'a été
+qualifié qu'après sortie et les gardes de capture et provenance ont passé. Le
+nettoyage supervisé est terminé. Les métadonnées publiques de l'entrée sont
+synthétiques ; aucun audio ni capture brute n'est publié.
+
+Le HEAD lors de la capture est `703f0eee82f6228044115f72be5744aba7c08d6f`,
+l'association production `7327f51b89aeec537e8bf5ebaf6db3b0c25e5cef` et le hash
+CLI `3d1d2916e337419d4f2987084c2d7002cc02b59c2ad07b6e1e0fc91d7507cb8e`.
+C'est la CLI release, non le binaire du banc ni une attestation CI. L'entrée de
+69 440 échantillons PCM16 mono représente 138 880 octets et 4,34 s à 16 kHz ;
+le fichier de 138 924 octets ajoute 44 octets. Les comptes préparation et capture
+concordent, avec 69 440 échantillons encodés et EOF/cleanup observés.
+
+Les 223 requêtes produites sont des **messages protobuf**, pas des RPC ; le
+nombre de RPC côté serveur reste inconnu. Les 2,2043591 s écoulées concernent
+une session client non cadencée, sans conclusion de vitesse WAN ou de qualité.
+Les flags terminaux sont inférés du contrat de succès CLI vérifié, non d'une
+capture wire indépendante. Intent 2/champ actif 7 qualifie une requête littérale
+stricte, pas COMPOSE ni génération : les booléens de rétention sont mécaniques,
+la sémantique d'un message généré reste inconnue.
+
+La [réservation durable initiale](../evidence/rust-native-release-regression-20261115-budget.json)
+reste immuable avec son résultat pré-exécution `not_observed_at_reservation` ;
+la [preuve distincte](../evidence/rust-native-release-regression-20261116.json)
+publie le résultat observé sans modifier ce fait historique. Ce cas synthétique
+unique ne démontre ni qualité ASR représentative, perfection, provisionnement
+durable ou parité Android. Linux live, téléphone, autres intentions, révocation et
+cause de l'incident long restent ouverts ; les échecs historiques sont conservés.

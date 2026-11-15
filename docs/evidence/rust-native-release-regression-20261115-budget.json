@@ -1,0 +1,1 @@
+{"capture_observed":false,"case":"native_release_regression_20261115","gate_release_observed":false,"maximum_native_cli_launches":1,"maximum_planned_logical_sessions":1,"maximum_reserved_opportunities":1,"opportunity_consumed":true,"outcome":"not_observed_at_reservation","retry_or_replay":false,"server_rpc_count":null}

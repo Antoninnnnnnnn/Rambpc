@@ -1,4 +1,45 @@
-# État du moteur — 2026-11-15
+# État du moteur — 2026-11-16
+
+## Refus d'authentification — isolation offline
+
+Deux nouveaux tests loopback couvrent les refus `UNAUTHENTICATED` et
+`PERMISSION_DENIED`, le voisin actif, les métadonnées fictives remplacées
+explicitement et la session suivante sur le même TCP. Listener surveillé,
+stream IDs et messages exacts contrôlent l'absence observée de reconnexion/rejeu ;
+sources nettoyées et transport fermé. Aucun changement de production.
+Windows passe 107/0/1 au transport sur stable 1.99.1 et MSRV 1.88.0, puis
+404/0/2 au workspace stable toutes features ; fmt et Clippy transport strict passent.
+Comptes par commande, pas une somme de tests distincts. CI distante/Linux/macOS
+non exécutés pour ce lot à ce checkpoint. Refus après upload complet uniquement :
+ni provisionnement durable ni récupération réelle après révocation déduits.
+[Contrat et limites](research/rust-credential-snapshots.md#refus-du-pair-remplacement-explicite-et-voisin-actif--16-novembre-2026) ·
+[Preuve locale](evidence/rust-credential-rejection-offline-20261116.json).
+
+## Régression native release — résultat observé, réservation immuable
+
+Une unique opportunité et capture natives ont été consommées avec succès, sans
+rejeu ni retry : contrôleur gelé `78ce29130fef8ac828d0dac58e7bc2183ddc8861a985ab01c2f9eb753a5bc1f4`,
+`REGRESSION_HEALTHY_STRICT`, sortie processus 0 et qualification du candidat après
+cette sortie. Gardes et provenance passent. Les 20 groupes offline, le préflight,
+le sentinel renforcé et une génération locale SAPI supervisée ont précédé l'essai.
+Le NO_GO historique reste correct pour son instant : la barrière de confidentialité
+est depuis remédiée, sans administration, changement de réglages ou ancienne ACL.
+
+La CLI release capturée correspond au HEAD `703f0eee82f6228044115f72be5744aba7c08d6f`
+et à l'association de production `7327f51b89aeec537e8bf5ebaf6db3b0c25e5cef` ;
+ce n'est ni le binaire du banc ni une attestation CI. Sur une entrée synthétique
+de 4,34 s, la session client non cadencée prend 2,2043591 s : ni gain WAN ni
+qualité représentative. Les 223 requêtes sont des messages protobuf, pas des RPC ;
+leur nombre côté serveur demeure inconnu. Les flags terminaux sont inférés du
+contrat de succès CLI vérifié, sans capture wire indépendante. Intent 2/champ actif 7
+est une requête littérale stricte, pas COMPOSE/génération ; les contrôles de tokens
+sont mécaniques et la sémantique de message généré reste inconnue.
+
+La [réservation initiale](evidence/rust-native-release-regression-20261115-budget.json)
+conserve `not_observed_at_reservation` ; le [résultat séparé](evidence/rust-native-release-regression-20261116.json)
+ne la réécrit pas. [Méthode et limites](research/rust-pcm-channel.md#régression-native-release--résultat-distinct-de-la-réservation--16-novembre-2026).
+Linux live, téléphone, autres intentions, révocation, incident long et limites
+d'accès restent ouverts ; ni perfection, provisionnement durable ou parité Android.
 
 ## CI attribution codec — qualification de la source
 
