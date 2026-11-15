@@ -350,23 +350,70 @@ selecting that executable through the dev-only `RAMBLER_TEST_CLI_EXECUTABLE`
 At that local checkpoint these CI gates were **written only; remote CI NOT_RUN**.
 This historical observation is superseded only for the executed scope below.
 
-## Native public-root smoke — local Windows follow-up
+## Native public-root smoke — runner correction, 2026-11-15
 
-A new opt-in test, `connection::tests::tls_setup_native_public_roots_smoke`,
-loads the host's public trust anchors through the existing blocking setup and
-requires a successful TLS configuration with ALPN exactly `h2`. It prints no
-certificate values/names/hashes and performs no DNS, TCP, handshake or RPC.
-The test is ignored by default; the new CI step removes `SSL_CERT_FILE` and
-`SSL_CERT_DIR` only from the cargo child, verifies exactly one listed ignored
-test, then runs it. It does not mutate a concurrent Rust test's environment.
+The opt-in `connection::tests::tls_setup_native_public_roots_smoke` loads native
+public roots through the existing blocking setup and requires TLS configuration
+with ALPN exactly `h2`. It is ignored by default and performs no DNS, TCP,
+handshake or RPC; no certificate values/names/hashes are printed. The
+[original local Windows proof](../evidence/rust-native-roots-windows.json) remains
+historical, as does the successful `1561f87` matrix below, which predates this test.
+The [runner-history proof](../evidence/rust-native-root-runner-history.json)
+records the subsequent failures and bounded local correction without rewriting either.
 
-The exact CI wrapper passes locally on Windows with stable and 1.88: one selected
-test each, six phases including formatting, strict transport Clippy and source
-before/after checks. The production prefix before the test module is unchanged.
-[Local evidence](../evidence/rust-native-roots-windows.json). Native Linux/macOS
-execution of this **new test** is pending its next CI run; the completed matrix
-below predates it. Root loading/configuration is not a verified TLS handshake,
-trust-rotation, provisioning or service-parity claim.
+At `bc5449c`, [Rust CI2](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43726164598)
+**FAILED** only in the Ubuntu stable/1.88 native-root step. Both selected the
+intended ignored test but failed the `SSL_CERT_FILE`-absence assertion **before
+native OS-root loading or TLS configuration**. The precise downstream environment
+injector is unverified. Windows/macOS on both toolchains and lint succeeded;
+macOS therefore exercised native public-root loading/configuration, not a handshake.
+[Python CI2](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43726164608)
+passed all four jobs. Local Linux R1 reproduced the same precondition failure
+(0 passed, 1 failed, 0 ignored, 52 filtered); its 167 selected sources were unchanged
+and containment valid. That failure is preserved, not a failed root-loader diagnosis.
+
+Correction `9069059` changes the launcher only, leaving the Rust assertion,
+production TLS, manifests and lockfile unchanged. Cargo builds with `--no-run
+--message-format=json`; the stdlib helper selects exactly one test-profile
+`rambler_transport` library executable from artifacts, without filename guesses
+or package-ID matching. It directly lists and runs that executable from the
+transport directory, enforcing a unique exact ignored-test listing and exit 0.
+Each direct child receives a fresh environment with both SSL certificate override
+names removed case-insensitively; the parent environment is unchanged. Build/list/run
+deadlines are 120/20/30 seconds. Raw child output is captured, not emitted; only a
+fixed success marker is published. There are no custom roots, TLS relaxations or retries.
+
+```sh
+python -I -B -m unittest discover -s tests -p test_rust_native_roots.py -v
+python -I -B tools/check_rust_native_roots.py
+```
+
+The 23 pure stdlib tests include malformed/ambiguous artifacts and literal
+U+0085/U+2028/U+2029 JSON paths; the Unicode regression was RED before the LF-only
+record-splitting fix. Local Linux R2 passed all six phases on Rust 1.88, including
+23 unit tests, direct native-root success, cleanup and source verification. Native
+Linux root loading/configuration **actually succeeded locally after the direct fix**.
+Windows R1's six subprocesses all exited 0, including stable/1.88 direct runs,
+23 units and fmt, but its original aggregate remains `qualified=false`: its summary
+regex rejected CRLF. A separate saved reassessment parsed the existing captured
+summary correctly and passed, **without rerunning tests**. Neither direct-helper
+run exports libtest totals, so no numeric Rust pass count is inferred.
+
+Both local platforms preserved the same 169 selected source files before/after,
+with digest `65029fd139d299a41f34905c55a02ca9fcf453f7624f7f4596e5099714ec76b3`;
+this selector is not all build inputs. Static decision-review metadata records
+15 assistant responses from Opus 5.5; that advice is not execution evidence.
+At the supplied checkpoint, corrected [Rust CI3](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832)
+and [Python CI3](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914)
+at `906905988c5c51d83b05b259cd642a165325b7d2` were **IN_PROGRESS / pending**, not passed;
+no later outcome was polled for that historical consolidation. Both workflows
+have since completed successfully, including all six native jobs and the direct
+native-root step. The [verified CI3 follow-up](../evidence/rust-native-roots-ci-20261115.json)
+records the later outcomes separately without relabelling CI2 or local R1 failures.
+
+These results do not prove TLS handshake/hostname/chain validation, root completeness
+or rotation, private-key handling, provisioning, service/device interoperability or
+WAN performance. No app/network/service execution accompanies the local correction.
 
 ## Executed remote CI matrix — 2026-11-15
 

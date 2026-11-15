@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-15",
+  "scope": "Native public-root runner history; offline configuration only",
+  "publication": "Closed allowlist; fixed labels, statuses, counts, digests, source commits, exclusions and public CI URLs only",
+  "historical_proofs_preserved": [
+    "rust-remote-ci-20261115.json",
+    "rust-native-roots-windows.json"
+  ],
+  "ci2": {
+    "source_commit": "bc5449cd30020845d702e4d4c238a0d810406438",
+    "rust": {
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43726164598",
+      "status": "completed",
+      "conclusion": "failure",
+      "failed_native_jobs": 2,
+      "successful_native_jobs": 4,
+      "lint": "success",
+      "ubuntu_stable": "failed_before_native_root_loading",
+      "ubuntu_msrv": "failed_before_native_root_loading",
+      "windows_stable": "success",
+      "windows_msrv": "success",
+      "macos_stable": "native_root_configuration_passed",
+      "macos_msrv": "native_root_configuration_passed",
+      "selected_test_counts_each_ubuntu": {
+        "passed": 0,
+        "failed": 1,
+        "ignored": 0,
+        "filtered_out": 35
+      },
+      "failure": "SSL_CERT_FILE_absence_precondition",
+      "downstream_environment_injector": "unverified",
+      "later_ubuntu_validation_steps": "skipped"
+    },
+    "python": {
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43726164608",
+      "status": "completed",
+      "conclusion": "success",
+      "successful_jobs": 4,
+      "provenance": "main_verified_checkpoint_not_independently_fetched"
+    }
+  },
+  "linux_r1": {
+    "source_commit": "bc5449cd30020845d702e4d4c238a0d810406438",
+    "status": "failed",
+    "failure": "same_environment_precondition_before_native_root_loading",
+    "counts": {
+      "failed": 1,
+      "filtered_out": 52,
+      "ignored": 0,
+      "measured": 0,
+      "passed": 0
+    },
+    "selected_source_count": 167,
+    "source_manifest_sha256": "886e0320394aa7d8ba0937916b3b68fea9cbd4299b75b62b68c9f8ff89dae39f",
+    "source_before_after_equal": true,
+    "containment_and_cleanup": "verified_in_report"
+  },
+  "correction": {
+    "source_commit": "906905988c5c51d83b05b259cd642a165325b7d2",
+    "scope": "launcher_only",
+    "rust_tls_source_assertion_manifests_lock": "unchanged",
+    "cargo_role": "build_only_no_run_message_format_json",
+    "artifact_selection": "exactly_one_rambler_transport_library_profile_test_executable",
+    "direct_execution": "unique_exact_ignored_test_listing_then_exit_zero",
+    "environment": "fresh_copy_for_each_direct_child_both_SSL_names_removed_case_insensitively_parent_unchanged",
+    "working_directory": "transport_crate",
+    "deadlines_seconds": {
+      "build": 120,
+      "list": 20,
+      "run": 30
+    },
+    "filename_guesses": false,
+    "package_id_matching": false,
+    "raw_child_output": "captured_not_emitted",
+    "success_output": "fixed_marker_only",
+    "unit_tests": 23,
+    "unicode_regression": "RED_before_LF_only_record_split_fix",
+    "unicode_json_path_cases": [
+      "U+0085",
+      "U+2028",
+      "U+2029"
+    ],
+    "static_decision_review": {
+      "model": "claude-opus-5-5",
+      "assistant_responses": 15,
+      "scope": "static_launcher_only_advice_not_execution"
+    }
+  },
+  "local_direct_source": {
+    "source_commit": "906905988c5c51d83b05b259cd642a165325b7d2",
+    "selected_source_count": 169,
+    "source_manifest_sha256": "65029fd139d299a41f34905c55a02ca9fcf453f7624f7f4596e5099714ec76b3",
+    "windows_linux_before_after_equal": true,
+    "coverage": "selected_inputs_not_all_build_inputs",
+    "freeze_metadata_head": "bc5449cd30020845d702e4d4c238a0d810406438",
+    "freeze_scope": "precommit_working_tree_freeze_not_committed_HEAD_equality"
+  },
+  "linux_direct_r2": {
+    "status": "passed_linux_direct_root_scope",
+    "qualification_exit": 0,
+    "phases_passed": 6,
+    "unit_tests": 23,
+    "toolchain": "1.88.0",
+    "native_root_loading_configuration": "passed",
+    "exact_helper_success_marker": true,
+    "rust_pass_counts": null,
+    "rust_pass_count_status": "not_exported_by_helper_not_inferred",
+    "cleanup_and_source_verification": "passed",
+    "app_network_service_device_calls": 0
+  },
+  "windows_direct_r1": {
+    "original_status": "failed",
+    "original_qualified": false,
+    "subprocesses": 6,
+    "subprocesses_exit_zero": 6,
+    "original_aggregation_failure": "unittest_summary_regex_rejected_CRLF",
+    "stable_direct_helper": "passed",
+    "msrv_direct_helper": "passed",
+    "format": "passed",
+    "rust_pass_counts": null,
+    "rust_pass_count_status": "not_exported_by_helper_not_inferred",
+    "separate_reassessment": {
+      "status": "captured_commands_and_corrected_summary_assessment_passed",
+      "unit_tests": 23,
+      "summary_OK": true,
+      "new_test_executions": 0,
+      "original_report_unchanged": true
+    }
+  },
+  "ci3_checkpoint": {
+    "source_commit": "906905988c5c51d83b05b259cd642a165325b7d2",
+    "status": "in_progress",
+    "qualification": "pending_not_passed",
+    "rust_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832",
+    "python_url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914",
+    "provenance": "supplied_checkpoint_no_polling"
+  },
+  "input_proofs": {
+    "ci2_final_metadata": {
+      "bytes": 1391,
+      "sha256": "70839b8453018190e8da9131e38e6af826ffc693807aa58df954cd6d282acc05",
+      "verification": "verified_from_local_bytes"
+    },
+    "ci2_linux_failure_diagnosis": {
+      "bytes": 8953,
+      "sha256": "29229267cbc4f4052f34c863851c059f47035546a18dc8d580e70f898de8b4f0",
+      "verification": "verified_from_local_bytes"
+    },
+    "linux_static_discovery": {
+      "bytes": 8642,
+      "sha256": "374ff1b8e31fa081522e35fc8e6f5a525623d1218fba4ddae3f722dc4386b159",
+      "verification": "verified_from_local_bytes"
+    },
+    "static_decision_models": {
+      "bytes": 92,
+      "sha256": "b8ce1eb6113965f9259fc303947b4980f7e0b00d0f1df5de7d454bccc4e1e436",
+      "verification": "verified_from_local_bytes"
+    },
+    "linux_r1_report": {
+      "bytes": 9597,
+      "sha256": "9fb3e24b7db9ea931f64098cfbd80210837d922bebce8892af82f1222f4cb90e",
+      "verification": "verified_from_local_bytes"
+    },
+    "windows_direct_r1_report": {
+      "bytes": 53548,
+      "sha256": "fb5819973a697765bbc503431f4815675180d9cc8bc7bef311f2340cb10d7ec4",
+      "verification": "verified_from_local_bytes"
+    },
+    "windows_reassessment": {
+      "bytes": 719,
+      "sha256": "7f314d1a4708c516c22539fee448c4e602dd1f2d582b47394137204931779e82",
+      "verification": "verified_from_local_bytes"
+    },
+    "linux_direct_r2_report": {
+      "bytes": 9484,
+      "sha256": "c2f21f0b14743998d460464797d8fb33ef08eda8849e28129a290431cdec8657",
+      "verification": "verified_from_local_bytes"
+    },
+    "direct_source_freeze": {
+      "bytes": 537,
+      "sha256": "14f657406f428decde27f0a6c91df3c2e1fd43c69cb3b119a11a2ffc391a8400",
+      "verification": "verified_from_local_bytes"
+    }
+  },
+  "log_proofs": [
+    {
+      "label": "linux_r1_report_preflight-msrv",
+      "bytes": 227,
+      "sha256": "91fcf5ff6c9bbe33d8d7c5e42b0f4b5b14e58233c0b73f3f87d0b67a05dc6c64",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_r1_report_source-transfer",
+      "bytes": 129,
+      "sha256": "9476e5c343d7e53c14c4a47c027a7bcb4deef093336268b2a4fbe0d6542be300",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_r1_report_workspace-packages-clean",
+      "bytes": 24099,
+      "sha256": "9c888e8bb43e984cc1228b9b0ce9ed0200a24bae0d739e17487b856f5a057792",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_r1_report_native-root-ci-wrapper",
+      "bytes": 2513,
+      "sha256": "b2db5141b316c896413d5a89ae631487a3e87a0007b123f7a6bf6ba410eb3261",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_r1_report_source-copy-after",
+      "bytes": 129,
+      "sha256": "9476e5c343d7e53c14c4a47c027a7bcb4deef093336268b2a4fbe0d6542be300",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_direct_r2_report_preflight-msrv",
+      "bytes": 227,
+      "sha256": "91fcf5ff6c9bbe33d8d7c5e42b0f4b5b14e58233c0b73f3f87d0b67a05dc6c64",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_direct_r2_report_source-transfer",
+      "bytes": 129,
+      "sha256": "f015339c10ee33bf9c6a09a89508b8e08dcf20767a55c3af334954a064d1b303",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_direct_r2_report_workspace-packages-clean",
+      "bytes": 13748,
+      "sha256": "0e57fcb7820c31be6fd2932384861cbf2b4802a1136df5c2746ac440a8975620",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_direct_r2_report_root-runner-unit-tests",
+      "bytes": 3763,
+      "sha256": "350c097a3988d3c2ac4254e94d5dae2ada1d6c6dc057d86281cacc8b1a845d99",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_direct_r2_report_native-root-direct-helper",
+      "bytes": 76,
+      "sha256": "3b359e06a3a9eb96e84dec21671b6bd338f1a4226c8a8d5199293932985dba8c",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "linux_direct_r2_report_source-copy-after",
+      "bytes": 129,
+      "sha256": "f015339c10ee33bf9c6a09a89508b8e08dcf20767a55c3af334954a064d1b303",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "windows_direct_r1_source-before",
+      "bytes": 7021,
+      "sha256": "94e701784661d9846e9aa277b576f486ffbd59afc1f87caf53541f323ece8a08",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "windows_direct_r1_runner-unit-tests",
+      "bytes": 3791,
+      "sha256": "a9ed2fedf6a8f07b0da04ff123d7c732fa477b7b479f5f22885cae9a2b25075b",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "windows_direct_r1_direct-native-roots-stable",
+      "bytes": 77,
+      "sha256": "d4435c03d88de7cbd046807e757750c7ba1b794e5e5094012773fda957047a41",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "windows_direct_r1_direct-native-roots-msrv",
+      "bytes": 77,
+      "sha256": "d4435c03d88de7cbd046807e757750c7ba1b794e5e5094012773fda957047a41",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "windows_direct_r1_format",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "windows_direct_r1_source-after",
+      "bytes": 7021,
+      "sha256": "94e701784661d9846e9aa277b576f486ffbd59afc1f87caf53541f323ece8a08",
+      "verification": "verified_from_local_bytes"
+    },
+    {
+      "label": "ci2_ubuntu_stable_log",
+      "bytes": 128778,
+      "sha256": "a48c86b60cac4172ec1b21f4592abe578dd4b92ad37bc42f0a581ecff9879ce6",
+      "verification": "hashed_from_local_bytes_no_expected_digest_available"
+    },
+    {
+      "label": "ci2_ubuntu_msrv_log",
+      "bytes": 125178,
+      "sha256": "db961cd3af251f51440c22f7abbc8007d613beddd2ddf57d19c6a976e579bbc4",
+      "verification": "hashed_from_local_bytes_no_expected_digest_available"
+    }
+  ],
+  "exclusions": [
+    "TLS_handshake",
+    "hostname_validation",
+    "chain_validation",
+    "root_completeness",
+    "trust_rotation",
+    "private_key_handling",
+    "provisioning_revocation",
+    "service_device_interoperability",
+    "WAN_performance",
+    "new_build_or_test_execution_for_this_consolidation",
+    "CI3_final_outcome"
+  ],
+  "unchanged_security_policy": [
+    "no_TLS_weakening",
+    "no_custom_roots",
+    "no_retries",
+    "no_environment_values",
+    "no_certificate_values",
+    "no_API_keys",
+    "no_raw_logs"
+  ]
+}

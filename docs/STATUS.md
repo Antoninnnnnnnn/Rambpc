@@ -1,6 +1,56 @@
 # État du moteur — 2026-11-15
 
-## Qualification CI native — code `1561f87`
+## Qualification CI native et racines publiques — code `9069059`
+
+Les deux runs CI3 du push `906905988c5c51d83b05b259cd642a165325b7d2`
+sont **completed/success**, vérifiés par API et logs : six jobs natifs
+Windows/Linux/macOS × Rust 1.88.0/stable, lint Rust et quatre jobs Python.
+Stable est effectivement **1.100.0** ; macOS est **ARM64 uniquement**
+(`aarch64-apple-darwin`), pas une qualification Intel.
+Les comptes ci-dessous sont **par job et par commande**, sans somme des répétitions :
+
+| Plateforme, chaque toolchain | Workspace | Exemple reuse | CLI sans audio | CLI release finalisation |
+|---|---:|---:|---:|---:|
+| Windows |382 réussis, 0 échoué, 2 ignorés|10|31|1|
+| Ubuntu |383 réussis, 0 échoué, 2 ignorés|10|31|1|
+| macOS ARM64 |383 réussis, 0 échoué, 2 ignorés|10|31|1|
+
+Le workspace ignore **l'oracle Rust PyAV et le smoke racines**. Ce dernier
+est ensuite exécuté explicitement dans chacun des six jobs par le helper direct :
+une unique entrée de test ignoré est imposée, puis le processus du test exact
+termine à zéro. Le marqueur exact est
+`Rust native roots OK: exact ignored smoke passed via direct test executable`.
+Le helper capture stdout libtest : aucun résumé Rust brut « 1 passed » n'est
+revendiqué. L'oracle Rust PyAV reste **non exécuté** dans cette matrice.
+
+Cela qualifie réellement le chargement des **racines publiques OS** et la
+construction de la configuration TLS de production avec ALPN `h2` ; les assertions
+Rust exigeant l'absence de `SSL_CERT_FILE` et `SSL_CERT_DIR` restent inchangées.
+Le helper lance directement l'exécutable avec une copie d'environnement nettoyée,
+sans faire lancer le test par Cargo. Ce n'est **pas** un handshake avec un pair,
+une validation de chaîne/hostname, une rotation, une preuve d'exhaustivité des
+racines, ni un test d'authentification, de clés privées ou du service.
+
+Les **23 unités stdlib du launcher** passent dans chaque job natif (avec les
+17 unités du checker audio). Elles sont aussi incluses dans pytest, pas à ajouter :
+Python 3.11 passe **663 tests, 71 ignorés** par OS ; Python 3.14 **733 tests,
+1 ignoré** par OS. Les **335 sous-tests** sont rapportés séparément.
+Build CLI audio release et smoke PCM passent dans les six jobs
+(1017→3051 échantillons à 48 kHz, un EOS, zéro appel service).
+
+Les deux échecs Ubuntu CI2 et Linux local R1 sont antérieurs au loader :
+précondition d'environnement, injecteur exact non établi, pas un défaut production
+des racines démontré. Le correctif `9069059` ne change que launcher Python,
+workflow et ses tests ; Rust TLS/assertions/Cargo restent inchangés.
+Les preuves FAILED restent conservées ; les résultats locaux et leurs limites
+sont distincts de cette CI3. Aucun nouvel appel natif/service/appareil ;
+aucun gain WAN, parité Android ou provisionnement/révocation déduit.
+L'observation Unicode `🙂`→`😎` ci-dessous reste sémantiquement non confirmée.
+[Preuve CI3, comptes et hashes](evidence/rust-native-roots-ci-20261115.json) ·
+[Historique du runner](evidence/rust-native-root-runner-history.json) ·
+[Validation détaillée](research/rust-build-validation.md).
+
+## Qualification CI native — code `1561f87` (historique)
 
 La matrice distante Windows/Linux/macOS × Rust 1.88/stable a réellement terminé
 avec succès, ainsi que le lint Rust et les quatre jobs Python. Les comptes Rust
