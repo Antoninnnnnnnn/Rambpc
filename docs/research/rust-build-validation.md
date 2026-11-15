@@ -291,11 +291,58 @@ No concrete code-local macOS defect survived review. Native macOS builds and
 tests, Keychain/TLS, FIFO and file runtime checks were **NOT RUN**; this is not a
 macOS qualification. The 382-test Windows/Linux R4 results above are unchanged.
 
-One test blind spot remains: `assert_released` in
-`crates/rambler-audio/tests/file_cleanup.rs` is a no-op outside Windows/Linux.
-A macOS test pass would therefore not establish descriptor release through that
-helper. This is a coverage limitation, not evidence of a production descriptor
-leak. The GitHub matrix remains configuration only; remote CI was **NOT RUN**.
+At `b0591f5`, `assert_released` in
+`crates/rambler-audio/tests/file_cleanup.rs` was a no-op outside Windows/Linux.
+A macOS test pass at that snapshot would therefore not establish descriptor
+release through that helper. This was a coverage limitation, not evidence of a
+production descriptor leak. The focused follow-up below replaces the macOS no-op;
+its native runtime remains **NOT RUN**, as does remote CI.
+
+## Focused platform-gate follow-up — 2026-11-15
+
+Only the test helper and written CI workflow change; production sources,
+manifests and lockfile are unchanged. The descriptor audit compares device/inode
+using `/proc/self/fd` and `stat64`/`fstat64` on Linux, `/dev/fd` and `fstat` on
+macOS. Only `EBADF` close races are ignored; other audit errors fail. A Unix
+positive control checks 0→1→0 open descriptors and an open WAV is asserted before
+closure. Windows retains its exclusive-open check. This closes a test blind spot,
+not a demonstrated production leak or a measured engine speedup.
+
+| Focused local execution | File cleanup | Other checks | Status |
+|---|---:|---|---|
+| Windows initial R1, stable / 1.88 |3 / 3 passed|Strict audio Clippy, actual release CLI finalization (1 test), release PCM smoke passed|**FAILED**, 13 steps: fmt alone exited 1; `qualified=false` preserved|
+| Linux x86_64 / 1.88, snapshot A |4 passed, including positive control|Actual release CLI finalization (1 test), release PCM build/smoke, source/binary checks passed|`passed_partial_linux_scope`, exit 0; 11 phases, including Clippy **NOT_RUN** (not installed)|
+| Windows post-format R3, snapshot B |3 / 3 passed|fmt, strict audio Clippy, source before/after passed|6 steps passed; `qualified=true` for this scope only|
+
+The initial Windows/Linux source selector covers **167 files**, not all build
+inputs, with canonical digest
+`2980b8ca5f180273152200d985cfffe9e3b10dfad723461df8d54b4401c5993d` (A).
+The post-format/root selector is
+`913eb97a9f60a39a85187dae70703f5a2493128e90681bde2a1e6e0c0cea7199` (B).
+Only two mutually exclusive cfg imports in `file_cleanup.rs` swapped order from
+A to B: reversing that swap with matching CRLF reproduces the exact initial
+archive member and frozen file hash. All selected root file hashes match B;
+post-format statuses, test counts and all six log hashes were independently
+checked. Linux tested **A, not post-format bytes B**. There was no post-format
+release rebuild or Linux rerun; original release evidence remains attached to A.
+Both initial release PCM smokes check 1017→3051 samples at 48 kHz, one EOS and
+zero service calls. Counts across toolchains/reruns are not distinct tests.
+
+The full workspace, feature-off suite, Python suite, PyAV and rustdoc were not
+rerun in this follow-up; the 382-test R4 workspace results remain historical,
+not a claimed current 383-test workspace pass. macOS and Linux 32-bit native
+runtime, remote CI, service/device, WAN/parity and provisioning remain unqualified.
+Two background harness preparations are retained as
+`setup_failed_before_commands` (line-ending assertion and temporary-driver syntax),
+not engine runtime REDs; the initial Windows fmt failure remains separate.
+The [focused proof](../evidence/rust-platform-gates.json) publishes allowlisted
+statuses, counts and digests without private logs or paths.
+
+The written OS/MSRV matrix now adds an actual audio release CLI build and the
+exact loopback test `s3_end_without_grpc_trailers_exits_with_finalize_timeout`,
+selecting that executable through the dev-only `RAMBLER_TEST_CLI_EXECUTABLE`
+(platform `.exe` path on Windows), plus a release `pcm_channel` synthetic smoke.
+These CI gates are **written only; remote CI NOT_RUN**.
 
 ## Written CI matrix, not yet executed
 

@@ -1,0 +1,455 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "scope": "focused_test_and_written_ci_followup",
+  "sources": {
+    "base_commit": "52784b9f53e7fb7d8f5675560a4570a01ed4c212",
+    "selector_file_count": 167,
+    "selector_coverage": "selected_inputs_not_all_build_inputs",
+    "canonical_digest": "SHA256 of ASCII JSON file-to-SHA256 map; sorted keys, compact separators, no newline",
+    "snapshot_A_sha256": "2980b8ca5f180273152200d985cfffe9e3b10dfad723461df8d54b4401c5993d",
+    "snapshot_B_sha256": "913eb97a9f60a39a85187dae70703f5a2493128e90681bde2a1e6e0c0cea7199",
+    "initial_windows_linux_selected_sources_equal": true,
+    "current_root_matches_snapshot_B": true,
+    "initial_and_postformat_sources_unchanged_during_each_run": true,
+    "production_sources_manifests_lock_unchanged": true,
+    "changed_files": {
+      ".github/workflows/rust.yml": {
+        "snapshot_A_sha256": "b355a0e9efac6b17a0d91443cf98ef42d228d41380fdd2cfc9a8a6e9764e1495",
+        "snapshot_B_sha256": "b355a0e9efac6b17a0d91443cf98ef42d228d41380fdd2cfc9a8a6e9764e1495"
+      },
+      "crates/rambler-audio/tests/file_cleanup.rs": {
+        "snapshot_A_sha256": "42a49a3b99bec787ee404f62cebee7104ad6b1fe7d6bde3f7621c5d44e81d692",
+        "snapshot_B_sha256": "d735ef3757756b1d25f8559dff17131e37796813e807ba0535afae19148e429c"
+      }
+    },
+    "A_to_B_delta": "two_mutually_exclusive_cfg_import_blocks_swapped_in_test_only",
+    "exact_CRLF_import_swap_reversal_matches_initial_archive_member": true,
+    "initial_source_archive_sha256": "0b2bc4cbf6aeb597d6e025eeb76d978dd01fb41fa8c1fc17d329014f9d531b4a",
+    "linux_tested_snapshot": "A",
+    "linux_postformat_B_execution": "NOT_RUN"
+  },
+  "windows_initial_R1": {
+    "status": "FAILED",
+    "report_status": "not_qualified",
+    "qualified": false,
+    "snapshot": "A",
+    "step_count": 13,
+    "steps": [
+      {
+        "label": "source-before",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "0257c72c1195647c04a00a5ff7ff7e75d3245097badf8fc2a27f845c28cc0bce"
+      },
+      {
+        "label": "base-commit",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "8756385a1b01b1b9f9a488ae82752cc5be2ab7d5dd5125271b1f146d262a2618"
+      },
+      {
+        "label": "rust-stable-version",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "55cd0529c005d3f62869ea6e2271bfa9d5196f56dc65a8be00a371af114a4a98"
+      },
+      {
+        "label": "rust-msrv-version",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "1ac65f1cd11fa83e9530348b787fa3e5bdd85b0f3727099df8bcdf3e24274138"
+      },
+      {
+        "label": "format",
+        "status": "failed",
+        "exit": 1,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "b0923018d00bf0ea1586d593e119e1dd08300ea667ddbb313ec345d20d026b61"
+      },
+      {
+        "label": "file-cleanup-stable",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        },
+        "log_sha256": "480daf6677895db78877ca36b0068ca741765ffb030c0626ecfecc6b85003a67"
+      },
+      {
+        "label": "file-cleanup-msrv",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        },
+        "log_sha256": "29dda19b9283099ffe306f76137b72d1bb6d930c9b3433542d393df485378f34"
+      },
+      {
+        "label": "audio-strict-clippy",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "829f1f2e25957663cb2810fdc2121bacf1f10d5307459f68447a38dce2a5e577"
+      },
+      {
+        "label": "release-cli-clean",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "b667572e88078660f08a2ef633781996a0f1be8da7434f2df56cbd4f4a0cdcfe"
+      },
+      {
+        "label": "release-audio-cli",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "52d73a5378b2ef8190be083a897ed25c94aadb31ec19e84577d3d58c40b91b37"
+      },
+      {
+        "label": "release-finalization-cli",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 1
+        },
+        "log_sha256": "9133d49de5d82938341567d672a824786c12f50d8cb5bfc450b4bc59e98687ec"
+      },
+      {
+        "label": "release-pcm-channel",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "f73eccb1906ad060f58efa83bf52fa82ee286be3066a167e26a1a8b730edfd45"
+      },
+      {
+        "label": "source-after",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "0257c72c1195647c04a00a5ff7ff7e75d3245097badf8fc2a27f845c28cc0bce"
+      }
+    ],
+    "release_audio_cli_sha256": "2f776623081af323feb59622e8b71256ceb3516f56db0bd6bb7e9fc9bb0298bc",
+    "release_pcm_example_sha256": "15846e70c2e8b44132c23bdaa22fde961a262e8c0545c56ea93d5be5c468af5b",
+    "release_pcm_smoke": {
+      "decoded_samples_48k": 3051,
+      "input_samples": 1017,
+      "ogg_eos": 1,
+      "service_calls": 0
+    },
+    "report_sha256": "f1363f14b0da7a8977f5fc5870d0e3ec73a856d3338ef2babce1fa2631992349"
+  },
+  "linux_initial_R1": {
+    "status": "passed_partial_linux_scope",
+    "exit": 0,
+    "snapshot": "A",
+    "phase_count": 11,
+    "passed_phases": 10,
+    "not_run_phases": 1,
+    "phases": [
+      {
+        "label": "preflight-msrv",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "91fcf5ff6c9bbe33d8d7c5e42b0f4b5b14e58233c0b73f3f87d0b67a05dc6c64"
+      },
+      {
+        "label": "source-transfer",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "b65fe32437195d83d3285021c8ec5fc445f73e30c50e673667241183918ff395"
+      },
+      {
+        "label": "workspace-packages-clean",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "724c450ee2c7b39cce63d0beaeed4fe55d9ac209172860e589d1f2716b0966b6"
+      },
+      {
+        "label": "audio-file-cleanup",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "494271dc31d42539140386a283911d112410a7b46cdbd90a97388ba1342e43fa",
+        "rust_counts": {
+          "failed": 0,
+          "filtered_out": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        }
+      },
+      {
+        "label": "audio-strict-clippy",
+        "status": "not_run",
+        "exit": 0,
+        "log_sha256": "7f018fba2a06586f081f3df9c2a9babdcc81054c2c1b13ccf03ef8237fc35f6f",
+        "reason": "clippy_1_88_not_already_installed"
+      },
+      {
+        "label": "release-audio-cli",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "7165386bb27e87d365bae8fe4749a25e2b9da94fb0f242a8afa9c77a11af44f5"
+      },
+      {
+        "label": "release-finalization-cli",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "0958bb67e192c05701a42b5b363aafb44cff06bd40e63aea16a6008d8710404f",
+        "rust_counts": {
+          "failed": 0,
+          "filtered_out": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 1
+        }
+      },
+      {
+        "label": "release-pcm-example",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "daf0e7bbec84f2376aa6ce51ba754525dcebd3c0c1dd4538bbfa769339ec04ed"
+      },
+      {
+        "label": "pcm-public-smoke",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "486ea2dd91040a1edd7bef7ae76d98e1f073afef2bf174a136345620874b4b67"
+      },
+      {
+        "label": "binary-hashes",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "9595a475e6b37979f12475b066a27cc394f721baf5499c98a94be3195c1ead64"
+      },
+      {
+        "label": "source-copy-after",
+        "status": "passed",
+        "exit": 0,
+        "log_sha256": "b65fe32437195d83d3285021c8ec5fc445f73e30c50e673667241183918ff395"
+      }
+    ],
+    "descriptor_positive_control": "0_to_1_to_0",
+    "open_wav_descriptor_assertion": "passed",
+    "source_and_binary_checks": "passed",
+    "release_audio_cli_sha256": "4942610cfebfee23880dec8b46769c190f3b06c9535ffd4724c21fc9cedff445",
+    "release_pcm_example_sha256": "92cadae4acb24f13b7401d404d79686fb99bc5146038fe8ae677c548171e767c",
+    "release_pcm_smoke": {
+      "input_samples": 1017,
+      "decoded_samples_48k": 3051,
+      "ogg_eos": 1,
+      "service_calls": 0
+    },
+    "report_sha256": "fbc03b73626cf5ad740acfbe2b832a1030002b3e272e396a14dd975779059091"
+  },
+  "windows_postformat_R3": {
+    "status": "postformat_windows_scope_passed",
+    "qualified": true,
+    "snapshot": "B",
+    "step_count": 6,
+    "steps": [
+      {
+        "label": "source-before",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "0257c72c1195647c04a00a5ff7ff7e75d3245097badf8fc2a27f845c28cc0bce"
+      },
+      {
+        "label": "format",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "label": "file-cleanup-stable",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        },
+        "log_sha256": "a362db77ee896bcdc75b94d2b377eeb4e56d63fc15c0e6729374d92274388493"
+      },
+      {
+        "label": "file-cleanup-msrv",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        },
+        "log_sha256": "8eabd832bc41e48a7ce5e786c634e30c9dc2b4686c94f1fa92b7f8f54338eed2"
+      },
+      {
+        "label": "audio-strict-clippy",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "e3fe741ccefd02dc3c21c5d3dc8845a71dc30e94322b2bfb86b96703d6fadd56"
+      },
+      {
+        "label": "source-after",
+        "status": "passed",
+        "exit": 0,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        "log_sha256": "0257c72c1195647c04a00a5ff7ff7e75d3245097badf8fc2a27f845c28cc0bce"
+      }
+    ],
+    "all_six_log_hashes_bytes_statuses_and_counts_independently_verified": true,
+    "release_rebuild": "NOT_RUN",
+    "linux_rerun": "NOT_RUN",
+    "report_sha256": "ec4435687c7c430dff5c3ce0d222acbed4c744a60b18c60226a24da83c7facf0"
+  },
+  "background_harness_preparations": [
+    {
+      "label": "postformat_line_ending_assertion",
+      "status": "setup_failed_before_commands"
+    },
+    {
+      "label": "temporary_driver_literal_syntax",
+      "status": "setup_failed_before_commands"
+    }
+  ],
+  "written_ci": {
+    "status": "NOT_RUN",
+    "scope": "existing_OS_and_MSRV_matrix",
+    "gates": [
+      "actual_audio_CLI_release_build",
+      "exact_loopback_finalization_against_actual_release_executable",
+      "release_pcm_channel_synthetic_smoke"
+    ],
+    "test_executable_selector": "dev_only",
+    "windows_executable_suffix": ".exe"
+  },
+  "followup_exclusions": [
+    "full_workspace",
+    "feature_off_suite",
+    "Python_suite",
+    "PyAV",
+    "rustdoc",
+    "macOS_native_runtime",
+    "Linux_32_bit_native_runtime",
+    "remote_CI",
+    "service_device",
+    "WAN_performance",
+    "Android_service_parity",
+    "provisioning"
+  ],
+  "interpretation": {
+    "historical_R4_workspace_passed": 382,
+    "current_full_workspace": "NOT_RUN",
+    "production_descriptor_leak_proven_or_fixed": false,
+    "measured_engine_speedup": false,
+    "initial_failed_reports_requalified": false,
+    "toolchain_rerun_counts_are_distinct_tests": false
+  }
+}

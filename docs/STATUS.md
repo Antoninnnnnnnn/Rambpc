@@ -2,7 +2,7 @@
 
 ## Point de fiabilité courant — code `b0591f5`
 
-Le dernier snapshot de code qualifié localement passe **382 tests workspace,
+Le snapshot production R4, conservé comme référence historique, passe **382 tests workspace,
 0 échoué, 1 ignoré** sur Windows stable 1.99.1, Windows/MSVC 1.88 et Linux/WSL
 1.88. Les dix tests d'exemple, 31 tests CLI sans audio et le test du véritable
 CLI release de finalisation passent sous Windows stable et Linux. Windows passe
@@ -23,6 +23,27 @@ pas une qualification native. Parité Android, intentions non établies et
 provisionnement/récupération après révocation restent ouverts. Les sections
 suivantes conservent leurs **snapshots historiques** : leurs comptes et empreintes
 ne désignent pas le code courant.
+
+## Suivi ciblé tests / CI — 15 novembre
+
+Le helper de cleanup remplace le no-op macOS par un audit device/inode ; Linux
+ajoute le contrôle positif 0→1→0, Windows conserve l'ouverture exclusive.
+Windows initial passe 3 tests sur stable et 3 sur MSRV, Clippy audio strict,
+1 test du vrai CLI release et le smoke PCM, mais reste **FAILED** : fmt échoue
+seul parmi 13 étapes. Linux passe son périmètre partiel (11 phases, 4 tests cleanup,
+1 CLI release, smoke PCM ; Clippy **NOT_RUN**, non installé). Après le seul échange
+d'ordre de deux imports cfg, Windows passe 6 étapes ciblées, dont fmt, 3/3 tests
+et Clippy ; aucun rebuild release ni rerun Linux post-format n'est déduit.
+Les échecs initiaux et deux préparations de harness échouées avant commandes sont
+conservés, pas requalifiés. Les 382 tests workspace R4 ci-dessus restent historiques :
+pas de suite complète courante à 383 tests revendiquée.
+
+La matrice OS/MSRV écrite ajoute build audio CLI release, finalisation loopback
+avec le vrai exécutable et smoke PCM release. **CI distante, macOS et Linux 32-bit
+natif NOT_RUN**. Production/manifests/lock inchangés ; aucune fuite production
+prouvée/corrigée, aucun gain moteur/WAN ni parité/provisionnement déduit.
+[Validation ciblée et exclusions](research/rust-build-validation.md#focused-platform-gate-follow-up--2026-11-15) ·
+[Preuve expurgée](evidence/rust-platform-gates.json).
 
 ## Canal PCM jusqu'au moteur : cinq tests loopback qualifiés
 

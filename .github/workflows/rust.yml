@@ -39,6 +39,14 @@ jobs:
         run: cargo test --workspace --all-features --locked --offline
       - name: Test CLI session reuse example offline
         run: cargo test -p rambler-cli --features audio --example session_reuse --locked --offline
+      - name: Build release CLI with audio offline
+        run: cargo build -p rambler-cli --bin rambler --features audio --release --locked --offline
+      - name: Test release CLI finalization timeout on loopback offline
+        env:
+          RAMBLER_TEST_CLI_EXECUTABLE: ${{ github.workspace }}/target/release/rambler${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact
+      - name: Run release synthetic PCM channel example offline
+        run: cargo run -p rambler-audio --example pcm_channel --release --locked --offline
       - name: Test CLI without audio offline
         run: cargo test -p rambler-cli --no-default-features --locked --offline
 
