@@ -356,3 +356,65 @@ ou qu'une autre architecture aurait les mêmes résultats. Il suffit ici pour
 **ne pas conserver** cette optimisation sans preuve d'un gain utile. Une future
 campagne pourrait instrumenter séparément setup/encode natif ou CPU processus,
 avec profilage d'échantillonnage ; aucune telle attribution n'est inventée ici.
+
+## Qualification complémentaire — attribution codec synthétique du 2026-11-15
+
+Le jeu [de preuves typées et mesures brutes](../evidence/rust-codec-attribution-20261115.json)
+concerne Windows, hors ligne, uniquement les trois signaux synthétiques ci-dessus.
+Source mesurée : base `781ae03` et modification non commitée du seul banc ; le
+manifeste de 174 fichiers est identique avant/après. Le gate CI ajouté ensuite
+est distinct, hors de ce manifeste ; CI distante en attente. Le binaire CLI réel
+est inchangé ; aucun appel service ou appareil, credential ou audio réel.
+
+Les 13 phases locales ont réussi : format, 8 tests de l'exemple sur Rust stable
+local 1.99.1 et sur 1.88.0 (5 tests du banc et 3 tests Ogg inclus), 61 tests
+`rambler-audio` réussis et 1 ignoré sur stable, Clippy audio strict et build
+release. Les six preuves legacy ont été validées ; les trois preuves de chacun
+des deux runs d'attribution sont égales aux preuves 20 ms du même build et aux
+trois lignes historiques 20 ms ci-dessus. Les assertions couvrent tous les
+paquets, CRC, séquence et granules, hash décodé après trim, progrès PCM réel,
+EOF source, fermeture et destruction. Le décodeur utilise le même libopus : il
+n'est pas indépendant. Ce n'est pas une preuve ASR, qualité naturelle, WAN,
+endurance ou parité générale.
+
+Chaque run comporte 7 répétitions de 5 opérations pour chacun des 3 signaux ;
+les 14 sommes entières `batch_ns` par signal et étape sont conservées dans le
+JSON. Médiane, minimum et maximum portent sur les 14 moyennes par opération,
+sans exclusion d'outliers ni affirmation de significativité. Un warmup validé
+précède chaque signal ; ordre des lots tournant, ordre des signaux fixe. Les
+validations hors chronomètre influencent les caches ; alimentation, fréquence et
+affinité ne sont pas contrôlées ; les fenêtres très courtes peuvent être dominées
+par l'horloge.
+
+Cinq fenêtres **autonomes** mesurent setup natif, conversion hôte et padding,
+ensemble des appels d'encodage natif avec boucles/wrapper, collecte hôte des
+paquets, puis destruction native. Buffers préalloués et certaines destructions
+hôte sont exclus. Elles ne sont pas additives aux deux totaux du pipeline public,
+qui incluent drainage, yields, collecte, fermeture et sondes de cycle de vie,
+avec observateur de progrès désactivé ou activé. Pas de soustraction résiduelle,
+CPU processus, cycles, nombre d'allocations ou ratio de composants de production.
+Les plages off/on se recouvrent : le surcoût d'observation ne peut pas être
+isolé du bruit.
+
+Pour un clip de 5,0010625 s, les médianes groupées elapsed off sont 103,40125 ms
+(silence), 53,53518 ms (harmonique), 140,80281 ms (bruit) ; les fenêtres
+`native_frames` autonomes correspondantes sont 102,16344, 50,68323 et
+141,12359 ms. Le setup natif autonome est environ 0,017 ms. Ces mesures ne
+justifient aucun changement de production : **NO_CANDIDATE**. Les sources et
+un cache CMake Windows antérieur indiquent une configuration d'accélération,
+mais n'attestent ni l'ISA effectivement liée ni le dispatch exécuté.
+
+Reproduction indicative, hors compilation concurrente, avec dépendances déjà
+disponibles localement ; attendre la fin du build avant les deux exécutions
+séquentielles et conserver leurs sorties pour comparer les preuves et temps :
+
+```sh
+cargo +stable test --offline --locked -p rambler-audio --example profile_pipeline
+cargo +stable build --offline --locked --release -p rambler-audio --example profile_pipeline
+./target/release/examples/profile_pipeline.exe 3 1 1 80017
+./target/release/examples/profile_pipeline.exe --codec-attribution --repeats 7 --iterations 5 --samples 80017
+./target/release/examples/profile_pipeline.exe --codec-attribution --repeats 7 --iterations 5 --samples 80017
+```
+
+Sur Unix, omettre `.exe` ; le chemin du binaire suppose le target Cargo par
+défaut. Utiliser `cargo +1.88.0 test` pour la vérification MSRV correspondante.
