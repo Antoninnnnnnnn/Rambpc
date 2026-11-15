@@ -394,6 +394,24 @@ mod tests {
         }
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    #[ignore = "reads host public roots; run explicitly with SSL_CERT_FILE and SSL_CERT_DIR absent"]
+    async fn tls_setup_native_public_roots_smoke() {
+        // Read only the OS public trust roots through the production loader:
+        // no private keys/client credentials, network I/O, or trust changes.
+        // This does not qualify a TLS handshake or trust rotation.
+        for name in ["SSL_CERT_FILE", "SSL_CERT_DIR"] {
+            assert!(
+                std::env::var_os(name).is_none(),
+                "native-root smoke requires {name} to be absent in the child environment"
+            );
+        }
+        let tls = blocking_tls_setup(|| build_tls_config(rustls_native_certs::load_native_certs))
+            .await
+            .expect("native public-root TLS configuration must succeed");
+        assert_eq!(tls.alpn_protocols, [b"h2".to_vec()]);
+    }
+
     #[test]
     fn tls_setup_keeps_current_thread_heartbeat_live_while_loader_blocks() {
         let mut gate = BlockingGate::new();

@@ -37,6 +37,31 @@ jobs:
         run: python tools/check_rust_audio_boundary.py
       - name: Test workspace with audio offline
         run: cargo test --workspace --all-features --locked --offline
+      - name: Smoke native public-root TLS configuration offline
+        timeout-minutes: 3
+        shell: python -I {0}
+        run: |
+          import os
+          import subprocess
+
+          # Only the cargo child loses trust overrides; never mutate a Rust test's env.
+          env = os.environ.copy()
+          for name in ("SSL_CERT_FILE", "SSL_CERT_DIR"):
+              env.pop(name, None)
+          test = "connection::tests::tls_setup_native_public_roots_smoke"
+          command = [
+              "cargo", "test", "--workspace", "--lib", "--all-features",
+              "--locked", "--offline", "--", test, "--ignored", "--exact",
+          ]
+          listed = subprocess.run(
+              command + ["--list", "--format", "terse"],
+              env=env, check=True, capture_output=True, text=True,
+          )
+          if listed.stdout.split() != [f"{test}:", "test"]:
+              raise SystemExit("native-root smoke must select exactly one ignored unit test")
+          # Workspace testing already built this binary. The step deadline is not
+          # a promise that a started blocking OS loader can be interrupted.
+          subprocess.run(command, env=env, check=True)
       - name: Test CLI session reuse example offline
         run: cargo test -p rambler-cli --features audio --example session_reuse --locked --offline
       - name: Build release CLI with audio offline

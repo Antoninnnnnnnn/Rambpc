@@ -350,6 +350,24 @@ selecting that executable through the dev-only `RAMBLER_TEST_CLI_EXECUTABLE`
 At that local checkpoint these CI gates were **written only; remote CI NOT_RUN**.
 This historical observation is superseded only for the executed scope below.
 
+## Native public-root smoke — local Windows follow-up
+
+A new opt-in test, `connection::tests::tls_setup_native_public_roots_smoke`,
+loads the host's public trust anchors through the existing blocking setup and
+requires a successful TLS configuration with ALPN exactly `h2`. It prints no
+certificate values/names/hashes and performs no DNS, TCP, handshake or RPC.
+The test is ignored by default; the new CI step removes `SSL_CERT_FILE` and
+`SSL_CERT_DIR` only from the cargo child, verifies exactly one listed ignored
+test, then runs it. It does not mutate a concurrent Rust test's environment.
+
+The exact CI wrapper passes locally on Windows with stable and 1.88: one selected
+test each, six phases including formatting, strict transport Clippy and source
+before/after checks. The production prefix before the test module is unchanged.
+[Local evidence](../evidence/rust-native-roots-windows.json). Native Linux/macOS
+execution of this **new test** is pending its next CI run; the completed matrix
+below predates it. Root loading/configuration is not a verified TLS handshake,
+trust-rotation, provisioning or service-parity claim.
+
 ## Executed remote CI matrix — 2026-11-15
 
 The push on `feat/rust-engine` executed both public workflows at source commit

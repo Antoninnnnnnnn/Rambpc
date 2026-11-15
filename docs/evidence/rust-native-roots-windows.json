@@ -1,0 +1,114 @@
+{
+  "certificate_values_names_or_hashes_published": false,
+  "date": "2026-11-15",
+  "default_workspace_execution": "ignored; explicitly selected in new CI step",
+  "environment_overrides_removed_from_child_only": [
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR"
+  ],
+  "exact_CI_wrapper_sha256": "35e31aadc2969410a6622455f6b90c682cb76a4cb02f9887470242b1256c4d5b",
+  "existing_ALPN": "h2",
+  "limitations": [
+    "Windows only in this report",
+    "native macOS/Linux test pending new CI",
+    "no handshake/trust-rotation proof",
+    "no network/service/device call or authentication/provisioning proof"
+  ],
+  "matrix_CI_followup": "not yet executed for this added test",
+  "native_test": "connection::tests::tls_setup_native_public_roots_smoke",
+  "production_pre_test_module_prefix_unchanged": true,
+  "report_sha256": "445d9ce0115ebc9537396d9b693249a8d5e3216d2f0f7fc24c08e1014485bd43",
+  "schema": 1,
+  "scope": "opt-in test reads public OS trust anchors through existing blocking TLS setup; no DNS/TCP/TLS handshake/RPC/private keys/client credentials",
+  "selected_native_test_passes_per_toolchain": 1,
+  "source_selector": {
+    "coverage": "selected current-tree inputs, not all build inputs",
+    "file_count": 167,
+    "manifest_sha256": "886e0320394aa7d8ba0937916b3b68fea9cbd4299b75b62b68c9f8ff89dae39f"
+  },
+  "status": "passed_windows_native_public_root_configuration_only",
+  "steps": [
+    {
+      "exit": 0,
+      "label": "source-before",
+      "log_sha256": "0257c72c1195647c04a00a5ff7ff7e75d3245097badf8fc2a27f845c28cc0bce",
+      "rust_counts": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 0
+      },
+      "status": "passed"
+    },
+    {
+      "exit": 0,
+      "label": "format",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rust_counts": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 0
+      },
+      "status": "passed"
+    },
+    {
+      "exit": 0,
+      "label": "native-roots-stable",
+      "log_sha256": "a68020488bce03d8df5abdeb2fc730fdaf9fe84687f783c093d293b33dcc2746",
+      "rust_counts": {
+        "failed": 0,
+        "filtered": 52,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 1
+      },
+      "status": "passed"
+    },
+    {
+      "exit": 0,
+      "label": "native-roots-msrv",
+      "log_sha256": "d8267ef6b80357a98ef93c731c2baa76153168b43735e8725422a44f8c8d07d6",
+      "rust_counts": {
+        "failed": 0,
+        "filtered": 52,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 1
+      },
+      "status": "passed"
+    },
+    {
+      "exit": 0,
+      "label": "transport-strict-clippy",
+      "log_sha256": "c510b8cd858215d7578e290bf93c773f0be39d029869fdd8b203554c3d55a9e5",
+      "rust_counts": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 0
+      },
+      "status": "passed"
+    },
+    {
+      "exit": 0,
+      "label": "source-after",
+      "log_sha256": "0257c72c1195647c04a00a5ff7ff7e75d3245097badf8fc2a27f845c28cc0bce",
+      "rust_counts": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 0
+      },
+      "status": "passed"
+    }
+  ],
+  "toolchains": [
+    "stable (local installed selection)",
+    "1.88.0"
+  ]
+}
