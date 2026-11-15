@@ -358,23 +358,28 @@ fn finalize_timeout_cli_defaults_validation_and_category() {
         assert_eq!(defaults.finalize_timeout, None);
         assert_eq!(defaults.timeout, 30);
         assert_eq!(defaults.context_timeout, 2);
-        assert_eq!(
-            common(parse(&["--finalize-timeout", "7"]).unwrap()).finalize_timeout,
-            Some(7)
-        );
-        assert_eq!(
-            common(parse(&["--finalize-timeout", "18446744073709551615"]).unwrap())
-                .finalize_timeout,
-            Some(u64::MAX)
-        );
-        // Like --timeout and --context-timeout, zero parses but is rejected by
-        // Engine preflight (covered by the named engine finalization test).
-        assert_eq!(
-            common(parse(&["--finalize-timeout", "0"]).unwrap()).finalize_timeout,
-            Some(0)
-        );
-        for invalid in ["-1", "1.5", "word", "18446744073709551616"] {
-            assert!(parse(&["--finalize-timeout", invalid]).is_err());
+        for (value, expected) in [("1", 1), ("7", 7), ("18446744073709551615", u64::MAX)] {
+            let budgets = common(
+                parse(&[
+                    "--timeout",
+                    value,
+                    "--context-timeout",
+                    value,
+                    "--finalize-timeout",
+                    value,
+                ])
+                .unwrap(),
+            );
+            assert_eq!(budgets.timeout, expected);
+            assert_eq!(budgets.context_timeout, expected);
+            assert_eq!(budgets.finalize_timeout, Some(expected));
+        }
+        // CLI-only validation: parser tests never open input or connect,
+        // even if a range check regresses. Library validation is unchanged.
+        for flag in ["--timeout", "--context-timeout", "--finalize-timeout"] {
+            for invalid in ["0", "-1", "1.5", "word", "18446744073709551616"] {
+                assert!(parse(&[flag, invalid]).is_err());
+            }
         }
     }
     let value = failure_output(&EngineError::FinalizeTimeout, None);

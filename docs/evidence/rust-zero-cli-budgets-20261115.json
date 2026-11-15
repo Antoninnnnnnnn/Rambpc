@@ -1,0 +1,144 @@
+{
+  "base_commit": "b25b6649f4af2cf0e8f6fd100db3ad9bca011176",
+  "change": "Zero --timeout, --context-timeout and --finalize-timeout fail at clap argument parsing before input/env/network. Positive u64 parsing/defaults and library validation unchanged; not all invalid configurations are covered.",
+  "date": "2026-11-15",
+  "limits": [
+    "No live service, credential values, phone action, runtime kernel changes or crash tests.",
+    "No local Linux/macOS run for this change; added CI gate will test release binary on all existing native jobs.",
+    "Python full suite and whole Rust workspace not re-run locally for this CLI-only change.",
+    "Prior historical failures and qualification scopes unchanged."
+  ],
+  "rejection": {
+    "category": "arguments",
+    "exit": 2,
+    "no_pcm_key_before_open": true,
+    "type": "error"
+  },
+  "scope": "Windows local locked-offline CLI parser and subprocess tests; remote cross-platform follow-up pending",
+  "source": {
+    "changed_relevant_raw_sha256": {
+      ".github/workflows/rust.yml": "202353550c551810c2f5db2909b9dbadb355be55cbf0da7de78570cb06dd206c",
+      "crates/rambler-cli/src/main.rs": "93e90671599668a81510ded0ac7bc13f6e57a35fedb00ef04c7e999e923de61b",
+      "crates/rambler-cli/src/tests.rs": "b81602fa9df22ba856cd3a0622f22f8e2994762293ed5d9b52249ef482d4c37e",
+      "crates/rambler-cli/tests/invalid_budgets.rs": "ae6b177bdf9ec1527452e555ef0386d2b24133afa5ff681e2abedfa983dc4112"
+    },
+    "raw_byte_manifest_sha256": "a7194930eaac63feaa57f4b1305a13e26d0d5343711cc0fd30fedf465af2ed31",
+    "selected_count": 174
+  },
+  "validation": {
+    "controller_sha256": "eee6e1008eb0d52771c3b9c2b2dc16931afb12dde51c670b976e161187983933",
+    "helper_sha256": {
+      "qualify_reliability_windows_r4.py": "70713c92b7a94b8767e0cdec5dea551033ab9a099484a6ab025322eda56c502b",
+      "reliability_inputs_20261115.py": "9c18a45528bb071a2f81b89d6c038576a67dd53fba8084d82af1b2d0372f5b50"
+    },
+    "named_release_tests": 3,
+    "phases": [
+      {
+        "exit": 0,
+        "label": "source-before",
+        "log_bytes": 7237,
+        "log_sha256": "1de00d207d4685607f32e6182bfc6ac778bd3c99f3d46987e1f4b07a4ef0ee6d",
+        "rust_counts": null
+      },
+      {
+        "exit": 0,
+        "label": "format",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "rust_counts": null
+      },
+      {
+        "exit": 0,
+        "label": "cli-audio-stable",
+        "log_bytes": 6637,
+        "log_sha256": "d8d34c940a528a3e1b0a296a2b7c50fd44e274625f1b4e96329d7d50d36b59f3",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 49
+        }
+      },
+      {
+        "exit": 0,
+        "label": "cli-audio-msrv",
+        "log_bytes": 6935,
+        "log_sha256": "d261a5cd07d31259f3216138e64186ac4c6d9c7f1956815c7a5958e2828e2dc8",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 49
+        }
+      },
+      {
+        "exit": 0,
+        "label": "cli-off-stable",
+        "log_bytes": 5762,
+        "log_sha256": "fdc697ab647a425286a522fbf4534365c5fc66786a8c3021896aeb50cac2f825",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 38
+        }
+      },
+      {
+        "exit": 0,
+        "label": "cli-off-msrv",
+        "log_bytes": 5762,
+        "log_sha256": "1a9787905ac3efe98fd0f161442b5110e43f2bbe4c4da87f5b98617d7be8ad69",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 38
+        }
+      },
+      {
+        "exit": 0,
+        "label": "strict-cli-clippy",
+        "log_bytes": 773,
+        "log_sha256": "c00fe5dce718b0141ca65775b86afb5636f8172bee38dbe2d4721ddb83ec2ce5",
+        "rust_counts": null
+      },
+      {
+        "exit": 0,
+        "label": "release-audio-cli",
+        "log_bytes": 154,
+        "log_sha256": "df6fbc75a63e126ae05ba83593dc904d3341dd1b053909fa1d5d11323f2e21ae",
+        "rust_counts": null
+      },
+      {
+        "exit": 0,
+        "label": "release-invalid-budgets",
+        "log_bytes": 543,
+        "log_sha256": "523e8cfbaaf1d3e0f4299139b41a30227db1fed978c1f72d1f7f24990349c5f0",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        }
+      },
+      {
+        "exit": 0,
+        "label": "source-after",
+        "log_bytes": 7237,
+        "log_sha256": "1de00d207d4685607f32e6182bfc6ac778bd3c99f3d46987e1f4b07a4ef0ee6d",
+        "rust_counts": null
+      }
+    ],
+    "release_audio_cli_sha256": "3d1d2916e337419d4f2987084c2d7002cc02b59c2ad07b6e1e0fc91d7507cb8e",
+    "report_sha256": "5382460e7308766c1f4fd25995fa38d6c6cabe801726f8bdbc4315414d5b8dfe",
+    "source_before_after_equal": true,
+    "status": "passed_requested_windows_scope",
+    "test_loop_scope": "Each named budget test exercises dictate and audio-enabled dictate-wav; these loop cases are not additional named tests. Missing input makes a regressed range still fail before any remote connection.",
+    "toolchain_note": "Selectors +stable and +1.88.0; no concrete local stable version inferred without a fresh version log."
+  }
+}

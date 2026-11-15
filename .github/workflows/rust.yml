@@ -52,6 +52,10 @@ jobs:
         env:
           RAMBLER_TEST_CLI_EXECUTABLE: ${{ github.workspace }}/target/release/rambler${{ runner.os == 'Windows' && '.exe' || '' }}
         run: cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact
+      - name: Test release CLI budget rejection before I/O offline
+        env:
+          RAMBLER_TEST_CLI_EXECUTABLE: ${{ github.workspace }}/target/release/rambler${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline
       - name: Run release synthetic PCM channel example offline
         run: cargo run -p rambler-audio --example pcm_channel --release --locked --offline
       - name: Test CLI without audio offline

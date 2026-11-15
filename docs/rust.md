@@ -108,6 +108,16 @@ après l'audio. Leur encodage ne prouve pas leur effet sur le serveur. Ne pas pl
 de texte personnel dans les arguments si l'historique shell/la liste des
 processus peut être consulté.
 
+Pour `--timeout`, `--context-timeout` et `--finalize-timeout`, zéro est rejeté
+à l'analyse des arguments, avant ouverture de l'entrée, lecture des credentials
+d'environnement ou connexion réseau : JSON expurgé `type=error`,
+`category=arguments`, code de sortie 2. Cela ne garantit pas le rejet de toute
+configuration invalide avant connexion. Côté bibliothèque, les durées nulles de
+`SessionOptions` restent des erreurs `EngineError::InvalidConfig` ; l'appelant
+doit attendre `Engine::close().await` pour le nettoyage coopératif, même après
+un rejet. [Validation locale et limites](evidence/rust-zero-cli-budgets-20261115.json) ;
+la nouvelle étape CI vérifie aussi le binaire release sur les plateformes natives.
+
 `ProtocolConfig` expose aussi `block_offensive_words: Option<bool>`,
 `auto_punctuation: Option<bool>` et `secondary_routing: Option<String>`.
 Les trois valeurs par défaut `None` préservent l'init historique octet pour octet.

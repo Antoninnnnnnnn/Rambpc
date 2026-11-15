@@ -55,12 +55,12 @@ struct CommonArgs {
     after: Option<String>,
     #[arg(long)]
     cursor_aware: bool,
-    #[arg(long, default_value_t = 30)]
+    #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..))]
     timeout: u64,
     /// Post-audio finalization budget in seconds, bounded by the overall timeout.
-    #[arg(long)]
+    #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
     finalize_timeout: Option<u64>,
-    #[arg(long, default_value_t = 2)]
+    #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u64).range(1..))]
     context_timeout: u64,
     #[arg(long)]
     bias_term: Vec<String>,
