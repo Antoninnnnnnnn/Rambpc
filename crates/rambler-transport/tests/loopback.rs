@@ -325,7 +325,8 @@ async fn unobserved_late_cleanup_failure_survives_partial_reads_reaping_and_reus
     );
     assert!(matches!(
         transport.close().await,
-        Err(TransportError::Cleanup(_))
+        Err(TransportError::PrimaryAndCleanup(failure))
+            if matches!(failure.primary(), TransportError::Grpc(Code::DataLoss))
     ));
     assert_eq!(closes.load(Ordering::SeqCst), 1);
     transport.close().await.unwrap();
@@ -591,7 +592,8 @@ async fn deadline_outcome_survives_cancelled_observation_and_late_cleanup() {
         release.add_permits(1);
         let error = bounded(transport.close()).await.unwrap_err();
         if fail_close {
-            assert!(matches!(error, TransportError::Cleanup(_)));
+            assert!(matches!(error, TransportError::PrimaryAndCleanup(failure)
+                if matches!(failure.primary(), TransportError::Timeout)));
         } else {
             assert!(matches!(error, TransportError::Timeout));
         }
@@ -1254,7 +1256,7 @@ impl GateProvider {
 }
 
 #[tokio::test]
-async fn exhausted_source_and_enqueued_final_are_not_upload_eof() {
+async fn metadata_pending_is_not_source_exhaustion_or_upload_eof() {
     let server = TestServer::new(echo).await;
     let transport = server.transport().await;
     let provider = Arc::new(GateProvider::new());
@@ -1267,8 +1269,8 @@ async fn exhausted_source_and_enqueued_final_are_not_upload_eof() {
         .unwrap();
     bounded(provider.entered.notified()).await;
     let state = session.completion();
-    assert!(state.source_exhausted && state.source_closed);
-    assert_eq!(state.requests_produced, 1);
+    assert!(!state.source_exhausted && !state.source_closed);
+    assert_eq!(state.requests_produced, 0);
     assert_eq!(state.requests_polled, 0);
     assert!(!state.upload_eof_polled);
     assert!(server.paths.lock().unwrap().is_empty());
@@ -1293,8 +1295,8 @@ async fn request_application_queue_is_capacity_one_without_prefill_requirement()
         .start_with_provider(input, provider.clone(), Duration::from_secs(2))
         .unwrap();
     bounded(provider.entered.notified()).await;
-    // One item queued, one pending send: no unbounded source prefetch.
-    assert_eq!(session.completion().requests_produced, 2);
+    // No source prefetch before metadata success/local stream admission.
+    assert_eq!(session.completion().requests_produced, 0);
     assert_eq!(session.completion().requests_polled, 0);
     assert!(!session.completion().source_exhausted);
     assert!(matches!(
@@ -1526,4 +1528,221 @@ async fn native_http2_backpressure_does_not_exhaust_source() {
     assert!(session.completion().source_closed);
     transport.close().await.unwrap();
     bounded(server.close()).await;
+}
+
+// Keep exact caller object identities, without granting formatting/error-chain
+// access to their private contents.
+struct DoubleFaultSource {
+    primary: Option<SourceError>,
+    cleanup: SourceError,
+    started: CancellationToken,
+    release: Arc<Semaphore>,
+    closes: Arc<AtomicUsize>,
+    reads: Arc<AtomicUsize>,
+    dropped: CancellationToken,
+}
+impl Drop for DoubleFaultSource {
+    fn drop(&mut self) {
+        self.dropped.cancel();
+    }
+}
+impl RequestSource for DoubleFaultSource {
+    fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>> {
+        self.reads.fetch_add(1, Ordering::SeqCst);
+        let error = self
+            .primary
+            .take()
+            .expect("read only on admitted source fault");
+        Box::pin(async move { Err(error) })
+    }
+    fn close(&mut self) -> SourceFuture<'_, Result<(), SourceError>> {
+        self.closes.fetch_add(1, Ordering::SeqCst);
+        self.started.cancel();
+        Box::pin(async move {
+            self.release.acquire().await.unwrap().forget();
+            Err(self.cleanup.clone())
+        })
+    }
+}
+fn double_fault_source() -> DoubleFaultSource {
+    DoubleFaultSource {
+        primary: Some(SourceError::new(CleanupTag(801))),
+        cleanup: SourceError::new(CleanupTag(802)),
+        started: CancellationToken::new(),
+        release: Arc::new(Semaphore::new(0)),
+        closes: Arc::new(AtomicUsize::new(0)),
+        reads: Arc::new(AtomicUsize::new(0)),
+        dropped: CancellationToken::new(),
+    }
+}
+fn assert_double_fault(
+    error: TransportError,
+    primary: Option<&SourceError>,
+    cleanup: &SourceError,
+) {
+    use std::error::Error;
+    assert!(error.source().is_none());
+    assert_eq!(
+        error.to_string(),
+        "session failed and request source cleanup failed"
+    );
+    assert_eq!(
+        format!("{error:?}"),
+        "PrimaryAndCleanup(PrimaryAndCleanup([redacted]))"
+    );
+    let TransportError::PrimaryAndCleanup(failure) = error else {
+        panic!("both failures must survive");
+    };
+    assert!(failure.source().is_none());
+    assert_eq!(format!("{failure:?}"), "PrimaryAndCleanup([redacted])");
+    assert_eq!(
+        failure.to_string(),
+        "session failed and request source cleanup failed"
+    );
+    match (primary, failure.primary()) {
+        (Some(expected), TransportError::Source(actual)) => {
+            assert!(std::ptr::eq(expected.original(), actual.original()));
+        }
+        (None, TransportError::Credentials) => {}
+        (_, other) => panic!("unexpected primary: {other:?}"),
+    }
+    assert!(std::ptr::eq(
+        cleanup.original(),
+        failure.cleanup().original()
+    ));
+    let (_, extracted) = failure.into_parts();
+    assert!(std::ptr::eq(cleanup.original(), extracted.original()));
+}
+
+#[tokio::test]
+async fn raw_opening_or_source_and_cleanup_failures_survive_next_and_finish() {
+    bounded(async {
+        for opening in [false, true] {
+            let server = TestServer::new(echo).await;
+            let transport = server.transport().await;
+            let source = double_fault_source();
+            let primary = source.primary.clone();
+            let cleanup = source.cleanup.clone();
+            let started = source.started.clone();
+            let release = source.release.clone();
+            let closes = source.closes.clone();
+            let reads = source.reads.clone();
+            let mut provider = GateProvider::new();
+            provider.fail = opening;
+            let provider = Arc::new(provider);
+            let mut session = transport
+                .start_with_provider(source, provider.clone(), Duration::from_secs(2))
+                .unwrap();
+            provider.entered.notified().await;
+            assert_eq!(reads.load(Ordering::SeqCst), 0);
+            provider.release.add_permits(1);
+            started.cancelled().await;
+            {
+                let observer = session.next();
+                tokio::pin!(observer);
+                assert!(futures_util::poll!(observer.as_mut()).is_pending());
+            }
+            release.add_permits(1);
+            let expected = if opening { None } else { primary.as_ref() };
+            assert_double_fault(session.next().await.unwrap_err(), expected, &cleanup);
+            assert_double_fault(session.finish().await.unwrap_err(), expected, &cleanup);
+            assert!(session.next().await.unwrap().is_none());
+            assert_eq!(reads.load(Ordering::SeqCst), usize::from(!opening));
+            assert_eq!(closes.load(Ordering::SeqCst), 1);
+            transport.close().await.unwrap();
+            server.close().await;
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn dropped_double_faults_survive_reaping_interrupted_and_concurrent_closes() {
+    bounded(async {
+        let server = TestServer::new(echo).await;
+        let transport = server.transport().await;
+        let mut releases = Vec::new();
+        let mut cleanups = Vec::new();
+        let mut closes = Vec::new();
+        let mut dropped = Vec::new();
+        for _ in 0..2 {
+            let source = double_fault_source();
+            releases.push(source.release.clone());
+            cleanups.push(source.cleanup.clone());
+            closes.push(source.closes.clone());
+            dropped.push(source.dropped.clone());
+            let started = source.started.clone();
+            let mut provider = GateProvider::new();
+            provider.fail = true;
+            provider.release.add_permits(1);
+            let session = transport
+                .start_with_provider(source, Arc::new(provider), Duration::from_secs(2))
+                .unwrap();
+            started.cancelled().await; // Credentials is selected; cleanup pending.
+            drop(session);
+        }
+        releases[0].add_permits(1);
+        dropped[0].cancelled().await; // Finished supervisor, not a scheduling guess.
+        let mut reused = transport
+            .start(
+                source_bytes(b"healthy"),
+                Metadata::default(),
+                Duration::from_secs(2),
+            )
+            .unwrap();
+        reused.finish().await.unwrap(); // Reap first composite without observing it.
+        {
+            let interrupted = transport.close();
+            tokio::pin!(interrupted);
+            assert!(futures_util::poll!(interrupted.as_mut()).is_pending());
+        }
+        releases[1].add_permits(1);
+        let results = futures_util::future::join_all((0..4).map(|_| transport.close())).await;
+        let errors: Vec<_> = results.into_iter().filter_map(Result::err).collect();
+        assert_eq!(errors.len(), 2);
+        let mut delivered = Vec::new();
+        for error in errors {
+            let TransportError::PrimaryAndCleanup(failure) = &error else {
+                panic!("composite lost");
+            };
+            let index = cleanups
+                .iter()
+                .position(|cleanup| std::ptr::eq(cleanup.original(), failure.cleanup().original()))
+                .unwrap();
+            delivered.push(index);
+            assert_double_fault(error, None, &cleanups[index]);
+        }
+        delivered.sort();
+        assert_eq!(delivered, [0, 1]);
+        assert!(closes.iter().all(|count| count.load(Ordering::SeqCst) == 1));
+        transport.close().await.unwrap();
+        server.close().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn explicit_cancel_with_failed_cleanup_is_cleanup_alone_before_admission() {
+    bounded(async {
+        let server = TestServer::new(echo).await;
+        let transport = server.transport().await;
+        let source = double_fault_source();
+        let cleanup = source.cleanup.clone();
+        let reads = source.reads.clone();
+        let closes = source.closes.clone();
+        source.release.add_permits(1);
+        let mut session = transport
+            .start(source, Metadata::default(), Duration::from_secs(2))
+            .unwrap();
+        session.request_cancel();
+        let TransportError::Cleanup(error) = session.finish().await.unwrap_err() else {
+            panic!("cancel must not become composite");
+        };
+        assert!(std::ptr::eq(error.original(), cleanup.original()));
+        assert_eq!(reads.load(Ordering::SeqCst), 0);
+        assert_eq!(closes.load(Ordering::SeqCst), 1);
+        transport.close().await.unwrap();
+        server.close().await;
+    })
+    .await;
 }

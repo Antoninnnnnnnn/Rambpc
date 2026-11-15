@@ -1,0 +1,336 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-15",
+  "scope": "Preserved failed Linux Rust 1.88 qualification attempts; no global Linux qualification claim.",
+  "attempts": [
+    {
+      "id": "linux-r1",
+      "status": "FAILED",
+      "qualified": false,
+      "qualification_exit": 1,
+      "rust_1_88_verified": true,
+      "source_snapshot": {
+        "file_count": 167,
+        "manifest_sha256": "265260764d0d4510a34f6cb64367e0cc13a480a7995d4dbc1a314b805a83d673",
+        "source_bytes": 1869435
+      },
+      "source_before_after_equal": true,
+      "private_report_sha256": "4d46818e1cf7c4cb8144f2a01d5a266fc4b3ab044df579041b8b2d1bf36723a9",
+      "runner_sha256": "551e5088e2d7584a1dbecf49a97716c34e674ea2e6600cd9eb2d4497fc750d0b",
+      "phases": [
+        {
+          "label": "preflight-msrv",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 227,
+            "sha256": "91fcf5ff6c9bbe33d8d7c5e42b0f4b5b14e58233c0b73f3f87d0b67a05dc6c64"
+          }
+        },
+        {
+          "label": "source-transfer",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 129,
+            "sha256": "a1945ce4da086a022d824dfe49cb28540d0f26b0f22e6a008cf3c767efa848c9"
+          }
+        },
+        {
+          "label": "fetch-locked-public",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "label": "python-audio-boundary-unit",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 2825,
+            "sha256": "cdd7a43fcb7a1fc75dcb63efde4ca7e281faf0533eb18b91451d7b25e3e976ad"
+          },
+          "python_counts": {
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "python-dex-methods-unit",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 5840,
+            "sha256": "c0ee77b7cb67de056aa3ad106484574f56591a690416a23b18096fb9d57e8524"
+          },
+          "python_counts": {
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "production-audio-graph",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 91,
+            "sha256": "235cb676ee674a81a0f4097b5e3f040107b71af219aa8a08cfee66043b3029ee"
+          }
+        },
+        {
+          "label": "workspace-all-features",
+          "status": "failed",
+          "actual_exit": 101,
+          "log": {
+            "bytes": 7106,
+            "sha256": "44f383d895bad0dcc5011054005ee54f93cee58fc40feda2c7fc87ce7f861d76"
+          }
+        },
+        {
+          "label": "session-reuse-audio",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "cli-feature-off",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "release-audio-cli",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "release-finalization-cli",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "release-pcm-example",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "pcm-public-smoke",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "binary-hashes",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "source-copy-after",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 129,
+            "sha256": "a1945ce4da086a022d824dfe49cb28540d0f26b0f22e6a008cf3c767efa848c9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "linux-r2",
+      "status": "FAILED",
+      "qualified": false,
+      "qualification_exit": 1,
+      "rust_1_88_verified": true,
+      "source_snapshot": {
+        "file_count": 167,
+        "manifest_sha256": "3059408291b04f4cf79c518b5e6d49cadcb87de5d04e4a5aa78f93679546f87e",
+        "source_bytes": 1882180
+      },
+      "source_before_after_equal": true,
+      "private_report_sha256": "a53ba2f8f0df39846411901cce4b835625fb071480f42efd78180bcc622098c1",
+      "runner_sha256": "90e5437ba904924d52ed32be3e4bc79b5382a9165376f4f8fd3db550fabca617",
+      "phases": [
+        {
+          "label": "preflight-msrv",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 227,
+            "sha256": "91fcf5ff6c9bbe33d8d7c5e42b0f4b5b14e58233c0b73f3f87d0b67a05dc6c64"
+          }
+        },
+        {
+          "label": "source-transfer",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 129,
+            "sha256": "466cc5cea787885e3420275da3b57858277c2d90ab7c7c3085c26a179bd34fcc"
+          }
+        },
+        {
+          "label": "fetch-locked-public",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "label": "workspace-packages-clean",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 60555,
+            "sha256": "5e1b991d316af73003ae302868f37c8a198017e0a224a0be52b6203f444fe168"
+          }
+        },
+        {
+          "label": "python-audio-boundary-unit",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 2825,
+            "sha256": "06e61b60daa0c306bf0d97cd1bd7494e587bfe744a12209d101a0b01a9ecbfbd"
+          },
+          "python_counts": {
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "python-dex-methods-unit",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 5840,
+            "sha256": "f1308bc2031a940783d6096012b7136ae89bcb1ccc366650e8fa4cd0421b4b78"
+          },
+          "python_counts": {
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "label": "production-audio-graph",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 91,
+            "sha256": "235cb676ee674a81a0f4097b5e3f040107b71af219aa8a08cfee66043b3029ee"
+          }
+        },
+        {
+          "label": "workspace-all-features",
+          "status": "completed_with_ignored_tests",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 51249,
+            "sha256": "c252b391bc674ee653a5c558d841d278629d046146ead2af26a9dce7bf94d937"
+          },
+          "rust_counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 1,
+            "measured": 0,
+            "passed": 376
+          }
+        },
+        {
+          "label": "session-reuse-audio",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 2278,
+            "sha256": "ea9b8432f2280c127df77e5995f656e8565bb59e2bb73e0dbefba9a7dc3feabe"
+          },
+          "rust_counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 10
+          }
+        },
+        {
+          "label": "cli-feature-off",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 6676,
+            "sha256": "971c59053f3c9f177bfc823d3ee60f1f4bf048c7f896e14243071605553d30dc"
+          },
+          "rust_counts": {
+            "failed": 0,
+            "filtered_out": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 31
+          }
+        },
+        {
+          "label": "release-audio-cli",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 62,
+            "sha256": "403998d7813def59ff54ef8942a37a928b6a42f3aea6f4660bbd1cdb0d4ebac8"
+          }
+        },
+        {
+          "label": "release-finalization-cli",
+          "status": "failed",
+          "actual_exit": 101,
+          "log": {
+            "bytes": 1119,
+            "sha256": "fdea095db471e3d5cf0a37c6b8aa285b9a7e01e876724a03e897bcac77db2424"
+          },
+          "rust_counts": {
+            "failed": 1,
+            "filtered_out": 0,
+            "ignored": 0,
+            "measured": 0,
+            "passed": 0
+          }
+        },
+        {
+          "label": "release-pcm-example",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "pcm-public-smoke",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "binary-hashes",
+          "status": "not_run",
+          "actual_exit": null
+        },
+        {
+          "label": "source-copy-after",
+          "status": "passed",
+          "actual_exit": 0,
+          "log": {
+            "bytes": 129,
+            "sha256": "466cc5cea787885e3420275da3b57858277c2d90ab7c7c3085c26a179bd34fcc"
+          }
+        }
+      ]
+    }
+  ],
+  "interpretation": [
+    "R1 failed compilation while importing stale workspace library artifacts; later targeted cleanup diagnostics do not change this failed result.",
+    "R2 includes the five-workspace-package cleanup; Rust workspace tests completed, but the actual release executable finalization test failed.",
+    "R2 remaining release PCM phases were not executed; source-copy-after was still verified.",
+    "Any repaired rerun requires a new attempt identity. No source fix or root cause is inferred from the R2 exit status alone."
+  ],
+  "not_claimed": [
+    "Android or live-service parity",
+    "macOS or remote CI qualification",
+    "Linux PyAV qualification",
+    "universal correctness or performance optimality"
+  ]
+}

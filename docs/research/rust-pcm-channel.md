@@ -117,7 +117,11 @@ Les cinq tests se complètent sans réattribuer leurs assertions à chaque cas :
   commençant par OggS : une page OpusHead suffit, sans preuve d'arrivée d'un paquet
   d'échantillons, de CRC ou de durée décodée dans ce cas.**
 
-### Matrice et provenance publiées le15 novembre2026
+### Matrice de la base commitée, publiée le15 novembre2026
+
+Cette qualification appartient à la base intégrée `90a773a`, **pas au lot de
+fiabilité local non commité**. Ses compteurs et hashes sont historiques ; aucune
+relance finale de ce nouveau lot n'est déduite des résultats ci-dessous.
 
 Les exécutions restent datées du **14 novembre2026**, pas du jour de publication.
 Sur chacun de Windows stable, Windows/MSVC1.88 et Linux/WSL1.88 : **310 tests
@@ -129,11 +133,14 @@ valide release CLI audio. Build de l'exemple PCM et smoke release passent sur le
 deux OS :1017 échantillons d'entrée,3051 après trim à48kHz,1 EOS,0 appel service.
 Aucun nouveau comportement production ni dépendance.
 
-Les96 entrées des manifestes Windows/Linux sont strictement identiques et leurs
-hashes correspondent aux fichiers actuels. La preuve publie le digest canonique
-du manifeste complet et les hashes sélectionnés des **deux fichiers CLI réels**,
-des helpers réutilisés et des entrées bibliothèque pertinentes. Hashes des rapports,
-logs et sections Linux sont revérifiés sans relance des builds/tests/binaires.
+Lors de cette publication, les96 entrées des manifestes Windows/Linux étaient
+strictement identiques et leurs hashes correspondaient au snapshot qualifié.
+La preuve publie le digest canonique du manifeste complet et les hashes
+sélectionnés des **deux fichiers CLI réels**, des helpers réutilisés et des entrées
+bibliothèque pertinentes. Hashes des rapports, logs et sections Linux avaient été
+revérifiés sans relance des builds/tests/binaires. Les fichiers modifiés depuis
+nécessitent de nouveaux hashes après la validation finale, pas un report implicite
+de cette ancienne correspondance.
 
 Les deux contre-revues statiques finales n'identifient aucun défaut concret
 bloquant : réservations bloquées/OK précoce absents du fichier normal sont couverts
@@ -153,3 +160,46 @@ ne transforme pas un pair simulé en qualification Google et n'établit aucune
 nouvelle parité Android, intention, disponibilité d'accès ou performance WAN.
 macOS reste non exécuté ; ni les comptes de tests ni les revues ne prouvent un
 moteur parfait ou la parité Gboard complète.
+
+## Contrat de fiabilité local — qualification distincte de la base commitée
+
+Les travaux du15 novembre renforcent la frontière source/transport sans changer
+la signification de `writer.finish()` : il annonce l'EOF du producteur, pas une
+dictée acquittée. Pour les sources audio fournies, un abandon, une troncature ou
+une erreur de lecture reste `Err` aux appels `AudioSource::next()` suivants jusqu'au
+close explicite ; l'encodeur ne fabrique pas d'EOS sain après une telle erreur.
+La libération unique de l'upstream et la persistance de la faute sont deux états
+distincts. Le close conserve sa propre issue de cleanup.
+
+Ne pas confondre cette persistance avec `rambler_transport::Session::next()` :
+celui-ci est volontairement fused après sa première erreur terminale, et son
+`finish()` conserve l'issue. Une paire `TransportError::PrimaryAndCleanup` peut
+préserver les deux causes ; l'engine restaure localement la primaire et conserve
+le cleanup distinct une fois dans son ledger `AudioCleanup`. Annulation explicite
+avec cleanup défaillant reste `Cleanup` au transport.
+
+Le premier `source.next()` attend désormais métadonnées, h2 ready et succès local
+de `send_request`. Cette admission ne prouve ni réception/authentification du pair,
+ni détection d'une perte silencieuse derrière NAT. Un constructeur de source ou un
+producteur indépendant peut déjà avoir travaillé avant le `start` synchrone.
+Une source acceptée est nettoyée une fois même sans premier chunk consommé.
+Un rejet synchrone du transport brut avant `Ok(Session)` ne fait qu'un Drop
+ordinaire ; `Engine::start` supervise le cleanup audio même après rejet pour
+configuration invalide ou moteur fermé. Attendre alors `Engine::close().await`.
+
+`SessionOptions.finalize_timeout: Option<Duration>` (défaut `None`, CLI
+`--finalize-timeout`) fournit un budget qui commence seulement après EOF **et cleanup
+audio réussi**. Il borne contexte, fin d'upload et statut/livraison sous le plafond
+du délai dur de 30 s, qui **inclut la parole**. `Some(Duration::ZERO)` est refusé
+et un budget énorme est plafonné au dur ; aucun faux EOF, `max_audio` ou arrêt
+automatique de la source
+n'est ajouté. Les nettoyages restent attendus coopérativement au-delà des délais.
+
+Toutes les attentes fallibles précèdent désormais le commit terminal privé
+irréversible : un EOF sain publié ne devient plus erreur et `eof_seconds` date
+ce commit réussi, pas le dernier échantillon. Les régressions dédiées et l'état
+Windows/Linux sont séparés des anciens 12 scénarios dans le
+[contrat de fiabilité](rust-reliability-lifecycle.md) ; les 310 tests historiques
+ci-dessus ne qualifient pas ce lot. Aucun rejeu/reconnect automatique, keepalive ou
+gain de performance n'est revendiqué, ni nouvelle qualification Android/ART,
+authentification, COMPOSE, macOS ou service réel.

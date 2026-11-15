@@ -55,6 +55,9 @@ struct CommonArgs {
     cursor_aware: bool,
     #[arg(long, default_value_t = 30)]
     timeout: u64,
+    /// Post-audio finalization budget in seconds, bounded by the overall timeout.
+    #[arg(long)]
+    finalize_timeout: Option<u64>,
     #[arg(long, default_value_t = 2)]
     context_timeout: u64,
     #[arg(long)]
@@ -122,6 +125,7 @@ async fn open_audio(path: PathBuf, kind: InputKind) -> Result<Box<dyn AudioSourc
 fn error_category(e: &EngineError) -> (&'static str, Option<String>) {
     match e {
         EngineError::Transport(TransportError::Grpc(code)) => ("grpc", Some(format!("{code:?}"))),
+        EngineError::FinalizeTimeout => ("finalize_timeout", None),
         EngineError::Transport(TransportError::Timeout) | EngineError::ContextTimeout => {
             ("timeout", None)
         }
@@ -278,6 +282,7 @@ async fn main() {
         after,
         cursor_aware,
         timeout,
+        finalize_timeout,
         context_timeout,
         bias_term,
         preference,
@@ -342,6 +347,7 @@ async fn main() {
         },
         context,
         timeout: Duration::from_secs(timeout),
+        finalize_timeout: finalize_timeout.map(Duration::from_secs),
         context_timeout: Duration::from_secs(context_timeout),
         credentials: if loopback.is_some() {
             None

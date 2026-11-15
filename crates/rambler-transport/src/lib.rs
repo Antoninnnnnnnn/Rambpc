@@ -8,7 +8,10 @@
 //! capacity one. The source must not block a runtime thread, and `next` must be
 //! cancellation-safe: its future can be dropped. `close` is called exactly once,
 //! even before the first `next` poll, and is never cancelled by ordinary session
-//! cancellation, timeout or remote completion. It must eventually finish. Deadline
+//! cancellation, timeout or remote completion. No `next` is called until metadata
+//! succeeds, h2 is ready, and local `send_request` succeeds. This admission is not
+//! server/auth acceptance or proof of delivery; no replay/retry is performed.
+//! `close` must eventually finish. Deadline
 //! bounds RPC work, not cooperative asynchronous cleanup. A paused consumer applies
 //! bounded response backpressure: terminal trailers behind multiple queued responses
 //! can only be observed after draining; the independent deadline still stops upload.
@@ -64,7 +67,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
-    sync::{Mutex as AsyncMutex, mpsc, watch},
+    sync::{Mutex as AsyncMutex, mpsc, oneshot, watch},
     task::JoinHandle,
     time::Instant,
 };
@@ -128,6 +131,9 @@ pub enum TransportError {
     Source(SourceError),
     #[error("request source cleanup failed")]
     Cleanup(SourceError),
+    /// A selected primary failure and a distinct failed source-close attempt.
+    #[error("session failed and request source cleanup failed")]
+    PrimaryAndCleanup(Box<PrimaryAndCleanup>),
     #[error("invalid gRPC response framing or terminal status")]
     Protocol,
     #[error("gRPC response compression is unsupported")]
@@ -135,6 +141,46 @@ pub enum TransportError {
     #[error("session supervisor failed")]
     Supervisor,
 }
+
+/// Double failure with explicit, opt-in access to both causes. Construction is
+/// private: the primary is never cancellation, cleanup, or another composite.
+/// Formatting and the automatic error chain never expose either caller error.
+#[derive(Clone)]
+pub struct PrimaryAndCleanup {
+    primary: TransportError,
+    cleanup: SourceError,
+}
+impl PrimaryAndCleanup {
+    fn new(primary: TransportError, cleanup: SourceError) -> Self {
+        debug_assert!(!matches!(
+            primary,
+            TransportError::Cancelled
+                | TransportError::Cleanup(_)
+                | TransportError::PrimaryAndCleanup(_)
+        ));
+        Self { primary, cleanup }
+    }
+    pub fn primary(&self) -> &TransportError {
+        &self.primary
+    }
+    pub fn cleanup(&self) -> &SourceError {
+        &self.cleanup
+    }
+    pub fn into_parts(self) -> (TransportError, SourceError) {
+        (self.primary, self.cleanup)
+    }
+}
+impl fmt::Debug for PrimaryAndCleanup {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("PrimaryAndCleanup([redacted])")
+    }
+}
+impl fmt::Display for PrimaryAndCleanup {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("session failed and request source cleanup failed")
+    }
+}
+impl std::error::Error for PrimaryAndCleanup {}
 
 pub type SourceFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 /// Owned per session. See crate-level cancellation and async cleanup contract.
@@ -187,7 +233,7 @@ impl Default for TransportConfig {
     }
 }
 impl TransportConfig {
-    /// Host[:port], not a URL. An absent port means 443; explicit destination
+    /// `Host[:port]`, not a URL. An absent port means 443; explicit destination
     /// ports must be decimal 1..=65535 (including bracketed IPv6 authorities).
     /// TLS roots come from the OS, with hostname verification.
     pub fn tls(target: impl Into<String>) -> Result<Self, TransportError> {
@@ -656,40 +702,75 @@ impl Drop for Session {
     }
 }
 
+#[derive(Default)]
+struct ProducerOutcome {
+    primary: Option<TransportError>,
+    cleanup: Option<SourceError>,
+}
+impl ProducerOutcome {
+    fn failed(&self) -> bool {
+        self.primary.is_some() || self.cleanup.is_some()
+    }
+    fn compose(self, rpc: Result<(), TransportError>) -> Result<(), TransportError> {
+        // Only errors actually selected by supervision are candidates. Never poll
+        // a hypothetical RPC outcome after source failure or wait for one here.
+        let primary = self.primary.or_else(|| rpc.err());
+        match (primary, self.cleanup) {
+            (Some(TransportError::Cancelled) | None, Some(cleanup)) => {
+                Err(TransportError::Cleanup(cleanup))
+            }
+            (Some(primary), Some(cleanup)) => Err(TransportError::PrimaryAndCleanup(Box::new(
+                PrimaryAndCleanup::new(primary, cleanup),
+            ))),
+            (Some(primary), None) => Err(primary),
+            (None, None) => Ok(()),
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 async fn produce<S: RequestSource>(
     mut source: S,
     sender: mpsc::Sender<Bytes>,
+    admitted: oneshot::Receiver<()>,
     stop: CancellationToken,
     failed: CancellationToken,
     progress: Arc<Progress>,
     limit: usize,
-) -> Result<(), TransportError> {
+) -> ProducerOutcome {
     let mut error = None;
-    loop {
-        if stop.is_cancelled() {
-            break;
-        }
-        let next =
-            tokio::select! { biased; _ = stop.cancelled() => break, item = source.next() => item };
-        let bytes = match next {
-            Ok(Some(bytes)) if bytes.len() <= limit => bytes,
-            Ok(Some(_)) => {
-                error = Some(TransportError::MessageTooLarge);
+    // A closed/failed admission gate still falls through to exactly one close.
+    let admitted = tokio::select! {
+        biased;
+        _ = stop.cancelled() => false,
+        result = admitted => result.is_ok(),
+    };
+    if admitted {
+        loop {
+            if stop.is_cancelled() {
                 break;
             }
-            Ok(None) => {
-                progress.exhausted.store(true, Ordering::SeqCst);
+            let next = tokio::select! { biased; _ = stop.cancelled() => break, item = source.next() => item };
+            let bytes = match next {
+                Ok(Some(bytes)) if bytes.len() <= limit => bytes,
+                Ok(Some(_)) => {
+                    error = Some(TransportError::MessageTooLarge);
+                    break;
+                }
+                Ok(None) => {
+                    progress.exhausted.store(true, Ordering::SeqCst);
+                    break;
+                }
+                Err(e) => {
+                    error = Some(TransportError::Source(e));
+                    break;
+                }
+            };
+            progress.produced.fetch_add(1, Ordering::SeqCst);
+            let sent = tokio::select! { biased; _ = stop.cancelled() => break, sent = sender.send(bytes) => sent };
+            if sent.is_err() {
                 break;
             }
-            Err(e) => {
-                error = Some(TransportError::Source(e));
-                break;
-            }
-        };
-        progress.produced.fetch_add(1, Ordering::SeqCst);
-        let sent = tokio::select! { biased; _ = stop.cancelled() => break, sent = sender.send(bytes) => sent };
-        if sent.is_err() {
-            break;
         }
     }
     drop(sender); // The h2 writer observes EOF independently of source cleanup.
@@ -698,10 +779,10 @@ async fn produce<S: RequestSource>(
     }
     let cleanup = source.close().await;
     progress.closed.store(true, Ordering::SeqCst);
-    if let Some(error) = error {
-        return Err(error);
+    ProducerOutcome {
+        primary: error,
+        cleanup: cleanup.err(),
     }
-    cleanup.map_err(TransportError::Cleanup)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -718,9 +799,11 @@ async fn supervise<S: RequestSource>(
     let stop = CancellationToken::new();
     let failed = CancellationToken::new();
     let (sender, receiver) = mpsc::channel(1);
+    let (admit, admitted) = oneshot::channel();
     let writer = produce(
         source,
         sender,
+        admitted,
         stop.clone(),
         failed.clone(),
         progress.clone(),
@@ -737,6 +820,7 @@ async fn supervise<S: RequestSource>(
         deadline,
         responses,
         progress,
+        admit,
     );
     tokio::pin!(writer);
     let mut writer_result = None;
@@ -749,7 +833,7 @@ async fn supervise<S: RequestSource>(
                 _ = tokio::time::sleep_until(deadline) => break Err(TransportError::Timeout.into()),
                 _ = failed.cancelled() => break Err(TransportError::Cancelled.into()),
                 result = &mut writer, if writer_result.is_none() => {
-                    if result.is_err() { writer_result = Some(result); break Err(TransportError::Cancelled.into()); }
+                    if result.failed() { writer_result = Some(result); break Err(TransportError::Cancelled.into()); }
                     writer_result = Some(result);
                 }
                 result = &mut reader => break result,
@@ -761,8 +845,11 @@ async fn supervise<S: RequestSource>(
         Some(result) => result,
         None => writer.await,
     };
-    writer_result.and(result.map_err(wire::RpcError::into_transport))
+    writer_result.compose(result.map_err(wire::RpcError::into_transport))
 }
+
+#[cfg(test)]
+mod admission_tests;
 
 #[cfg(test)]
 mod config_tests {

@@ -119,3 +119,51 @@ async fn interrupt_during_cleanup_discards_completed_result_and_awaits_cleanup()
     assert_eq!(interrupted, Some(true));
     assert!(finished.load(Ordering::SeqCst));
 }
+
+#[test]
+fn finalize_timeout_cli_defaults_validation_and_category() {
+    use super::{Cli, Command};
+    use clap::Parser;
+    let mut commands = vec!["dictate"];
+    if cfg!(feature = "audio") {
+        commands.push("dictate-wav");
+    }
+    for command in commands {
+        let parse = |extra: &[&str]| {
+            let mut args = vec!["rambler", command, "synthetic-input"];
+            args.extend_from_slice(extra);
+            Cli::try_parse_from(args)
+        };
+        let common = |cli: Cli| match cli.command {
+            Command::Dictate { common } => common,
+            #[cfg(feature = "audio")]
+            Command::DictateWav { common, .. } => common,
+        };
+        let defaults = common(parse(&[]).unwrap());
+        assert_eq!(defaults.finalize_timeout, None);
+        assert_eq!(defaults.timeout, 30);
+        assert_eq!(defaults.context_timeout, 2);
+        assert_eq!(
+            common(parse(&["--finalize-timeout", "7"]).unwrap()).finalize_timeout,
+            Some(7)
+        );
+        assert_eq!(
+            common(parse(&["--finalize-timeout", "18446744073709551615"]).unwrap())
+                .finalize_timeout,
+            Some(u64::MAX)
+        );
+        // Like --timeout and --context-timeout, zero parses but is rejected by
+        // Engine preflight (covered by the named engine finalization test).
+        assert_eq!(
+            common(parse(&["--finalize-timeout", "0"]).unwrap()).finalize_timeout,
+            Some(0)
+        );
+        for invalid in ["-1", "1.5", "word", "18446744073709551616"] {
+            assert!(parse(&["--finalize-timeout", invalid]).is_err());
+        }
+    }
+    let value = failure_output(&EngineError::FinalizeTimeout, None);
+    assert_eq!(value["category"], "finalize_timeout");
+    assert!(value["grpc_code"].is_null());
+    assert!(!value.to_string().contains("deadline"));
+}

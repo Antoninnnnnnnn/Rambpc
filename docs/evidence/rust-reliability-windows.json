@@ -1,0 +1,1257 @@
+{
+  "schema_version": 1,
+  "evidence_id": "reliability-windows-20261115-r2",
+  "publication_date": "2026-11-15",
+  "status": "QUALIFIED_WINDOWS_ONLY",
+  "qualified": true,
+  "qualification_scope": "Windows native local synthetic/loopback candidate only",
+  "started_utc": "2026-11-15T08:39:19.754844+00:00",
+  "finished_utc": "2026-11-15T08:42:18.170055+00:00",
+  "platform": "Windows native",
+  "provenance": {
+    "report_name": "reliability-windows-20261115-r2.json",
+    "report_sha256": "c035e425093c12f6238fc977b3c17bc6b5c7fdfc256fbca7666aaa7e0443aa5e",
+    "report_bytes": 95251,
+    "report_hash_recomputed": true,
+    "base_commit": "90a773a1680821a5667652fc3445da11a0007d7b",
+    "runner_sha256_declared": "053402d41eccff2d1bf57efdf5e5f336d258d0ffffa83f6ede95838e76550719",
+    "inputs_helper_sha256_declared": "9c18a45528bb071a2f81b89d6c038576a67dd53fba8084d82af1b2d0372f5b50",
+    "runner_and_helper_rehashed": false,
+    "logs_rehashed": 26,
+    "tests_rerun_for_publication": false
+  },
+  "source_snapshot": {
+    "before_sha256": "265260764d0d4510a34f6cb64367e0cc13a480a7995d4dbc1a314b805a83d673",
+    "after_sha256": "265260764d0d4510a34f6cb64367e0cc13a480a7995d4dbc1a314b805a83d673",
+    "manifest_digest_recomputed": true,
+    "manifest_encoding": "sorted compact ensure_ascii JSON path-to-sha256; no newline",
+    "file_count": 167,
+    "bytes": 1869435,
+    "before_after_file_maps_equal": true,
+    "source_unchanged_reported": true,
+    "changed_paths": [],
+    "current_selected_files_verified": 25,
+    "selected_files_sha256": {
+      ".github/workflows/rust.yml": "6dac8553f26ae262d5be845071343cc5f63e3f35c502d9cbff268ba1c532a3eb",
+      "Cargo.toml": "7343a994d018903abffbace669edd83cdc48aa5f8a3c17fa1e0ece2113a13766",
+      "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+      "crates/rambler-audio/src/encode.rs": "87ae971045d364456476798c31d7509837dbdc45d4282b9f4b84f89ffc30d01c",
+      "crates/rambler-audio/src/lib.rs": "6da954fb117828f833e09c9b4d114763048267f6f86d8bf9a8e02faf9dec500d",
+      "crates/rambler-audio/src/wav.rs": "558da9b48fa890cf8eb1e8a5800012eded6c57b50791eac9836c78f311e95e05",
+      "crates/rambler-audio/tests/independent.rs": "293fb790d698f06d830d5d7e3c5012ce281e639bd5136e8c1c70c376be35170d",
+      "crates/rambler-audio/tests/support/independent_decode.py": "a2b4c14a2a81d96fa46a54ed7f94ef3e4830f4c0172bff4b633850535aa5ecec",
+      "crates/rambler-audio/tests/pcm_input_encoding.rs": "200a4e0754a8edbaea17c8f51f1db3bde8b1a2e07253fa2924dd0391460a78dc",
+      "crates/rambler-audio/tests/pcm_input_model.rs": "59f9e7130a0f9288b34083b54bbee1360c894854cc7b3776e74e939659e2e25f",
+      "crates/rambler-audio/tests/sticky_errors.rs": "fe55d68c4a6fe9e50f317278df9f7abe9fd0db9b11d9705004bddee4bfd28543",
+      "crates/rambler-audio/tests/terminal.rs": "2da58a3abf84375c344b375564d6bcbbf3c8369d396a99e6c768cad90d767bc6",
+      "crates/rambler-cli/src/main.rs": "01260a6a60793bd83751b80774ef0b58bfc15bd945a678a3e4484a3a4dbc7e0f",
+      "crates/rambler-cli/tests/finalization_cli.rs": "939163937a6f522bfe77c0674a6d95e52f6ea34e1c6c3331730e1985b7f35853",
+      "crates/rambler-engine/Cargo.toml": "a3ca5904e27e461495ae062dfbf02a0112fff2336c4852724f4a04cde38d7090",
+      "crates/rambler-engine/src/engine.rs": "07e46b37c2f5c9e475a666a2f07d9c072f4e696b0529462501401a3dde3c2837",
+      "crates/rambler-engine/src/lib.rs": "525dfad19689ced9aef1c5cce1aa72cbd51033213049a2b6f0c3c8327a83c9d6",
+      "crates/rambler-engine/tests/finalization.rs": "3f14a0a10b13af64d405aebc0ef2abfac14c12b9d1bb9c88993456464dbb580f",
+      "crates/rambler-transport/src/lib.rs": "049f9b31dd9b50d4652a722bb30c3721a8bb3db29300501ec2ecdf52533ca450",
+      "crates/rambler-transport/src/connection.rs": "a1ec5a2a937409644c771fce09398a4ae2f4e7bc43243e0500ccec0a2a030f48",
+      "crates/rambler-transport/src/wire.rs": "d1666c1093edf62b65806775e4fc4cef4a2e2795d845575b0e43e45566343f95",
+      "crates/rambler-transport/tests/connection_window.rs": "5fa0c19e21a9a61eee3bae09f94458bfa07b40a1be171f21bddef68c2a53a53f",
+      "tools/check_rust_audio_boundary.py": "2c1bd4129728b25d3b2148c6a2db29461ddea0d35ad5277073e7041ca4954433",
+      "tests/test_rust_audio_boundary.py": "95372a305e97f113a4cc55d499134b4322a942348fd611663003858e72ec54ac",
+      "crates/rambler-audio/examples/pcm_channel.rs": "0b763ecb13ccff9140e9ebe7b778d78f3ed3f1b9c3358eeae70f515fdaf29518"
+    },
+    "scope_note": "167-entry before/after selected-source maps match and their canonical digest was recomputed. Only the 25 published relevant source files were freshly rehashed against the current tree; not a fresh 167-file tree inventory or all build dependencies."
+  },
+  "versions": {
+    "cargo-stable-version": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "rustc-stable-version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "cargo-msrv-version": "cargo 1.88.0 (873a06493 2025-05-10)",
+    "rustc-msrv-version": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+    "cmake-version": "cmake version 3.31.10",
+    "python-version": "Python 3.14.5",
+    "pyav-version": "19.0.2",
+    "pytest-version": "pytest 9.2.0"
+  },
+  "build_settings": {
+    "cargo_incremental": "0",
+    "cargo_net_offline": "true",
+    "cargo_profile_dev_debug": "0",
+    "cargo_profile_test_debug": "0",
+    "rustup_auto_install": "0",
+    "target_directory": "repository target (shared existing artifacts; not a clean build)",
+    "workspace_flags": [
+      "--workspace",
+      "--all-features",
+      "--locked",
+      "--offline"
+    ],
+    "strict_clippy_flags": [
+      "--workspace",
+      "--all-targets",
+      "--all-features",
+      "--locked",
+      "--offline",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "format_flags": [
+      "--all",
+      "--",
+      "--check"
+    ],
+    "rustdoc_flags": [
+      "--workspace",
+      "--all-features",
+      "--no-deps",
+      "--locked",
+      "--offline"
+    ],
+    "rustdoc_environment": "-D warnings",
+    "python_isolated": true,
+    "python_pytest_flags": [
+      "-c",
+      "pyproject.toml",
+      "-v",
+      "-o",
+      "faulthandler_timeout=60",
+      "-o",
+      "pythonpath=src .",
+      "tests",
+      "tools"
+    ],
+    "audio_cli_release_flags": [
+      "--release",
+      "-p",
+      "rambler-cli",
+      "--features",
+      "audio",
+      "--locked",
+      "--offline"
+    ],
+    "minimal_cli_release_flags": [
+      "--release",
+      "-p",
+      "rambler-cli",
+      "--no-default-features",
+      "--locked",
+      "--offline"
+    ],
+    "pcm_example_release_flags": [
+      "--release",
+      "-p",
+      "rambler-audio",
+      "--example",
+      "pcm_channel",
+      "--locked",
+      "--offline"
+    ]
+  },
+  "steps": [
+    {
+      "label": "source-before",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.134,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-source-before.log",
+        "bytes": 6956,
+        "sha256": "01971f94648d17308cbe1a6b6d100d86e099f8879422fcaa31d526d8872c0de8",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "base-commit",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.087,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-base-commit.log",
+        "bytes": 41,
+        "sha256": "6c53a7fbc02a5776f368f3ddce40e85e38512ce1aab428476556ee1e271c8b9a",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "cargo-stable-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.139,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-cargo-stable-version.log",
+        "bytes": 36,
+        "sha256": "c35608815f43d0b8788a9b826fad2bb17384f49fb328dc4fe64da9db5f5ef4d6",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "rustc-stable-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.127,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-rustc-stable-version.log",
+        "bytes": 36,
+        "sha256": "55cd0529c005d3f62869ea6e2271bfa9d5196f56dc65a8be00a371af114a4a98",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "cargo-msrv-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.126,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-cargo-msrv-version.log",
+        "bytes": 36,
+        "sha256": "6c2df3721232c841c6af639c7b1c37c3032fcbf711e4f2914435f97ab5f4dff1",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "rustc-msrv-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.134,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-rustc-msrv-version.log",
+        "bytes": 36,
+        "sha256": "1ac65f1cd11fa83e9530348b787fa3e5bdd85b0f3727099df8bcdf3e24274138",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "cmake-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.109,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-cmake-version.log",
+        "bytes": 92,
+        "sha256": "246a2f1394c1f89d947b498ec32196bac864589d0a4aa532c7990a6e011e9fa8",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "python-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.095,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-python-version.log",
+        "bytes": 15,
+        "sha256": "cf25165865edf0baea5fff58088b4987aa3f34df958a794c11cdf73702d4c9c7",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "pyav-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.25,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-pyav-version.log",
+        "bytes": 8,
+        "sha256": "a154da31379953da30d998629197e251c8e87cdf1eec895eaafa8ff437e2e9d2",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "pytest-version",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.406,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-pytest-version.log",
+        "bytes": 14,
+        "sha256": "161c60678ec68a47b0515612d500b31eb6545ee74a7cef340007c1c4b548a42f",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "workspace-stable",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 50.418,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-workspace-stable.log",
+        "bytes": 41138,
+        "sha256": "152714fbfdea3242c1d855305cd07460976bb4740f27d7b2e24aa689c7590fbe",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 367,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 60
+      }
+    },
+    {
+      "label": "workspace-msrv",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 52.147,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-workspace-msrv.log",
+        "bytes": 41006,
+        "sha256": "913d3a58c1863ba72e5ce04b0131b75a5c23f3a7b7b8825f6d7fd3a094bf9072",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 367,
+          "failed": 0,
+          "ignored": 1,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 60
+      }
+    },
+    {
+      "label": "session-reuse-example",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 5.488,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-session-reuse-example.log",
+        "bytes": 1607,
+        "sha256": "b8251bb54955a0257477a3fc4bfc68cace79e6c73d2f10b6d783f6c9ef950774",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 1
+      }
+    },
+    {
+      "label": "cli-feature-off",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 10.079,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-cli-feature-off.log",
+        "bytes": 4838,
+        "sha256": "e184904c9ba003f93aa1aac05d544f2ffcc897c1d2666d1290e5b62a4142401a",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 31,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 11
+      }
+    },
+    {
+      "label": "strict-clippy",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 4.409,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-strict-clippy.log",
+        "bytes": 450,
+        "sha256": "fc88dfc0d3f05556b44450ff858127d7da8812eebc3fc98b598ab6c425b16eab",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "format",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.677,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-format.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "strict-doc",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 4.031,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-strict-doc.log",
+        "bytes": 750,
+        "sha256": "db87c218ced4482bcb6b89b865eed85e890f21734c660e7b4ffbfec64c81aad2",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "independent-pyav",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 12.438,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-independent-pyav.log",
+        "bytes": 646,
+        "sha256": "e83dd838114d29e8a8476ca0b3b0e1a8e717e227482f7f0b2f08c6f818cc5065",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 1
+      }
+    },
+    {
+      "label": "python-suite",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 13.427,
+      "timeout_seconds": 240,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-python-suite.log",
+        "bytes": 77572,
+        "sha256": "6ed507467a48bcb326197a195d71f126ff3067b2c2f1db302241c86546c55cf1",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 716,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "audio-boundary",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.546,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-audio-boundary.log",
+        "bytes": 92,
+        "sha256": "6b99b6603546d3c7a49034c1a8084c86e72b1326bf56d441e4066d7971586e49",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "release-audio-cli",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 7.4,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-release-audio-cli.log",
+        "bytes": 452,
+        "sha256": "6585d94adbababbe2dbb852e16e5ed6be3735665546e581c3853d149a0af183b",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "finalization-cli-release",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 4.106,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-finalization-cli-release.log",
+        "bytes": 431,
+        "sha256": "6d90f6554a78c615519d98b65ffae9a776a7b4914e0b61ff02fe204ce9283045",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 1
+      }
+    },
+    {
+      "label": "release-pcm-example",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 4.69,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-release-pcm-example.log",
+        "bytes": 360,
+        "sha256": "767b678acef44cd327b33b8f8afc2af0f66319037d9051a29ca38905b0ad5558",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "pcm-public-smoke",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.208,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-pcm-public-smoke.log",
+        "bytes": 94,
+        "sha256": "486ea2dd91040a1edd7bef7ae76d98e1f073afef2bf174a136345620874b4b67",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "release-minimal-cli",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 5.156,
+      "timeout_seconds": 540,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-release-minimal-cli.log",
+        "bytes": 154,
+        "sha256": "cf8ca9bc0209ea2228c7200c33ba240da4ca302420c75d8de4c4ecbc082107eb",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    },
+    {
+      "label": "source-after",
+      "status": "passed",
+      "exit": 0,
+      "actual_process_exit": 0,
+      "elapsed_seconds": 0.107,
+      "timeout_seconds": 30,
+      "capture_failed": false,
+      "timed_out": false,
+      "output_limit_hit": false,
+      "containment_clean_reported": true,
+      "log": {
+        "name": "reliability-windows-20261115-r2-source-after.log",
+        "bytes": 6956,
+        "sha256": "01971f94648d17308cbe1a6b6d100d86e099f8879422fcaa31d526d8872c0de8",
+        "hash_verified": true
+      },
+      "counts": {
+        "rust": {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        "python": {
+          "passed": 0,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xfailed": 0,
+          "xpassed": 0,
+          "deselected": 0
+        },
+        "rust_summary_rows": 0
+      }
+    }
+  ],
+  "results": {
+    "steps_passed": 26,
+    "steps_failed": 0,
+    "workspace_stable": {
+      "toolchain": "1.99.1",
+      "passed": 367,
+      "failed": 0,
+      "ignored": 1
+    },
+    "workspace_msrv": {
+      "toolchain": "1.88.0",
+      "passed": 367,
+      "failed": 0,
+      "ignored": 1
+    },
+    "count_note": "367 passes on each toolchain are repeated executions, not 734 distinct tests; ignored/filtered/skipped/xfailed are not executed passes. Example, feature-off and targeted tests may overlap workspace cases and are not added to a unique-test total.",
+    "session_reuse_example": {
+      "passed": 10,
+      "failed": 0
+    },
+    "cli_feature_off": {
+      "passed": 31,
+      "failed": 0
+    },
+    "independent_pyav": {
+      "rust_tests_passed": 1,
+      "container_cases": 57,
+      "sample_length_cases": 19,
+      "page_duration_cases": 3,
+      "test": "independent_pyav_decodes_complete_ogg_with_exact_preskip_tail_and_eos_trim",
+      "count_note": "One exact explicitly enabled ignored test internally covers 19 x 3 containers; 57 is source-derived, not 57 separately reported test passes."
+    },
+    "full_python": {
+      "passed": 716,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "deselected": 0,
+      "subtests_passed": 259
+    },
+    "strict_clippy_exit": 0,
+    "format_exit": 0,
+    "strict_rustdoc_exit": 0,
+    "release_cli_finalization": {
+      "test": "s3_end_without_grpc_trailers_exits_with_finalize_timeout",
+      "passed": 1,
+      "failed": 0,
+      "expected_error_category": "finalize_timeout",
+      "expected_child_exit": 1,
+      "actual_release_executable_override_reported": true,
+      "child_system_only_path_verified_by_named_test_reported": true,
+      "binary_before_sha256_declared": "ab669150c9eb4aec5e31cc3232a6efdd238252c627dae079434e162f97e1bd11",
+      "binary_after_sha256_declared": "ab669150c9eb4aec5e31cc3232a6efdd238252c627dae079434e162f97e1bd11",
+      "binary_unchanged_reported": true,
+      "qualification_test_exit": 0
+    },
+    "native_pcm_smoke": {
+      "input_samples": 1017,
+      "decoded_samples_48k": 3051,
+      "ogg_eos": 1,
+      "service_calls": 0,
+      "system_only_path_reported": true,
+      "binary_before_sha256_declared": "8ba4fa9c195e13882e1de3730343739c807e3184c9bf6e1f0bdf0be9660bfd1b",
+      "binary_after_sha256_declared": "8ba4fa9c195e13882e1de3730343739c807e3184c9bf6e1f0bdf0be9660bfd1b",
+      "exit": 0
+    },
+    "audio_boundary": {
+      "exit": 0,
+      "toolchain": "stable 1.99.1",
+      "dependency_edges": [
+        "normal",
+        "build"
+      ],
+      "target_selection": "all",
+      "packages_checked": [
+        "rambler-audio",
+        "opus",
+        "opusic-sys"
+      ],
+      "audio_off_absent": true,
+      "audio_on_positive_control_present": true,
+      "scope_note": "Only these exact three package names in production normal/build Cargo graphs were checked. Dev dependencies are excluded; this does not prove absence of every possible audio artifact or implementation."
+    }
+  },
+  "release_binary_identity": {
+    "audio_cli_sha256_before_minimal_overwrite_declared": "ab669150c9eb4aec5e31cc3232a6efdd238252c627dae079434e162f97e1bd11",
+    "minimal_cli_sha256_at_r2_finish_declared": "9ecd583d1e0df8e95cb55b7fdaeadd48604029b286f01b0b5f38c8d055390e32",
+    "pcm_example_sha256_declared": "8ba4fa9c195e13882e1de3730343739c807e3184c9bf6e1f0bdf0be9660bfd1b",
+    "audio_and_minimal_distinct": true,
+    "binaries_freshly_rehashed_for_publication": false,
+    "scope_note": "The actual audio release executable was recorded before and after its finalization test, then the same release CLI location was overwritten by the minimal build. The minimal hash describes the reported final state, not the earlier tested audio binary. No binary was read, run or freshly hashed for this publication; current on-disk identity is not independently asserted."
+  },
+  "historical_attempt": {
+    "evidence": "docs/evidence/rust-reliability-r1-failed.json",
+    "evidence_sha256": "2dda4fbdd37f7136530a2d5bab22fb5ac70890eb69a4b3cf5d370e07a2136cfd",
+    "evidence_hash_recomputed": true,
+    "status": "FAILED",
+    "qualified": false,
+    "failed_steps": 3,
+    "causes": [
+      {
+        "step": "strict-clippy",
+        "exit": 101,
+        "category": "while_immutable_condition"
+      },
+      {
+        "step": "strict-doc",
+        "exit": 101,
+        "category": "unresolved_link"
+      },
+      {
+        "step": "python-suite",
+        "exit": 2,
+        "category": "collection_errors",
+        "collection_errors": 6,
+        "assertion_failures": 0,
+        "missing_import_roots": [
+          "tools",
+          "src"
+        ]
+      }
+    ],
+    "scope_note": "R1 is a separate preserved failed attempt. R2 success does not relabel it; the six initial Python errors were collection errors, not assertion failures. Historical original logs are linked only through the preserved public R1 record and were not rehashed in this R2 publication."
+  },
+  "linux": {
+    "status": "PENDING_NOT_EXECUTED",
+    "executed_for_this_candidate": false,
+    "qualified": false,
+    "scope_note": "Linux qualification for this candidate has not yet executed. This Windows-only evidence is not Linux or cross-platform qualification."
+  },
+  "harness_safeguards": {
+    "all_26_steps_report_clean_job_containment": true,
+    "selftest_execution_evidence_in_this_report": false,
+    "scope_note": "Recorded gate release, empty jobs and absence of capture/cleanup/spawn/containment/time/output-limit errors are harness safeguards, not mathematical sandbox proof. No separate selftest artifact was named by this R2 report; no new selftest execution is claimed."
+  },
+  "limits": [
+    "Local synthetic and loopback Windows evidence only; no actual Rambler remote service or device qualification.",
+    "No language, intent, Android, access-recovery, WAN, perfection or complete-platform claim.",
+    "Static model review is guidance only; host metadata can verify model identity, not test execution. Neither is counted as test evidence here.",
+    "Publication revalidates supplied evidence bytes and the selected current source hashes; it does not rerun qualification, build, launch binaries, access the network or use ADB.",
+    "Only the explicit allowlisted projection is published: no raw logs, PCM, recognition text, payloads, private absolute paths, service/account identifiers or secrets.",
+    "Declared runner/helper and binary hashes are preserved report metadata, not freshly rehashed artifacts; all referenced R2 logs and the referenced reports were rehashed."
+  ]
+}

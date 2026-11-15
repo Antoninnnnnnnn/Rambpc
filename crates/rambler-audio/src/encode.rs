@@ -242,12 +242,13 @@ impl<S: AudioSource> AudioSource for Pcm16Opus<S> {
                     }
                 }
             }
-            // Persist a primary error across cancellation while cleanup awaits.
-            // A failing close remains observable separately via close().
+            // Keep the primary error latched until explicit close, including
+            // across cancellation while cleanup awaits. A failing close remains
+            // observable separately via close().
             let _ = self.upstream.close().await;
             Err(self
                 .failure
-                .take()
+                .clone()
                 .unwrap_or_else(|| SourceError::new(AudioError::Opus)))
         })
     }

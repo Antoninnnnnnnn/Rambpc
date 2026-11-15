@@ -591,3 +591,49 @@ async fn deadline_and_interrupted_close_do_not_cut_off_cleanup_or_lose_details()
     transport.close().await.unwrap();
     server.close().await;
 }
+
+struct FailedCredentials;
+impl rambler_transport::MetadataProvider for FailedCredentials {
+    fn metadata(&self) -> rambler_transport::MetadataFuture<'_> {
+        Box::pin(async { Err(TransportError::Credentials) })
+    }
+}
+
+#[tokio::test]
+async fn credentials_primary_does_not_hide_or_duplicate_retained_audio_cleanup() {
+    bounded(async {
+        let server = quiet_server().await;
+        let transport = server.transport().await;
+        let engine = Engine::new(transport.clone());
+        // If next is accidentally called, this distinct source error exposes it.
+        let audio = Audio::new(Some(failure(71)), Some(failure(72)));
+        let closes = audio.closes.clone();
+        let mut session = engine
+            .start(
+                Box::new(audio),
+                SessionOptions {
+                    credentials: Some(Arc::new(FailedCredentials)),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        assert!(matches!(
+            session.next().await,
+            Err(EngineError::Transport(TransportError::Credentials))
+        ));
+        assert_eq!(session.audio_progress().chunks, 0);
+        assert!(!session.audio_progress().eof);
+        assert!(session.audio_progress().cleanup_finished);
+        assert!(!session.audio_progress().cleanup_succeeded);
+        assert!(matches!(
+            session.close().await,
+            Err(EngineError::Transport(TransportError::Credentials))
+        ));
+        assert_private(engine.close().await.unwrap_err(), 72, true);
+        engine.close().await.unwrap();
+        assert_eq!(closes.load(Ordering::SeqCst), 1);
+        transport.close().await.unwrap();
+        server.close().await;
+    })
+    .await;
+}

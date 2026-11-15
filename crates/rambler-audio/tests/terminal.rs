@@ -18,11 +18,23 @@ async fn invalid_config_error_is_terminal_and_explicit_close_never_validates_or_
         );
         if close_before_next {
             audio.close().await.unwrap();
+            assert!(audio.next().await.unwrap().is_none());
         } else {
             assert!(audio.next().await.is_err());
+            // Strengthened terminal semantics: failure stays typed until close,
+            // rather than becoming a healthy EOF on the next pull.
+            assert_eq!(
+                audio
+                    .next()
+                    .await
+                    .unwrap_err()
+                    .original()
+                    .downcast_ref::<AudioError>(),
+                Some(&AudioError::InvalidConfig)
+            );
         }
-        assert!(audio.next().await.unwrap().is_none());
         audio.close().await.unwrap();
+        assert!(audio.next().await.unwrap().is_none());
         audio.close().await.unwrap();
         assert_eq!(stats.closes.load(Ordering::SeqCst), 1);
         assert_eq!(stats.reads.load(Ordering::SeqCst), 0);

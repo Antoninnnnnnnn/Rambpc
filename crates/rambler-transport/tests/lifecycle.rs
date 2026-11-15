@@ -420,7 +420,8 @@ async fn interrupted_shutdown_retains_driver_error_regardless_of_session_observa
         release.add_permits(1);
         let error = bounded(session.finish()).await.unwrap_err();
         if fail_cleanup {
-            assert!(matches!(error, TransportError::Cleanup(_)));
+            assert!(matches!(error, TransportError::PrimaryAndCleanup(failure)
+                if matches!(failure.primary(), TransportError::Grpc(_))));
         } else {
             assert!(matches!(error, TransportError::Grpc(_)));
         }
@@ -979,7 +980,8 @@ async fn observed_nonfatal_goaway_never_acknowledges_later_driver_failure() {
         release.add_permits(1);
         assert!(matches!(
             bounded(held.finish()).await,
-            Err(TransportError::Cleanup(_))
+            Err(TransportError::PrimaryAndCleanup(failure))
+                if matches!(failure.primary(), TransportError::Grpc(_))
         ));
         counts.assert_closed();
         bounded(server).await.unwrap();
@@ -992,4 +994,61 @@ async fn observed_nonfatal_goaway_never_acknowledges_later_driver_failure() {
         );
         bounded(transport.close()).await.unwrap();
     }
+}
+
+#[tokio::test]
+async fn admitted_zero_data_window_bounds_queue_and_separates_source_from_upload_eof() {
+    bounded(async {
+        for finite in [false, true] {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = listener.local_addr().unwrap();
+            let (ready_tx, ready_rx) = oneshot::channel();
+            let server = tokio::spawn(async move {
+                tokio::time::timeout(Duration::from_secs(4), async move {
+                    let (mut tcp, _) = listener.accept().await.unwrap();
+                    raw_preface(&mut tcp, true).await; // SETTINGS + PING/PONG barrier.
+                    ready_tx.send(()).unwrap();
+                    raw_eof(&mut tcp).await;
+                })
+                .await
+                .expect("bounded zero-window peer");
+            });
+            let transport = GrpcTransport::connect(TransportConfig::loopback(address).unwrap())
+                .await
+                .unwrap();
+            ready_rx.await.unwrap();
+            let frames = if finite { 1 } else { 256 };
+            let input = StreamSource::new(futures_util::stream::iter(
+                (0..frames).map(|_| Ok(Bytes::from_static(b"bounded"))),
+            ));
+            let mut session = transport
+                .start(input, Metadata::default(), Duration::from_secs(2))
+                .unwrap();
+            loop {
+                let completion = session.completion();
+                assert!(completion.requests_produced - completion.requests_polled <= 2);
+                if (finite && completion.source_closed)
+                    || (!finite && completion.requests_produced == 3)
+                {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+            let completion = session.completion();
+            // One frame in the writer, one in the queue, one pending send.
+            assert_eq!(completion.requests_polled, 1);
+            assert_eq!(completion.requests_produced, if finite { 1 } else { 3 });
+            assert_eq!(completion.source_exhausted, finite);
+            assert_eq!(completion.source_closed, finite);
+            assert!(!completion.upload_eof_polled);
+            assert!(matches!(
+                session.cancel().await,
+                Err(TransportError::Cancelled)
+            ));
+            assert!(session.completion().source_closed);
+            transport.close().await.unwrap();
+            server.await.unwrap();
+        }
+    })
+    .await;
 }

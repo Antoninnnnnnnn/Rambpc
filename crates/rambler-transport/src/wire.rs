@@ -273,6 +273,7 @@ async fn read(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn rpc(
     channel: h2::client::SendRequest<Bytes>,
     config: TransportConfig,
@@ -281,6 +282,7 @@ pub(crate) async fn rpc(
     deadline: Instant,
     responses: mpsc::Sender<Bytes>,
     progress: Arc<Progress>,
+    admitted: tokio::sync::oneshot::Sender<()>,
 ) -> Result<(), RpcError> {
     let metadata = provider
         .metadata()
@@ -311,6 +313,8 @@ pub(crate) async fn rpc(
     let mut channel = channel.ready().await?;
     let (response, sender) = channel.send_request(request, false)?;
     let reset = Reset(Arc::new(Mutex::new(sender)));
+    // Local admission only, not peer/auth acceptance or network delivery.
+    let _ = admitted.send(());
     let write = upload(upload_stream, reset.0.clone());
     let read = read(response, config.max_message_bytes, responses, progress);
     tokio::pin!(write, read);
@@ -404,6 +408,7 @@ mod cause_tests {
                 Instant::now() + Duration::from_secs(3),
                 responses,
                 progress,
+                tokio::sync::oneshot::channel().0,
             )
             .await;
             match result {

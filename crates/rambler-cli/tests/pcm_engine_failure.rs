@@ -171,10 +171,10 @@ async fn engine_cancellation_wakes_full_queue_reservation_without_taking_caller_
             .unwrap();
         metadata_entered.acquire().await.unwrap().forget();
 
-        // With metadata held, init fills the transport's one-slot queue and
-        // the first encoder output blocks behind it. After the encoder takes
-        // the initial frame, this second PCM frame therefore stays queued.
-        sender.reserve().await.unwrap().send(frame()).unwrap();
+        // Admission has not happened: no encoder read consumes the initially
+        // queued frame. The following reservation is genuinely pending on it.
+        assert_eq!(session.audio_progress().chunks, 0);
+        assert!(!session.audio_progress().eof);
         let chunk = Bytes::from(vec![0x12; 640]);
         let original = chunk.clone();
         let original_pointer = chunk.as_ptr() as usize;

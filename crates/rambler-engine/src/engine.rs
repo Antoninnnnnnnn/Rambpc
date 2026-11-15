@@ -61,7 +61,14 @@ pub enum ContextInput {
 pub struct SessionOptions {
     pub config: ProtocolConfig,
     pub context: ContextInput,
+    /// Hard overall session budget, including speech, cleanup, and final status.
+    /// Defaults to 30 seconds; asynchronous cleanup is still awaited beyond it.
     pub timeout: Duration,
+    /// Optional budget from audio EOF and successful cleanup through late context,
+    /// upload END, final gRPC status, and successful EOF publication. Never extends
+    /// `timeout` or ends audio.
+    /// Defaults to None; zero is invalid. Overflowing deadlines use the hard cap.
+    pub finalize_timeout: Option<Duration>,
     pub context_timeout: Duration,
     pub credentials: Option<Arc<dyn MetadataProvider>>,
 }
@@ -71,6 +78,7 @@ impl Default for SessionOptions {
             config: ProtocolConfig::default(),
             context: ContextInput::None,
             timeout: Duration::from_secs(30),
+            finalize_timeout: None,
             context_timeout: Duration::from_secs(2),
             credentials: None,
         }
@@ -100,6 +108,7 @@ pub struct SessionMetrics {
     pub response_protobuf_bytes: u64,
     pub elapsed_seconds: f64,
     pub first_response_seconds: Option<f64>,
+    /// Successful EOF commitment, after cleanup and event-queue reservation.
     pub eof_seconds: Option<f64>,
 }
 /// Safe final counters and timings, deliberately excluding session identifiers,
@@ -144,7 +153,8 @@ type DiagnosticSlot = Arc<Mutex<Option<Arc<IncompleteSessionDiagnostic>>>>;
 
 #[derive(Clone, Debug)]
 pub struct EngineEvent {
-    /// None is the unique successful EOF event. Response candidates alone never
+    /// None is the unique successful EOF event. Once published, cancellation or
+    /// deadline expiration cannot revoke success. Response candidates alone never
     /// imply completed dictation, even if their recognition state is final.
     pub response: Option<S3Response>,
     pub metrics: SessionMetrics,
@@ -234,6 +244,129 @@ async fn wait(mut done: watch::Receiver<Option<CleanupOutcome>>) -> CleanupOutco
     }
 }
 
+fn finalize_deadline(start: Instant, budget: Duration, hard: Instant) -> Instant {
+    start.checked_add(budget).unwrap_or(hard).min(hard)
+}
+
+// Failures resolve deadline ties before joining cleanup, so time spent cleaning
+// up cannot replace the primary failure. Prospective success rechecks at commit.
+fn deadline_error(
+    cancelled: bool,
+    now: Instant,
+    hard: Instant,
+    finalize: Option<Instant>,
+) -> Option<EngineError> {
+    if cancelled {
+        Some(EngineError::Cancelled)
+    } else if now >= hard {
+        Some(EngineError::Transport(
+            rambler_transport::TransportError::Timeout,
+        ))
+    } else if finalize.is_some_and(|deadline| now >= deadline) {
+        Some(EngineError::FinalizeTimeout)
+    } else {
+        None
+    }
+}
+
+// Requests.close only closes the retained audio owner. Its cleanup is already
+// memoized in AudioState and delivered by the engine's secondary ledger, so
+// unwrap transport composites locally, never in the public From impl.
+fn restore_source_error(error: EngineError, fault: Option<&EngineError>) -> EngineError {
+    match error {
+        EngineError::Transport(error) => {
+            let primary = match error {
+                rambler_transport::TransportError::PrimaryAndCleanup(failure) => {
+                    failure.into_parts().0
+                }
+                error => error,
+            };
+            match primary {
+                rambler_transport::TransportError::Source(_)
+                | rambler_transport::TransportError::Cleanup(_) => {
+                    fault.cloned().unwrap_or(EngineError::Supervisor)
+                }
+                error => EngineError::from(error),
+            }
+        }
+        error => error,
+    }
+}
+
+fn selected_outcome(
+    result: Result<bool, EngineError>,
+    fault: Option<&EngineError>,
+    cancelled: bool,
+    now: Instant,
+    hard: Instant,
+    finalize: Option<Instant>,
+) -> Result<bool, EngineError> {
+    // Recover the selected primary before deciding whether it is a local timer.
+    // Genuine failures (including remote gRPC DeadlineExceeded) are immutable.
+    let result = result.map_err(|error| restore_source_error(error, fault));
+    if matches!(
+        result,
+        Ok(_)
+            | Err(EngineError::ContextTimeout | EngineError::FinalizeTimeout)
+            | Err(EngineError::Transport(
+                rambler_transport::TransportError::Timeout
+            ))
+    ) && let Some(error) = deadline_error(cancelled, now, hard, finalize)
+    {
+        return Err(error);
+    }
+    result
+}
+
+// Only produced after the successful EOF has been published. Callers must map
+// this marker directly to success, without any further asynchronous cleanup.
+struct Committed;
+
+fn commit_success(
+    cancelled: bool,
+    now: Instant,
+    hard: Instant,
+    finalize: Option<Instant>,
+    publish: impl FnOnce(),
+) -> Result<Committed, EngineError> {
+    if let Some(error) = deadline_error(cancelled, now, hard, finalize) {
+        return Err(error);
+    }
+    publish();
+    Ok(Committed)
+}
+
+async fn reserve_success<'a>(
+    events: &'a mpsc::Sender<EngineEvent>,
+    cancel: &CancellationToken,
+    hard: Instant,
+    finalize: &mut Option<watch::Receiver<Option<Instant>>>,
+) -> Result<mpsc::Permit<'a, EngineEvent>, EngineError> {
+    tokio::select! {
+        biased;
+        _ = cancel.cancelled() => Err(EngineError::Cancelled),
+        _ = tokio::time::sleep_until(hard) => Err(EngineError::Transport(rambler_transport::TransportError::Timeout)),
+        _ = wait_finalization(finalize) => Err(EngineError::FinalizeTimeout),
+        permit = events.reserve() => permit.map_err(|_| EngineError::Cancelled),
+    }
+}
+
+async fn wait_finalization(done: &mut Option<watch::Receiver<Option<Instant>>>) {
+    if let Some(done) = done {
+        loop {
+            let deadline = *done.borrow_and_update();
+            if let Some(deadline) = deadline {
+                tokio::time::sleep_until(deadline).await;
+                return;
+            }
+            if done.changed().await.is_err() {
+                break;
+            }
+        }
+    }
+    std::future::pending::<()>().await;
+}
+
 struct Requests {
     audio: Arc<AudioState>,
     initial: Option<Vec<u8>>,
@@ -244,6 +377,7 @@ struct Requests {
     counts: Arc<Counts>,
     start: Instant,
     deadline: Instant,
+    finalization: Option<(Duration, watch::Sender<Option<Instant>>)>,
     phase: u8,
     fault: Arc<Mutex<Option<EngineError>>>,
 }
@@ -267,13 +401,25 @@ impl Requests {
                         ));
                     }
                     None => {
+                        self.audio.close().await?;
                         self.phase = 2;
+                        if let Some((budget, sender)) = &self.finalization {
+                            sender.send_replace(Some(finalize_deadline(
+                                Instant::now(),
+                                *budget,
+                                self.deadline,
+                            )));
+                        }
                     }
                 },
                 2 => {
-                    self.audio.close().await?;
                     if let ContextInput::Provider(provider) = &self.context {
-                        let remaining = self.deadline.saturating_duration_since(Instant::now());
+                        let deadline = self
+                            .finalization
+                            .as_ref()
+                            .and_then(|(_, sender)| *sender.borrow())
+                            .unwrap_or(self.deadline);
+                        let remaining = deadline.saturating_duration_since(Instant::now());
                         if remaining.is_zero() {
                             return Err(EngineError::ContextTimeout);
                         }
@@ -423,7 +569,12 @@ impl Engine {
         let start = Instant::now();
         let deadline = start.checked_add(options.timeout);
         let preflight = (|| {
-            if options.timeout.is_zero() || options.context_timeout.is_zero() || deadline.is_none()
+            if options.timeout.is_zero()
+                || options.context_timeout.is_zero()
+                || options
+                    .finalize_timeout
+                    .is_some_and(|budget| budget.is_zero())
+                || deadline.is_none()
             {
                 return Err(EngineError::InvalidConfig);
             }
@@ -474,6 +625,13 @@ impl Engine {
         }));
         let counts = Arc::new(Counts::default());
         let fault = Arc::new(Mutex::new(None));
+        let (finalization, finalize_done) = match options.finalize_timeout {
+            Some(budget) => {
+                let (sender, receiver) = watch::channel(None);
+                (Some((budget, sender)), Some(receiver))
+            }
+            None => (None, None),
+        };
         let requests = Requests {
             audio: audio.clone(),
             initial: Some(initial),
@@ -484,6 +642,7 @@ impl Engine {
             counts: counts.clone(),
             start,
             deadline: deadline.unwrap(),
+            finalization,
             phase: 0,
             fault: fault.clone(),
         };
@@ -498,11 +657,12 @@ impl Engine {
             let provider = options
                 .credentials
                 .unwrap_or_else(|| Arc::new(Metadata::default()));
-            let result = supervise(
+            let result = match supervise(
                 transport,
                 requests,
                 provider,
                 options.timeout,
+                finalize_done,
                 cancel,
                 events_tx,
                 counts,
@@ -511,19 +671,23 @@ impl Engine {
                 fault,
                 final_diagnostic,
             )
-            .await;
-            // Includes failed transport start (which takes and then drops Requests).
-            // Idempotent and stable if normal EOF cleanup was already in progress.
-            let cleanup = audio.close().await;
-            let result = match (result, cleanup) {
-                (Ok(()) | Err(EngineError::Cancelled), Err(cleanup)) => Err(cleanup),
-                (Err(primary), Err(cleanup)) => {
-                    if !same_audio_failure(&primary, &cleanup) {
-                        *final_control.secondary.lock().unwrap() = Some(cleanup);
+            .await
+            {
+                Ok(Committed) => Ok(()),
+                Err(primary) => {
+                    // Includes failed transport start (which takes and drops Requests).
+                    // Success already awaited this memoized cleanup before publishing EOF.
+                    match audio.close().await {
+                        Err(cleanup) if matches!(primary, EngineError::Cancelled) => Err(cleanup),
+                        Err(cleanup) => {
+                            if !same_audio_failure(&primary, &cleanup) {
+                                *final_control.secondary.lock().unwrap() = Some(cleanup);
+                            }
+                            Err(primary)
+                        }
+                        Ok(()) => Err(primary),
                     }
-                    Err(primary)
                 }
-                (result, _) => result,
             };
             let _ = sender.send(Some(result));
         });
@@ -682,6 +846,7 @@ async fn supervise(
     requests: Requests,
     provider: Arc<dyn MetadataProvider>,
     timeout: Duration,
+    mut finalize_done: Option<watch::Receiver<Option<Instant>>>,
     cancel: CancellationToken,
     events: mpsc::Sender<EngineEvent>,
     counts: Arc<Counts>,
@@ -689,7 +854,7 @@ async fn supervise(
     id: u64,
     fault: Arc<Mutex<Option<EngineError>>>,
     final_diagnostic: DiagnosticSlot,
-) -> Result<(), EngineError> {
+) -> Result<Committed, EngineError> {
     if cancel.is_cancelled() {
         return Err(EngineError::Cancelled);
     }
@@ -700,12 +865,12 @@ async fn supervise(
             rambler_transport::TransportError::Timeout,
         ));
     }
-    let audio_progress = requests.audio.progress.clone();
+    let audio = requests.audio.clone();
+    let audio_progress = audio.progress.clone();
     let mut rpc = transport.start_with_provider(requests, provider, timeout)?;
     let mut received = 0;
     let mut bytes = 0;
     let mut first = None;
-    let mut eof = None;
     let mut s3_end = false;
     let mut s3_error = None;
     let snapshot = |received, bytes, first, eof| SessionMetrics {
@@ -758,22 +923,28 @@ async fn supervise(
             // Defer the error payload until the final cleanup/join below.
             return Ok(false);
         }
-        eof = Some(start.elapsed().as_secs_f64());
-        events
-            .send(EngineEvent {
-                response: None,
-                metrics: snapshot(received, bytes, first, eof),
-            })
-            .await
-            .map_err(|_| EngineError::Cancelled)?;
+        // Success is only a candidate until cleanup and queue reservation finish.
+        // Publishing EOF here would allow cancellation/deadlines to revoke it.
         Ok(true)
     };
     let result = tokio::select! {
         biased;
         _ = cancel.cancelled() => Err(EngineError::Cancelled),
         _ = tokio::time::sleep_until(deadline) => Err(EngineError::Transport(rambler_transport::TransportError::Timeout)),
+        _ = wait_finalization(&mut finalize_done) => Err(EngineError::FinalizeTimeout),
         result = outcome => result,
     };
+    // Local context/transport timers may wake before the watch waiter is polled.
+    // Resolve their ties now, not after cleanup; selected real failures survive.
+    let finalize = finalize_done.as_ref().and_then(|done| *done.borrow());
+    let result = selected_outcome(
+        result,
+        fault.lock().unwrap().as_ref(),
+        cancel.is_cancelled(),
+        Instant::now(),
+        deadline,
+        finalize,
+    );
     // Always join source cleanup. Cancel can interrupt any event send/response
     // wait; it cannot interrupt this stable cleanup section.
     if result.is_err() {
@@ -783,23 +954,621 @@ async fn supervise(
     let diagnostic = Arc::new(IncompleteSessionDiagnostic {
         saw_s3_end: s3_end,
         completion: rpc.completion(),
-        metrics: DiagnosticMetrics::from(&snapshot(received, bytes, first, eof)),
+        metrics: DiagnosticMetrics::from(&snapshot(received, bytes, first, None)),
     });
     *final_diagnostic.lock().unwrap() = Some(diagnostic.clone());
+    let cleanup = cleanup
+        .map_err(EngineError::from)
+        .map_err(|error| restore_source_error(error, fault.lock().unwrap().as_ref()));
     match result {
-        // Restore an explicitly retained engine-source error without publishing
-        // caller error text. A real late gRPC failure is never hidden by S3 END.
-        Err(EngineError::Transport(rambler_transport::TransportError::Source(_)))
-        | Err(EngineError::Transport(rambler_transport::TransportError::Cleanup(_))) => Err(fault
-            .lock()
-            .unwrap()
-            .clone()
-            .unwrap_or(EngineError::Supervisor)),
         Err(error) => Err(error),
         Ok(false) => {
             cleanup?;
             Err(EngineError::IncompleteSession(diagnostic))
         }
-        Ok(true) => cleanup.map(|_| ()).map_err(Into::into),
+        Ok(true) => {
+            cleanup?;
+            audio.close().await?;
+            let permit = reserve_success(&events, &cancel, deadline, &mut finalize_done).await?;
+            let finalize = finalize_done.as_ref().and_then(|done| *done.borrow());
+            commit_success(
+                cancel.is_cancelled(),
+                Instant::now(),
+                deadline,
+                finalize,
+                || {
+                    let metrics =
+                        snapshot(received, bytes, first, Some(start.elapsed().as_secs_f64()));
+                    *final_diagnostic.lock().unwrap() =
+                        Some(Arc::new(IncompleteSessionDiagnostic {
+                            saw_s3_end: s3_end,
+                            completion: rpc.completion(),
+                            metrics: DiagnosticMetrics::from(&metrics),
+                        }));
+                    // No await or fallible result after this commitment. In
+                    // particular a consumer cancelling upon EOF cannot revoke it.
+                    permit.send(EngineEvent {
+                        response: None,
+                        metrics,
+                    });
+                },
+            )
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "../tests/common/mod.rs"]
+mod test_common;
+
+#[cfg(test)]
+mod finalization_tests {
+    use super::*;
+    use std::cell::Cell;
+
+    fn event(response: Option<S3Response>) -> EngineEvent {
+        EngineEvent {
+            response,
+            metrics: SessionMetrics {
+                session_id: 0,
+                audio: EncodedAudioProgress::default(),
+                requests_produced: 0,
+                request_protobuf_bytes: 0,
+                responses_received: 0,
+                response_protobuf_bytes: 0,
+                elapsed_seconds: 0.0,
+                first_response_seconds: None,
+                eof_seconds: Some(0.0),
+            },
+        }
+    }
+
+    #[test]
+    fn selected_audio_failure_survives_late_cancel_and_expired_deadlines() {
+        // Inject the post-select snapshot deterministically, not a socket race.
+        let now = Instant::now();
+        let original = SourceError::new(std::io::Error::other("private source"));
+        let result = selected_outcome(
+            Err(EngineError::Audio(original.clone())),
+            None,
+            true,
+            now,
+            now,
+            Some(now),
+        );
+        match result {
+            Err(EngineError::Audio(actual)) => {
+                assert!(std::ptr::eq(actual.original(), original.original()));
+            }
+            _ => panic!("selected audio failure was replaced: {result:?}"),
+        }
+    }
+
+    #[test]
+    fn selected_source_and_context_failures_keep_identity_before_deadline_arbitration() {
+        let start = Instant::now();
+        let finalize = start + Duration::from_secs(1);
+        let hard = start + Duration::from_secs(2);
+        let original = SourceError::new(std::io::Error::other("private source"));
+        for primary in [
+            EngineError::Audio(original.clone()),
+            EngineError::AudioCleanup(original.clone()),
+            EngineError::Context(original.clone()),
+        ] {
+            for cancelled in [false, true] {
+                for now in [start, finalize, hard] {
+                    // Direct failures and both transport source wrappers must
+                    // recover the same variant and shared original object.
+                    for selected in [
+                        primary.clone(),
+                        EngineError::Transport(rambler_transport::TransportError::Source(
+                            SourceError::new(primary.clone()),
+                        )),
+                        EngineError::Transport(rambler_transport::TransportError::Cleanup(
+                            SourceError::new(primary.clone()),
+                        )),
+                    ] {
+                        let error = selected_outcome(
+                            Err(selected),
+                            Some(&primary),
+                            cancelled,
+                            now,
+                            hard,
+                            Some(finalize),
+                        )
+                        .unwrap_err();
+                        assert_eq!(
+                            std::mem::discriminant(&error),
+                            std::mem::discriminant(&primary)
+                        );
+                        match error {
+                            EngineError::Audio(actual)
+                            | EngineError::AudioCleanup(actual)
+                            | EngineError::Context(actual) => {
+                                assert!(std::ptr::eq(actual.original(), original.original()));
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn selected_protocol_s3_and_remote_transport_failures_are_not_local_timeouts() {
+        use rambler_transport::TransportError;
+        let now = Instant::now();
+        let s3 = Arc::new(decode_response(b"\x08\x02").unwrap());
+        for cancelled in [false, true] {
+            assert!(matches!(
+                selected_outcome(
+                    Err(EngineError::Protocol(rambler_protocol::Error::Truncated)),
+                    None,
+                    cancelled,
+                    now,
+                    now,
+                    Some(now),
+                ),
+                Err(EngineError::Protocol(rambler_protocol::Error::Truncated))
+            ));
+            match selected_outcome(
+                Err(EngineError::S3(s3.clone())),
+                None,
+                cancelled,
+                now,
+                now,
+                Some(now),
+            ) {
+                Err(EngineError::S3(actual)) => assert!(Arc::ptr_eq(&actual, &s3)),
+                other => panic!("selected S3 error was replaced: {other:?}"),
+            }
+            for primary in [
+                TransportError::Grpc(tonic::Code::DeadlineExceeded),
+                TransportError::Grpc(tonic::Code::Cancelled),
+                TransportError::Protocol,
+                TransportError::Credentials,
+                TransportError::Connect,
+                TransportError::Closed,
+                TransportError::MessageTooLarge,
+            ] {
+                let error = selected_outcome(
+                    Err(EngineError::Transport(primary.clone())),
+                    None,
+                    cancelled,
+                    now,
+                    now,
+                    Some(now),
+                )
+                .unwrap_err();
+                match error {
+                    EngineError::Transport(actual) => {
+                        assert_eq!(
+                            std::mem::discriminant(&actual),
+                            std::mem::discriminant(&primary)
+                        );
+                        if let TransportError::Grpc(code) = primary {
+                            assert!(
+                                matches!(actual, TransportError::Grpc(actual) if actual == code)
+                            );
+                        }
+                    }
+                    _ => panic!("selected transport error was replaced: {error:?}"),
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn selected_candidates_and_local_timers_keep_cancel_hard_finalize_context_priority() {
+        let start = Instant::now();
+        let finalize = start + Duration::from_secs(1);
+        let hard = start + Duration::from_secs(2);
+        let candidates = [
+            Ok(false),
+            Ok(true),
+            Err(EngineError::ContextTimeout),
+            Err(EngineError::FinalizeTimeout),
+            Err(EngineError::Transport(
+                rambler_transport::TransportError::Timeout,
+            )),
+        ];
+        for candidate in candidates {
+            // With no expired global timer, retain the exact local outcome.
+            let unchanged = selected_outcome(candidate.clone(), None, false, start, hard, None);
+            match (&candidate, unchanged) {
+                (Ok(expected), Ok(actual)) => assert_eq!(*expected, actual),
+                (Err(expected), Err(actual)) => {
+                    assert_eq!(
+                        std::mem::discriminant(expected),
+                        std::mem::discriminant(&actual)
+                    );
+                }
+                (_, actual) => panic!("local outcome changed: {actual:?}"),
+            }
+            for (cancelled, at, expected) in [
+                (false, finalize, "finalize"),
+                (false, hard, "hard"),
+                (true, start, "cancel"),
+                (true, hard, "cancel"),
+            ] {
+                let result =
+                    selected_outcome(candidate.clone(), None, cancelled, at, hard, Some(finalize));
+                match expected {
+                    "finalize" => assert!(matches!(result, Err(EngineError::FinalizeTimeout))),
+                    "hard" => assert!(matches!(
+                        result,
+                        Err(EngineError::Transport(
+                            rambler_transport::TransportError::Timeout
+                        ))
+                    )),
+                    _ => assert!(matches!(result, Err(EngineError::Cancelled))),
+                }
+            }
+        }
+        // A restored source timer participates in the same tie rules.
+        for (at, expected_hard) in [(finalize, false), (hard, true)] {
+            let fault = EngineError::ContextTimeout;
+            let result = selected_outcome(
+                Err(EngineError::Transport(
+                    rambler_transport::TransportError::Source(SourceError::new(fault.clone())),
+                )),
+                Some(&fault),
+                false,
+                at,
+                hard,
+                Some(finalize),
+            );
+            if expected_hard {
+                assert!(matches!(
+                    result,
+                    Err(EngineError::Transport(
+                        rambler_transport::TransportError::Timeout
+                    ))
+                ));
+            } else {
+                assert!(matches!(result, Err(EngineError::FinalizeTimeout)));
+            }
+        }
+        assert!(matches!(
+            selected_outcome(
+                Err(EngineError::Cancelled),
+                None,
+                false,
+                hard,
+                hard,
+                Some(finalize)
+            ),
+            Err(EngineError::Cancelled)
+        ));
+    }
+
+    #[tokio::test]
+    async fn selected_composite_restores_source_primary_before_late_cancel() {
+        use super::test_common::{TestServer, bounded};
+        struct FailedSource(SourceError);
+        impl RequestSource for FailedSource {
+            fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>> {
+                Box::pin(async { Err(self.0.clone()) })
+            }
+            fn close(&mut self) -> SourceFuture<'_, Result<(), SourceError>> {
+                Box::pin(async { Err(SourceError::new(std::io::Error::other("private cleanup"))) })
+            }
+        }
+        bounded(async {
+            let server = TestServer::new(|mut request| async move {
+                while let Ok(Some(_)) = request.get_mut().message().await {}
+                std::future::pending().await
+            })
+            .await;
+            let transport = server.transport().await;
+            let original = SourceError::new(std::io::Error::other("private source"));
+            let primary = EngineError::Audio(original.clone());
+            let mut rpc = transport
+                .start(
+                    FailedSource(SourceError::new(primary.clone())),
+                    Metadata::default(),
+                    Duration::from_secs(2),
+                )
+                .unwrap();
+            let composite = rpc.next().await.unwrap_err();
+            assert!(matches!(
+                composite,
+                rambler_transport::TransportError::PrimaryAndCleanup(_)
+            ));
+            // A real composite is obtained offline; cancellation/clock state at
+            // the engine decision boundary is injected, not a claimed RPC race.
+            let now = Instant::now();
+            for cancelled in [false, true] {
+                let result = selected_outcome(
+                    Err(EngineError::Transport(composite.clone())),
+                    Some(&primary),
+                    cancelled,
+                    now,
+                    now,
+                    Some(now),
+                );
+                match result {
+                    Err(EngineError::Audio(actual)) => {
+                        assert!(std::ptr::eq(actual.original(), original.original()));
+                    }
+                    other => panic!("composite source primary was replaced: {other:?}"),
+                }
+            }
+            transport.close().await.unwrap();
+            server.close().await;
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn selected_real_failure_is_unobserved_and_claimable_by_control_exactly_once() {
+        let original = SourceError::new(std::io::Error::other("private source"));
+        let now = Instant::now();
+        let outcome = selected_outcome(
+            Err(EngineError::Audio(original.clone())),
+            None,
+            true,
+            now,
+            now,
+            Some(now),
+        )
+        .map(|_| ());
+        let (_sender, done) = watch::channel(Some(outcome));
+        let control = Arc::new(Control {
+            cancel: CancellationToken::new(),
+            done,
+            observed: AtomicBool::new(false),
+            secondary: Mutex::new(None),
+        });
+        let (_events, events) = mpsc::channel(1);
+        let mut session = EngineSession {
+            control: control.clone(),
+            events,
+            captured: Arc::new(Mutex::new(None)),
+            audio_progress: Arc::new(Mutex::new(EncodedAudioProgress::default())),
+            diagnostic: Arc::new(Mutex::new(None)),
+            terminal_delivered: false,
+        };
+        // This is a deterministic helper/control injection, not an end-to-end
+        // reproduction of cancellation landing between select and arbitration.
+        let error = tokio::time::timeout(Duration::from_secs(1), session.close_unobserved())
+            .await
+            .unwrap()
+            .unwrap_err();
+        match error {
+            EngineError::Audio(actual) => {
+                assert!(std::ptr::eq(actual.original(), original.original()))
+            }
+            _ => panic!("close_unobserved discarded a real failure: {error:?}"),
+        }
+        assert!(!control.observed.load(Ordering::SeqCst));
+        assert!(control.needs_tracking());
+        match control.claim_failure() {
+            Some(EngineError::Audio(actual)) => {
+                assert!(std::ptr::eq(actual.original(), original.original()))
+            }
+            other => panic!("unobserved failure was not claimable: {other:?}"),
+        }
+        assert!(control.claim_failure().is_none());
+        assert!(!control.needs_tracking());
+    }
+
+    #[test]
+    fn published_eof_cannot_be_revoked_by_cancel_or_expiration() {
+        let now = Instant::now();
+        let hard = now + Duration::from_secs(30);
+        let finalize = now + Duration::from_secs(1);
+        let logical_now = Cell::new(now);
+        let cancel = CancellationToken::new();
+        let (events, mut receiver) = mpsc::channel(1);
+        let permit = events.try_reserve().unwrap();
+        let result = commit_success(false, logical_now.get(), hard, Some(finalize), || {
+            permit.send(event(None));
+            // Force both changes in the exact publication window. They must not
+            // reclassify the committed result, regardless of executor scheduling.
+            cancel.cancel();
+            logical_now.set(hard + Duration::from_secs(1));
+        });
+        assert!(matches!(result, Ok(Committed)));
+        assert!(matches!(
+            deadline_error(
+                cancel.is_cancelled(),
+                logical_now.get(),
+                hard,
+                Some(finalize)
+            ),
+            Some(EngineError::Cancelled)
+        ));
+        assert!(receiver.try_recv().unwrap().response.is_none());
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::error::TryRecvError::Empty)
+        ));
+        drop(events);
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::error::TryRecvError::Disconnected)
+        ));
+    }
+
+    #[test]
+    fn rejected_commit_never_calls_publisher_and_preserves_priority() {
+        let now = Instant::now();
+        let hard = now + Duration::from_secs(30);
+        let finalize = now + Duration::from_secs(1);
+        for (cancelled, at, expected) in [
+            (false, finalize, "finalize"),
+            (false, hard, "hard"),
+            (true, hard, "cancel"),
+        ] {
+            let published = Cell::new(false);
+            let result =
+                commit_success(cancelled, at, hard, Some(finalize), || published.set(true));
+            assert!(!published.get());
+            match expected {
+                "finalize" => assert!(matches!(result, Err(EngineError::FinalizeTimeout))),
+                "hard" => assert!(matches!(
+                    result,
+                    Err(EngineError::Transport(
+                        rambler_transport::TransportError::Timeout
+                    ))
+                )),
+                _ => assert!(matches!(result, Err(EngineError::Cancelled))),
+            }
+        }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn full_event_queue_expires_without_publishing_eof() {
+        let now = Instant::now();
+        let hard = now + Duration::from_secs(30);
+        let finalize = now + Duration::from_secs(1);
+        let (_sender, done) = watch::channel(Some(finalize));
+        let mut done = Some(done);
+        let cancel = CancellationToken::new();
+        let (events, mut receiver) = mpsc::channel(1);
+        events
+            .send(event(Some(decode_response(b"\x08\x01").unwrap())))
+            .await
+            .unwrap();
+        let result = tokio::time::timeout(
+            Duration::from_secs(2),
+            reserve_success(&events, &cancel, hard, &mut done),
+        )
+        .await
+        .expect("queue reservation exceeded its deadline");
+        assert!(matches!(result, Err(EngineError::FinalizeTimeout)));
+        drop(result);
+        assert_eq!(Instant::now(), finalize);
+        assert!(receiver.try_recv().unwrap().response.is_some());
+        drop(events);
+        assert!(
+            receiver.recv().await.is_none(),
+            "timed out queue contains an EOF"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn ready_permit_does_not_bypass_cancel_hard_or_finalize() {
+        let now = Instant::now();
+        let (events, _receiver) = mpsc::channel(1);
+        let cancel = CancellationToken::new();
+        cancel.cancel();
+        let (_sender, done) = watch::channel(Some(now));
+        let mut done = Some(done);
+        assert!(matches!(
+            reserve_success(&events, &cancel, now, &mut done).await,
+            Err(EngineError::Cancelled)
+        ));
+        let cancel = CancellationToken::new();
+        assert!(matches!(
+            reserve_success(&events, &cancel, now, &mut done).await,
+            Err(EngineError::Transport(
+                rambler_transport::TransportError::Timeout
+            ))
+        ));
+        assert!(matches!(
+            reserve_success(&events, &cancel, now + Duration::from_secs(30), &mut done).await,
+            Err(EngineError::FinalizeTimeout)
+        ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn expiration_after_reservation_still_prevents_eof() {
+        let now = Instant::now();
+        let finalize = now + Duration::from_secs(1);
+        let hard = now + Duration::from_secs(30);
+        let cancel = CancellationToken::new();
+        let (events, mut receiver) = mpsc::channel(1);
+        let permit = reserve_success(&events, &cancel, hard, &mut None)
+            .await
+            .unwrap();
+        tokio::time::advance(Duration::from_secs(1)).await;
+        let result = commit_success(false, Instant::now(), hard, Some(finalize), || {
+            permit.send(event(None));
+        });
+        assert!(matches!(result, Err(EngineError::FinalizeTimeout)));
+        drop(events);
+        assert!(receiver.recv().await.is_none());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn abandoned_consumer_prevents_commit() {
+        let (events, receiver) = mpsc::channel(1);
+        events
+            .send(event(Some(decode_response(b"\x08\x01").unwrap())))
+            .await
+            .unwrap();
+        let cancel = CancellationToken::new();
+        let mut finalize = None;
+        let reservation = reserve_success(
+            &events,
+            &cancel,
+            Instant::now() + Duration::from_secs(30),
+            &mut finalize,
+        );
+        tokio::pin!(reservation);
+        tokio::select! {
+            biased;
+            _ = &mut reservation => panic!("reservation did not wait for the full queue"),
+            _ = tokio::task::yield_now() => {},
+        }
+        drop(receiver);
+        assert!(matches!(reservation.await, Err(EngineError::Cancelled)));
+    }
+
+    // Pure deadline arithmetic: a single immutable clock snapshot is advanced by
+    // explicit values. No timer, socket, scheduler, or wall-clock wait is used.
+    #[test]
+    fn finalize_deadline_min_and_overflow() {
+        let start = Instant::now();
+        let hard = start + Duration::from_secs(30);
+        let eof = start + Duration::from_secs(10);
+        assert_eq!(
+            finalize_deadline(eof, Duration::from_secs(2), hard),
+            start + Duration::from_secs(12)
+        );
+        assert_eq!(finalize_deadline(eof, Duration::from_secs(60), hard), hard);
+        assert!(eof.checked_add(Duration::MAX).is_none());
+        assert_eq!(finalize_deadline(eof, Duration::MAX, hard), hard);
+    }
+
+    #[test]
+    fn finalize_deadline_priority_and_none() {
+        let start = Instant::now();
+        let hard = start + Duration::from_secs(30);
+        let finalize = start + Duration::from_secs(12);
+        assert!(deadline_error(false, start, hard, None).is_none());
+        assert!(deadline_error(false, finalize, hard, None).is_none());
+        assert!(
+            deadline_error(
+                false,
+                finalize - Duration::from_nanos(1),
+                hard,
+                Some(finalize)
+            )
+            .is_none()
+        );
+        assert!(matches!(
+            deadline_error(false, finalize, hard, Some(finalize)),
+            Some(EngineError::FinalizeTimeout)
+        ));
+        assert!(matches!(
+            deadline_error(false, hard, hard, Some(finalize)),
+            Some(EngineError::Transport(
+                rambler_transport::TransportError::Timeout
+            ))
+        ));
+        assert!(matches!(
+            deadline_error(false, hard, hard, Some(hard)),
+            Some(EngineError::Transport(
+                rambler_transport::TransportError::Timeout
+            ))
+        ));
+        assert!(matches!(
+            deadline_error(true, hard, hard, Some(finalize)),
+            Some(EngineError::Cancelled)
+        ));
     }
 }

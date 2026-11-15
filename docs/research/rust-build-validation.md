@@ -156,12 +156,90 @@ et les travaux transport/ledger concernés. Ces lectures comptent comme contexte
 indépendants Sol, **pas comme validations Opus**. L'ancienne attribution nominative
 ne doit pas renforcer artificiellement le niveau de preuve. Les tests et mesures
 réellement exécutés restent inchangés. Les nouvelles tentatives de revue Opus ont
-été arrêtées avant analyse ; aucune erreur de quota n'a été constatée, le routage
-Opus reste à rétablir. Aucune substitution de cette revue n'est annoncée.
-La lecture sans authentification du catalogue du proxy local confirme ensuite
-qu'il annonce GPT et Kimi, mais aucun modèle Claude/Opus. Les variables usuelles
-de sélection/forçage de sous-agent sont absentes de l'environnement contrôlé ;
-aucune inférence supplémentaire ni modification de configuration n'a été tentée.
+été arrêtées avant analyse ; aucune erreur de quota n'a été constatée. **À cette
+date du14 novembre**, le routage Opus restait à rétablir ; aucune substitution de
+cette revue n'était annoncée. La lecture sans authentification du catalogue du
+proxy local confirmait alors qu'il annonçait GPT et Kimi, mais aucun modèle
+Claude/Opus. Les variables usuelles de sélection/forçage de sous-agent étaient
+absentes de l'environnement contrôlé ; aucune inférence supplémentaire ni
+modification de configuration n'avait été tentée dans ce contrôle.
+
+### Routage rétabli et revue réelle — 15 novembre 2026
+
+Après la correction du routage par l'utilisateur, le pilote d'intégration a
+vérifié le modèle effectivement livré par l'hôte :
+`message.model=claude-opus-5-5`. Cette vérification du15 novembre permet d'attribuer
+la **nouvelle** revue architecturale et ses conseils à Opus. Elle ne requalifie
+aucune demande antérieure au correctif : celles dont les métadonnées indiquaient
+Sol restent des revues Sol. L'historique du14 novembre ci-dessus est conservé.
+
+Cette revue/advice est **statique** : le reviewer n'a pas exécuté les tests. Ses
+constats ont fait l'objet de contre-tests locaux par les contributeurs ; cela ne
+constitue ni qualification du service réel ni essai téléphone/réseau réel. Les
+micro-optimisations CPU oneof, OggScratch et mutex ont été écartées comme peu
+prioritaires et non mesurées face aux risques de fiabilité. Aucun gain de vitesse,
+de latence ou de débit WAN n'est attribué à ces propositions non retenues.
+
+### Lot de fiabilité du 15 novembre
+
+Les 310 tests de la base commitée `90a773a` restent historiques. Le lot local
+(admission, erreurs audio sticky, premier poll TCP, fenêtre h2, finalisation)
+dispose désormais de ces résultats sur un même manifeste sélectionné :
+
+| Exécution locale | Workspace | Exemple reuse | CLI sans audio | Statut |
+|---|---:|---:|---:|---|
+| Windows R3, MSVC / stable 1.99.1 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|Qualifié Windows seulement|
+| Windows R3, MSVC / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|Non relancé séparément|Non relancé séparément|Workspace MSRV réussi|
+| Linux R2, WSL2 x86_64 / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|**FAILED** : test CLI release de finalisation|
+
+Windows R3 termine ses 26 étapes avec sortie 0 : Clippy strict all-target/all-feature,
+formatage, rustdoc strict, 716 tests Python, frontière audio normal/build avec
+contrôle positif, builds release CLI avec/sans audio et exemple PCM. Le test PyAV
+ignoré par défaut est activé séparément (un test, 57 conteneurs). Le smoke PCM
+release donne 1017 échantillons d'entrée, 3051 après trim à 48 kHz, un EOS et zéro
+appel service. Le test `s3_end_without_grpc_trailers_exits_with_finalize_timeout`
+passe aussi avec le véritable exécutable release audio, conservé séparément avant
+son remplacement par le build minimal. Ces groupes et les deux toolchains ne
+s'additionnent pas en tests distincts.
+
+La commande de build release audio Linux R2 sort avec succès, mais son test
+`release-finalization-cli` termine en sortie **101**, avec une assertion
+`peer upload was not complete` (0 réussi, 1 échoué). Le diagnostic séparé,
+contre-vérifié, montre que Cargo a réutilisé un **ancien exécutable release** sans
+`--finalize-timeout` : celui-ci rejette les arguments avant tout upload (sortie 2,
+catégorie `arguments`). Le nettoyage par paquet sans `--release` ne couvrait que
+le profil dev ; les dry-runs des deux profils le confirment. Le même test avec
+le binaire debug reconstruit passe, sans qualifier le release. La réparation du
+pilote ajoute le nettoyage des cinq mêmes paquets dans les deux profils, sans
+modifier le moteur ni les caches de dépendances natives.
+
+Les phases release exemple PCM, smoke PCM et hashes binaires finaux de R2 sont
+`not_run` ; R2 reste **FAILED**, même après diagnostic. Les deux groupes Python
+ciblés passent (17 tests frontière audio, 38 tests dex-methods), pas la suite Python
+complète. PyAV, Clippy, fmt et rustdoc n'ont pas été exécutés dans ce lot Linux.
+Le résultat Linux suivant est en attente ; aucune réussite release après réparation
+n'est encore revendiquée.
+
+Les rapports locaux `reliability-windows-20261115-r3.json` (`qualified=true`) et
+`reliability-linux-20261115-r2-private/report.json` (`status=failed`) conservent
+les codes de sortie et le même digest canonique avant/après des **167 fichiers
+sélectionnés**, hors docs/evidence :
+`3059408291b04f4cf79c518b5e6d49cadcb87de5d04e4a5aa78f93679546f87e`.
+Ce sélecteur ne couvre pas toutes les dépendances de build. La
+[preuve Windows R3](../evidence/rust-reliability-windows-r3.json) publie les résultats
+courants ; la [preuve Windows R2](../evidence/rust-reliability-windows.json) reste
+historique. Le [premier échec Windows](../evidence/rust-reliability-r1-failed.json)
+et les [échecs Linux R1/R2](../evidence/rust-reliability-linux-attempts.json) sont
+conservés sans les réétiqueter en succès. L'acceptation du lot Windows/Linux reste
+en attente du prochain résultat Linux et de sa publication.
+
+Le commit terminal place les attentes fallibles avant la publication irréversible
+du succès ; les régressions dédiées passent dans Windows R3. Le
+[contrat de fiabilité](rust-reliability-lifecycle.md) sépare ces preuves finies des
+anciens 12 scénarios et de l'échec transitoire de compilation `tcp-test-final.log`.
+Les limites Android/ART, authentification/provisionnement/révocation, COMPOSE,
+macOS, CI distante et service/WAN restent inchangées. Aucun gain de performance,
+détail propriétaire d'APK, journal privé ou secret n'est publié ici.
 
 ## Written CI matrix, not yet executed
 

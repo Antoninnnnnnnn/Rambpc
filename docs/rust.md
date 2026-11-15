@@ -84,11 +84,22 @@ présentant un pipe comme un fichier. Le délai RPC ne borne pas tous les blocag
 possibles du système de fichiers ou d'un disque défaillant. Voir
 [préflight et régressions](research/rust-file-inputs.md).
 
-Options : `--timeout` (30 s), `--context-timeout` (2 s), ainsi que les listes
-répétables `--bias-term`, `--preference`, `--secondary-language`. Ces dernières
-sont émises à l'init ; le contexte texte est envoyé après l'audio. Leur encodage ne
-prouve pas leur effet sur le serveur. Ne pas placer de texte personnel dans les
-arguments si l'historique shell/la liste des processus peut être consulté.
+Options : `--timeout` (30 s, **parole comprise**), `--context-timeout` (2 s),
+`--finalize-timeout` (optionnel, absent par défaut), ainsi que les listes répétables
+`--bias-term`, `--preference`, `--secondary-language`. Le budget optionnel de
+finalisation commence après EOF et cleanup audio réussi ; il borne contexte,
+fin d'upload et statut/livraison, sans dépasser le délai dur `--timeout`. Zéro est
+refusé ; un budget énorme est plafonné au dur. Aucun `max_audio` ni faux EOF n'est
+ajouté ; le cleanup reste attendu coopérativement même après expiration.
+Le commit terminal irréversible, ses régressions et l'état de qualification
+Windows/Linux sont distingués dans
+[fiabilité et finalisation](research/rust-reliability-lifecycle.md).
+Par exemple `--timeout 150 --finalize-timeout 10` illustre au plus 10 s après
+EOF/cleanup sous 150 s au total, pas un réglage optimal mesuré ni 150 s de parole
+plus 10 s garanties. Les listes sont émises à l'init ; le contexte texte est envoyé
+après l'audio. Leur encodage ne prouve pas leur effet sur le serveur. Ne pas placer
+de texte personnel dans les arguments si l'historique shell/la liste des
+processus peut être consulté.
 
 `ProtocolConfig` expose aussi `block_offensive_words: Option<bool>`,
 `auto_punctuation: Option<bool>` et `secondary_routing: Option<String>`.
@@ -190,9 +201,44 @@ compatible avec `downcast_ref` ; ne pas journaliser ce contenu aveuglément.
 `Engine::connect(TransportConfig)` possède son transport ;
 `Engine::new(transport)` utilise un transport injecté qui reste à fermer par
 l'appelant. `Engine::start(Box<dyn AudioSource>, SessionOptions)` prend la source
-en charge immédiatement. `StreamAudio::new(stream)` adapte un flux de fragments
-`Bytes`. Les implémentations de source doivent coopérer avec l'annulation et leur
-`close` asynchrone doit terminer.
+en charge immédiatement. Avant le premier `source.next()`, le transport attend
+métadonnées valides, h2 ready et succès local de `send_request` ; ce n'est ni une
+acceptation du pair/authentification, ni un health check/détecteur de NAT silencieux.
+Le constructeur de la source peut déjà avoir travaillé avant le `start` synchrone.
+`Engine::start` supervise le nettoyage audio même en cas de configuration invalide
+ou de moteur fermé ; attendre `Engine::close().await` pour terminer ce nettoyage
+également après un rejet. Pour le transport brut, c'est différent : un rejet
+synchrone de `GrpcTransport::start` avant `Ok(Session)` ne transfère pas la source
+au superviseur et relève du Drop Rust ordinaire. Après acceptation, la source est
+nettoyée une fois même sans admission RPC réussie. `StreamAudio::new(stream)`
+adapte un flux de fragments `Bytes`. Les implémentations de source doivent coopérer
+avec l'annulation et leur `close` asynchrone doit terminer.
+
+L'établissement initial résout une fois le DNS et conserve toutes les adresses,
+en alternant les familles. La course TCP de style Happy Eyeballs conserve le
+stagger normal de **250 ms** ; après échec observé, elle accélère avec l'échéance
+`min(échéance prévue, max(dernier lancement + 10 ms, maintenant))`, sans reporter
+un départ programmé. Chaque future épinglée reçoit son premier poll avec le waker
+réel avant tout yield ; le dernier lancement est horodaté **après ce poll**, pas à
+la construction. Ces délais d'**initiation de l'API applicative** sont inspirés du
+[RFC 8305 §5](https://www.rfc-editor.org/rfc/rfc8305.txt) : défaut recommandé 250 ms,
+minimum recommandé 100 ms (`SHOULD`), plancher absolu **10 ms** (`MUST NOT`).
+Ils ne constituent **ni une mesure ni une preuve d'espacement des SYN noyau**,
+ni une conformité RFC 8305 complète : aucune course DNS AAAA/A ni implémentation
+complète de RFC 6724. Aucun gain de performance n'est revendiqué. La course yield
+après initiation pour ne pas masquer le timeout et ferme les perdants avant TLS.
+Le plafond de connexion 10 s par défaut couvre
+DNS/TCP/TLS/h2 et conserve `Timeout` ; environ 41 tentatives bloquées sous ce défaut
+n'est pas une borne pour un timeout utilisateur arbitraire. Nom TLS original,
+racines système et ALPN restent inchangés ; une faute TLS ne déclenche pas une
+autre destination. Ce n'est pas un retry/replay/reconnect de session et aucun
+keepalive/PING n'est ajouté. La [correction de premier poll et ses 19 tests ciblés](research/rust-connection-lifecycle.md#correction-ciblée-du-pacing-tcp--15-novembre-2026)
+est distincte des [résultats intégrés Windows/Linux](research/rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
+Les 13 anciens tests dont l'oracle enregistrait la construction des futures ne
+qualifient pas le premier poll.
+La fenêtre h2 de réception connexion 1 Mio / stream 65 535 octets et les files
+applicatives de capacité un donnent une marge finie, pas une isolation pour N
+streams quelconques ni une borne RSS globale.
 
 Pour du PCM produit progressivement, `rambler_audio::pcm_channel()` fournit un
 producteur unique et une source à composer avec `Pcm16Opus`. Réserver avant de
@@ -204,9 +250,20 @@ Ce helper n'ajoute aucune capture microphone et n'est pas un acquittement d'uplo
 
 `SessionOptions` regroupe la configuration, les délais, un
 `Option<Arc<dyn MetadataProvider>>` et `ContextInput::{None, Static, Provider}`.
-Un provider de contexte est appelé une seule fois, après EOF/nettoyage audio,
-sous le minimum du budget de contexte et du délai restant. Les credentials sont
-injectables par session ; `EnvironmentCredentials` est une implémentation fournie.
+`timeout` vaut 30 s par défaut dès le démarrage, métadonnées/parole/upload/contexte
+compris ; `finalize_timeout: Option<Duration>` vaut `None` par défaut et ne commence
+qu'après EOF audio et cleanup réussi. Son échéance ne dépasse jamais le délai dur,
+même pour une durée énorme ; `Some(Duration::ZERO)` est invalide. Un provider de
+contexte est appelé une seule fois après ce cleanup, sous le minimum de son budget
+de contexte et des délais restants. Les credentials sont injectables par session ;
+`EnvironmentCredentials` est une implémentation fournie. Le commit terminal de ce
+budget et ses preuves sont décrits dans le [contrat de fiabilité](research/rust-reliability-lifecycle.md).
+
+Migration du prototype Rust 0.1 : un littéral exhaustif `SessionOptions` doit
+ajouter `finalize_timeout: None` ou utiliser `..SessionOptions::default()`.
+Les matches exhaustifs doivent aussi couvrir `EngineError::FinalizeTimeout` et
+`TransportError::PrimaryAndCleanup`. Le budget absent préserve le défaut de
+30 s ; les nouvelles causes restent structurées et expurgées à l'affichage.
 
 `collect_dictation(&engine, source, options, limits)` rend une future dont
 l'ownership est établi dès l'appel, même si elle n'est jamais pollée. Elle conserve
@@ -273,10 +330,24 @@ mesure −70,82% de rétention logique sur son banc, pas une baisse RSS garantie
   Une erreur audio primaire observée n'acquitte pas un cleanup secondaire distinct :
   `Engine::close()` peut donc encore retourner `AudioCleanup`, puis `Ok` une fois
   les autres erreurs relevées. Le moteur propriétaire préserve aussi le driver.
+- Les sources audio fournies gardent une faute typée `Err` dans
+  `AudioSource::next()` jusqu'au close explicite ; pas d'EOF/EOS sain fabriqué.
+  À l'inverse, `rambler_transport::Session::next()` est intentionnellement fused
+  après livraison de son erreur terminale et `finish()` conserve cette issue.
+- `TransportError::PrimaryAndCleanup` préserve une primaire et un cleanup distinct,
+  avec construction/champs privés et accès explicite aux deux causes, sans fuite
+  par formatage/chaîne automatique. Annulation explicite avec cleanup défaillant
+  reste `Cleanup`. L'engine défait cette paire seulement pour son adaptateur local
+  et conserve `AudioCleanup` une fois, sans second close ; cela ne change pas la
+  conversion publique générale. La priorité transport d'une faute source observée
+  n'efface pas universellement un délai/une annulation déjà choisi par l'engine.
 - Les files sont bornées ; un consommateur suspendu peut retarder la lecture des
   trailers. Les compteurs d'upload décrivent le travail client, pas un accusé de
-  réception du serveur. `metrics.eof_seconds` marque la fin du consommateur après
-  drainage/nettoyage, **pas** l'instant où les derniers échantillons PCM sont lus.
+  réception du serveur. Toutes les attentes fallibles, nettoyage et réservation
+  de file compris, précèdent le commit privé irréversible. Annulation et délais
+  sont revérifiés juste avant publication : un EOF sain publié ne devient plus
+  erreur et `metrics.eof_seconds` date ce commit réussi, pas le dernier échantillon
+  PCM. Voir [les régressions et la qualification du lot](research/rust-reliability-lifecycle.md).
 - `EngineSession::audio_progress()` et `metrics.audio` comptent les chunks non
   vides et octets encodés réellement rendus à l'engine, l'EOF audio et les flags
   `cleanup_finished`/`cleanup_succeeded`. Ils restent accessibles après une erreur

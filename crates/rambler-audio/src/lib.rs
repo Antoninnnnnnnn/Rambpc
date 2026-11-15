@@ -9,7 +9,11 @@
 //!
 //! Normal EOF closes upstream BEFORE emitting a successful Ogg EOS. All tail
 //! samples and encoder lookahead are flushed; EOS granules trim padding exactly.
-//! Errors and cancellation do not synthesize EOS. `next` tolerates its future
+//! Errors and cancellation do not synthesize EOS. Both sources latch failures:
+//! repeated `next().await` returns the same typed primary error until explicit
+//! `close`, rather than turning a failure into healthy EOF. `Pcm16Opus` also
+//! preserves the original upstream error identity. Cleanup failures remain
+//! separately observable through `close().await`. `next` tolerates its future
 //! being dropped; call `close().await` to await cleanup. `close` is idempotent and
 //! resumes an interrupted upstream close rather than invoking it twice. Drop
 //! releases the native codec synchronously and schedules upstream async cleanup

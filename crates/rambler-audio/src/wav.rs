@@ -179,8 +179,10 @@ impl AudioSource for WavAudio {
                 }
             }
             self.close_file().await;
+            // Cleanup releases the descriptor, but only explicit close clears
+            // the primary failure; later reads must not resemble healthy EOF.
             Err(SourceError::new(
-                self.failure.take().unwrap_or(AudioError::Io),
+                self.failure.clone().unwrap_or(AudioError::Io),
             ))
         })
     }

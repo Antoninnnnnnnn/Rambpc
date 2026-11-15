@@ -54,6 +54,10 @@ pub enum EngineError {
     Closed,
     #[error("session cancelled")]
     Cancelled,
+    /// The optional post-audio budget expired after EOF and successful cleanup,
+    /// before late context, upload END, and final gRPC status all completed.
+    #[error("finalization deadline exceeded")]
+    FinalizeTimeout,
     #[error("context deadline exceeded")]
     ContextTimeout,
     #[error("context provider failed")]

@@ -25,6 +25,24 @@ async fn collect_failure(source: &mut impl AudioSource) -> (Vec<u8>, SourceError
     }
 }
 
+// Strengthened failure semantics: later pulls retain the primary error until
+// explicit close; only then may they report healthy EOF.
+async fn assert_latched_then_close(audio: &mut impl AudioSource, expected: AudioError) {
+    for _ in 0..2 {
+        assert_eq!(
+            audio
+                .next()
+                .await
+                .unwrap_err()
+                .original()
+                .downcast_ref::<AudioError>(),
+            Some(&expected)
+        );
+    }
+    audio.close().await.unwrap();
+    assert!(audio.next().await.unwrap().is_none());
+}
+
 // The caller fills the only queue slot before spawning this future. Signal only
 // after reserve has registered a real pending wait, not after an elapsed delay.
 async fn blocked_reservation(
@@ -112,8 +130,7 @@ async fn abandoned_producer_drains_complete_queued_pcm_without_eos() {
         let mut reference = Pcm16Opus::new(Source::new([pcm]), EncoderConfig::default());
         let reference = packets(&collect(&mut reference).await.unwrap());
         assert_eq!(actual[2..], reference[2..2 + frames]);
-        assert!(audio.next().await.unwrap().is_none());
-        audio.close().await.unwrap();
+        assert_latched_then_close(&mut audio, AudioError::InputAbandoned).await;
     })
     .await
     .unwrap();
@@ -142,8 +159,7 @@ async fn explicit_finish_with_isolated_final_byte_is_truncated_without_eos() {
         );
         assert_eq!(packets(&prefix).len(), 6);
         assert!(pages(&prefix).iter().all(|page| page.flags & 4 == 0));
-        assert!(audio.next().await.unwrap().is_none());
-        audio.close().await.unwrap();
+        assert_latched_then_close(&mut audio, AudioError::TruncatedPcm).await;
     })
     .await
     .unwrap();
@@ -223,8 +239,7 @@ async fn encoder_invalid_config_closes_input_and_wakes_blocked_producer() {
             Some(&AudioError::InvalidConfig)
         );
         assert_eq!(producer.await.unwrap(), Err(PcmInputError::Closed));
-        assert!(audio.next().await.unwrap().is_none());
-        audio.close().await.unwrap();
+        assert_latched_then_close(&mut audio, AudioError::InvalidConfig).await;
     })
     .await
     .unwrap();
