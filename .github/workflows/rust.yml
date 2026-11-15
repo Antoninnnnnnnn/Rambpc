@@ -14,7 +14,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Explicit standard x64 runner; macos-latest currently exercises ARM64.
+        # Scope and image references: docs/research/rust-macos-intel-validation.md
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-26-intel]
         toolchain: ['1.88.0', stable]
     steps:
       - uses: actions/checkout@v4
