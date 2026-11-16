@@ -1,5 +1,24 @@
 # État du moteur — 2026-11-16
 
+## Sérialisation protobuf — gain d'allocations mesuré, CI candidate en attente
+
+Les encodeurs génériques écrivent sans vecteurs temporaires, avec octets, erreurs
+et bornes préservés. Deux runs synthétiques sur le même binaire confirment les
+149 identités et des compteurs identiques ; aucune régression d'appels/tailles
+d'allocation, y compris dans les 11 assemblages complets init/contexte. Init par
+défaut : **60 → 34 appels à l'allocateur** ; avec hints : **102 → 59**. Ce ne sont
+ni des pics mémoire ni une mesure de vitesse du moteur complet/réseau.
+
+Windows passe protocole **75/0/0** et banc **3/0/0** sur stable/1.88, workspace
+stable **411/0/2**, feature-off **38/0/0**, fmt/Clippy strict/build. Le premier
+échec de compilation d'une fixture du banc est conservé, corrigé avant les deux
+mesures. Production modifiée seulement dans les encodeurs de champs ; décodeur,
+requêtes, audio/codec et Cargo inchangés. CLI historique non reconstruite/invoquée,
+budgets inchangés. CI distante non encore exécutée pour ce candidat ; les preuves
+CI plus bas portent sur leurs commits exacts.
+[Contrat et limites](research/rust-wire-encoding-allocation.md) ·
+[Preuve locale et toutes les valeurs brutes](evidence/rust-wire-encoding-allocation-windows-20261116.json).
+
 ## SDK gardé — Linux natif offline et CI qualifiés
 
 La source `aaf56df` passe les **13 jobs CI**, dont huit natifs Windows, Ubuntu,

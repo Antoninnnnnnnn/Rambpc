@@ -18,42 +18,63 @@ pub struct Field {
     pub raw: Vec<u8>,
 }
 
-pub fn encode_varint(mut value: u64) -> Vec<u8> {
-    let mut out = Vec::with_capacity(10);
+fn varint_len(value: u64) -> usize {
+    ((64 - value.leading_zeros()).max(1) as usize).div_ceil(7)
+}
+
+fn push_varint(out: &mut Vec<u8>, mut value: u64) {
     while value >= 128 {
         out.push((value as u8 & 127) | 128);
         value >>= 7;
     }
     out.push(value as u8);
+}
+
+pub fn encode_varint(value: u64) -> Vec<u8> {
+    let mut out = Vec::with_capacity(varint_len(value));
+    push_varint(&mut out, value);
     out
 }
 
-fn key(number: u32, wire_type: u8) -> Result<Vec<u8>, Error> {
+fn key(number: u32, wire_type: u8) -> Result<u64, Error> {
     if !(1..=0x1fff_ffff).contains(&number) {
         return Err(Error::FieldNumber);
     }
-    Ok(encode_varint(
-        (u64::from(number) << 3) | u64::from(wire_type),
-    ))
+    Ok((u64::from(number) << 3) | u64::from(wire_type))
 }
 pub fn varint_field(number: u32, value: u64) -> Result<Vec<u8>, Error> {
-    let mut out = key(number, 0)?;
-    out.extend(encode_varint(value));
+    let key = key(number, 0)?;
+    let total = varint_len(key)
+        .checked_add(varint_len(value))
+        .ok_or(Error::SizeLimit)?;
+    let mut out = Vec::with_capacity(total);
+    push_varint(&mut out, key);
+    push_varint(&mut out, value);
     Ok(out)
 }
 pub fn bytes_field(number: u32, value: &[u8]) -> Result<Vec<u8>, Error> {
+    // Preserve payload-size, field-number, then encoded-size error precedence.
     crate::bounded(value.len())?;
-    let mut out = key(number, 2)?;
-    out.extend(encode_varint(value.len() as u64));
+    let key = key(number, 2)?;
+    let total = value
+        .len()
+        .checked_add(varint_len(key) + varint_len(value.len() as u64))
+        .ok_or(Error::SizeLimit)?;
+    crate::bounded(total)?;
+    let mut out = Vec::with_capacity(total);
+    push_varint(&mut out, key);
+    push_varint(&mut out, value.len() as u64);
     out.extend_from_slice(value);
-    crate::bounded(out.len())?;
     Ok(out)
 }
 pub fn string_field(number: u32, value: &str) -> Result<Vec<u8>, Error> {
     bytes_field(number, value.as_bytes())
 }
 pub(crate) fn fixed32_field(number: u32, value: [u8; 4]) -> Result<Vec<u8>, Error> {
-    let mut out = key(number, 5)?;
+    let key = key(number, 5)?;
+    // A validated key is at most five bytes, so this sum is at most nine.
+    let mut out = Vec::with_capacity(varint_len(key) + value.len());
+    push_varint(&mut out, key);
     out.extend(value);
     Ok(out)
 }
@@ -173,4 +194,29 @@ pub fn parse_fields_with_limits(
         .into_iter()
         .map(RefField::owned)
         .collect())
+}
+
+#[cfg(test)]
+mod encoding_tests {
+    use super::*;
+
+    #[test]
+    fn fixed32_literal_key_widths_and_invalid_numbers() {
+        let value = [0x00, 0xff, 0x80, 0x7f];
+        assert_eq!(
+            fixed32_field(1, value),
+            Ok(vec![0x0d, 0x00, 0xff, 0x80, 0x7f])
+        );
+        assert_eq!(
+            fixed32_field(16, value),
+            Ok(vec![0x85, 0x01, 0x00, 0xff, 0x80, 0x7f])
+        );
+        assert_eq!(
+            fixed32_field(0x1fff_ffff, value),
+            Ok(vec![0xfd, 0xff, 0xff, 0xff, 0x0f, 0x00, 0xff, 0x80, 0x7f])
+        );
+        for number in [0, 0x2000_0000, u32::MAX] {
+            assert_eq!(fixed32_field(number, value), Err(Error::FieldNumber));
+        }
+    }
 }
