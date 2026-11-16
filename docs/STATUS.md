@@ -1,6 +1,35 @@
 # État du moteur — 2026-11-16
 
-## SDK complet derrière admission simulée — Windows qualifié
+## SDK gardé — Linux natif offline et CI qualifiés
+
+La source `aaf56df` passe les **13 jobs CI**, dont huit natifs Windows, Ubuntu,
+macOS ARM64 et Intel × Rust 1.88/stable. Chaque gate de l'exemple passe **9/0/0** ;
+workspace Windows **406/0/2**, autres **407/0/2**. Les 56 groupes de commandes et
+1 516 223 octets de logs sont vérifiés avec provenance, sans sommer les rejeux.
+[Preuve CI](evidence/rust-linux-guarded-loopback-ci-20261116.json).
+
+Une exécution séparée sous Linux x86_64/Rust 1.88 passe les neuf tests et les
+quatre cas du vrai exécutable : no-op, canary public avec SDK/codec/transport
+loopback, entrée invalide et EOF retenu avec arrêt/récupération de l'enfant possédé.
+Trois refus externes d'ouverture d'environ sans lecture, trois propriétés proc
+root et neuf observations de cleanup sont confirmés ; job du pont Windows vérifié
+séparément. Les 178 sources sélectionnées et les binaires restent inchangés.
+[Contrat, historique et preuve native](research/rust-linux-guarded-loopback.md#completed-linux-and-ci-qualification--16-november-2026).
+
+Aucun credential, service réel, téléphone, réservation, crash provoqué ou réglage
+global. Il s'agit d'un exemple de développement à entrée publique fixe, pas d'un
+receiver de secrets ni d'une qualification TLS/ASR : **G1 reste non satisfait et
+Linux live NO_GO**. La qualification Windows ci-dessous est un checkpoint antérieur.
+
+## Contexte applicatif — frontière wire précisée, pas nouvelle fonction inventée
+
+Le chemin Android statique rejoint bien S3 via InputBox1203/champ5, déjà encodé
+par `ProtocolConfig::preferences`. Aucun champ protobuf supplémentaire manquant
+n'est établi. La collecte OS, ses gates et son formatage restent absents ; effet
+serveur et activation runtime non observés. Aucun essai distant ni changement de
+production. [Trace et limites](research/rust-application-context-boundary.md).
+
+## SDK complet derrière admission simulée — Windows qualifié (checkpoint historique)
 
 Le nouvel exemple compose réellement PCM/Opus, Engine et transport vers un pair
 numérique loopback, avec ordre init/audio/contexte/END, CRC/décodage et nettoyage

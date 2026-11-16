@@ -1,6 +1,7 @@
 # Parité Rambler / Gboard : matrice vérifiable
 
-État de l'analyse : 2026-11-14. Jalon sécurité initial : `e427fb1`, sur `4fdf29e` ;
+État initial de l'analyse : 2026-11-14 ; frontière du contexte applicatif précisée
+le 2026-11-16. Jalon sécurité initial : `e427fb1`, sur `4fdf29e` ;
 les API de rendu explicite et conteneurs décrites ici appartiennent au lot suivant.
 Il s'agit d'un **sous-ensemble du client Rambler S3**, pas d'un clone de toute
 l'application Gboard. Un enum décodé n'est pas une fonctionnalité distante validée,
@@ -111,7 +112,7 @@ contrôlées par l'intégrateur.
 |Autres résultats oneof|`aapd.java:34` :1/2,5–13,15,16,18–21 ; champs3/4 indépendants|`active_field`, `active_raw`, inconnus préservés ; **pas de prise en charge sémantique** des variantes opaques.|
 |Extensions futures|Inconnus, fallback aalo, conteneurs5/7 et extension74956225|Raw/inconnus et bornes préservés. Pas de garantie de sémantique d'un futur oneof non connu.|
 |Biais, préférences, langues secondaires|InputBox1203 champs3/5, UserInfo4 ; `ProtocolConfig`|Encodage Rust testé ; dix transports **Python** acceptés, effets limités. Aucun gain général ni activation COMPOSE établi.|
-|Contexte applicatif Android|`ffh-simple.java:2010`, gates X/Y ; wrapper app-info/préférences|Non reproduit comme collecte OS. Les champs de préférences sont exposés ; leur effet serveur n'est pas garanti.|
+|Contexte applicatif Android|`ffh.u` → `user_preferences` → `kmy.o`/`iic.g` → InputBox1203 champ5 ; `ProtocolConfig::preferences` l'encode déjà|[Trace statique jusqu'au sérialiseur](rust-application-context-boundary.md), pas de champ wire manquant établi. Collecte OS/gates/formatage non portés ; activation runtime et effet serveur non observés.|
 |Commandes SEND/CLEAR|`fgc.java:13–30` regex ; `ffh.java:767–781` prend seulement SEND avec IME_ACTION_SEND|`classify_command(S3DefaultPatternsV1, ime_action)` sans effet. SEND exige IME4 ; CLEAR/CLEAR ALL reconnus mais rejetés par la branche. Regex distantes arbitraires non interprétées.|
 |Diffs, espaces, curseur, application|`ffh.E`, AgenticDictationTextEditor|Proposition native sans effet ; pas de copie des heuristiques/fallbacks Android. Contrôle snapshot/révision plus prudent qu'un remplacement concurrent forcé.|
 |MUSE/MUSE_LITE|`ffi.java:21–30`, injection `erz:1895`, `wmr.b` carte vide|Pas d'autre backend distant manquant établi ; changement d'enum peut revenir au fournisseur S3.|

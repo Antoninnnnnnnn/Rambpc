@@ -1,6 +1,50 @@
 # Guarded Linux SDK loopback
 
-## Local Windows qualification — 16 November 2026
+## Completed Linux and CI qualification — 16 November 2026
+
+Source `aaf56df039bec9707597c398ac7bfedb3e29a7de` passes all **13 remote CI
+jobs**: eight native jobs (Windows, Ubuntu, macOS ARM64 and Intel, each on
+Rust 1.88.0 and stable), Rust lint and four Python jobs. Each native job runs
+the explicit **9/0/0** example gate. Workspace counts are **406/0/2** on
+Windows and **407/0/2** elsewhere. Seven command groups per native job give
+56 verified groups, not 56 distinct suites to add; 1,516,223 raw log bytes,
+API provenance, steps and exact example test names were checked.
+[CI evidence](../evidence/rust-linux-guarded-loopback-ci-20261116.json).
+
+A separate supervised Linux x86_64 run on Rust 1.88.0 also passes all nine
+example tests and builds the actual opt-in executable. Four native cases pass:
+
+| Case | Exit | Exact stdout bytes |
+|---|---:|---:|
+| Default no-op | 0 | 0 |
+| Fixed public canary plus EOF, actual SDK loopback | 0 | 38 |
+| Fixed invalid public input plus EOF | 1 | 40 |
+| Fixed canary with EOF withheld, owned SIGKILL and reap | -9 | 17 |
+
+Before sending public input, the nonroot observer without effective, permitted
+or ambient `CAP_SYS_PTRACE` observes three proc-environ open denials and three
+root UID/GID owners, without reading environ bytes. Eight per-command cleanup
+observations and final cleanup all pass; the Windows bridge job is verified
+separately. The 178-file selected-source manifest and both binaries remain
+unchanged. The fixed OK line follows the pinned codec/sample, strict synthetic
+result, terminal, exactly-once upstream close and owner-close checks; those are
+target checks, not independent syscall tracing.
+[Native evidence and artifact hashes](../evidence/rust-linux-guarded-loopback-native-20261116.json).
+
+One pure host preflight failed before any actual driver invocation because a
+Cargo-policy parser was given non-TOML source files. Main corrected that input
+selection, kept the full 178-file source pin and original policy, and pinned the
+absolute Git executable for the restricted PATH. The corrected preflight and
+single actual full driver run pass; the initial failure remains recorded.
+
+These observations qualify only the fixed public, synthetic plaintext-loopback
+example. They establish neither real credential handling nor TLS/service/ASR
+behavior. No credentials, real service calls, phone actions, service reservations,
+deliberate crashes or global settings changes occurred. **G1 remains unmet and
+Linux live remains NO_GO.** The following source-only and local Windows sections
+are historical checkpoints, not outstanding claims that this run was skipped.
+
+## Local Windows qualification — 16 November 2026 (historical checkpoint)
 
 The example passes **9/0/0** on Windows stable 1.99.1 and Rust 1.88.0: seven
 memory tests and two real codec/SDK loopback tests with fake admission. Workspace
@@ -10,8 +54,7 @@ selected source files are unchanged during qualification; the original release
 CLI is unchanged. These groups are per command, not distinct tests to add.
 
 The actual Windows executable passes silent no-op (exit 0, no output) and
-unsupported-target rejection (exit 1, exactly `PRECRED_FAIL_HARDEN
-`, 20 bytes),
+unsupported-target rejection (exit 1, exactly `PRECRED_FAIL_HARDEN\n`, 20 bytes),
 both under owned-job supervision. Neither executes native Linux hardening.
 [Typed evidence and hashes](../evidence/rust-linux-guarded-loopback-windows-20261116.json).
 Native Linux opt-in and remote CI are not executed at this checkpoint. An explicit
@@ -124,7 +167,7 @@ benchmarks, subprocesses, or intentionally detached tasks. Watchdogs require
 cooperative runtime progress; raw stdin/EOF withholding and native stalls require
 an **external** supervisor deadline and verified cleanup.
 
-## Commands for main — not executed here
+## Commands from the initial source-only handoff (subsequently qualified)
 
 From the repository root, using existing locked/offline dependencies and native
 Opus build prerequisites:
@@ -184,9 +227,11 @@ Unsupported-target rejection must occur without any stdin read or listener.
 Do not infer that the reference's previously measured native cases automatically
 pass for this binary.
 
-## Outstanding compilation/qualification checks
+## Initial compilation/qualification checklist (historical)
 
-No builds/tests/processes/system queries were run in this task. Main must run
+No builds/tests/processes/system queries were run by the source-only implementer.
+The main-run results above now qualify the following original checklist; it is
+retained as provenance, not as an unexecuted current task. Main was to run
 rustfmt and the commands above, verify Rust 1.88 plus the project's normal native
 platform/toolchain matrix, existing opus build availability, dev-dependency
 availability to the example, tonic raw-service generic compatibility and Ogg
