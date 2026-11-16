@@ -1,5 +1,24 @@
 # État du moteur — 2026-11-16
 
+## Enveloppes gRPC — correction qualifiée localement, nouvelle CI en attente
+
+La CI de `70bbf3b` reste **échouée : 12/13 jobs réussis**, oracle de framing sur
+macOS Intel/Rust 1.88 en échec avec GOAWAY `ENHANCE_YOUR_CALM`. Les quatre tests
+HPACK passent dans ce même job. [Échec conservé](evidence/rust-credential-hpack-wire-ci-failed-20261116.json).
+La cause exacte de cette trace n'a pas été capturée ; les analyses statiques
+soutiennent un mécanisme lié aux petites DATA séparées, pas une preuve wire historique.
+
+Le candidat regroupe préfixe et payload dans un buffer chaîné privé, sans tampon
+de concaténation du payload, batching entre messages ou modification des limites.
+Les oracles antérieurs de 260 messages et fenêtre trois octets restent inchangés.
+Windows stable/1.88 : transport **126/0/1** chacun, nouvelles intégrations **2/0/0**
+chacune, workspace **429/0/2**, SDK9 et feature-off38 ; format/Clippy strict passent.
+Les 14 commandes et jobs réussissent, 188 sources avant/après identiques. Source
+qualifiée : candidat non committé sur `70bbf3b` ; nouvelle CI distante encore en
+attente à ce checkpoint. Aucun gain global de temps/allocation ni accès durable,
+parité complète ou Linux live déduit. [Contrat et limites](research/rust-grpc-envelope-coalescing.md) ·
+[Preuve positive locale](evidence/rust-grpc-envelope-coalescing-windows-20261116.json).
+
 ## HPACK des métadonnées — qualification locale Windows S1
 
 Un oracle indépendant décode les frames et HPACK/Huffman selon la RFC 7541 sur

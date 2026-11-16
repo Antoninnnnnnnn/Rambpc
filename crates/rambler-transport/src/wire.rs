@@ -6,7 +6,10 @@ use std::sync::{Arc, Mutex};
 use tokio::{sync::mpsc, time::Instant};
 use tonic::{Code, Request};
 
-struct Reset(Arc<Mutex<h2::SendStream<Bytes>>>);
+// Keep prefix and original payload together without a contiguous envelope copy.
+pub(crate) type Envelope = bytes::buf::Chain<Bytes, Bytes>;
+
+struct Reset(Arc<Mutex<h2::SendStream<Envelope>>>);
 impl Drop for Reset {
     fn drop(&mut self) {
         self.0.lock().unwrap().send_reset(h2::Reason::CANCEL);
@@ -74,14 +77,28 @@ fn http_fallback(status: http::StatusCode) -> Code {
     }
 }
 
-async fn send_bytes(
-    sender: &Mutex<h2::SendStream<Bytes>>,
-    mut bytes: Bytes,
+// The caller grants a positive count no greater than the envelope remaining.
+fn split_envelope(prefix: &mut Bytes, body: &mut Bytes, count: usize) -> Envelope {
+    assert!(
+        count > 0 && count <= prefix.len() + body.len(),
+        "invalid envelope split count"
+    );
+    let head = prefix.split_to(count.min(prefix.len()));
+    let tail = body.split_to(count - head.len());
+    head.chain(tail)
+}
+
+async fn send_envelope(
+    sender: &Mutex<h2::SendStream<Envelope>>,
+    mut prefix: Bytes,
+    mut body: Bytes,
 ) -> Result<(), RpcError> {
-    while !bytes.is_empty() {
+    while prefix.len() + body.len() != 0 {
         // Bound native outstanding writes as well as the source queue. Never
         // submit an entire multi-MiB message without respecting h2 flow control.
-        let claim = bytes.len().min(16 * 1024);
+        // One submission spans both parts when credit permits; h2 does not
+        // merge a separately submitted five-byte prefix with its payload.
+        let claim = (prefix.len() + body.len()).min(16 * 1024);
         sender.lock().unwrap().reserve_capacity(claim);
         let capacity = match poll_fn(|cx| sender.lock().unwrap().poll_capacity(cx)).await {
             Some(result) => result?,
@@ -103,22 +120,24 @@ async fn send_bytes(
         sender
             .lock()
             .unwrap()
-            .send_data(bytes.split_to(count), false)?;
+            .send_data(split_envelope(&mut prefix, &mut body, count), false)?;
     }
     sender.lock().unwrap().reserve_capacity(0);
     Ok(())
 }
 async fn upload(
     mut input: Upload,
-    sender: Arc<Mutex<h2::SendStream<Bytes>>>,
+    sender: Arc<Mutex<h2::SendStream<Envelope>>>,
 ) -> Result<(), RpcError> {
     while let Some(bytes) = input.next().await {
         // Exact original payload; the only bytes added are gRPC's envelope.
         let len = u32::try_from(bytes.len()).map_err(|_| TransportError::MessageTooLarge)?;
-        send_bytes(&sender, crate::grpc_prefix::grpc_prefix(len)).await?;
-        send_bytes(&sender, bytes).await?;
+        send_envelope(&sender, crate::grpc_prefix::grpc_prefix(len), bytes).await?;
     }
-    sender.lock().unwrap().send_data(Bytes::new(), true)?;
+    sender
+        .lock()
+        .unwrap()
+        .send_data(Bytes::new().chain(Bytes::new()), true)?;
     input
         .progress
         .eof
@@ -273,7 +292,7 @@ async fn read(
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn rpc(
-    channel: h2::client::SendRequest<Bytes>,
+    channel: h2::client::SendRequest<Envelope>,
     config: TransportConfig,
     provider: Arc<dyn MetadataProvider>,
     upload_stream: Upload,
@@ -345,6 +364,159 @@ pub(crate) async fn rpc(
     };
     drop(reset); // Also stops incomplete upload after an early remote terminal.
     result
+}
+
+#[cfg(test)]
+mod envelope_tests {
+    use super::*;
+    use std::io::IoSlice;
+
+    #[test]
+    fn every_positive_split_preserves_envelope_bytes_and_backing_slices() {
+        for length in [0usize, 1, 4, 250, 251, 255, 256, 16_379, 16_380] {
+            let original_prefix = crate::grpc_prefix::grpc_prefix(length as u32);
+            let original_body = Bytes::from(
+                (0..length)
+                    .map(|offset| ((offset * 13 + 37) % 256) as u8)
+                    .collect::<Vec<_>>(),
+            );
+            let n = length as u32;
+            let header = [0, (n >> 24) as u8, (n >> 16) as u8, (n >> 8) as u8, n as u8];
+            let total = 5 + length;
+            for grant in 1..=total {
+                let mut prefix = original_prefix.clone();
+                let mut body = original_body.clone();
+                let mut consumed = 0;
+                while consumed < total {
+                    let count = grant.min(total - consumed);
+                    let piece = split_envelope(&mut prefix, &mut body, count);
+                    assert_eq!(piece.remaining(), count);
+                    assert!(piece.has_remaining());
+                    assert!(piece.remaining() <= grant);
+                    let head_length = (5usize.saturating_sub(consumed)).min(count);
+                    let prefix_offset = consumed.min(5);
+                    assert_eq!(
+                        piece.first_ref().as_ref(),
+                        &header[prefix_offset..prefix_offset + head_length]
+                    );
+                    let body_offset = consumed.saturating_sub(5);
+                    let tail_length = count - head_length;
+                    assert_eq!(
+                        piece.last_ref().as_ref(),
+                        &original_body[body_offset..body_offset + tail_length]
+                    );
+                    // split_to(0) may return the canonical empty Bytes: it has
+                    // no payload bytes whose address could be checked.
+                    if tail_length != 0 {
+                        assert_eq!(
+                            piece.last_ref().as_ptr(),
+                            original_body[body_offset..].as_ptr()
+                        );
+                        let start = piece.last_ref().as_ptr() as usize;
+                        let original = original_body.as_ptr() as usize;
+                        assert!(start >= original);
+                        assert!(start + tail_length <= original + length);
+                    }
+                    if grant == total {
+                        assert_eq!(piece.first_ref().as_ptr(), original_prefix.as_ptr());
+                        if length < 256 {
+                            assert_eq!(
+                                piece.first_ref().as_ptr(),
+                                crate::grpc_prefix::grpc_prefix(length as u32).as_ptr()
+                            );
+                        }
+                        assert_eq!(piece.last_ref().as_ptr(), original_body.as_ptr());
+                        assert_eq!(piece.last_ref().len(), length);
+                    }
+                    consumed += count;
+                    assert_eq!(prefix.len() + body.len(), total - consumed);
+                }
+                assert!(prefix.is_empty() && body.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn three_byte_grants_cross_from_cached_prefix_into_original_body() {
+        let original = Bytes::from_static(b"\x00\xff\x42\xa5");
+        let mut body = original.clone();
+        let mut prefix = crate::grpc_prefix::grpc_prefix(4);
+        let first = split_envelope(&mut prefix, &mut body, 3);
+        assert_eq!(first.first_ref().as_ref(), &[0, 0, 0]);
+        assert!(first.last_ref().is_empty());
+        let second = split_envelope(&mut prefix, &mut body, 3);
+        assert_eq!(second.first_ref().as_ref(), &[0, 4]);
+        assert_eq!(second.last_ref().as_ref(), &original[..1]);
+        assert_eq!(second.last_ref().as_ptr(), original.as_ptr());
+        let third = split_envelope(&mut prefix, &mut body, 3);
+        assert!(third.first_ref().is_empty());
+        assert_eq!(third.last_ref().as_ref(), &original[1..]);
+        assert_eq!(third.last_ref().as_ptr(), original[1..].as_ptr());
+        assert!(prefix.is_empty() && body.is_empty());
+    }
+
+    #[test]
+    fn chain_and_take_advance_and_vectored_chunks_cross_the_prefix_boundary() {
+        fn assert_driver_traits<T: Send + Sync + Unpin + 'static>(_: std::marker::PhantomData<T>) {}
+        assert_driver_traits(std::marker::PhantomData::<Envelope>);
+        let original = Bytes::from_static(b"\x00\xff\x42\xa5");
+        for advanced in 0..=9 {
+            let mut prefix = crate::grpc_prefix::grpc_prefix(4);
+            let mut body = original.clone();
+            let mut envelope = split_envelope(&mut prefix, &mut body, 9);
+            envelope.advance(advanced);
+            assert_eq!(envelope.remaining(), 9 - advanced);
+            let expected = b"\x00\x00\x00\x00\x04\x00\xff\x42\xa5";
+            let mut slices = [IoSlice::new(&[]); 2];
+            let count = envelope.chunks_vectored(&mut slices);
+            let mut cursor = advanced;
+            for slice in &slices[..count] {
+                assert_eq!(slice.as_ref(), &expected[cursor..cursor + slice.len()]);
+                cursor += slice.len();
+            }
+            assert_eq!(cursor, 9);
+            if advanced < 5 {
+                assert_eq!(envelope.chunk(), &expected[advanced..5]);
+            } else {
+                assert_eq!(envelope.chunk(), &expected[advanced..]);
+            }
+        }
+        let mut prefix = crate::grpc_prefix::grpc_prefix(4);
+        let mut body = original.clone();
+        let mut limited = split_envelope(&mut prefix, &mut body, 9).take(6);
+        let mut slices = [IoSlice::new(&[]); 2];
+        assert_eq!(limited.chunks_vectored(&mut slices), 2);
+        assert_eq!(slices[0].as_ref(), &[0, 0, 0, 0, 4]);
+        assert_eq!(slices[1].as_ref(), &original[..1]);
+        limited.advance(5);
+        assert_eq!(limited.remaining(), 1);
+        assert_eq!(limited.chunk(), &original[..1]);
+        limited.advance(1);
+        assert!(!limited.has_remaining());
+        let rest = limited.into_inner();
+        assert_eq!(rest.remaining(), 3);
+        assert_eq!(rest.chunk(), &original[1..]);
+    }
+
+    #[test]
+    #[should_panic(expected = "invalid envelope split count")]
+    fn zero_split_is_rejected_before_an_empty_nonfinal_submission() {
+        split_envelope(
+            &mut crate::grpc_prefix::grpc_prefix(0),
+            &mut Bytes::new(),
+            0,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "invalid envelope split count")]
+    fn split_beyond_remaining_is_rejected() {
+        split_envelope(
+            &mut crate::grpc_prefix::grpc_prefix(0),
+            &mut Bytes::new(),
+            6,
+        );
+    }
 }
 
 #[cfg(test)]

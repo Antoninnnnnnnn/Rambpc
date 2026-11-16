@@ -1,5 +1,10 @@
 # Préfixes gRPC courts sans allocation par message
 
+**Portée historique du banc : constructeur de préfixe uniquement.** Une
+[coalescence ultérieure du writer](rust-grpc-envelope-coalescing.md) regroupe
+préfixe et payload dans un buffer chaîné. Les mesures ci-dessous ne qualifient
+pas ce nouveau chemin complet et ne sont pas rejouées ou réattribuées.
+
 ## Décision locale — 16 novembre 2026
 
 **Au point de contrôle local : candidat retenu ; CI distante encore en attente.** Le payload était

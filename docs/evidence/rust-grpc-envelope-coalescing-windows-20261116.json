@@ -1,0 +1,224 @@
+{
+  "assertion_coverage": {
+    "all7_new_and16_retained_names_confirmed": true,
+    "chain_take_advance_and_vectored_boundaries": true,
+    "coverage_semantics": "Counts are assertions exercised per passing fixture, not standalone capture/latency measurements; rerun command groups are not distinct tests to add",
+    "default_peer_limits_unchanged": true,
+    "exact_envelope_bytes_order_empty_message_eof_and_grpc_ok": true,
+    "existing_three_byte_window_oracle_unchanged": true,
+    "full_matrix_messages": 260,
+    "full_matrix_wire_bytes": 117140,
+    "immediate_normal_draining": true,
+    "no_contiguous_payload_concat_buffer": true,
+    "per_native_integration_fixture_single_tcp_single_rpc": true,
+    "pointer_identity_for_nonempty_original_body_slices": true,
+    "settings_source_barrier": true,
+    "targeted_boundary_messages": 9,
+    "targeted_boundary_wire_bytes": 33821
+  },
+  "baseline": "70bbf3b650a79047b001f923b8722e4792fc27de",
+  "candidate_raw_sha256": {
+    "crates/rambler-transport/src/connection.rs": "94a6f8c83264e55223e623600a8f385271fa0af56b675c91266e39da9f56d4f8",
+    "crates/rambler-transport/src/lib.rs": "28d1393e53877096fe65162169265be0553d9c12e82cc09a2b509614d8b4e3f2",
+    "crates/rambler-transport/src/wire.rs": "b2ac690bb059daa70823e27e6cc73bd82d677364bd411d2e28b61295d344b3d3",
+    "crates/rambler-transport/tests/grpc_envelope_coalescing.rs": "b7d3280a727cb7d32f5e307a4d94cc82a1cbfec674cf4b725790df743f8f7948"
+  },
+  "candidate_uncommitted_during_qa": true,
+  "date": "2026-11-16",
+  "decision": "PASS_LOCAL_POSITIVE_COALESCING_PENDING_NEW_REMOTE_CI",
+  "guards": {
+    "linux_g1_met": false,
+    "linux_live": "NO_GO",
+    "new_measurements": 0,
+    "new_release_cli_builds": 0,
+    "new_service_calls": 0,
+    "old_cli_lock_consumed_budget_unchanged": true,
+    "phone_actions": 0,
+    "real_credential_reads": 0
+  },
+  "history": {
+    "blind_ci_reruns": 0,
+    "cause": "Static analyses support small-frame accounting as a mechanism; exact historical failed-job backlog not captured",
+    "old_client_failure_reproductions": 0,
+    "prior_ci_decision": "FAILED,12of13jobsSUCCESS",
+    "prior_ci_source": "70bbf3b650a79047b001f923b8722e4792fc27de",
+    "prior_failure_proof_sha256": "36d40faf89caedb358ed5403035222927a4cd72346c08d3cce349e22b6bcad56"
+  },
+  "limits": [
+    "Positive local candidate QA only; failed prior CI remains failed and new remote CI is pending.",
+    "No global allocation/latency/WAN/throughput/optimality or zero-copy-through-all-h2-internals claim.",
+    "No general guarantee against arbitrary peer policy, message distributions or very small capacity grants.",
+    "Historical prefix constructor benchmark is unchanged and does not measure the new writer.",
+    "Selected source/artifact hashes do not establish full TCB or reproducible-binary attestation.",
+    "Durable access, complete Android parity and Linux live remain unqualified."
+  ],
+  "production_scope": "Private chained prefix/payload buffer and per-message DATA coalescing only; public API, request bytes, credentials, TLS, audio and receive/cancel/error-cause policy unchanged",
+  "qualification": {
+    "actual_main_observed_controller_exit": 0,
+    "all188_current_source_hashes_match": true,
+    "groups": [
+      {
+        "actual_exit": 0,
+        "label": "format-affected-transport",
+        "output_log_bytes": 0,
+        "output_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "source-before",
+        "output_log_bytes": 8088,
+        "output_log_sha256": "04451758059a406824043e3c22e61cf361fb00844d43de278e5031d7faac4319",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "rustc-stable",
+        "observed_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "output_log_bytes": 36,
+        "output_log_sha256": "55cd0529c005d3f62869ea6e2271bfa9d5196f56dc65a8be00a371af114a4a98",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "rustc-msrv",
+        "observed_version": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+        "output_log_bytes": 36,
+        "output_log_sha256": "1ac65f1cd11fa83e9530348b787fa3e5bdd85b0f3727099df8bcdf3e24274138",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "format",
+        "output_log_bytes": 0,
+        "output_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "coalescing-tests-stable",
+        "output_log_bytes": 551,
+        "output_log_sha256": "b61985d8893db0beac32d641125396ffd5154312e1f2e607c2473cec16c6446c",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "coalescing-tests-msrv",
+        "output_log_bytes": 551,
+        "output_log_sha256": "6abdae86f4012e684d63fd43dfc015a3b45e8b5919a4f155ec1cf440eed3fe0d",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "transport-tests-stable",
+        "output_log_bytes": 13462,
+        "output_log_sha256": "6940bd74eee5f5747a1ef31c2e317a4f703716bb5e19403c86b717af6200f908",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 1,
+          "measured": 0,
+          "passed": 126
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "transport-tests-msrv",
+        "output_log_bytes": 13462,
+        "output_log_sha256": "54bd9937ef55c66d3693244747db5527a1783428b9be478ce497c2ab65971871",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 1,
+          "measured": 0,
+          "passed": 126
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "strict-transport-clippy",
+        "output_log_bytes": 164,
+        "output_log_sha256": "fb0827a69e058e4eacf43afe95fd3419c9a0ee25a30745bbfcd65cf56cc24627",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "workspace-stable",
+        "output_log_bytes": 48379,
+        "output_log_sha256": "a8bb589fe15e5c11b8b216ab8d71264a568cbedc97d4f5246812dac9a290dc43",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 2,
+          "measured": 0,
+          "passed": 429
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "guarded-sdk-loopback",
+        "output_log_bytes": 1345,
+        "output_log_sha256": "a3c4e6ccdbc03a662501c383499e33f21f6f64f143f2159f8c18c589de146c3d",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 9
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "cli-feature-off",
+        "output_log_bytes": 5986,
+        "output_log_sha256": "759f643afad9eaa285d7b207847f31f9512e9871332afd57305fe2180e968abc",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 38
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "source-after",
+        "output_log_bytes": 8088,
+        "output_log_sha256": "04451758059a406824043e3c22e61cf361fb00844d43de278e5031d7faac4319",
+        "owned_job_empty": true
+      }
+    ],
+    "new_test_names": [
+      "wire::envelope_tests::every_positive_split_preserves_envelope_bytes_and_backing_slices",
+      "wire::envelope_tests::three_byte_grants_cross_from_cached_prefix_into_original_body",
+      "wire::envelope_tests::chain_and_take_advance_and_vectored_chunks_cross_the_prefix_boundary",
+      "wire::envelope_tests::zero_split_is_rejected_before_an_empty_nonfinal_submission",
+      "wire::envelope_tests::split_beyond_remaining_is_rejected",
+      "default_peer_coalesces_small_envelopes_and_bounds_unread_frame_cost",
+      "default_credit_preserves_prefix_and_max_frame_coalescing_boundaries"
+    ],
+    "original_framing_hpack_prefix_benchmark_fixtures_unchanged": true
+  },
+  "schema": 1,
+  "selected_manifest_sha256": "c4fcdc2cce693169f5e52866aa0946c1dd18f4849303b56e3db533f49d5493e0",
+  "selected_source_files": 188
+}

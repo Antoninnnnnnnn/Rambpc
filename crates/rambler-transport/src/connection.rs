@@ -1,6 +1,5 @@
 //! Shared HTTP/2 connection with a caller-owned, joined driver and OS-root TLS.
-use crate::{TransportConfig, TransportError};
-use bytes::Bytes;
+use crate::{TransportConfig, TransportError, wire::Envelope};
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use std::{
     collections::VecDeque,
@@ -27,7 +26,7 @@ trait Io: AsyncRead + AsyncWrite + Unpin + Send {}
 impl<T: AsyncRead + AsyncWrite + Unpin + Send> Io for T {}
 
 pub(crate) struct Connected {
-    pub sender: h2::client::SendRequest<Bytes>,
+    pub sender: h2::client::SendRequest<Envelope>,
     pub driver: Driver,
 }
 pub(crate) struct Driver {
@@ -261,7 +260,7 @@ pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, Trans
         // entire connection, but 1MiB does not promise arbitrary sibling isolation.
         .initial_connection_window_size(1024 * 1024)
         .initial_window_size(65_535)
-        .handshake::<_, Bytes>(io)
+        .handshake::<_, Envelope>(io)
         .await
         .map_err(|_| TransportError::Connect)?;
     let stop = CancellationToken::new();

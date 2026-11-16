@@ -426,7 +426,7 @@ struct RetiredFailure {
 }
 struct Lifecycle {
     closed: bool,
-    channel: Option<h2::client::SendRequest<Bytes>>,
+    channel: Option<h2::client::SendRequest<wire::Envelope>>,
     sessions: Vec<Arc<Control>>,
     retired_failures: Vec<RetiredFailure>,
 }
@@ -790,7 +790,7 @@ async fn produce<S: RequestSource>(
 async fn supervise<S: RequestSource>(
     source: S,
     provider: Arc<dyn MetadataProvider>,
-    channel: h2::client::SendRequest<Bytes>,
+    channel: h2::client::SendRequest<wire::Envelope>,
     config: TransportConfig,
     deadline: Instant,
     cancel: CancellationToken,
