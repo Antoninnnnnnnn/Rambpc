@@ -115,6 +115,18 @@ universelle, performance et authentification durable restent hors qualification.
 Aucun nouveau build CLI release ou appel réel ; G1 Linux reste non satisfait et
 live NO_GO, budget Windows MAX1 déjà consommé et téléphone inchangés.
 
+### Qualification CI ultérieure des quatre tests HPACK
+
+Les quatre noms HPACK sont confirmés dans les huit workspaces natifs réussis de
+la source `8cb381e8d26d448db80481d4aab9472aee3b096c` : Windows, Linux, macOS ARM et
+Intel × Rust 1.88/stable. Les 13 jobs et 72 groupes Rust de ce nouveau commit sont
+[qualifiés séparément](../evidence/rust-grpc-envelope-coalescing-ci-20261116.json).
+Il inclut la [coalescence du writer](rust-grpc-envelope-coalescing.md) ; ce n'est
+pas une qualification rétrospective de `70bbf3b`, dont la CI reste
+[échouée sur l'oracle de framing](../evidence/rust-credential-hpack-wire-ci-failed-20261116.json).
+Les quatre HPACK passaient déjà dans le job échoué. Les limites S1, reset, TLS,
+service réel, accès durable et Linux live décrites plus haut restent inchangées.
+
 ## Refus du pair, remplacement explicite et voisin actif — 16 novembre 2026
 
 Deux nouveaux tests `credential_rejection.rs` couvrent séparément

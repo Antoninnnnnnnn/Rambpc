@@ -1,6 +1,20 @@
 # État du moteur — 2026-11-16
 
-## Enveloppes gRPC — correction qualifiée localement, nouvelle CI en attente
+## Enveloppes gRPC — CI des huit configurations natives qualifiée
+
+Les 13 jobs de la source exacte `8cb381e8d26d448db80481d4aab9472aee3b096c`
+réussissent : [Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489195)
+et [Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489085).
+Windows, Linux, macOS ARM et Intel passent sur Rust 1.88 et stable, y compris le
+job Intel/1.88 précédemment en échec. Les 72 groupes Rust sont vérifiés séparément :
+workspace **429/0/2** sous Windows, **430/0/2** ailleurs. Les sept nouveaux noms de
+coalescence, dont deux `should_panic`, les quatre HPACK et les oracles antérieurs
+sont confirmés dans les huit workspaces ; API/provenance et 1605020 octets de logs
+audités. [Preuve CI distincte](evidence/rust-grpc-envelope-coalescing-ci-20261116.json).
+Ces résultats ne reconstituent pas la cause du job ancien et ne mesurent aucun
+optimum ou gain global de performance. G1 Linux et accès durable restent inchangés.
+
+**Checkpoint local et échec historique distincts :**
 
 La CI de `70bbf3b` reste **échouée : 12/13 jobs réussis**, oracle de framing sur
 macOS Intel/Rust 1.88 en échec avec GOAWAY `ENHANCE_YOUR_CALM`. Les quatre tests

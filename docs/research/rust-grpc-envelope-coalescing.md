@@ -2,12 +2,41 @@
 
 ## Décision locale — 16 novembre 2026
 
-**Qualification positive Windows réussie ; nouvelle CI distante encore en attente.**
+**Au checkpoint local : qualification positive Windows réussie ; nouvelle CI
+distante encore en attente.**
 Le candidat a été mesuré non committé sur `70bbf3b`, avec quatre fichiers source
 identifiés dans la [preuve locale](../evidence/rust-grpc-envelope-coalescing-windows-20261116.json).
 Le manifeste sélectionné de 188 fichiers est identique avant/après la campagne.
 Il ne constitue ni une attestation du TCB complet ni celle d'un nouveau binaire
 CLI release.
+
+## Qualification CI ultérieure — source `8cb381e`
+
+Les [neuf jobs Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489195)
+et les [quatre jobs Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489085)
+réussissent sur le commit exact `8cb381e8d26d448db80481d4aab9472aee3b096c`, tentative 1.
+La [preuve CI séparée](../evidence/rust-grpc-envelope-coalescing-ci-20261116.json)
+conserve les identités et hashes des API/logs. Les 72 groupes Rust sont recomptés
+par commande : huit configurations Windows/Linux/macOS ARM/macOS Intel ×
+Rust 1.88/stable (stable CI observée : 1.100.0). Le workspace donne **429/0/2**
+sous Windows et **430/0/2** ailleurs ; SDK9, reuse10, profil audio8, banc préfixe7,
+banc wire3, finalisation1, budgets3 et feature-off38 passent par job. Ne pas
+additionner ces réexécutions comme des tests distincts.
+
+Les sept nouveaux noms de coalescence, y compris les deux assertions de panique
+attendue, les quatre tests HPACK et les oracles de framing antérieurs sont
+confirmés dans chaque workspace. Le job macOS Intel/1.88 réussit cette fois sur
+le candidat corrigé. Les jobs Python 3.11 donnent **663 réussis/71 ignorés** et
+les jobs 3.14 **733/1**, chacun sur Windows et Linux, avec **335 sous-tests
+rapportés séparément**. Les 13 jobs, les hosts/architectures natifs et 1605020
+octets de logs sont audités.
+
+Ce nouveau succès ne réécrit ni la preuve locale au checkpoint précédent ni
+l'échec de `70bbf3b`. Aucun backlog du job historique n'est reconstitué, aucun
+ancien client n'est relancé pour provoquer une erreur. Les gates de banc ne
+rejouent pas les campagnes d'allocations ou de temps ; le smoke racines qualifie
+une configuration, pas un handshake TLS. Aucune nouvelle qualification de service,
+provisionnement, Linux live ou perfection globale n'en découle.
 
 ## Échec conservé, pas relance destinée à obtenir du vert
 
