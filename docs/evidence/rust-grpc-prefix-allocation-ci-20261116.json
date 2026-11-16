@@ -1,0 +1,1535 @@
+{
+  "counts_note": "Counts are per job and per command; reruns are not distinct tests to sum.",
+  "date": "2026-11-16",
+  "job_count": 13,
+  "limits": [
+    "Only the pinned commit is qualified, not subsequent uncommitted work.",
+    "Rust PyAV remains ignored; public roots smoke is configuration, not a TLS handshake.",
+    "Authentication-denial tests use invented local peers, not real revocation or durable provisioning.",
+    "No WAN/ASR quality/Android parity/perfection or complete build-environment attestation.",
+    "CI executes wire and prefix profiling invariants, not allocation/timing campaigns; Windows local measurements are separate.",
+    "Native codec sizing is synthetic; passing tests does not establish real-voice distribution or cache hits at the service."
+  ],
+  "method": "API run/job/step provenance plus command-scoped result rows in raw logs treated only as data",
+  "native_job_count": 8,
+  "python_job_count": 4,
+  "runs": [
+    {
+      "id": 43832001772,
+      "jobs": [
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "format_and_strict_workspace_clippy_steps_pass": true,
+          "id": 133179297053,
+          "log": {
+            "bytes": 47325,
+            "file": "job-133179297053.log",
+            "sha256": "a4662bcd566d35e1e3beaa7fe08861a8415fc7e1b7b020ccdd2f1561145e061e"
+          },
+          "name": "lint",
+          "status": "completed",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297053"
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297254,
+          "log": {
+            "bytes": 182824,
+            "file": "job-133179297254.log",
+            "sha256": "1ac18ec74ac6bddfe8ea00269fccfe2819d8cec46cc8810fc277d1a3182fd644"
+          },
+          "name": "test (macos-latest, stable)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.5",
+            "host: aarch64-apple-darwin",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 419
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297254",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297319,
+          "log": {
+            "bytes": 182299,
+            "file": "job-133179297319.log",
+            "sha256": "f7933df3615be81ed8cb9c0b13299fd8829e0ba3193a4ccf40b6c831a4aefbfa"
+          },
+          "name": "test (macos-26-intel, stable)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.2",
+            "host: x86_64-apple-darwin",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 419
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297319",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297364,
+          "log": {
+            "bytes": 177268,
+            "file": "job-133179297364.log",
+            "sha256": "9b2c55e0f8598e08f43eb1de2c74773a14772a2ebd787ff92ac64b86cf804886"
+          },
+          "name": "test (ubuntu-latest, 1.88.0)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.5",
+            "host: x86_64-unknown-linux-gnu",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 419
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297364",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297386,
+          "log": {
+            "bytes": 178874,
+            "file": "job-133179297386.log",
+            "sha256": "623ade613a45de6bff114b851cb72bbd28a87401e6bbf474795daed0cce0614e"
+          },
+          "name": "test (windows-latest, 1.88.0)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.5",
+            "host: x86_64-pc-windows-msvc",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 418
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297386",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297393,
+          "log": {
+            "bytes": 183707,
+            "file": "job-133179297393.log",
+            "sha256": "020956a098e2e420127338a3a7455b1a0710bc0ab6a3ed632ec37a7c8806d34f"
+          },
+          "name": "test (windows-latest, stable)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.5",
+            "host: x86_64-pc-windows-msvc",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 418
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297393",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297407,
+          "log": {
+            "bytes": 178259,
+            "file": "job-133179297407.log",
+            "sha256": "a50cc4c12ae394941ed2d59c4cbd5c0601a429ea2bf31c0516ca30e44d800b73"
+          },
+          "name": "test (macos-latest, 1.88.0)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.5",
+            "host: aarch64-apple-darwin",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 419
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297407",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297411,
+          "log": {
+            "bytes": 181832,
+            "file": "job-133179297411.log",
+            "sha256": "f852da810e89f659b0de276b785b0eef35026182c61ad0f1e452b34eeca0962a"
+          },
+          "name": "test (ubuntu-latest, stable)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.5",
+            "host: x86_64-unknown-linux-gnu",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 419
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297411",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "exact_denial_test_names_confirmed": true,
+          "exact_guarded_sdk_test_names_confirmed": true,
+          "exact_prefix_framing_and_pipeline_names_confirmed": true,
+          "exact_prefix_profile_test_names_confirmed": true,
+          "exact_wire_fidelity_and_fixed32_test_names_confirmed": true,
+          "exact_wire_profile_test_names_confirmed": true,
+          "guarded_sdk_test_names": [
+            "default_noop_never_enters_admission_or_sdk",
+            "admission_failures_precede_all_source_provider_and_socket_actions",
+            "exact_canary_and_eof_are_required_before_action",
+            "io_failure_and_failed_action_cannot_emit_success",
+            "fixed_admission_parsers_fail_closed_in_memory",
+            "request_order_and_corrupt_ogg_reject_in_memory",
+            "fixed_source_has_no_real_receiver_or_arbitrary_endpoint",
+            "real_sdk_fixed_pcm_opus_loopback_is_healthy_only_after_cleanup_and_close",
+            "real_sdk_late_grpc_failure_never_becomes_canary_success"
+          ],
+          "id": 133179297472,
+          "log": {
+            "bytes": 177733,
+            "file": "job-133179297472.log",
+            "sha256": "f265705c37f5ffedf5e796f2deca283d2675fda2b91b8d5866b8b9721adec8f7"
+          },
+          "name": "test (macos-26-intel, 1.88.0)",
+          "native_roots_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+          "observed_version_lines": [
+            "cmake version 4.4.2",
+            "host: x86_64-apple-darwin",
+            "rustc +\"$toolchain\" --version --verbose",
+            "rustc --version",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)"
+          ],
+          "prefix_framing_and_pipeline_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "every_small_upload_length_and_large_boundaries_preserve_raw_grpc_envelopes",
+            "three_byte_remote_window_forces_a_split_cached_prefix",
+            "native_grpc_prefix_eligibility"
+          ],
+          "prefix_profile_test_names": [
+            "grpc_prefix::tests::literal_uncompressed_big_endian_prefixes",
+            "grpc_prefix::tests::every_one_byte_length_has_the_canonical_prefix",
+            "grpc_prefix::tests::fallback_boundaries_preserve_all_four_length_bytes",
+            "grpc_prefix::tests::small_prefixes_borrow_the_immutable_table",
+            "tests::fixed_cases_match_independent_literals",
+            "tests::only_the_sole_exact_flag_is_accepted",
+            "tests::both_orders_receive_equal_repetitions"
+          ],
+          "release_pcm_marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+          "rust_commands": {
+            "budgets": {
+              "command": "cargo test -p rambler-cli --features audio --test invalid_budgets --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 38
+              },
+              "summary_rows": 14
+            },
+            "finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 1
+              },
+              "summary_rows": 1
+            },
+            "guarded_sdk": {
+              "command": "cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 9
+              },
+              "summary_rows": 1
+            },
+            "prefix_profile": {
+              "command": "cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 7
+              },
+              "summary_rows": 1
+            },
+            "profile": {
+              "command": "cargo test -p rambler-audio --example profile_pipeline --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 8
+              },
+              "summary_rows": 1
+            },
+            "reuse": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 10
+              },
+              "summary_rows": 1
+            },
+            "wire_profile": {
+              "command": "cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 0,
+                "measured": 0,
+                "passed": 3
+              },
+              "summary_rows": 1
+            },
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "failed": 0,
+                "filtered": 0,
+                "ignored": 2,
+                "measured": 0,
+                "passed": 419
+              },
+              "summary_rows": 68
+            }
+          },
+          "status": "completed",
+          "stdlib_unit_tests": {
+            "test_rust_audio_boundary.py": 17,
+            "test_rust_native_roots.py": 23
+          },
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772/job/133179297472",
+          "wire_fidelity_and_fixed32_test_names": [
+            "varint_and_key_width_boundaries_match_frozen_encoder",
+            "literal_protobuf_wire_goldens",
+            "byte_and_string_payload_boundaries_match_frozen_encoder",
+            "complete_message_limit_and_error_precedence_match_frozen_encoder",
+            "wire::encoding_tests::fixed32_literal_key_widths_and_invalid_numbers"
+          ],
+          "wire_profile_test_names": [
+            "workload_is_fixed_and_covers_width_boundaries",
+            "requested_bytes_sum_new_sizes_not_growth_deltas",
+            "frozen_and_candidate_encoding_and_errors_match"
+          ]
+        }
+      ],
+      "jobs_metadata": {
+        "bytes": 43895,
+        "file": "jobs-43832001772.json",
+        "sha256": "a8235f764a6292ae34e99ba882f84681b1d8aaa16da99cf512514a56ffbe3ab2"
+      },
+      "run_metadata": {
+        "bytes": 12799,
+        "file": "run-43832001772.json",
+        "sha256": "320a2b1a3ed8b599049553e703e70ef4571dfad73e3c416f68e8bade881366b0"
+      },
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772",
+      "workflow": "rust-offline-tests"
+    },
+    {
+      "id": 43832001623,
+      "jobs": [
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "id": 133179296702,
+          "log": {
+            "bytes": 26320,
+            "file": "job-133179296702.log",
+            "sha256": "66cefe02e2843414c68bfd62f0c2827d55ee251bcff34eef110329e7c36e4441"
+          },
+          "name": "tests (windows-latest, 3.14)",
+          "pytest": {
+            "passed": 733,
+            "skipped": 1,
+            "subtests_passed_separately": 335
+          },
+          "status": "completed",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623/job/133179296702"
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "id": 133179296929,
+          "log": {
+            "bytes": 22541,
+            "file": "job-133179296929.log",
+            "sha256": "265b3819ccd2ec7e47c32fe401e2ef2bb02098b9685ca3ae508311657013fd7b"
+          },
+          "name": "tests (windows-latest, 3.11)",
+          "pytest": {
+            "passed": 663,
+            "skipped": 71,
+            "subtests_passed_separately": 335
+          },
+          "status": "completed",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623/job/133179296929"
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "id": 133179296991,
+          "log": {
+            "bytes": 26490,
+            "file": "job-133179296991.log",
+            "sha256": "9e9024bbc1c7248b3068725967d6b87a5b7537e55bea7751b10d2a7350aaea52"
+          },
+          "name": "tests (ubuntu-latest, 3.14)",
+          "pytest": {
+            "passed": 733,
+            "skipped": 1,
+            "subtests_passed_separately": 335
+          },
+          "status": "completed",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623/job/133179296991"
+        },
+        {
+          "api_steps_all_completed_success_or_skipped": true,
+          "conclusion": "success",
+          "id": 133179299735,
+          "log": {
+            "bytes": 22664,
+            "file": "job-133179299735.log",
+            "sha256": "078ef778285dd615439fc3a212d029244156b4fc88bc7535a9a72d1dad0d209c"
+          },
+          "name": "tests (ubuntu-latest, 3.11)",
+          "pytest": {
+            "passed": 663,
+            "skipped": 71,
+            "subtests_passed_separately": 335
+          },
+          "status": "completed",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623/job/133179299735"
+        }
+      ],
+      "jobs_metadata": {
+        "bytes": 11002,
+        "file": "jobs-43832001623.json",
+        "sha256": "b28f728211400718c2704259ea13b2f62a1155e046d9a8dc4396770afb01cb5d"
+      },
+      "run_metadata": {
+        "bytes": 12795,
+        "file": "run-43832001623.json",
+        "sha256": "746de47d3251cdd1501a18779c12663066d4ff63446984deceb8f45cc8aa51b9"
+      },
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623",
+      "workflow": "offline-tests"
+    }
+  ],
+  "rust_command_groups": 72,
+  "schema": 1,
+  "scope": "remote offline CI; no new live service/device/credential qualification",
+  "source_commit": "98d46590ec708c7e1ae6157323a07b8eaa41ddd7",
+  "total_log_bytes": 1588136
+}

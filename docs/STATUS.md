@@ -15,10 +15,14 @@ testée. Contrôle1000ms :3/8. Ce n'est ni une voix représentative ni un hit se
 Framing brut260messages et préfixe réellement coupé à3octets par fenêtre distante
 passent sur stable/1.88. Transport **115/0/1**, banc **7/0/0** chacun, workspace
 stable **418/0/2**, SDK9, feature-off38, format/Clippy/build passent. Échec lint du
-premier lot conservé ; CLI historique et budgets inchangés. CI du candidat encore
-en attente ; les qualifications ci-dessous gardent leurs commits exacts.
+premier lot conservé ; CLI historique et budgets inchangés. Ces mesures locales
+restent un point de contrôle historique, où la CI était encore en attente.
+
+CI distante hors ligne désormais réussie sur la source exacte `98d46590ec708c7e1ae6157323a07b8eaa41ddd7` : [Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772) et [Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623), 13 jobs dont 8 natifs et 72 groupes de commandes Rust, non des tests distincts. Par toolchain, workspace Windows **418/0/2**, Linux et macOS **419/0/2** ; macOS ARM et Intel confirmés. Par job natif : banc préfixe **7/0/0**, SDK gardé **9/0/0**, banc wire **3/0/0** ; ne pas sommer les groupes rejoués. La CI vérifie les invariants, la matrice H2 brute, la fragmentation forcée et les tailles PCM/Opus synthétiques, pas les temps ni les allocations locales, la voix réelle ou la performance du service. G1 reste non satisfait, Linux live NO_GO ; aucune qualification nouvelle des credentials, téléphone, core ou provisioning.
+
 [Contrat et limites](research/rust-grpc-prefix-allocation.md) ·
-[Preuve locale complète](evidence/rust-grpc-prefix-allocation-windows-20261116.json).
+[Preuve locale historique](evidence/rust-grpc-prefix-allocation-windows-20261116.json) ·
+[Preuve CI distante](evidence/rust-grpc-prefix-allocation-ci-20261116.json).
 
 ## Optimisation de sérialisation — CI des huit configurations natives qualifiée
 

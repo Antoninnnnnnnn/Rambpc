@@ -2,7 +2,7 @@
 
 ## Décision locale — 16 novembre 2026
 
-**Candidat retenu localement ; CI distante encore en attente.** Le payload était
+**Au point de contrôle local : candidat retenu ; CI distante encore en attente.** Le payload était
 déjà envoyé sans copie de framing. Le seul changement est son préfixe gRPC de
 cinq octets : `grpc_prefix` emprunte une table statique immuable pour les longueurs
 0–255, puis reprend exactement l'ancien constructeur pour les autres longueurs.
@@ -18,6 +18,12 @@ aucun `unsafe` dans la bibliothèque, dépendance ou réglage audio supplémenta
 Source mesurée : candidat non committé sur `7a03f38`, identifié par sept hashes et
 le manifeste sélectionné de 186 fichiers. Ce n'est pas une attestation du TCB ni
 une qualification rétrospective d'un futur commit.
+
+## Qualification CI distante ultérieure
+
+La CI hors ligne a depuis réussi sur la source exacte `98d46590ec708c7e1ae6157323a07b8eaa41ddd7` : [run Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772) et [run Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623). La [preuve CI](../evidence/rust-grpc-prefix-allocation-ci-20261116.json) relève 13 jobs, dont 8 natifs, et 72 groupes de commandes Rust : ce ne sont pas des tests distincts à sommer. Pour chaque toolchain, le workspace donne **418/0/2** sous Windows et **419/0/2** sous Linux et macOS ; les architectures macOS ARM et Intel sont confirmées. Dans chaque job natif, banc préfixe **7/0/0**, SDK gardé **9/0/0** et banc wire **3/0/0**, groupes non additionnables.
+
+Cette CI vérifie les invariants, la matrice H2 brute, la fragmentation forcée et les tailles PCM/Opus synthétiques. Elle ne reproduit pas la campagne locale d'allocations ou de temps et n'établit ni distribution de voix réelle ni performance ou hits du service. La preuve locale reste inchangée et décrit son propre point de contrôle. G1 reste non satisfait et Linux live NO_GO ; aucune nouvelle qualification des credentials, du téléphone, du core ou du provisioning.
 
 ## Allocation effectivement observée
 
