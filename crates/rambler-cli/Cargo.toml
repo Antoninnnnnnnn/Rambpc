@@ -1,0 +1,51 @@
+[package]
+name = "rambler-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "rambler"
+path = "src/main.rs"
+
+[[example]]
+name = "session_reuse"
+required-features = ["audio"]
+
+[[example]]
+name = "linux_guarded_loopback"
+required-features = ["audio"]
+
+[features]
+default = []
+audio = ["dep:rambler-audio"]
+
+[dependencies]
+rambler-audio = { path = "../rambler-audio", optional = true }
+rambler-engine = { path = "../rambler-engine" }
+rambler-transport = { path = "../rambler-transport" }
+bytes.workspace = true
+tokio.workspace = true
+serde_json.workspace = true
+clap = { version = "4", features = ["derive"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["process"] }
+serde.workspace = true
+sha2.workspace = true
+rambler-protocol = { path = "../rambler-protocol" }
+http.workspace = true
+futures-util.workspace = true
+tokio-stream.workspace = true
+tokio-util.workspace = true
+tonic.workspace = true
+hex.workspace = true
+tempfile = "3"
+ogg = "0.9"
+opus = "=0.4.0"

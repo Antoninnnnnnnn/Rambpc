@@ -116,7 +116,7 @@ Les messages audio réels ajoutent aussi extension293100 avec **uniquement field
 | 11 | string | `Build.MODEL` |
 | 16 | string | trigger application id (`kmy.d`) |
 | 17 | string | usage non établi |
-| 22 | message `aalw` | field1 bool venant de `kmy.m` |
+| 22 | message `aalw`, avec présence | field1 BOOL, également avec présence : `kmy.m` / `supervisionEnabled` ; signal d'état de compte, voir ci-dessous |
 | 26 | enum | valeur1 affectée par le mutateur |
 
 Ces valeurs décrivent le client Android observé ; aucun besoin établi de falsifier modèle/appareil pour un port natif.
@@ -138,7 +138,37 @@ Ces valeurs décrivent le client Android observé ; aucun besoin établi de fals
 - Extension interne de `aalz` **229601060** -> `aamg`, repeated int64 field1. Une branche de `knv` ajoute un identifiant d'expérience. Ce n'est pas nécessairement une exigence d'interopérabilité ; ne pas reproduire une expérience de quota pour modifier des contrôles serveur.
 - Donation : extension **307792803** -> `aame`, ajoutée par `saz.a()` seulement si opt-in et conditions locales. **Le chemin Jetson du mutateur passe false**, donc `saz.a()` retourne sans ajouter cette extension (`knv-simple` lignes196–228 ; `saz` lignes25–35). Ne pas ajouter une déclaration de consentement par supposition.
 
-Les champs RecognizerInfo7/40/91, ClientInfo26 et UserInfo20 sont explicitement écrits par le chemin observé ; certains dépendent de l'état local. Les omettre dans un client minimal est une approximation à valider, pas une reproduction statique exacte. `kmy.toString()` lignes67–68 confirme les propriétés `blockOffensiveWords`, `supervisionEnabled` et `jetsonVoiceInput`.
+Les champs RecognizerInfo7/40/91, ClientInfo22/26 et UserInfo20 sont explicitement écrits par le chemin observé ; certains dépendent de l'état local. Leur omission n'est pas une reproduction statique exacte. `kmy.toString()` lignes67–68 confirme les propriétés `blockOffensiveWords`, `supervisionEnabled` et `jetsonVoiceInput`.
+
+### Signaux d'état de compte : non-parité native volontaire
+
+Précision statique du 2026-11-16, limitée à l'APK identifié en §1 :
+
+- **ClientInfo22 → `aalw.field1`** : message et BOOL ont chacun une présence
+  (`aaly.java:25,43`, `aalw.java:23`). `kla.s` initialise le paramètre à false
+  (`kla.java:240`), puis le met à true si le composant **UnsupervisedAccount**
+  n'est pas positivement prêt (`kla.java:264–265`, `mtd.java:21`). Le contrôle
+  `hky.java:17–36`, étiqueté **MinorsChecker**, lie ce signal à l'état de compte
+  mineur/supervisé ; ce n'est pas un commutateur de fonctionnalité.
+- Le paramètre passe par `kmw.i` → `kmw.l` → `kmy.m`
+  (`kmw.java:47,117–119`, `kmy.java:68`). Pour l'init Rambler sans ClientInfo
+  préexistant, le mutateur écrit la présence et la valeur, **y compris false**
+  (`knv-simple:128–129,344–355`, appels `ihv.java:125,166`). La sortie `ihv`
+  porte un avertissement JADX ; le contrôle bas niveau `knv-simple` est la
+  référence pour cette branche.
+- **RecognizerInfo91.2** = absence de **AdultAccount** et **UserInfo20** =
+  absence de **UnmanagedAccount** sont deux autres signaux d'état de compte
+  (`knv-simple:115–125,188–192`), pas des consentements ni des options libres.
+
+Le client Rust sans fournisseur légitime d'état de compte **omet volontairement
+ces trois signaux**. Aucune API true/false ni option CLI n'est ajoutée. Android
+émet explicitement true pour la supervision lorsque son état est inconnu ;
+l'omission native est donc une divergence, **pas une reproduction de ce défaut**.
+Une absence protobuf ne doit pas être décrite comme une assertion false.
+Le traitement serveur de l'absence, de true et de false reste inconnu, notamment
+sans compte/Zwieback. Cette analyse ne prouve ni son comportement de sécurité ni
+une activation COMPOSE ; aucun essai serveur deviné ne la complète.
+
 
 ## 5. Contexte d'édition : extension **1203**
 
@@ -161,6 +191,18 @@ InputBoxInfo = `aamo`, extension S3Request **1203**, static ligne22. Ce n'est **
 4. `iho.b()` construit une nouvelle requête contenant **uniquement extension1203** ; `gwp` l'envoie puis `iho.g()` envoie la fin et half-close.
 
 Donc **ne pas fermer le flux juste après le dernier audio si du contexte reste à envoyer**. Le choix `aamo.field1` contre `.field4` dépend de l'activation cursor-aware (`muq.P`, défautfalse) ; quand false, `muq.Q` peut choisir seulement le texte sélectionné.
+
+**SDK 0.3 — hints init.** `ProtocolConfig.bias_terms` et `.preferences` écrivent
+respectivement les champs répétés 3 et 5 de 1203 dans la requête initiale, et
+`.secondary_languages` écrit les locales répétées `293000.field4`. Le texte
+avant/sélection/après reste envoyé séparément après l'audio. L'examen statique du
+fallback `ihv.java` lignes 153–211, de `knv-simple/knv.java` lignes 259–309 et
+`pixelboard-jadx/sources/defpackage/zxh.java` lignes 243–255 appuie ce placement et
+la construction des locales ; les chemins complets des sorties sont donnés §1.
+Leur présence n'établit pas leur efficacité générale. Les requêtes des dix essais
+[hints](../evidence/input-hints-public.json) ont abouti ; effets et limites sont
+rapportés dans [raffinement](../refinement.md). Les bornes sont celles du SDK, pas
+des limites serveur connues ; les goldens init sans options restent inchangés.
 
 ## 6. Séquence minimale fidèle
 
@@ -289,7 +331,7 @@ Enum **`aamp`**, valeurs **vérifiées** :
 3. Encodage PCM accepté : pas établi ; le chemin réel est Ogg/Opus,10.
 4. Mapping sémantique complet des alternatives de résultat et des types d'édition ; couverture des différentes intentions au-delà du helper partiel récupéré. Les statuts0/1/2/3 sont, eux, établis.
 5. Liste minimale de paramètres/consentements indispensable au serveur, erreurs applicatives/quotas et stratégies de reconnexion.
-6. Il manque une capture Android pour comparer la parité avec l'application, une sélection non-BMP réelle et une couverture fonctionnelle large. La sélection en trois parties est maintenant exercée nativement (section11).
+6. Il manque une capture Android pour comparer la parité avec l'application et une couverture fonctionnelle large. Les sélections en trois parties, y compris dans un contexte non-BMP, sont maintenant exercées nativement (sections11–12), sans comparaison sur appareil. La sélection d'un caractère non-BMP lui-même n'a pas été testée au service.
 
 **Décision recommandée** : garder transport bidi, codecs protobuf et politique d'édition séparés ; parser/conserver les extensions inconnues ; ne pas appeler « Rambler fonctionnel » une simple transcription S3. Aucun moteur n'a été implémenté par l'analyste statique.
 
@@ -371,3 +413,44 @@ observé. L'[encodeur natif progressif](../evidence/native-realtime.json) a en o
 réussi six sessions avec PCM intégral, hashes source/code et profils Ogg comparés.
 Cela ne valide toujours pas toutes les intentions, voix naturelles, longues
 durées ou contraintes futures du service.
+
+## 12. Réécriture et contexte non-BMP — 2026-11-13
+
+Un nouveau cas contrôlé fournit le contexte `Send me the report now.` puis l'audio
+`Make this sentence more polite, but keep the same meaning.`. La réponse finale a
+été inspectée avec un parseur autonome, sans importer `rambler.*` :
+
+- Réponse source : **1055 octets**, SHA-256
+  `7a8c1217362395a706d0626aa69860413a82bed82cfc868f369750f185f4ff92`.
+- Reconnaissance `.1253625.1.1=1`, hypothèse sous `.1253625.1.3.3` ; statut S3 absent
+  de cette réponse finale de reconnaissance, qui n'est pas le terminal de session.
+- Hypothèse `.field1` et `VoiceEditingResult.field1` : contexte suivi de la commande.
+- `VoiceEditingResult.field4=3`, oneof actif **field3**, fields2/7 absents :
+  `Could you please send me the report at your earliest convenience?`.
+- `aamp.java` lignes9/29–30 confirme `INTENT_REWRITE(3)`. Le callsite `ihm.java`
+  lignes192–212 choisit le texte édité3 ou contexte7 pour les ordinals2/3, puis
+  ligne224 le privilégie au texte ASR. Cette lecture corrobore le rendu du cas
+  observé, pas un contrat général de portée de remplacement.
+
+Le SDK rend désormais l'intention3/champ3, mais les propositions de remplacement
+restent limitées à l'intention2. Une [nouvelle session de suivi](../evidence/refinement-rewrite-public.json)
+a confirmé ce rendu après modification. Le premier
+[rapport expurgé](../evidence/refinement-capabilities-public.json) conserve son état
+historique ambigu pour cette session ; il n'est pas corrigé rétroactivement.
+
+La réponse source contient aussi **extension74956225** avec des labels internes de
+traitement texte et un identifiant opaque du service, présent dans deux branches.
+Son schéma et sa sémantique complète ne sont pas établis ; le SDK le préserve comme
+inconnu et n'exécute aucune action à partir de ces données. Le corps original reste
+privé. La [fixture](../../tests/fixtures/live_rewrite_response.json) est **dérivée et
+expurgée**, avec wrapper reconstruit, composants sûrs conservés et hashés, suppression
+explicite de74956225. Elle n'est pas une quatrième capture originale publique.
+
+Le même corpus a exercé le contexte avant=`🙂 The meeting is tomorrow at `,
+sélection=`ten`, après=`.`. Retour intention2/champ7 : même avant, sélection=`eleven`,
+même après. Une sélection dans un contexte contenant un caractère non-BMP est donc
+réellement exercée hors Android ; l'emoji n'est pas lui-même sélectionné. Les ranges
+numériques restent calculés localement en UTF-16, pas transmis par le wire.
+Le premier clip naturel anglais et la dictée de40,56s sont décrits avec leurs limites
+dans [le raffinement](../refinement.md), ainsi que les corpus naturels supplémentaires
+et les essais d'endurance ultérieurs.

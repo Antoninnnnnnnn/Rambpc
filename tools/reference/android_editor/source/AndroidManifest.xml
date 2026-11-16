@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.rambpc.referenceprobe" android:versionCode="1" android:versionName="1.0">
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+    <!-- Intentionally no permissions, providers, receivers, services, or intent filters. -->
+    <application android:label="Reference Probe" android:allowBackup="false"
+        android:debuggable="true" android:usesCleartextTraffic="false"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:supportsRtl="true">
+        <activity android:name=".ReferenceActivity" android:exported="true"
+            android:excludeFromRecents="true" android:launchMode="singleTop"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize" />
+    </application>
+</manifest>

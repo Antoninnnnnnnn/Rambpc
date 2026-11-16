@@ -157,6 +157,14 @@ def reproducibility(args) -> dict:
         'timeout_seconds': args.timeout, 'chunk_sizes': args.chunk_sizes,
         'samples_per_mode_and_chunk': args.samples, 'concurrency': 1,
         'pacing': 'accelerated',
+        'context': {'before': '', 'selected': '', 'after': '', 'cursor_aware': True},
+        'transport': {'secure': not getattr(args, 'insecure', False), 'retries': 0,
+                      'max_message_bytes': 8 * 1024 * 1024},
+        'instrumentation': {'clock': 'time.monotonic', 'cpu_clock': 'time.process_time',
+                            'include_results': getattr(args, 'include_results', False),
+                            'raw_response_capture': getattr(args, 'raw_dir', None) is not None},
+        'semantic_signature_version': 2,
+        'semantic_signature_policy': 'ordered_all_recognition_state_1_sets_v2',
     }
 
 
@@ -179,7 +187,9 @@ def texts(response) -> list[dict]:
     results = []
     for item in response.hypotheses:
         edit = item.voice_edit
-        record = {'text': item.text, 'intent': None if edit is None else edit.intent}
+        score = item.confidence
+        record = {'text': item.text, 'intent': None if edit is None else edit.intent,
+                  'confidence': score if score is None or math.isfinite(score) else str(score)}
         if edit is not None:
             context = edit.edited_context
             record.update(transcript=edit.transcript, alternative_text=edit.alternative_text, edited_text=edit.edited_text,
@@ -191,10 +201,98 @@ def texts(response) -> list[dict]:
     return results
 
 
+def semantic_observation(response, *, include_empty=False) -> dict | None:
+    """Fingerprint one ordered hypothesis set, excluding confidence only.
+
+    Preserve order, cardinality, null/empty distinctions and oneof identity.
+    This is a building block, not a session-level fidelity signature.
+    """
+    if not response.hypotheses and not include_empty:
+        return None
+    records = []
+    scores = []
+    for item in response.hypotheses:
+        edit = item.voice_edit
+        context = None if edit is None else edit.edited_context
+        records.append({'text': item.text, 'voice_edit': None if edit is None else {
+            'transcript': edit.transcript, 'alternative_text': edit.alternative_text,
+            'edited_text': edit.edited_text, 'intent': edit.intent,
+            'active_field': edit.active_field,
+            'edited_context': None if context is None else {
+                'before': context.before, 'selected': context.selected,
+                'after': context.after, 'cursor_aware': context.cursor_aware}}})
+        score = item.confidence
+        scores.append(score if score is None or math.isfinite(score) else str(score))
+    payload = json.dumps(records, sort_keys=True, ensure_ascii=False,
+                         separators=(',', ':'), allow_nan=False).encode('utf-8')
+    return {'sha256': hashlib.sha256(payload).hexdigest(),
+            'hypothesis_count': len(records), 'confidence_scores': scores,
+            'policy': 'one ordered hypothesis set; confidence excluded'}
+
+
+class SemanticHistory:
+    """Strict final-update history; never merge or deduplicate final segments."""
+    policy = 'ordered_all_recognition_state_1_sets_v2'
+
+    def __init__(self):
+        self.final_updates = []
+        self.provisional_updates = []
+        self.last_populated = None
+
+    def observe(self, response):
+        state = response.recognition_state
+        observation = semantic_observation(response, include_empty=state == 1)
+        if response.hypotheses:
+            self.last_populated = observation
+        if state == 1:
+            self.final_updates.append(observation)
+        elif observation is not None:
+            self.provisional_updates.append({'recognition_state': state,
+                                             'hypothesis_set': observation})
+        if response.partials:
+            payload = json.dumps([item.text for item in response.partials],
+                ensure_ascii=False, separators=(',', ':'), allow_nan=False).encode('utf-8')
+            scores = [item.confidence for item in response.partials]
+            self.provisional_updates.append({
+                'recognition_state': state, 'partial_count': len(scores),
+                'partials_sha256': hashlib.sha256(payload).hexdigest(),
+                'confidence_scores': [score if score is None or math.isfinite(score)
+                                      else str(score) for score in scores]})
+
+    def signature(self):
+        if not self.final_updates:
+            return None
+        ordered = [{'sha256': item['sha256'], 'hypothesis_count': item['hypothesis_count']}
+                   for item in self.final_updates]
+        payload = json.dumps(ordered, sort_keys=True, separators=(',', ':')).encode('ascii')
+        return {'sha256': hashlib.sha256(payload).hexdigest(),
+                'hypothesis_count': sum(item['hypothesis_count'] for item in ordered),
+                'hypothesis_counts': [item['hypothesis_count'] for item in ordered],
+                'final_update_count': len(ordered), 'policy': self.policy, 'version': 2}
+
+    def update_row(self, row):
+        row['semantic_result'] = self.signature()
+        row['semantic_final_updates'] = self.final_updates
+        row['semantic_provisional_updates'] = self.provisional_updates
+        row['last_populated_semantic_result'] = self.last_populated
+
+
+def semantic_guard(row: dict, reference: dict | None) -> dict | None:
+    """Fail closed on missing/mismatched semantics, retaining the observation."""
+    current = row.get('semantic_result')
+    if current is None or current['hypothesis_count'] == 0:
+        row.update(success=False, error_type='MissingSemanticResult')
+    elif reference is not None and (current['sha256'], current['hypothesis_count']) != (
+            reference['sha256'], reference['hypothesis_count']):
+        row.update(success=False, error_type='SemanticResultMismatch')
+    return current if reference is None else reference
+
+
 def safe_results(results: list[dict], include: bool) -> list[dict]:
     if include:
         return results
-    return [{'sha256': hashlib.sha256(json.dumps(item, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode('utf-8')).hexdigest(), 'intent': item['intent']} for item in results]
+    return [{'sha256': hashlib.sha256(json.dumps(item, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode('utf-8')).hexdigest(),
+             'intent': item['intent'], 'confidence': item.get('confidence')} for item in results]
 
 
 async def sample(args, mode: str, chunk: int, expected: tuple[str, int], *, transport=None, warmup=False, index=0) -> dict:
@@ -212,9 +310,12 @@ async def sample(args, mode: str, chunk: int, expected: tuple[str, int], *, tran
            'requests_produced': None, 'responses_received': None,
            'audio_bytes_consumed': 0, 'audio_sha256_consumed': None, 'success': False,
            's3_error_codes': [], 'results': [], 'error_type': None,
-           'channel_closed_after_sample': False}
+           'channel_closed_after_sample': False, 'semantic_result': None,
+           'raw_artifact_write_wall_ms': 0.0, 'raw_artifact_write_cpu_ms': 0.0}
     clock = lambda: (time.monotonic() - start) * 1000
     digest = hashlib.sha256()
+    semantics = SemanticHistory()
+    semantics.update_row(row)
     async def audio():
         with args.audio.open('rb') as stream:
             while block := stream.read(chunk):
@@ -248,9 +349,13 @@ async def sample(args, mode: str, chunk: int, expected: tuple[str, int], *, tran
                     row['eof_ms'] = now
                     continue
                 row['s3_statuses'].append(response.status)
+                semantics.observe(response)
                 if args.raw_dir is not None:
+                    write_wall, write_cpu = time.monotonic(), time.process_time()
                     with (args.raw_dir / f'{index:03d}-{metrics.responses_received:04d}.pb').open('xb') as raw:
                         raw.write(response.raw)
+                    row['raw_artifact_write_wall_ms'] += (time.monotonic() - write_wall) * 1000
+                    row['raw_artifact_write_cpu_ms'] += (time.process_time() - write_cpu) * 1000
                 if row['first_any_response_ms'] is None:
                     row['first_any_response_ms'] = now
                 candidates = texts(response)
@@ -280,6 +385,7 @@ async def sample(args, mode: str, chunk: int, expected: tuple[str, int], *, tran
             row['grpc_status'] = code.name if code is not None else None
     finally:
         # Preserve partial observations even when the terminal gRPC status fails.
+        semantics.update_row(row)
         row['results'] = safe_results(found, args.include_results)
         row['cpu_ms'] = (time.process_time() - cpu) * 1000
         row['process_rss_highwater_bytes'] = rss_highwater_bytes()
@@ -292,7 +398,8 @@ async def sample(args, mode: str, chunk: int, expected: tuple[str, int], *, tran
 async def run(args, output):
     expected = inspect_audio(args.audio)
     plan = schedule(args.samples, args.chunk_sizes)
-    report = {'version': 1, 'reproducibility': reproducibility(args),
+    report = {'version': 2, 'reproducibility': reproducibility(args),
+              'scheduled_samples': [{'mode': mode, 'chunk_bytes': chunk} for mode, chunk in plan],
               'source': {'sha256': expected[0], 'bytes': expected[1], 'validation': 'signature only; not a full Ogg/Opus validation'},
               'target_kind': 'loopback' if loopback(args.target) else 'live', 'samples': [],
               'notes': ['Sequential concurrency 1. Warmup excluded from aggregates.',
@@ -303,7 +410,10 @@ async def run(args, output):
                         'Sizes are protobuf payload sizes, not exact network bytes.',
                         'RSS highwater is process-wide, not a per-session peak.',
                         'Small n: medians and nearest-rank p95 are descriptive, not reliable tail estimates.'],
-              'summary': [], 'complete': False}
+              'summary': [], 'complete': False, 'comparison_status': 'inconclusive',
+              'semantic_reference': None,
+              'semantic_policy': SemanticHistory.policy,
+              'semantic_policy_note': 'Every ordered recognition-state-1 hypothesis set, including empty sets and repeats, must match across all samples including warmup; provisional observations and confidence scores are separate.'}
     def save():
         output.seek(0)
         json.dump(report, output, ensure_ascii=False, indent=2, allow_nan=False)
@@ -315,17 +425,22 @@ async def run(args, output):
     try:
         warm = await sample(args, 'reused_channel', args.chunk_sizes[0], expected, transport=shared, warmup=True, index=0)
         report['samples'].append(warm)
+        if warm['success']:
+            report['semantic_reference'] = semantic_guard(warm, None)
         save()
         if not warm['success']:
             return False
         for index, (mode, chunk) in enumerate(plan, 1):
             row = await sample(args, mode, chunk, expected, transport=shared if mode == 'reused_channel' else None, index=index)
             report['samples'].append(row)
-            report['summary'] = summarize(report['samples'])
+            if row['success']:
+                semantic_guard(row, report['semantic_reference'])
+            report['summary'] = summarize(report['samples']) if row['success'] else []
             save()
             if not row['success']:
                 return False
         report['complete'] = True
+        report['comparison_status'] = 'semantic_match_observed_not_quality_proof'
         save()
         return True
     finally:

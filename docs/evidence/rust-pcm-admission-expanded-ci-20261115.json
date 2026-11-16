@@ -1,0 +1,1681 @@
+{
+  "source_commit": "4264126852b2c03e25fc231c60f9582569a84ae9",
+  "compared_source_commit": "b2a960ac83714320570cf58d76d2a71029202ee2",
+  "source_identity": {
+    "method": "Git blob identity (not working-tree bytes)",
+    "unchanged_paths": [
+      "crates/rambler-audio/src/encode.rs",
+      "crates/rambler-audio/src/lib.rs",
+      "crates/rambler-audio/src/progress.rs",
+      "crates/rambler-audio/tests/progress.rs",
+      "crates/rambler-cli/src/main.rs",
+      "crates/rambler-cli/src/tests.rs",
+      "crates/rambler-cli/tests/pcm_progress.rs",
+      "crates/rambler-transport/src/credentials.rs",
+      "crates/rambler-transport/tests/required_credentials.rs",
+      "Cargo.lock"
+    ],
+    "all_tree_changes_between_commits": [
+      ".github/workflows/rust.yml",
+      "docs/research/rust-macos-intel-validation.md"
+    ]
+  },
+  "summary_sha256": "c58c418e0914a56d394156811103d73d7fd145b353710787c4ae2fff32ad9419",
+  "runs": [
+    {
+      "workflow": "rust",
+      "id": 43739199077,
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077",
+      "metadata_file": "rust-run.json",
+      "metadata_bytes": 30275,
+      "metadata_sha256": "5f1df7421764c8ee8ea042f957fce67bc86316395073f5c88b256b9a1b66477d",
+      "jobs": [
+        {
+          "id": 132888400450,
+          "name": "test (macos-latest, stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400450.log",
+          "bytes": 162697,
+          "sha256": "dd0e06cf39d5e24e8676d3b074e41b4204ef088d15bc119c00cf5730169de518",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400450",
+          "observed_versions": [
+            "Image: macos-26-arm64",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+            "host: aarch64-apple-darwin",
+            "cmake version 4.4.5",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+            "cargo 1.100.0 (3acc79c0c 2026-11-05)"
+          ],
+          "rust_commands": {
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "rows": 63,
+                "passed": 400,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "rows": 1,
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "release_binary_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "rows": 1,
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "rows": 12,
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": "Ran 17 tests in 0.028s",
+              "result": "OK"
+            },
+            "root_launcher": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": "Ran 23 tests in 0.009s",
+              "result": "OK"
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable"
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400579,
+          "name": "test (macos-latest, 1.88.0)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400579.log",
+          "bytes": 158668,
+          "sha256": "13440bc42c1ade19fcddb0e2a1a59904b9eddce1db827fb3a22b6e0428fa6d5a",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400579",
+          "observed_versions": [
+            "Image: macos-26-arm64",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)",
+            "host: aarch64-apple-darwin",
+            "cmake version 4.4.5",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)",
+            "cargo 1.88.0 (873a06493 2025-05-10)"
+          ],
+          "rust_commands": {
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "rows": 63,
+                "passed": 400,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "rows": 1,
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "release_binary_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "rows": 1,
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "rows": 12,
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": "Ran 17 tests in 0.041s",
+              "result": "OK"
+            },
+            "root_launcher": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": "Ran 23 tests in 0.003s",
+              "result": "OK"
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable"
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400675,
+          "name": "lint",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400675.log",
+          "bytes": 47219,
+          "sha256": "6cbd900a69677b6c8bb9f2a7bf947da3a3e51187f0fc19ef06c0ed08b835a17b",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400675",
+          "rustc": "1.100.0 (0ef1bc386 2026-11-09)",
+          "commands": [
+            {
+              "command": "cargo fmt --all -- --check",
+              "evidence": "Run command group present; corresponding API step completed successfully"
+            },
+            {
+              "command": "cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
+              "evidence": "Run command group present; corresponding API step completed successfully"
+            }
+          ],
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@stable",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run cargo fmt --all -- --check",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run cargo fetch --locked",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400697,
+          "name": "test (ubuntu-latest, 1.88.0)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400697.log",
+          "bytes": 157909,
+          "sha256": "fd8d9b34a16a675cb5d76c2e57a74b6efef269ef58c432379181afcda0533a47",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400697",
+          "observed_versions": [
+            "Image: ubuntu-26.04",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)",
+            "host: x86_64-unknown-linux-gnu",
+            "cmake version 4.4.5",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)",
+            "cargo 1.88.0 (873a06493 2025-05-10)"
+          ],
+          "rust_commands": {
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "rows": 63,
+                "passed": 400,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "rows": 1,
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "release_binary_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "rows": 1,
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "rows": 12,
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": "Ran 17 tests in 0.026s",
+              "result": "OK"
+            },
+            "root_launcher": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": "Ran 23 tests in 0.003s",
+              "result": "OK"
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable"
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400704,
+          "name": "test (windows-latest, 1.88.0)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400704.log",
+          "bytes": 159447,
+          "sha256": "6290a21ccca9668570d8b31ee9d09c1d359b0ffd25916f50964c4e1414b8de5f",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400704",
+          "observed_versions": [
+            "Image: windows-2025-vs2026",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)",
+            "host: x86_64-pc-windows-msvc",
+            "cmake version 4.4.5",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)",
+            "cargo 1.88.0 (873a06493 2025-05-10)"
+          ],
+          "rust_commands": {
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "rows": 63,
+                "passed": 399,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "rows": 1,
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "release_binary_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "rows": 1,
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "rows": 12,
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": "Ran 17 tests in 0.064s",
+              "result": "OK"
+            },
+            "root_launcher": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": "Ran 23 tests in 0.013s",
+              "result": "OK"
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable"
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400736,
+          "name": "test (ubuntu-latest, stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400736.log",
+          "bytes": 161939,
+          "sha256": "81b67cf8feec69d3e02e8f9e8cb78b193523d855e2684b670ccd7eb0d359a822",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400736",
+          "observed_versions": [
+            "Image: ubuntu-26.04",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+            "host: x86_64-unknown-linux-gnu",
+            "cmake version 4.4.5",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+            "cargo 1.100.0 (3acc79c0c 2026-11-05)"
+          ],
+          "rust_commands": {
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "rows": 63,
+                "passed": 400,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "rows": 1,
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "release_binary_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "rows": 1,
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "rows": 12,
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": "Ran 17 tests in 0.026s",
+              "result": "OK"
+            },
+            "root_launcher": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": "Ran 23 tests in 0.004s",
+              "result": "OK"
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable"
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400772,
+          "name": "test (macos-26-intel, stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400772.log",
+          "bytes": 162432,
+          "sha256": "09b04d9668ae00427ffd9d66495b5373ff756239a2f911c1ff151e815ae2a845",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400772",
+          "observed_versions": [
+            "Image: macos-26",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+            "host: x86_64-apple-darwin",
+            "cmake version 4.4.2",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)"
+          ],
+          "rust_commands": {
+            "workspace_all_features": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "passed": 400,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "session_reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "exact_release_cli_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": [
+                "Ran 17 tests in 0.042s"
+              ],
+              "ok": [
+                "OK"
+              ]
+            },
+            "native_roots_helper": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": [
+                "Ran 23 tests in 0.005s"
+              ],
+              "ok": [
+                "OK"
+              ]
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "qualification": "Marker reports unchanged helper unique-list and direct-test-executable exit contract; libtest stdout captured by helper, so no raw one-pass result claimed."
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400805,
+          "name": "test (windows-latest, stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400805.log",
+          "bytes": 163736,
+          "sha256": "6b0ea18c55aec96f041de1902d11136ecc5f760218194330d703bdedc4d65d55",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400805",
+          "observed_versions": [
+            "Image: windows-2025-vs2026",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+            "host: x86_64-pc-windows-msvc",
+            "cmake version 4.4.5",
+            "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+            "cargo 1.100.0 (3acc79c0c 2026-11-05)"
+          ],
+          "rust_commands": {
+            "workspace": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "rows": 63,
+                "passed": 399,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "rows": 1,
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "release_binary_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "rows": 1,
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "rows": 12,
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": "Ran 17 tests in 0.062s",
+              "result": "OK"
+            },
+            "root_launcher": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": "Ran 23 tests in 0.010s",
+              "result": "OK"
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable"
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888400869,
+          "name": "test (macos-26-intel, 1.88.0)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "rust-job-132888400869.log",
+          "bytes": 158406,
+          "sha256": "840ddb38d88e81ad43e1f212d0dd06f50697fa9d8429fa8e4e6cb3f8942c5e01",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739199077/job/132888400869",
+          "observed_versions": [
+            "Image: macos-26",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)",
+            "host: x86_64-apple-darwin",
+            "cmake version 4.4.2",
+            "rustc 1.88.0 (6b00bc388 2025-06-23)"
+          ],
+          "rust_commands": {
+            "workspace_all_features": {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "counts": {
+                "passed": 400,
+                "failed": 0,
+                "ignored": 2,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "session_reuse_example": {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "counts": {
+                "passed": 10,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "exact_release_cli_finalization": {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "counts": {
+                "passed": 1,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            },
+            "feature_off": {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "counts": {
+                "passed": 35,
+                "failed": 0,
+                "ignored": 0,
+                "measured": 0,
+                "filtered_out": 0
+              }
+            }
+          },
+          "stdlib": {
+            "boundary": {
+              "command": "python -m unittest discover -s tests -p test_rust_audio_boundary.py -v",
+              "summary": [
+                "Ran 17 tests in 0.067s"
+              ],
+              "ok": [
+                "OK"
+              ]
+            },
+            "native_roots_helper": {
+              "command": "python -m unittest discover -s tests -p test_rust_native_roots.py -v",
+              "summary": [
+                "Ran 23 tests in 0.046s"
+              ],
+              "ok": [
+                "OK"
+              ]
+            }
+          },
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "qualification": "Marker reports unchanged helper unique-list and direct-test-executable exit contract; libtest stdout captured by helper, so no raw one-pass result claimed."
+          },
+          "pcm_release": {
+            "command": "cargo run -p rambler-audio --example pcm_channel --release --locked --offline",
+            "marker": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0"
+          },
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@master",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check native tools",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test audio dependency boundary checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test native public-root smoke checker",
+              "conclusion": "success"
+            },
+            {
+              "name": "Fetch locked dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Check production audio dependency boundary offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test workspace with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Smoke native public-root TLS configuration offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI session reuse example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build release CLI with audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run release synthetic PCM channel example offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test CLI without audio offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "python",
+      "id": 43739198587,
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739198587",
+      "metadata_file": "python-run.json",
+      "metadata_bytes": 8474,
+      "metadata_sha256": "96ddcd9c0e2f23b5ed4ea3caac02a5b0814d12ec30e6d476477606268bf0b68b",
+      "jobs": [
+        {
+          "id": 132888399116,
+          "name": "tests (ubuntu-latest, 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "python-job-132888399116.log",
+          "bytes": 22664,
+          "sha256": "96046fd945f040f0ae6484a83fe81f577ec687783f479b455613cd7b22fcf731",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739198587/job/132888399116",
+          "cpython_version": "3.11.18",
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 663,
+            "skipped": 71,
+            "subtests_passed": 335,
+            "duration_seconds": 4.84,
+            "api_step_conclusion": "success"
+          },
+          "optional_native_audio_install": "skipped",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install tested dependency versions",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install optional native audio on current Python",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Run offline tests only",
+              "conclusion": "success"
+            },
+            {
+              "name": "Exercise CLI help",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build wheel",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888399362,
+          "name": "tests (windows-latest, 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "python-job-132888399362.log",
+          "bytes": 22541,
+          "sha256": "83f5766b91ac0272f049747aa2ec46ebdedffdd909c9e245258e3faa521803cf",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739198587/job/132888399362",
+          "cpython_version": "3.11.9",
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 663,
+            "skipped": 71,
+            "subtests_passed": 335,
+            "duration_seconds": 5.84,
+            "api_step_conclusion": "success"
+          },
+          "optional_native_audio_install": "skipped",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install tested dependency versions",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install optional native audio on current Python",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Run offline tests only",
+              "conclusion": "success"
+            },
+            {
+              "name": "Exercise CLI help",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build wheel",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888399420,
+          "name": "tests (ubuntu-latest, 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "python-job-132888399420.log",
+          "bytes": 26716,
+          "sha256": "a73fe248a4d58f9b4bf8aae6e6e44d0888d5a1d7abfe10903b0f83c0e4fd7cf0",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739198587/job/132888399420",
+          "cpython_version": "3.14.10",
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 733,
+            "skipped": 1,
+            "subtests_passed": 335,
+            "duration_seconds": 8.11,
+            "api_step_conclusion": "success"
+          },
+          "optional_native_audio_install": "success",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install tested dependency versions",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install optional native audio on current Python",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run offline tests only",
+              "conclusion": "success"
+            },
+            {
+              "name": "Exercise CLI help",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build wheel",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 132888399590,
+          "name": "tests (windows-latest, 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "filename": "python-job-132888399590.log",
+          "bytes": 26312,
+          "sha256": "14afea9886383b937b0292d9f789823988e60a0b26bf8778ea0e3055e201b0e9",
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43739198587/job/132888399590",
+          "cpython_version": "3.14.10",
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 733,
+            "skipped": 1,
+            "subtests_passed": 335,
+            "duration_seconds": 11.63,
+            "api_step_conclusion": "success"
+          },
+          "optional_native_audio_install": "success",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install tested dependency versions",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install optional native audio on current Python",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run offline tests only",
+              "conclusion": "success"
+            },
+            {
+              "name": "Exercise CLI help",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build wheel",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "log_bytes": 1430686,
+  "job_count": 13,
+  "method": "Raw API logs are data. Command output extends from its timestamped Run group until the next Run group; Rust result rows summed within each command only. No cross-job or rerun distinct-test total.",
+  "native_roots_contract": "The marker reports the unchanged helper uniquely listed the ignored smoke and its directly executed test executable exited zero; libtest stdout was captured, so no raw one-pass row is claimed.",
+  "limits": [
+    "No new live service, TLS handshake, private keys, credentials, device or private audio.",
+    "No minimum macOS version, Android parity, service parity, universal performance or perfection claim.",
+    "Rust PyAV test ignored by default; no remote explicit Rust PyAV run claimed.",
+    "Linux live preflight remains blocked; no new call, reservation or OS change. Phone remains 0 of 3 phrases.",
+    "Windows R1 strict lint failure remains historical in prior evidence."
+  ],
+  "release_finalization_contract": "The successful release build step supplies the release CLI executable to the exact loopback finalization test; the test command itself runs under the test profile."
+}

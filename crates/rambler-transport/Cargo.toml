@@ -1,0 +1,20 @@
+[package]
+name = "rambler-transport"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Direct verified-TLS Rambler S3 bidirectional transport"
+publish = false
+
+[dependencies]
+bytes.workspace = true
+thiserror.workspace = true
+futures-util.workspace = true
+http.workspace = true
+h2 = "0.4"
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rustls-native-certs = "0.8"
+tokio.workspace = true
+tokio-stream.workspace = true
+tokio-util.workspace = true
+tonic.workspace = true

@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "report_kind": "native_recognizer_options_acceptance_public_v1",
+  "date": "2026-11-14",
+  "platform": "Windows x86_64 MSVC",
+  "status": "healthy",
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "elapsed_seconds": 9.274747599993134,
+  "binary_sha256": "49cb1ea5608cf85857a8cf1419f94adb9b7b37392275545da8284e369f70b5ba",
+  "cargo_lock_sha256": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+  "source_report_sha256": "7e30b5e9fbb012daae6f0227dee3dc823c04a5365d0ccb2702951718d7630dc6",
+  "predeclared_plan_sha256": "fe973b8f9932ad266c4a64f23d4eb4aeea685c6430b96624cc135f914d22f107",
+  "source_sha256": {
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "Cargo.toml": "7343a994d018903abffbace669edd83cdc48aa5f8a3c17fa1e0ece2113a13766",
+    "crates/rambler-audio/Cargo.toml": "624dd3c43a1161844b995874a5fc0b9f6b382166957847ead3abc1032c83433b",
+    "crates/rambler-audio/src/encode.rs": "cf645682eaeb2ebd5fcdb026b4bab21edd4b88db7b274a7820cae398e523d463",
+    "crates/rambler-audio/src/lib.rs": "240e57f76b1bb3456a02606370ef31050b37cea7d5c4cb5406a28373872906bd",
+    "crates/rambler-audio/src/lifecycle.rs": "921a1dcf7c11be75bab67cc527018f0be38f980fcbee156dad1c6b85588c1dd2",
+    "crates/rambler-audio/src/ogg.rs": "54a28d7e3fc999677e6b625a3f0ace9db812ac56330a15333f05cd19bda33828",
+    "crates/rambler-audio/src/ogg_tests.rs": "9d9c081e1a9cfb68b72421653929201063aa695b3231551959d959cb3aa79e76",
+    "crates/rambler-audio/src/wav.rs": "bc358fe049f3b9b759f8aff2d5b859fac0239b5bb9d97b085ba07e7e6f4efc9d",
+    "crates/rambler-cli/Cargo.toml": "af1375ef7e712352cb2e395eabe23fd6955713e6c698bc50086591d758a4fcb8",
+    "crates/rambler-cli/examples/session_reuse.rs": "788df5185ed9b108ccbb7ba9c184623993b506703bdf8512eb349337aca76794",
+    "crates/rambler-cli/src/main.rs": "a95d13855bd6b61daf3a239a0af2c47112432e1e819883493c8725b4469c4720",
+    "crates/rambler-cli/src/ogg.rs": "885b031393577c7856cb7f61dc8cf13dbb303bd8b3466b83411e5592d85c48b1",
+    "crates/rambler-cli/src/ogg_tests.rs": "48ed2cb7bb32d867057a52877c402c0216dd808d472cdbad0cdaacf71a2d6a1a",
+    "crates/rambler-cli/src/tests.rs": "51b0c0680f61829e0542d7fb8d0eebeead795aacf507a5d376dbd435aedeb54d",
+    "crates/rambler-engine/Cargo.toml": "d73af38aed10a5d90f57008b6e2444dd1f608e33e4466d49a589938b9f4b5069",
+    "crates/rambler-engine/src/engine.rs": "be85ab38937edf14138609a99bb1c660431c09acc726f84272078c7cc23bcd4f",
+    "crates/rambler-engine/src/lib.rs": "6d7da9c236bc4a5d9489f31b7b116326a35db764d01f1b2448b37fa3c3f2a1ce",
+    "crates/rambler-engine/src/presentation.rs": "4dcfe1543146189e6767624b1e9362a1400798e8b7ce50fcb405591939bb783a",
+    "crates/rambler-engine/src/results.rs": "c682bf28ce196c2c4568395e0890a712e8d9676780d7851ac982a90aa03a57e6",
+    "crates/rambler-protocol/Cargo.toml": "9901a4f9c91ab1d510adb0797d290481f739dee20ba6488f72d3bd502e4557a4",
+    "crates/rambler-protocol/src/decode.rs": "c5064b1719ed3b6608310510ea502b82e83cfb44f6c9d98420054214b5e609d3",
+    "crates/rambler-protocol/src/lib.rs": "0709259da7b82e23aed402f1420f8503abd88cc824fc36f4cd0eaa2f80bbb0b0",
+    "crates/rambler-protocol/src/models.rs": "104ab6274155470ee6be77bbb0d084a3cd7b26b4e50c9d78b4d975d6359240a0",
+    "crates/rambler-protocol/src/request.rs": "22d10c05c8d5d609cf0210a055789cd69399f4dd30d2f64854ebfb127c648bcf",
+    "crates/rambler-protocol/src/wire.rs": "c9a6fac56e0497eb12d6104ee418e47b7e9f3c011c9b5fc5f52ae0c80edd2a6b",
+    "crates/rambler-transport/Cargo.toml": "2caf0a3f234709a7063d1a25aa00725bb114eae363b41a694da08fac8a673544",
+    "crates/rambler-transport/src/codec.rs": "277ff349cc0c4047177a5884cd6873aba3f76ba6c47a9c83dd532bc4f0e09651",
+    "crates/rambler-transport/src/connection.rs": "05d33fa79297a9b51bd075cb2b1761cf5fe8b831a85534b517322fabb5570bea",
+    "crates/rambler-transport/src/credentials.rs": "d08259a74443823145da418ee546e96e44622a0f9bc1543646ecb333f0113b44",
+    "crates/rambler-transport/src/lib.rs": "e0ced91c02d6339768d6202040b74199784bc61e0d15ad90e91f9aaf2ea55fa5",
+    "crates/rambler-transport/src/wire.rs": "f11bfdf89a03a65a6d4cca09164f901ef7da3cacae7ede1bfeb9c5d74a923f73"
+  },
+  "engine_instances": 1,
+  "connect_calls": 1,
+  "physical_connections_observed": null,
+  "retry_count": 0,
+  "plan": {
+    "date": "2026-11-14",
+    "purpose": "Bounded remote acceptance of verified RecognizerInfo optional fields and latest native decoder; not proof of preference efficacy.",
+    "max_calls": 3,
+    "timeout_per_case_seconds": 30,
+    "retry_count": 0,
+    "stop_first_failed_or_inconclusive": true,
+    "pcm_sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+    "pcm_samples": 106535,
+    "settings": [
+      {},
+      {
+        "block_offensive_words": false,
+        "auto_punctuation": false
+      },
+      {
+        "block_offensive_words": true,
+        "auto_punctuation": true
+      }
+    ],
+    "secondary_routing": "omitted; no unknown routing value tried",
+    "markers": [
+      "hello",
+      "intelligent dictation",
+      "meeting",
+      "tomorrow"
+    ],
+    "marker_alternatives": [
+      [
+        "11",
+        "eleven"
+      ]
+    ]
+  },
+  "sessions": [
+    {
+      "case": 0,
+      "final_updates": 1,
+      "marker_alternatives_found": [
+        true
+      ],
+      "markers_found": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "metrics": {
+        "elapsed_seconds": 2.911068,
+        "encoded_audio_bytes": 22932,
+        "encoded_audio_eof": true,
+        "first_response_seconds": 0.0551517,
+        "request_protobuf_bytes": 27879,
+        "requests_produced": 338,
+        "response_protobuf_bytes": 757,
+        "responses_received": 12
+      },
+      "ordered_finals_sha256": "da1713424b553f9659d1f601a20f1d4a0060ffcb670a8f24f71257c26f53ebcf",
+      "pcm": {
+        "bytes": 213070,
+        "closed": true,
+        "eof": true,
+        "expected_frames": 106535,
+        "matches": true,
+        "sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc"
+      },
+      "status": "healthy",
+      "text_matches_expected": null,
+      "text_sha256": "af0d59a2f59a92412b3ec631ad1c4b85fb7227e1c91ff88d313c78ef1ce5f3ad"
+    },
+    {
+      "case": 1,
+      "final_updates": 1,
+      "marker_alternatives_found": [
+        true
+      ],
+      "markers_found": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "metrics": {
+        "elapsed_seconds": 3.146797,
+        "encoded_audio_bytes": 22932,
+        "encoded_audio_eof": true,
+        "first_response_seconds": 0.0219514,
+        "request_protobuf_bytes": 27891,
+        "requests_produced": 338,
+        "response_protobuf_bytes": 773,
+        "responses_received": 13
+      },
+      "ordered_finals_sha256": "da1713424b553f9659d1f601a20f1d4a0060ffcb670a8f24f71257c26f53ebcf",
+      "pcm": {
+        "bytes": 213070,
+        "closed": true,
+        "eof": true,
+        "expected_frames": 106535,
+        "matches": true,
+        "sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc"
+      },
+      "status": "healthy",
+      "text_matches_expected": null,
+      "text_sha256": "af0d59a2f59a92412b3ec631ad1c4b85fb7227e1c91ff88d313c78ef1ce5f3ad"
+    },
+    {
+      "case": 2,
+      "final_updates": 1,
+      "marker_alternatives_found": [
+        true
+      ],
+      "markers_found": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "metrics": {
+        "elapsed_seconds": 2.8341469,
+        "encoded_audio_bytes": 22932,
+        "encoded_audio_eof": true,
+        "first_response_seconds": 0.0274114,
+        "request_protobuf_bytes": 27901,
+        "requests_produced": 338,
+        "response_protobuf_bytes": 757,
+        "responses_received": 12
+      },
+      "ordered_finals_sha256": "da1713424b553f9659d1f601a20f1d4a0060ffcb670a8f24f71257c26f53ebcf",
+      "pcm": {
+        "bytes": 213070,
+        "closed": true,
+        "eof": true,
+        "expected_frames": 106535,
+        "matches": true,
+        "sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc"
+      },
+      "status": "healthy",
+      "text_matches_expected": null,
+      "text_sha256": "af0d59a2f59a92412b3ec631ad1c4b85fb7227e1c91ff88d313c78ef1ce5f3ad"
+    }
+  ],
+  "all_text_hashes_equal": true,
+  "limits": [
+    "At most three controlled sessions, stop first failed/inconclusive, no retry.",
+    "One Engine and one explicit connect; physical remote TCP count not observed independently.",
+    "Python/PyAV prepare inputs and launch only; native child PATH restricted to Windows system directories.",
+    "Acceptance of requests carrying fields7/40 on this profile is observed; preference efficacy is not established.",
+    "One ordinary non-offensive synthetic clip; no offensive-content challenge or safety-filter bypass attempted.",
+    "All three rendered text hashes are equal: no formatting difference observed on this clip, not proof that the server universally ignores or honors these settings.",
+    "Field64 remained omitted; no unknown secondary route was guessed or tested.",
+    "No transcript, filesystem paths, credentials, cookies, service identifiers or raw payloads are published.",
+    "PCM consumed before lossy encoding is measured, not an independent server acknowledgement. No quality/endurance/WAN speed claim."
+  ]
+}

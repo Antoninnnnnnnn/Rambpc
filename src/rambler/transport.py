@@ -31,37 +31,55 @@ class _Session:
         self.reader: asyncio.Task[Any] | None = None
         self._stopping_writer = False
         self._cleanup: asyncio.Task[None] | None = None
-        self.writer = asyncio.create_task(self._write(requests))
+        self._request_cleanup: asyncio.Task[None] | None = None
+        try:
+            self._request_iterator = aiter(requests)
+        except BaseException:
+            call.cancel()
+            raise
+        self.writer = asyncio.create_task(self._write(self._request_iterator))
         self.monitor = asyncio.create_task(self._watch_terminal_status())
 
-    async def _write(self, requests: AsyncIterable[bytes]) -> None:
+    async def _write(self, iterator: AsyncIterator[bytes]) -> None:
         try:
-            iterator = aiter(requests)
-            try:
-                async for request in iterator:
-                    if not isinstance(request, bytes):
-                        raise TypeError("requests must yield bytes")
-                    try:
-                        await self.call.write(request)
-                    except (grpc.RpcError, asyncio.InvalidStateError):
-                        # A server may finish before our next write. Its read-side
-                        # terminal status is authoritative (and may even be OK).
-                        return
+            async for request in iterator:
+                if not isinstance(request, bytes):
+                    raise TypeError("requests must yield bytes")
                 try:
-                    await self.call.done_writing()
+                    await self.call.write(request)
                 except (grpc.RpcError, asyncio.InvalidStateError):
+                    # A server may finish before our next write. Its read-side
+                    # terminal status is authoritative (and may even be OK).
                     return
-            finally:
-                close_iterator = getattr(iterator, "aclose", None)
-                if close_iterator is not None:
-                    await close_iterator()
+            try:
+                await self.call.done_writing()
+            except (grpc.RpcError, asyncio.InvalidStateError):
+                return
         except BaseException as exc:
             if not (isinstance(exc, asyncio.CancelledError) and self._stopping_writer):
+                # Record producer failures before cleanup can race terminal status.
                 self.error = exc
                 self.call.cancel()
-            # The supervisor retrieves the task exception. Keeping the original
-            # exception here also preserves cancellation semantics for producers.
             raise
+        finally:
+            await self._close_requests(iterator)
+
+    async def _close_requests(self, iterator: AsyncIterator[bytes]) -> None:
+        # Terminal status can cancel the writer after done_writing(), while its
+        # natural aclose() is already suspended. Own cleanup in a separate task
+        # so that this cancellation cannot interrupt resource release.
+        if self._request_cleanup is None:
+            async def cleanup():
+                try:
+                    close_iterator = getattr(iterator, "aclose", None)
+                    if close_iterator is not None:
+                        await close_iterator()
+                except BaseException as exc:
+                    self.error = exc
+                    self.call.cancel()
+                    raise
+            self._request_cleanup = asyncio.create_task(cleanup())
+        await asyncio.shield(self._request_cleanup)
 
     def _stop_writer(self) -> None:
         if not self._stopping_writer:
@@ -78,6 +96,9 @@ class _Session:
         finally:
             self._stop_writer()
             await asyncio.gather(self.writer, return_exceptions=True)
+            # A task cancelled before its first step never runs its finally.
+            # The supervisor still owns and closes that unstarted iterator.
+            await self._close_requests(self._request_iterator)
 
     async def close(self) -> None:
         if self._cleanup is None:
@@ -95,6 +116,10 @@ class _Session:
             *(() if self.reader is None else (self.reader,)),
             return_exceptions=True,
         )
+        # The writer may only have created this task while handling cancellation.
+        # Await it after the writer has stopped, and do not swallow close errors.
+        if self._request_cleanup is not None:
+            await self._request_cleanup
 
 
 class GrpcTransport:
@@ -102,8 +127,10 @@ class GrpcTransport:
 
     TLS uses gRPC's standard trust roots and hostname verification. ``secure=False``
     is reserved for loopback/test servers; never use it for production traffic.
-    Each stream owns its request iterator and closes it on exit when it exposes
-    ``aclose``. Reads and writes run concurrently, with native gRPC write-side
+    Each stream owns its request iterator and closes it once on exit when it
+    exposes ``aclose``. This cleanup is independent of writer cancellation and
+    awaited before EOF; cleanup failures propagate instead of successful EOF.
+    Reads and writes run concurrently, with native gRPC write-side
     backpressure and no application-level request queue or audio accumulation.
 
     Exhaust responses to observe the terminal gRPC status, including errors after
@@ -196,9 +223,13 @@ class GrpcTransport:
             if channel is None:
                 return
             try:
-                await asyncio.gather(
-                    *(self._close_session(session) for session in tuple(self._sessions))
+                results = await asyncio.gather(
+                    *(self._close_session(session) for session in tuple(self._sessions)),
+                    return_exceptions=True,
                 )
+                for result in results:
+                    if isinstance(result, BaseException):
+                        raise result
             finally:
                 await channel.close()
 
@@ -237,6 +268,11 @@ class GrpcTransport:
                 if session.error is not None:
                     raise session.error
                 if response is grpc.aio.EOF:
+                    # EOF can race the producer's asynchronous cleanup. Observe
+                    # its completion/errors before reporting transport success.
+                    await session.close()
+                    if session.error is not None:
+                        raise session.error
                     return
                 yield response
         finally:

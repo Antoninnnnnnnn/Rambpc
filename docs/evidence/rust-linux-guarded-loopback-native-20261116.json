@@ -1,0 +1,135 @@
+{
+  "date": "2026-11-16",
+  "limits": [
+    "This is an opt-in development example, not production hardening or a real credential receiver.",
+    "Plaintext synthetic loopback does not establish native TLS roots/handshake, real service auth, ASR quality or durable provisioning.",
+    "Self-checks and proc ownership/access denials do not observe actual core suppression or pipe-helper non-dispatch; historical G1 remains unmet and Linux live NO_GO.",
+    "Root/CAP_SYS_PTRACE, WSL root from the same Windows user, relays/kernel pipe buffers, swap/VM/WER, races and fatal termination remain outside this protection.",
+    "Guest pidfd/subreaper cleanup is separate from the Windows bridge job; external supervisor termination/power loss can interrupt it.",
+    "The held-EOF observation plus source contract excludes SDK entry before EOF; it is not an acknowledgement of each byte read.",
+    "Counts are per command/case, not added as new distinct SDK tests or real service sessions.",
+    "No retry, audio replay, private capture or service-budget reset."
+  ],
+  "preflight_history": {
+    "actual_full_driver_runs": 1,
+    "corrected_preflight": "PASS; default noop, pinned helpers/source tree, public-source policy, assembled guest/relay/loader syntax.",
+    "failed_history_retained": true,
+    "initial_pure_host_preflight": "FAILED before any actual driver invocation or guest workspace creation: Cargo-policy checker received all source blobs instead of Cargo-only TOML documents.",
+    "main_remediation_before_first_actual_run": [
+      "pinned absolute Git executable for restricted host PATH",
+      "filtered all seven Cargo manifests/lock documents into the unchanged original public-registry policy; full178-file source pin unchanged"
+    ]
+  },
+  "qualification": {
+    "actual_driver_process_exit": 0,
+    "compiler_and_cargo": "1.88.0",
+    "example_tests": {
+      "failed": 0,
+      "ignored": 0,
+      "memory_only": 7,
+      "passed": 9,
+      "real_loopback_fake_admission": 2
+    },
+    "external_environ_open_denials_without_read": 3,
+    "external_root_uid_gid_proc_owners": 3,
+    "guardian_cleanup_observations": 9,
+    "guest_cleanup_verified": true,
+    "intended_fds_and_target_gate_not_independent_fd_attestation": true,
+    "logs": {
+      "cargo-version": {
+        "bytes": 36,
+        "sha256": "6c2df3721232c841c6af639c7b1c37c3032fcbf711e4f2914435f97ab5f4dff1"
+      },
+      "example-build": {
+        "bytes": 281,
+        "sha256": "16844fccfec14b1384320e5dec7f95b2d51a653ebf413e641b4400870bfd2d14"
+      },
+      "example-tests": {
+        "bytes": 2247,
+        "sha256": "a2b753b07ac6af14a745fe12f058c47c2a46308d0cad64dcf87bd2b34d6fe6c2"
+      },
+      "native-held-eof": {
+        "bytes": 17,
+        "sha256": "74209984da2b2dea708bedb92f8be780d18fe98660b5423c5cce430910667ab0"
+      },
+      "native-invalid": {
+        "bytes": 40,
+        "sha256": "88623b343a5bc1c73f2e314805352ec6ffcf9f147b42d62f6cb0d20a929f4668"
+      },
+      "native-noop": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "native-success": {
+        "bytes": 38,
+        "sha256": "083d0236ab95ed157d1303dbbb53fc5250ca5af2b1ba08410e19b5b63ecb7a3f"
+      },
+      "rust-version": {
+        "bytes": 36,
+        "sha256": "1ac65f1cd11fa83e9530348b787fa3e5bdd85b0f3727099df8bcdf3e24274138"
+      }
+    },
+    "native_cases": {
+      "default_noop": {
+        "exit": 0,
+        "pass": true,
+        "stdout_bytes": 0
+      },
+      "held_eof_owned_sigkill_and_reap": {
+        "exit": -9,
+        "pass": true,
+        "stdout_bytes": 17
+      },
+      "public_invalid": {
+        "exit": 1,
+        "pass": true,
+        "stdout_bytes": 40
+      },
+      "public_success": {
+        "exit": 0,
+        "pass": true,
+        "stdout_bytes": 38
+      }
+    },
+    "native_contract": "The fixed OK line is emitted only after real codec sample/CRC/decode, strict fixed synthetic result, terminal, cleanup and owner-close checks; these are pinned target checks, not independent syscall/wire tracing.",
+    "native_internal_fixed_sample_checks": {
+      "pcm_bytes": 2034,
+      "pcm_samples": 1017,
+      "trimmed_decoded_samples_48000_hz": 3051,
+      "upstream_close_count": 1
+    },
+    "observer_no_sys_ptrace_effective_permitted_ambient": true,
+    "observer_nonroot": true,
+    "platform": "Linux x86_64 in existing development WSL distribution",
+    "typed_final_projection_pass": true,
+    "windows_bridge_job_verified": true
+  },
+  "schema": 1,
+  "scope": "actual guarded Linux example, fixed public canary, real native codec/Engine/transport and synthetic numeric-loopback peer only",
+  "scope_guards": {
+    "consumed_windows_opportunity_unchanged": true,
+    "deliberate_core_crashes": 0,
+    "g1_met": false,
+    "global_settings_changed": false,
+    "linux_live_authorized": false,
+    "phone_actions": 0,
+    "real_credential_reads": 0,
+    "real_service_calls": 0,
+    "service_reservations": 0
+  },
+  "source": {
+    "archive_sha256": "804d481ca0941f619ef1a0ef38014dd6403bc8e2fd15f0f41a9c70aff1a23330",
+    "binary_and_test_binary_unchanged_during_observation": true,
+    "binary_sha256": "01ee53380b0fefd7c4585a55167ea00b39fd904f73ce51ec2748151ff558c267",
+    "driver_sha256": "54fe3ce3fb9826daf425802b8deddbcf942bbbd7fcb69703dc3f3c8aeefb01d3",
+    "example_raw_sha256": "99a3c5dd046dc435883a54e7cf1b7e352dc0265f7ec083347f5efa067e9e605a",
+    "guest_control_sha256": "09d287498904299692c200c0977a34e13bb64410d53c9b06b162789fc558c13d",
+    "identity_scope": "Selected-source identity and private-build artifact hashes, not full TCB or reproducible-binary attestation.",
+    "root_and_guest_sources_unchanged": true,
+    "selected_files": 178,
+    "selected_manifest_sha256": "c407bb5fbe1ffc4309167ddf45c481239f2c1a196ff0de9bac9ce3c10e8a3d90",
+    "source_commit": "aaf56df039bec9707597c398ac7bfedb3e29a7de",
+    "test_binary_sha256": "9183348bc50d3a271ea895318dd0b99f05a65b3b93b92df934a0ac4eb02cddd8",
+    "tests_raw_sha256": "46b3012cbcc66215131b7e85d06c7536a45d61cb4938c05acc51178792f2711e"
+  }
+}

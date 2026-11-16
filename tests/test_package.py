@@ -7,7 +7,8 @@ def test_public_import_keeps_native_encoder_lazy():
     result = subprocess.run(
         [sys.executable, "-I", "-c", (
             "import sys; from rambler import RamblerEngine, ProtocolConfig, "
-            "EditingContext, S3Status, IncompleteSessionError; "
+            "EditingContext, S3Status, IncompleteSessionError, "
+            "collect_dictation, replacement_proposal, DictationResult; "
             "assert 'av' not in sys.modules; assert S3Status(1).value == 1"
         )],
         capture_output=True,

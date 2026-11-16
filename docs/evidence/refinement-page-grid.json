@@ -1,0 +1,2566 @@
+{
+  "reproducibility": {
+    "captured_utc": "2026-11-13T07:38:41.476135+00:00",
+    "os": {
+      "system": "Windows",
+      "release": "11",
+      "machine": "AMD64"
+    },
+    "python": "3.14.5",
+    "grpcio": "1.85.1",
+    "cpu": {
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "logical_count": 12
+    },
+    "code_sha256": {
+      "engine": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol": "1604f9420dd48f967ca8bea31fa5ebef1fcb8cfb5e30144f76115637c24ae0b2",
+      "transport": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5",
+      "benchmark_engine_helpers": "f4eab2662365f2c830ae411ff339e1ee1a1b5fa0a5ca9c3a17719ced775d0aa2",
+      "realtime_harness": "3948f40ce3d68ad69c70b80a62d1973d83d6202d8d3800ec15fbd775352d907b",
+      "audio": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "encoding": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6"
+    },
+    "git_head": "4b96696cf656844f8747050ed572059d4e85f38c",
+    "git_dirty": true,
+    "git_dirty_note": "Snapshot includes untracked files, potentially including the new output.",
+    "config": {
+      "language": "en-US",
+      "application_id": "gboard",
+      "sample_rate": 16000,
+      "encoding": 10,
+      "channels": 1,
+      "routing": "gboard_gemini_v3_streaming_voice_edit_mul",
+      "platform": "Python"
+    },
+    "timeout_seconds": 30,
+    "concurrency": 1,
+    "pacing": "realtime_wav_chunk_start",
+    "context": {
+      "before": "",
+      "selected": "",
+      "after": "",
+      "cursor_aware": true
+    },
+    "transport": {
+      "secure": true,
+      "retries": 0,
+      "max_message_bytes": 8388608
+    },
+    "instrumentation": {
+      "clock": "time.monotonic",
+      "cpu_clock": "time.process_time",
+      "include_results": true,
+      "raw_response_capture": false
+    },
+    "semantic_signature_version": 2,
+    "semantic_signature_policy": "ordered_all_recognition_state_1_sets_v2",
+    "source": "native",
+    "native_test_source": {
+      "pyav_version": "19.0.2",
+      "library_versions": {
+        "libavutil": [
+          61,
+          1,
+          102
+        ],
+        "libavcodec": [
+          63,
+          1,
+          102
+        ],
+        "libavformat": [
+          63,
+          1,
+          102
+        ],
+        "libavdevice": [
+          63,
+          1,
+          102
+        ],
+        "libavfilter": [
+          12,
+          1,
+          102
+        ],
+        "libswscale": [
+          10,
+          1,
+          102
+        ],
+        "libswresample": [
+          7,
+          1,
+          102
+        ]
+      },
+      "native_prepare_ms": 80.85650000430178,
+      "prepare_note": "Import and module preparation in this process, not a cold-system measurement."
+    },
+    "page_durations_us": [
+      20000,
+      40000,
+      60000,
+      100000
+    ],
+    "pairs": null,
+    "rounds": 5,
+    "schedule_mode": "rotating_grid",
+    "scheduled_page_durations_us": [
+      20000,
+      40000,
+      60000,
+      100000,
+      40000,
+      60000,
+      100000,
+      20000,
+      60000,
+      100000,
+      20000,
+      40000,
+      100000,
+      20000,
+      40000,
+      60000,
+      100000,
+      60000,
+      40000,
+      20000
+    ],
+    "session_limit": 24,
+    "timeout_scope": "pipeline plus verification; native synchronous work cancels cooperatively",
+    "native_chunk_policy": "muxer",
+    "include_results": true,
+    "encoder": {
+      "codec": "libopus",
+      "bitrate": "24k",
+      "vbr": "on",
+      "application": "voip",
+      "frame_duration_ms": 20,
+      "sample_rate": 16000,
+      "channels": 1,
+      "flush_packets": 1,
+      "pcm_chunk_ms": 20,
+      "encoded_chunk_policy": "native muxer writes unchanged, immediately"
+    }
+  },
+  "source_wav_sha256": "097a50e074db2fc2028edba6337c5b036d05c94cc948c4f03770e1c4303b1a79",
+  "source_wav_bytes": 213148,
+  "source_pcm_reference": {
+    "sha256": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+    "bytes": 213070,
+    "format": "PCM16LE mono 16000Hz"
+  },
+  "schema_version": 2,
+  "samples": [
+    {
+      "index": 0,
+      "ogg_page_duration_us": 20000,
+      "first_encoded_bytes_ms": 4.500899995036889,
+      "last_audio_yield_ms": 6652.670499999658,
+      "source_exhausted_ms": 6651.021199999377,
+      "first_response_ms": 26.68719999928726,
+      "start_speech_ms": 363.56789999990724,
+      "first_text_ms": 7081.057299998065,
+      "last_text_ms": 7081.057299998065,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7082.755299998098,
+      "eof_ms": 7082.919199994649,
+      "encoded_bytes_yielded": 22955,
+      "encoded_sha256": "e78ce425bd8d93c48a11900618e5d853d4b20692702c7d48c5b20a0262773d6d",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "dd620ba1e68b4cf6a1e91c48d1d9a5f6",
+        "requests_produced": 339,
+        "request_protobuf_bytes": 28147,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.08279699999548,
+        "first_response_seconds": 0.02651269999478245,
+        "eof_seconds": 7.082795999995142
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7082.946199996513,
+      "pipeline_cpu_ms": 468.75,
+      "verification_wall_ms": 18.55980000254931,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 2.213499930803664,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 4.475199995795265,
+      "native_first_audio_page_ms": 26.46009999443777,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7101.569999998901,
+      "python_process_cpu_ms": 484.375,
+      "first_text_after_source_eof_ms": 430.03609999868786,
+      "last_text_after_source_eof_ms": 430.03609999868786,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 431.7340999987209,
+      "eof_after_source_eof_ms": 431.8979999952717,
+      "scheduled_round": 0,
+      "position_in_round": 0
+    },
+    {
+      "index": 1,
+      "ogg_page_duration_us": 40000,
+      "first_encoded_bytes_ms": 2.271500001370441,
+      "last_audio_yield_ms": 6657.512899997528,
+      "source_exhausted_ms": 6656.6825000045355,
+      "first_response_ms": 30.93310000258498,
+      "start_speech_ms": 365.84099999890896,
+      "first_text_ms": 7063.565299999027,
+      "last_text_ms": 7063.565299999027,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7065.450499998406,
+      "eof_ms": 7065.548500002478,
+      "encoded_bytes_yielded": 18446,
+      "encoded_sha256": "9d3a9b8ce2f9992cff4eb8814df88198f8123a38c43d5c769007a734d24b8d43",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "b188c76701cc4a91a0d94fbea8015e62",
+        "requests_produced": 172,
+        "request_protobuf_bytes": 21333,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.065441400001873,
+        "first_response_seconds": 0.03078780000214465,
+        "eof_seconds": 7.065440900005342
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7065.5750000005355,
+      "pipeline_cpu_ms": 125.0,
+      "verification_wall_ms": 22.122800000943244,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 1.4069000753806904,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 2.2501999992528,
+      "native_first_audio_page_ms": 63.31520000094315,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7087.762900002417,
+      "python_process_cpu_ms": 140.625,
+      "first_text_after_source_eof_ms": 406.8827999944915,
+      "last_text_after_source_eof_ms": 406.8827999944915,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 408.76799999387003,
+      "eof_after_source_eof_ms": 408.8659999979427,
+      "scheduled_round": 0,
+      "position_in_round": 1
+    },
+    {
+      "index": 2,
+      "ogg_page_duration_us": 60000,
+      "first_encoded_bytes_ms": 2.5338999985251576,
+      "last_audio_yield_ms": 6645.474600001762,
+      "source_exhausted_ms": 6644.261000001279,
+      "first_response_ms": 31.518199997663032,
+      "start_speech_ms": 409.44450000097277,
+      "first_text_ms": 7071.926600001461,
+      "last_text_ms": 7071.926600001461,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7072.393200003717,
+      "eof_ms": 7072.550199998659,
+      "encoded_bytes_yielded": 16961,
+      "encoded_sha256": "01984e5a904b5814ba39748acfb4c832a2656c1e8040d21122dad97a73df8afb",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "1c0ff0686d004feca695bd66a66599a1",
+        "requests_produced": 117,
+        "request_protobuf_bytes": 18969,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.072461900002963,
+        "first_response_seconds": 0.031376800005091354,
+        "eof_seconds": 7.072461399999156
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7072.573199999169,
+      "pipeline_cpu_ms": 453.125,
+      "verification_wall_ms": 18.297700000402983,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 1.171000003523659,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 2.5040000036824495,
+      "native_first_audio_page_ms": 104.93010000209324,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7090.939000001526,
+      "python_process_cpu_ms": 468.75,
+      "first_text_after_source_eof_ms": 427.66560000018217,
+      "last_text_after_source_eof_ms": 427.66560000018217,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 428.13220000243746,
+      "eof_after_source_eof_ms": 428.2891999973799,
+      "scheduled_round": 0,
+      "position_in_round": 2
+    },
+    {
+      "index": 3,
+      "ogg_page_duration_us": 100000,
+      "first_encoded_bytes_ms": 2.7632999990601093,
+      "last_audio_yield_ms": 6651.771600001666,
+      "source_exhausted_ms": 6650.646800000686,
+      "first_response_ms": 32.25179999571992,
+      "start_speech_ms": 480.40219999529654,
+      "first_text_ms": 7136.008599998604,
+      "last_text_ms": 7136.008599998604,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7136.486600000353,
+      "eof_ms": 7136.634099995717,
+      "encoded_bytes_yielded": 15746,
+      "encoded_sha256": "b6be00bb1db8282749b2ba60ad5fc1c711db4b0b23ec6a969c3f7edb0ad42131",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "3482d8e5b76d4d8b8520480ea0a6f477",
+        "requests_produced": 72,
+        "request_protobuf_bytes": 17026,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.136510199998156,
+        "first_response_seconds": 0.03209220000280766,
+        "eof_seconds": 7.136509900003148
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7136.657600000035,
+      "pipeline_cpu_ms": 140.625,
+      "verification_wall_ms": 18.440699997881893,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 0.909299953491427,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 2.731200002017431,
+      "native_first_audio_page_ms": 191.74829999974463,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7155.16260000004,
+      "python_process_cpu_ms": 156.25,
+      "first_text_after_source_eof_ms": 485.36179999791784,
+      "last_text_after_source_eof_ms": 485.36179999791784,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 485.83979999966687,
+      "eof_after_source_eof_ms": 485.9872999950312,
+      "scheduled_round": 0,
+      "position_in_round": 3
+    },
+    {
+      "index": 4,
+      "ogg_page_duration_us": 40000,
+      "first_encoded_bytes_ms": 1.9945999956689775,
+      "last_audio_yield_ms": 6651.943199998641,
+      "source_exhausted_ms": 6650.484999998298,
+      "first_response_ms": 33.755799995560665,
+      "start_speech_ms": 358.76789999747416,
+      "first_text_ms": 7066.208999996888,
+      "last_text_ms": 7066.208999996888,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7071.581699994567,
+      "eof_ms": 7072.306299996853,
+      "encoded_bytes_yielded": 18446,
+      "encoded_sha256": "449b9b20384dbd730697e854ca48cbe980ac04b85571c40b291ad082e3a3b4ff",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "e7af52b457a649fdb221cfe57a9880f3",
+        "requests_produced": 172,
+        "request_protobuf_bytes": 21333,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.072192100000393,
+        "first_response_seconds": 0.033621900001890026,
+        "eof_seconds": 7.072190899998532
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7072.378899996693,
+      "pipeline_cpu_ms": 281.25,
+      "verification_wall_ms": 38.24770000210265,
+      "verification_cpu_ms": 31.25,
+      "artifact_write_wall_ms": 2.693100024771411,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 1.9673999995575286,
+      "native_first_audio_page_ms": 75.99839999602409,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7110.770200000843,
+      "python_process_cpu_ms": 312.5,
+      "first_text_after_source_eof_ms": 415.72399999859044,
+      "last_text_after_source_eof_ms": 415.72399999859044,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 421.0966999962693,
+      "eof_after_source_eof_ms": 421.82129999855533,
+      "scheduled_round": 1,
+      "position_in_round": 0
+    },
+    {
+      "index": 5,
+      "ogg_page_duration_us": 60000,
+      "first_encoded_bytes_ms": 3.59030000254279,
+      "last_audio_yield_ms": 6653.424500000256,
+      "source_exhausted_ms": 6651.499400002649,
+      "first_response_ms": 40.58120000263443,
+      "start_speech_ms": 428.7767999994685,
+      "first_text_ms": 7032.054499999504,
+      "last_text_ms": 7032.054499999504,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7033.056800006307,
+      "eof_ms": 7033.59370000544,
+      "encoded_bytes_yielded": 16961,
+      "encoded_sha256": "5d49571469d60c7553961ac5876555faff9a331de9a53b634c76943984d8e765",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "90315addb6464bb187d007ddf8f4aa5c",
+        "requests_produced": 117,
+        "request_protobuf_bytes": 18969,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 7.033409100004064,
+        "first_response_seconds": 0.04034500000125263,
+        "eof_seconds": 7.033407900002203
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7033.649299999524,
+      "pipeline_cpu_ms": 203.125,
+      "verification_wall_ms": 46.39799999858951,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 2.069899986963719,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.5502000027918257,
+      "native_first_audio_page_ms": 114.53160000382923,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7080.153400005656,
+      "python_process_cpu_ms": 218.75,
+      "first_text_after_source_eof_ms": 380.55509999685455,
+      "last_text_after_source_eof_ms": 380.55509999685455,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 381.5574000036577,
+      "eof_after_source_eof_ms": 382.094300002791,
+      "scheduled_round": 1,
+      "position_in_round": 1
+    },
+    {
+      "index": 6,
+      "ogg_page_duration_us": 100000,
+      "first_encoded_bytes_ms": 3.2881000006454997,
+      "last_audio_yield_ms": 6652.949900002568,
+      "source_exhausted_ms": 6651.528200003668,
+      "first_response_ms": 31.294000000343658,
+      "start_speech_ms": 468.6188999985461,
+      "first_text_ms": 7073.564400001487,
+      "last_text_ms": 7073.564400001487,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7074.518699999317,
+      "eof_ms": 7074.740700001712,
+      "encoded_bytes_yielded": 15746,
+      "encoded_sha256": "d25ae10fbc37f9927d6156bb473e8b79f6d76960eea87f14d0e17301da0d97e4",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "5c8e9ca466f8423faa14a954d6f2c9e7",
+        "requests_produced": 72,
+        "request_protobuf_bytes": 17026,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.074557500003721,
+        "first_response_seconds": 0.03105379999760771,
+        "eof_seconds": 7.074556699997629
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7074.795900000026,
+      "pipeline_cpu_ms": 484.375,
+      "verification_wall_ms": 37.5824999937322,
+      "verification_cpu_ms": 31.25,
+      "artifact_write_wall_ms": 1.353300001937896,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.240800004277844,
+      "native_first_audio_page_ms": 191.6505999979563,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7112.487600003078,
+      "python_process_cpu_ms": 515.625,
+      "first_text_after_source_eof_ms": 422.0361999978195,
+      "last_text_after_source_eof_ms": 422.0361999978195,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 422.99049999564886,
+      "eof_after_source_eof_ms": 423.2124999980442,
+      "scheduled_round": 1,
+      "position_in_round": 2
+    },
+    {
+      "index": 7,
+      "ogg_page_duration_us": 20000,
+      "first_encoded_bytes_ms": 3.438899999309797,
+      "last_audio_yield_ms": 6656.457400000363,
+      "source_exhausted_ms": 6654.807300001266,
+      "first_response_ms": 27.8184000053443,
+      "start_speech_ms": 314.1276000023936,
+      "first_text_ms": 7512.374500001897,
+      "last_text_ms": 7512.374500001897,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7514.023600000655,
+      "eof_ms": 7514.245099999243,
+      "encoded_bytes_yielded": 22955,
+      "encoded_sha256": "7bbb37a6063ff7d4281e93c83713ff2ea5e0b48f627e5492cf5fee625b583824",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "c4a44b014b7341f49606902cc3f3cdad",
+        "requests_produced": 339,
+        "request_protobuf_bytes": 28146,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.514068500000576,
+        "first_response_seconds": 0.027599799999734387,
+        "eof_seconds": 7.514067699994484
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7514.292700005171,
+      "pipeline_cpu_ms": 484.375,
+      "verification_wall_ms": 36.08130000066012,
+      "verification_cpu_ms": 31.25,
+      "artifact_write_wall_ms": 6.874099948618095,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.3914000014192425,
+      "native_first_audio_page_ms": 27.281100003165193,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7550.486100000853,
+      "python_process_cpu_ms": 515.625,
+      "first_text_after_source_eof_ms": 857.5672000006307,
+      "last_text_after_source_eof_ms": 857.5672000006307,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 859.2162999993889,
+      "eof_after_source_eof_ms": 859.437799997977,
+      "scheduled_round": 1,
+      "position_in_round": 3
+    },
+    {
+      "index": 8,
+      "ogg_page_duration_us": 60000,
+      "first_encoded_bytes_ms": 3.5997000013594516,
+      "last_audio_yield_ms": 6656.5084000030765,
+      "source_exhausted_ms": 6654.653300000064,
+      "first_response_ms": 33.564199999091215,
+      "start_speech_ms": 413.1169000029331,
+      "first_text_ms": 7019.507000004523,
+      "last_text_ms": 7019.507000004523,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7020.429700001841,
+      "eof_ms": 7020.648800003983,
+      "encoded_bytes_yielded": 16961,
+      "encoded_sha256": "225fc5029ab3a7589ea631d858debb1565777a9575e9ca553b9a030cfb013f1f",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "4314718f433f426e9f6577b3e5d9b611",
+        "requests_produced": 117,
+        "request_protobuf_bytes": 18969,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 7.020467599999392,
+        "first_response_seconds": 0.03332689999660943,
+        "eof_seconds": 7.020466800000577
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7020.719500003906,
+      "pipeline_cpu_ms": 328.125,
+      "verification_wall_ms": 32.54369999922346,
+      "verification_cpu_ms": 31.25,
+      "artifact_write_wall_ms": 2.8447999866330065,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.5372000056668185,
+      "native_first_audio_page_ms": 108.70100000465754,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7053.377900003397,
+      "python_process_cpu_ms": 359.375,
+      "first_text_after_source_eof_ms": 364.8537000044598,
+      "last_text_after_source_eof_ms": 364.8537000044598,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 365.7764000017778,
+      "eof_after_source_eof_ms": 365.995500003919,
+      "scheduled_round": 2,
+      "position_in_round": 0
+    },
+    {
+      "index": 9,
+      "ogg_page_duration_us": 100000,
+      "first_encoded_bytes_ms": 3.2652000008965842,
+      "last_audio_yield_ms": 6655.129399994621,
+      "source_exhausted_ms": 6653.766899995389,
+      "first_response_ms": 28.88410000014119,
+      "start_speech_ms": 482.75139999896055,
+      "first_text_ms": 7008.061000000453,
+      "last_text_ms": 7008.061000000453,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7008.861800000886,
+      "eof_ms": 7009.467699994275,
+      "encoded_bytes_yielded": 15746,
+      "encoded_sha256": "e6e2af6c2cfbcf4dc31a73b09a49323be73862c2b3428ac97618b57359b9dc80",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "e02c52de0e2f492b8de3143afd4a5ae7",
+        "requests_produced": 72,
+        "request_protobuf_bytes": 17026,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 7.00927970000339,
+        "first_response_seconds": 0.02865400000155205,
+        "eof_seconds": 7.009278700003051
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7009.526699999697,
+      "pipeline_cpu_ms": 265.625,
+      "verification_wall_ms": 31.72160000394797,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 1.7019999941112474,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.216099998098798,
+      "native_first_audio_page_ms": 184.75119999493472,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7041.366299999936,
+      "python_process_cpu_ms": 281.25,
+      "first_text_after_source_eof_ms": 354.2941000050632,
+      "last_text_after_source_eof_ms": 354.2941000050632,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 355.09490000549704,
+      "eof_after_source_eof_ms": 355.7007999988855,
+      "scheduled_round": 2,
+      "position_in_round": 1
+    },
+    {
+      "index": 10,
+      "ogg_page_duration_us": 20000,
+      "first_encoded_bytes_ms": 3.3829000021796674,
+      "last_audio_yield_ms": 6659.440299998096,
+      "source_exhausted_ms": 6657.766100004665,
+      "first_response_ms": 25.067000002309214,
+      "start_speech_ms": 324.2880000034347,
+      "first_text_ms": 6978.839800001879,
+      "last_text_ms": 6978.839800001879,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 6979.599400001462,
+      "eof_ms": 6979.865300003439,
+      "encoded_bytes_yielded": 22955,
+      "encoded_sha256": "581a751c860d5cc16eec4a48f42e5cb5d7bcdf2d8c3fecc042d91308d480f1bb",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "b7107244484e4e6aad871fd67de61220",
+        "requests_produced": 339,
+        "request_protobuf_bytes": 28147,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 6.9796828999969875,
+        "first_response_seconds": 0.024832199997035787,
+        "eof_seconds": 6.979682099998172
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 6979.908900000737,
+      "pipeline_cpu_ms": 296.875,
+      "verification_wall_ms": 30.146799996146,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 9.181300010823179,
+      "artifact_write_cpu_ms": 15.625,
+      "native_first_header_ms": 3.3298999987891875,
+      "native_first_audio_page_ms": 24.458700005197898,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7010.169599998335,
+      "python_process_cpu_ms": 312.5,
+      "first_text_after_source_eof_ms": 321.07369999721413,
+      "last_text_after_source_eof_ms": 321.07369999721413,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 321.833299996797,
+      "eof_after_source_eof_ms": 322.09919999877457,
+      "scheduled_round": 2,
+      "position_in_round": 2
+    },
+    {
+      "index": 11,
+      "ogg_page_duration_us": 40000,
+      "first_encoded_bytes_ms": 3.143800000543706,
+      "last_audio_yield_ms": 6647.715999999491,
+      "source_exhausted_ms": 6646.64960000664,
+      "first_response_ms": 27.743000006012153,
+      "start_speech_ms": 361.2021000008099,
+      "first_text_ms": 7070.609500005958,
+      "last_text_ms": 7070.609500005958,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7071.565400001418,
+      "eof_ms": 7071.739600003639,
+      "encoded_bytes_yielded": 18446,
+      "encoded_sha256": "4437541b1c4c8241723d3f9a0689736706ab310a440abd89c0effabfac94fd83",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "a61533e5305c4824966f2245fad3c200",
+        "requests_produced": 172,
+        "request_protobuf_bytes": 21333,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.071523099999467,
+        "first_response_seconds": 0.027475299997604452,
+        "eof_seconds": 7.071522500002175
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7071.7781000057585,
+      "pipeline_cpu_ms": 437.5,
+      "verification_wall_ms": 29.91230000043288,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 4.3661999952746555,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.093200000876095,
+      "native_first_audio_page_ms": 77.1485000004759,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7101.808999999776,
+      "python_process_cpu_ms": 453.125,
+      "first_text_after_source_eof_ms": 423.9598999993177,
+      "last_text_after_source_eof_ms": 423.9598999993177,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 424.91579999477835,
+      "eof_after_source_eof_ms": 425.0899999969988,
+      "scheduled_round": 2,
+      "position_in_round": 3
+    },
+    {
+      "index": 12,
+      "ogg_page_duration_us": 100000,
+      "first_encoded_bytes_ms": 13.337799995497335,
+      "last_audio_yield_ms": 6657.667100000253,
+      "source_exhausted_ms": 6656.431499999599,
+      "first_response_ms": 25.962699997762684,
+      "start_speech_ms": 486.9570999944699,
+      "first_text_ms": 7053.969599997799,
+      "last_text_ms": 7053.969599997799,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7054.531399997359,
+      "eof_ms": 7054.7719999958645,
+      "encoded_bytes_yielded": 15746,
+      "encoded_sha256": "d916a2affa7a703190f1abb88946cbcc9d0e86ff8815ce7bb590b18e2a4c35b6",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "25da849ef4134dd4af21d9cba7d33d36",
+        "requests_produced": 72,
+        "request_protobuf_bytes": 17026,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.054591100000835,
+        "first_response_seconds": 0.025732600006449502,
+        "eof_seconds": 7.05459040000278
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7054.7999999980675,
+      "pipeline_cpu_ms": 156.25,
+      "verification_wall_ms": 19.726999998965766,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 0.522100024682004,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 13.307999994140118,
+      "native_first_audio_page_ms": 193.03709999803687,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7074.588999996195,
+      "python_process_cpu_ms": 171.875,
+      "first_text_after_source_eof_ms": 397.5380999982008,
+      "last_text_after_source_eof_ms": 397.5380999982008,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 398.0998999977601,
+      "eof_after_source_eof_ms": 398.34049999626586,
+      "scheduled_round": 3,
+      "position_in_round": 0
+    },
+    {
+      "index": 13,
+      "ogg_page_duration_us": 20000,
+      "first_encoded_bytes_ms": 2.507499993953388,
+      "last_audio_yield_ms": 6655.7579999935115,
+      "source_exhausted_ms": 6654.123699998308,
+      "first_response_ms": 27.56569999473868,
+      "start_speech_ms": 320.3658999991603,
+      "first_text_ms": 7002.201999996032,
+      "last_text_ms": 7002.201999996032,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7002.973999995447,
+      "eof_ms": 7003.191699994204,
+      "encoded_bytes_yielded": 22955,
+      "encoded_sha256": "83a91a5616804170cd02fe7d1d5b11be3fefbc445f611c8b1b9781dace123efb",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "d949212d33d544b881ab63eb41fc6ee1",
+        "requests_produced": 339,
+        "request_protobuf_bytes": 28146,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 7.003052499996556,
+        "first_response_seconds": 0.027380500003346242,
+        "eof_seconds": 7.003050799998164
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7003.23959999514,
+      "pipeline_cpu_ms": 546.875,
+      "verification_wall_ms": 27.07640000153333,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 3.4541999630164355,
+      "artifact_write_cpu_ms": 15.625,
+      "native_first_header_ms": 2.4843999999575317,
+      "native_first_audio_page_ms": 27.247499994700775,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7030.397199996514,
+      "python_process_cpu_ms": 562.5,
+      "first_text_after_source_eof_ms": 348.07829999772366,
+      "last_text_after_source_eof_ms": 348.07829999772366,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 348.8502999971388,
+      "eof_after_source_eof_ms": 349.06799999589566,
+      "scheduled_round": 3,
+      "position_in_round": 1
+    },
+    {
+      "index": 14,
+      "ogg_page_duration_us": 40000,
+      "first_encoded_bytes_ms": 3.2598000034340657,
+      "last_audio_yield_ms": 6655.617100004747,
+      "source_exhausted_ms": 6654.684900000575,
+      "first_response_ms": 33.05800000089221,
+      "start_speech_ms": 398.9082000043709,
+      "first_text_ms": 7072.046100001899,
+      "last_text_ms": 7072.046100001899,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7072.480400005588,
+      "eof_ms": 7072.630599999684,
+      "encoded_bytes_yielded": 18446,
+      "encoded_sha256": "5d554100c0c26d8b51d6929e5562990a7723be8d855bdf4218cc2c6171d0186d",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "f5c1575157094f13805d70841e35fe95",
+        "requests_produced": 172,
+        "request_protobuf_bytes": 21333,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.072459999995772,
+        "first_response_seconds": 0.03284249999705935,
+        "eof_seconds": 7.072459299997718
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7072.672500005865,
+      "pipeline_cpu_ms": 546.875,
+      "verification_wall_ms": 22.646900004474446,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 1.9237000451539643,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.2263000030070543,
+      "native_first_audio_page_ms": 69.03779999993276,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7095.383900006709,
+      "python_process_cpu_ms": 562.5,
+      "first_text_after_source_eof_ms": 417.3612000013236,
+      "last_text_after_source_eof_ms": 417.3612000013236,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 417.7955000050133,
+      "eof_after_source_eof_ms": 417.9456999991089,
+      "scheduled_round": 3,
+      "position_in_round": 2
+    },
+    {
+      "index": 15,
+      "ogg_page_duration_us": 60000,
+      "first_encoded_bytes_ms": 1.9977999982074834,
+      "last_audio_yield_ms": 6648.354600001767,
+      "source_exhausted_ms": 6647.170299998834,
+      "first_response_ms": 39.997799998673145,
+      "start_speech_ms": 422.42149999947287,
+      "first_text_ms": 7003.262699996412,
+      "last_text_ms": 7003.262699996412,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7003.762399996049,
+      "eof_ms": 7003.854299997329,
+      "encoded_bytes_yielded": 16961,
+      "encoded_sha256": "e76f2fff4bde9265cd3e13f233cb8b311a9fb49dac1f082cb9d51755bbb0b425",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "d4db8a547e3642da855a9e779040a2be",
+        "requests_produced": 117,
+        "request_protobuf_bytes": 18969,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 7.003760599996895,
+        "first_response_seconds": 0.03985770000144839,
+        "eof_seconds": 7.003760300001886
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7003.878299998178,
+      "pipeline_cpu_ms": 187.5,
+      "verification_wall_ms": 16.300200004479848,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 1.3056999741820619,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 1.9738999981200323,
+      "native_first_audio_page_ms": 116.60439999832306,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7020.241500002157,
+      "python_process_cpu_ms": 203.125,
+      "first_text_after_source_eof_ms": 356.09239999757847,
+      "last_text_after_source_eof_ms": 356.09239999757847,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 356.592099997215,
+      "eof_after_source_eof_ms": 356.683999998495,
+      "scheduled_round": 3,
+      "position_in_round": 3
+    },
+    {
+      "index": 16,
+      "ogg_page_duration_us": 100000,
+      "first_encoded_bytes_ms": 2.4542000028304756,
+      "last_audio_yield_ms": 6648.270700003195,
+      "source_exhausted_ms": 6646.602799999528,
+      "first_response_ms": 53.18970000371337,
+      "start_speech_ms": 489.6346000023186,
+      "first_text_ms": 7080.459000004339,
+      "last_text_ms": 7080.459000004339,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7083.4183000042685,
+      "eof_ms": 7083.603200000653,
+      "encoded_bytes_yielded": 15746,
+      "encoded_sha256": "b5d11bae3a4c7815cc2c8b629e08f309d0843846d2494b207fc6bfb38b39dc57",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "ecd91ca02c1b410c8cb214494697b905",
+        "requests_produced": 72,
+        "request_protobuf_bytes": 17026,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.083462599999621,
+        "first_response_seconds": 0.05301879999751691,
+        "eof_seconds": 7.083461999995052
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7083.639000004041,
+      "pipeline_cpu_ms": 203.125,
+      "verification_wall_ms": 26.424799994856585,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 0.88900001719594,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 2.429700005450286,
+      "native_first_audio_page_ms": 185.7261000041035,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7110.151900000346,
+      "python_process_cpu_ms": 218.75,
+      "first_text_after_source_eof_ms": 433.8562000048114,
+      "last_text_after_source_eof_ms": 433.8562000048114,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 436.8155000047409,
+      "eof_after_source_eof_ms": 437.00040000112494,
+      "scheduled_round": 4,
+      "position_in_round": 0
+    },
+    {
+      "index": 17,
+      "ogg_page_duration_us": 60000,
+      "first_encoded_bytes_ms": 2.9850999999325722,
+      "last_audio_yield_ms": 6653.564500003995,
+      "source_exhausted_ms": 6651.986300006683,
+      "first_response_ms": 24.665800003276672,
+      "start_speech_ms": 401.25340000668075,
+      "first_text_ms": 7000.420500000473,
+      "last_text_ms": 7000.420500000473,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7001.652900005865,
+      "eof_ms": 7006.339200001094,
+      "encoded_bytes_yielded": 16961,
+      "encoded_sha256": "1c66280dac070e8a58d641a4157227408bd6d3c48958711057b705ea865cd553",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "da6da94c33c74e6cbc99d467a5e07681",
+        "requests_produced": 117,
+        "request_protobuf_bytes": 18969,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 7.006169000000227,
+        "first_response_seconds": 0.0244581000006292,
+        "eof_seconds": 7.006167899999127
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7006.392400006007,
+      "pipeline_cpu_ms": 765.625,
+      "verification_wall_ms": 31.766100000822917,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 1.8779000238282606,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 2.9484000042430125,
+      "native_first_audio_page_ms": 107.49240000586724,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7038.259000000835,
+      "python_process_cpu_ms": 781.25,
+      "first_text_after_source_eof_ms": 348.43419999378966,
+      "last_text_after_source_eof_ms": 348.43419999378966,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 349.6665999991819,
+      "eof_after_source_eof_ms": 354.3528999944101,
+      "scheduled_round": 4,
+      "position_in_round": 1
+    },
+    {
+      "index": 18,
+      "ogg_page_duration_us": 40000,
+      "first_encoded_bytes_ms": 3.1526000020676292,
+      "last_audio_yield_ms": 6644.33370000188,
+      "source_exhausted_ms": 6643.016100002569,
+      "first_response_ms": 27.793400004156865,
+      "start_speech_ms": 420.592200003739,
+      "first_text_ms": 7131.8163000032655,
+      "last_text_ms": 7131.8163000032655,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 7133.964900000137,
+      "eof_ms": 7134.194199999911,
+      "encoded_bytes_yielded": 18446,
+      "encoded_sha256": "7a398f84a9fca6454328039d12a835cd79785789768af31353e6ef4f452f0f8f",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "2f4cbe2076f24090a323c4e4e1ebb906",
+        "requests_produced": 172,
+        "request_protobuf_bytes": 21333,
+        "responses_received": 21,
+        "response_protobuf_bytes": 901,
+        "elapsed_seconds": 7.134024999999383,
+        "first_response_seconds": 0.027576399996178225,
+        "eof_seconds": 7.1340239999990445
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 7134.253500000341,
+      "pipeline_cpu_ms": 156.25,
+      "verification_wall_ms": 32.951900000625756,
+      "verification_cpu_ms": 15.625,
+      "artifact_write_wall_ms": 3.102699985902291,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.111999998509418,
+      "native_first_audio_page_ms": 76.46789999853354,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 7167.314300000726,
+      "python_process_cpu_ms": 171.875,
+      "first_text_after_source_eof_ms": 488.80020000069635,
+      "last_text_after_source_eof_ms": 488.80020000069635,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 490.94879999756813,
+      "eof_after_source_eof_ms": 491.17809999734163,
+      "scheduled_round": 4,
+      "position_in_round": 2
+    },
+    {
+      "index": 19,
+      "ogg_page_duration_us": 20000,
+      "first_encoded_bytes_ms": 3.574100002879277,
+      "last_audio_yield_ms": 6660.170100003597,
+      "source_exhausted_ms": 6658.438500002376,
+      "first_response_ms": 26.10650000133319,
+      "start_speech_ms": 322.1750000011525,
+      "first_text_ms": 6955.188899999484,
+      "last_text_ms": 6955.188899999484,
+      "s3_end_text_ms": null,
+      "s3_end_ms": 6956.096000001708,
+      "eof_ms": 6956.327500003681,
+      "encoded_bytes_yielded": 22955,
+      "encoded_sha256": "db62bac6a2f1bfbd422d558b5acade845758bb0701774dc15165e2ed54d934a5",
+      "decoded_pcm": {
+        "sha256": "7d8dc66e63df85ceb2c4deec0c115914efafbcfda26200e26eee8c7c518f06c1",
+        "bytes": 213070,
+        "format": "PCM16LE mono 16000Hz"
+      },
+      "pcm_bytes_consumed": 213070,
+      "pcm_sha256_consumed": "73db8b20d8f84607cecd7dbb84c0c81294fcc031b262f3b04eb2c8e46b5d7edc",
+      "s3_statuses": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "s3_error_codes": [],
+      "grpc_status": "OK",
+      "results": [
+        {
+          "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "intent": 2,
+          "confidence": null,
+          "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "alternative_text": null,
+          "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+          "edited_context": null
+        }
+      ],
+      "metrics": {
+        "session_id": "2420a06d7cb649bc85d9b6bcd0d058f7",
+        "requests_produced": 339,
+        "request_protobuf_bytes": 28147,
+        "responses_received": 20,
+        "response_protobuf_bytes": 885,
+        "elapsed_seconds": 6.95613030000095,
+        "first_response_seconds": 0.025857500004349276,
+        "eof_seconds": 6.956129500002135
+      },
+      "success": true,
+      "error_type": null,
+      "semantic_result": {
+        "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+        "hypothesis_count": 1,
+        "hypothesis_counts": [
+          1
+        ],
+        "final_update_count": 1,
+        "policy": "ordered_all_recognition_state_1_sets_v2",
+        "version": 2
+      },
+      "pipeline_wall_ms": 6956.384800003434,
+      "pipeline_cpu_ms": 468.75,
+      "verification_wall_ms": 33.796999996411614,
+      "verification_cpu_ms": 31.25,
+      "artifact_write_wall_ms": 6.666200075414963,
+      "artifact_write_cpu_ms": 0.0,
+      "native_first_header_ms": 3.5322999974596314,
+      "native_first_audio_page_ms": 25.50419999897713,
+      "native_encoder_setup_ms": null,
+      "native_encoder_setup_note": "Not separately instrumented; first output includes setup and encoding.",
+      "semantic_final_updates": [
+        {
+          "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+          "hypothesis_count": 1,
+          "confidence_scores": [
+            null
+          ],
+          "policy": "one ordered hypothesis set; confidence excluded"
+        }
+      ],
+      "semantic_provisional_updates": [],
+      "last_populated_semantic_result": {
+        "sha256": "06d4215fc25d8ff4d6fd400a45e5bd09986b10cd797d0e4daa17ae84571410eb",
+        "hypothesis_count": 1,
+        "confidence_scores": [
+          null
+        ],
+        "policy": "one ordered hypothesis set; confidence excluded"
+      },
+      "elapsed_ms": 6990.287799999351,
+      "python_process_cpu_ms": 500.0,
+      "first_text_after_source_eof_ms": 296.7503999971086,
+      "last_text_after_source_eof_ms": 296.7503999971086,
+      "s3_end_text_after_source_eof_ms": null,
+      "s3_end_after_source_eof_ms": 297.6574999993318,
+      "eof_after_source_eof_ms": 297.88900000130525,
+      "scheduled_round": 4,
+      "position_in_round": 3
+    }
+  ],
+  "decoded_pcm_identical_across_samples": true,
+  "complete": true,
+  "comparison_status": "semantic_match_observed_not_quality_proof",
+  "semantic_reference": {
+    "sha256": "984518bd5a556e496210b3371618ffd4768ea92be1af3446810a053fa03d91d4",
+    "hypothesis_count": 1,
+    "hypothesis_counts": [
+      1
+    ],
+    "final_update_count": 1,
+    "policy": "ordered_all_recognition_state_1_sets_v2",
+    "version": 2
+  },
+  "semantic_policy": "ordered_all_recognition_state_1_sets_v2",
+  "semantic_policy_note": "Compare every ordered recognition-state-1 hypothesis set, including empty sets and repeats. Provisional observations and confidence scores are separate.",
+  "notes": [
+    "FFmpeg is an optional test source and verifier, not an engine dependency.",
+    "Native PyAV/Opus is an optional audio extra, not a core dependency.",
+    "One ready channel; sequential recorded schedule, no retry.",
+    "Audio producer timestamps are not network writes; source_exhausted_ms is not end-request yield.",
+    "Native source EOF is PCM reader exhaustion; FFmpeg source EOF is encoded stdout exhaustion; timings are not directly equivalent.",
+    "Last candidate or S3 end text is not necessarily final Rambler output.",
+    "Python process CPU includes native encoding/decoding but excludes FFmpeg child processes; it may have coarse platform resolution.",
+    "FFmpeg encoder and decoder CPU are not measured.",
+    "Decoded PCM hashes compare samples, not fidelity to the uncompressed WAV.",
+    "pipeline CPU/wall stop before verification; artifact write timings are an included subset, not independent totals.",
+    "Artifact write timings cover buffered file.write only; open/flush/close remain in pipeline totals.",
+    "Pipeline includes hashing, instrumentation and native codec; process CPU excludes FFmpeg children.",
+    "Report JSON saves and source rehash between samples are outside sample timings.",
+    "Native first header/audio markers observe complete muxer pages before upload, not completed network writes.",
+    "Import preparation and channel readiness precede samples; encoder setup is not separately observable.",
+    "Grid has equal repetition counts; positional balance is exact only over complete rotation cycles."
+  ],
+  "channel_open_ms": 99.07180000300286
+}

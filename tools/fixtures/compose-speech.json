@@ -1,0 +1,31 @@
+[
+  {
+    "id": "compose-question-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "What is the capital of France?",
+    "property": "Use the exact question from PixelBoard's synthetic INTENT_COMPOSE runtime unit test. That mock is not backend evidence. Observe whether this S3 profile answers the question or dictates it literally; record the actual response intent without forcing 4."
+  },
+  {
+    "id": "compose-message-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "Write a short message to Alex saying I will arrive twenty minutes late.",
+    "property": "Repeat the previously literal composition directive as a controlled baseline. Reuse this identical generated audio file for the empty-context and message-scaffold cases so only editing context changes."
+  },
+  {
+    "id": "compose-question-literal-control-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "The note should contain the exact sentence: What is the capital of France?",
+    "property": "Negative control containing the same factual question inside an explicit literal-text context. An answer to the embedded question would not establish correct composition intent detection. Do not impose exact transcription wording as a transport success criterion."
+  },
+  {
+    "id": "compose-rewrite-control-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "Make this sentence more polite, but keep the same meaning.",
+    "before": "Send me the report now.",
+    "property": "Positive control for the already observed S3 rewrite behavior (historically intent3 with edited text). Successful rewriting does not prove composition, and does not authorize whole-window replacement."
+  }
+]

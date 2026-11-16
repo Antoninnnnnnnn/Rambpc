@@ -1,0 +1,23 @@
+[
+  {
+    "id": "compose-invocation-question-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "Hey Gboard, what is the capital of France?",
+    "property": "Falsifiable S3 probe inspired by the legacy invocation phrase in an Android Lite prompt; that prompt is not proven to be used by the remote S3 service. Observe factual generation versus literal dictation."
+  },
+  {
+    "id": "compose-invocation-message-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "Hey Gboard, write a short message to Alex saying I will arrive twenty minutes late.",
+    "property": "Observe whether the explicit invocation changes the previously literal message directive. No flags or prompts are changed, and intent4 is not assumed."
+  },
+  {
+    "id": "compose-invocation-literal-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "The note should contain the exact sentence: Hey Gboard, what is the capital of France?",
+    "property": "Negative control: invocation occurs inside a sentence explicitly intended as literal text. Answering the embedded question is not automatically correct composition behavior."
+  }
+]

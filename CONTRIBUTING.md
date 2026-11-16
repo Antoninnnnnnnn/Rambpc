@@ -10,7 +10,25 @@ de stockage d'objets.
 
 ## Travail local
 
-- Python >= 3.11 ; environnement virtuel local, jamais d'installation globale.
+Le développement du moteur se poursuit dans le workspace **Rust** ; Python 0.3
+reste la référence de conformité. Voir [le guide Rust](docs/rust.md) et
+[le contrat de portage](docs/architecture/portage-rust.md).
+
+```sh
+cargo fmt --all -- --check
+cargo test --workspace --all-features --locked
+cargo test -p rambler-cli --features audio --example session_reuse --locked
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo build --release --locked -p rambler-cli --features audio
+```
+
+Les tests Rust doivent rester offline/loopback, y compris les scénarios de
+backpressure, annulation, erreurs tardives et nettoyage. Un test de protocole ou
+une fixture de résultat ne remplace pas une preuve de session complète. Ne pas
+copier les dépendances instantanées d'un worktree comme implémentation de référence.
+
+- Python >= 3.11 pour la référence et les outils ; environnement virtuel local,
+  jamais d'installation globale.
 - Garder les tests locaux hors réseau, avec serveur gRPC loopback si nécessaire.
 - Tout test du service réel doit être explicite, borné en durée et nombre de
   tentatives. Ne pas envoyer d'audio personnel sans consentement.

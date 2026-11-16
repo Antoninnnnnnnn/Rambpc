@@ -1,0 +1,1397 @@
+{
+  "versions": {
+    "python": "3.14.5 (tags/v3.14.5:5607950, May 10 2026, 10:43:50) [MSC v.1944 64 bit (AMD64)]",
+    "os": "Windows-11-10.0.26300-SP0",
+    "libraries": {
+      "av": "19.0.2",
+      "grpcio": "1.85.1",
+      "rambpc-engine": "0.2.0"
+    },
+    "git_head": "4b96696cf656844f8747050ed572059d4e85f38c",
+    "rambler_source_sha256": {
+      "__init__.py": "d8d02fbac4cbcc55a21b31839319b27f4bf2ac013a9ed077045059b8df1d2298",
+      "audio.py": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "cli.py": "ed47d335ddba93452662472ae465a6ff7a2dd2e25ae6f87e3ba78558e96e9d8e",
+      "credentials.py": "3fbf621715874e56e2aaa059469eb620ceee73ef9d1794a6377e9b272cc9920a",
+      "encoding.py": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+      "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol.py": "1604f9420dd48f967ca8bea31fa5ebef1fcb8cfb5e30144f76115637c24ae0b2",
+      "results.py": "a480b5aa3ad8fdbdb511f10772aaae6ad7d01a22ea2b6fc849bf75a6245e1b70",
+      "transport.py": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire.py": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+    },
+    "validator_sha256": "0d070f098dfe19d367b8b280b4ff92bd0bac1278b5aa63d8ba8ea71198a91ad3"
+  },
+  "requested_realtime": false,
+  "source_include_results": true,
+  "summary": {
+    "requested": 5,
+    "completed_successfully": 4,
+    "failed": 1,
+    "not_run": 0,
+    "status": "failed"
+  },
+  "cases": [
+    {
+      "id": "natural-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "103c3f15eb3715ebc6243d142244128a3ac39b6bfae315baa6b8dc4a8be14aa8",
+        "source_sha256": "9afaada0c1b445dae8a3baae5bbaffdcedbd2c09eb66b86720b8045c854feefc",
+        "source_kind": "pcm16le",
+        "duration_s": 3.505
+      },
+      "consumed_source": {
+        "bytes": 112160,
+        "sha256": "9afaada0c1b445dae8a3baae5bbaffdcedbd2c09eb66b86720b8045c854feefc",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 15456,
+        "sha256": "23d60cde6a199ac526bb098fd5eefbe2e17783cd2fe7157f2465bd599136d91b",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.6421831000043312,
+        "engine_metrics_at_eof": {
+          "requests_produced": 181,
+          "request_protobuf_bytes": 18226,
+          "responses_received": 10,
+          "response_protobuf_bytes": 537,
+          "elapsed_seconds": 1.6420816000027116,
+          "first_response_seconds": 0.09383270000398625,
+          "eof_seconds": 1.642080600002373
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "81d8e5b9889abb1b9acb48c64708947230357095d05acf3241600e41fc6e2638",
+            "bytes": 349,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "6c730be2edb7b11aaf878d985f638aee229cc8a5066a1745c8d89d95858f74de",
+              "bytes": 341,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "7aa8fcae20574cbc001bd2abf05855dcad0abaf2c501cd5e701a4095fdf0a7c5",
+                "bytes": 338,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "46359a3d762fe0e996325fa63e2d35a55c1c2bc4c99e678b3779212ad66e9917",
+                    "bytes": 165,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "46359a3d762fe0e996325fa63e2d35a55c1c2bc4c99e678b3779212ad66e9917",
+                  "bytes": 165,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "c0c9b37346628882babeadb4f44dc5c76ec53d7f006799aaf1df25230adad3fb",
+                      "bytes": 155,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Concord returned to its place amidst the tents.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "8842ef930aed0835edf7053c5c4f1f91a7e0ce09aea7df813863eda0c74864ca",
+                        "bytes": 100,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Concord returned to its place amidst the tents.",
+                      "alternative_text": null,
+                      "edited_text": "Concord returned to its place amidst the tents.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "7aa8fcae20574cbc001bd2abf05855dcad0abaf2c501cd5e701a4095fdf0a7c5",
+              "bytes": 338,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Concord returned to its place amidst the tents.",
+      "wer": {
+        "errors": 0,
+        "reference_words": 8,
+        "rate": 0.0
+      },
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Concord returned to its place amidst the tents.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "long-planning-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "70ed5bb9f6537e647ca6797024b43636e20463675d54ceaef31c7bc4b91baa73",
+        "source_sha256": "6ee145ff08e5c31a77a604ffc57902fa94e0d1372c811a6d320ffced38959146",
+        "source_kind": "pcm16le",
+        "duration_s": 40.5635625
+      },
+      "consumed_source": {
+        "bytes": 1298034,
+        "sha256": "6ee145ff08e5c31a77a604ffc57902fa94e0d1372c811a6d320ffced38959146",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 149328,
+        "sha256": "2f32bb80d96ae59737eabf26ee90befe57a14d08b4f911ba12c7c16f7dd5758b",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 16.39315429999988,
+        "engine_metrics_at_eof": {
+          "requests_produced": 2034,
+          "request_protobuf_bytes": 179713,
+          "responses_received": 39,
+          "response_protobuf_bytes": 3307,
+          "elapsed_seconds": 16.393046299999696,
+          "first_response_seconds": 0.026288399996701628,
+          "eof_seconds": 16.393044999997073
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "50c043324977599b17fd7a14bddc6d20db4b2b87bb4e688f4f70c12e8b5b7d7f",
+            "bytes": 2655,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "ce53df1bd8992e2b2c5c18ee15f5151ee6628967cfefd3a1591ccf6ad9e1b501",
+              "bytes": 2647,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "dd8d142b1174f511f3287481327e75d5840bf5205a152a6fb9d9adf6d4d8ab88",
+                "bytes": 2644,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "7fdb991fd4c72dc219c5f9ff6bfa52867d19bf8e965b85fb7cbe4f3ae96396e8",
+                    "bytes": 1318,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "7fdb991fd4c72dc219c5f9ff6bfa52867d19bf8e965b85fb7cbe4f3ae96396e8",
+                  "bytes": 1318,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "25733879be6130a436fd4551a4c7b09bca11c24f890df6b8e570d6852424c8cb",
+                      "bytes": 1308,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "54be7e0b4ac279f047ac6b1e5fd98546076a8cd686aec4bd167ab49bd4c2a2a0",
+                        "bytes": 868,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+                      "alternative_text": null,
+                      "edited_text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "dd8d142b1174f511f3287481327e75d5840bf5205a152a6fb9d9adf6d4d8ab88",
+              "bytes": 2644,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+      "required_terms": [
+        {
+          "term": "silver",
+          "present": true
+        },
+        {
+          "term": "meadow",
+          "present": true
+        }
+      ],
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Here are the notes for today's planning meeting:\n- The delivery date is Friday.\n- We need 6 blue folders.\n- The budget is $200.\n\nFirst, send the draft to Alex. Then, check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need 6 blue folders, and the budget is $200. Do not add any new tasks or promises. The last reference is Silver Meadow.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "rewrite-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "dd16ff387f8abe813a38759dcd7532cb449fd51f2bc5b8e9b4430e355307c2b3",
+        "source_sha256": "617a2edd7d62bcfcd4a9afaa899dc7dcb071445e0bf61724a3ed0afc54a49953",
+        "source_kind": "pcm16le",
+        "duration_s": 4.0288125
+      },
+      "consumed_source": {
+        "bytes": 128922,
+        "sha256": "617a2edd7d62bcfcd4a9afaa899dc7dcb071445e0bf61724a3ed0afc54a49953",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 14621,
+        "sha256": "716df8d3e85a5ce99e0c42827bb62171f2ecec8ac957c5e8343941bc668814d5",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.9710594999996829,
+        "engine_metrics_at_eof": {
+          "requests_produced": 207,
+          "request_protobuf_bytes": 17710,
+          "responses_received": 10,
+          "response_protobuf_bytes": 1239,
+          "elapsed_seconds": 1.9709817999973893,
+          "first_response_seconds": 0.029794800000672694,
+          "eof_seconds": 1.9709813999943435
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "ambiguous",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "7a8c1217362395a706d0626aa69860413a82bed82cfc868f369750f185f4ff92",
+            "bytes": 1055,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "36a10a3440d4757e4ff198bf81f6d845c254c6b6d5286589b9a6ff016ca6b406",
+              "bytes": 1047,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "e1b42950f3bd4d67ac2f3271c39d796ac1e299a09e088ed4f52d26e9a3f7395b",
+                "bytes": 1044,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "4070846b36265571d9658a2757e1b509adc0f619bcbf20f87964e01906e1654d",
+                    "bytes": 518,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "ca5af29a17667199ef3d95b43d4230077b376dd75f8dfc789d9bfa18ae2c46c2",
+                  "bytes": 518,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "e88485f93d77d0a9d997a97aba1ad107210d453a466517a7ceaa10ff7be9c9e7",
+                      "bytes": 508,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956225,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [
+                      {
+                        "number": 74956225,
+                        "wire_type": 2,
+                        "value_withheld": true,
+                        "payload_summary": {
+                          "sha256": "b9a21a96a258e30d844678f697b46016cc4623f3056dcf5ecb783e119abc09f0",
+                          "bytes": 257,
+                          "top_level_fields": [
+                            {
+                              "number": 1,
+                              "wire_type": 2
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "text": "Send me the report now. Make this sentence more polite, but keep the same meaning.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "d599d5e5929354c59d4d4a33c48ddf256d58e8026d252f81ba45e715599870bf",
+                        "bytes": 153,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Send me the report now. Make this sentence more polite, but keep the same meaning.",
+                      "alternative_text": null,
+                      "edited_text": "Could you please send me the report at your earliest convenience?",
+                      "edited_context": null,
+                      "intent": 3,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "e1b42950f3bd4d67ac2f3271c39d796ac1e299a09e088ed4f52d26e9a3f7395b",
+              "bytes": 1044,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "Send me the report now.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      }
+    },
+    {
+      "id": "compose-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "2d45bc1f6d2fb745bc13d1fdb88dcb2c01a7519f0850268a48e7923053b812be",
+        "source_sha256": "ee7f4a97519db39ecbeace1fc10765991913e6cda8b326a482e65aa777677ba7",
+        "source_kind": "pcm16le",
+        "duration_s": 4.4935625
+      },
+      "consumed_source": {
+        "bytes": 143794,
+        "sha256": "ee7f4a97519db39ecbeace1fc10765991913e6cda8b326a482e65aa777677ba7",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 17806,
+        "sha256": "809a9bf7be5e462e420e331ceb2987289b80e89ca89902c43cf8710feb1718fb",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.0244277999954647,
+        "engine_metrics_at_eof": {
+          "requests_produced": 231,
+          "request_protobuf_bytes": 21157,
+          "responses_received": 10,
+          "response_protobuf_bytes": 659,
+          "elapsed_seconds": 2.024369899998419,
+          "first_response_seconds": 0.02841890000127023,
+          "eof_seconds": 2.024369500002649
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "e2ccf25872beaeb3d55c1e52e099916d85fd103d14f1a12cd554748f86a88738",
+            "bytes": 471,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "7671192e482554605413280da0cc7a37e49ee243fc94716b882c37fe29a2b97e",
+              "bytes": 463,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "418eb1533c18b3b6bb8da3e16cccc8b8ac35cfa4bef572f3ad2d3c690f98c086",
+                "bytes": 460,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "a8e4bb0c256687039351a3df7449b96c28b29f26a216371807ffd8f1dc717a70",
+                    "bytes": 226,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "a8e4bb0c256687039351a3df7449b96c28b29f26a216371807ffd8f1dc717a70",
+                  "bytes": 226,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "919b8fc0e5e5c5d4b970906761400b80c004646cdafc878e1307fc8f7d6af623",
+                      "bytes": 216,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Write a short message to Alex saying I will arrive 20 minutes late.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "f2f62e6c5419bad62cc8700753db543ba53b25b0cf7d8a87a42e1893d9fbd0fb",
+                        "bytes": 140,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Write a short message to Alex saying I will arrive 20 minutes late.",
+                      "alternative_text": null,
+                      "edited_text": "Write a short message to Alex saying I will arrive 20 minutes late.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "418eb1533c18b3b6bb8da3e16cccc8b8ac35cfa4bef572f3ad2d3c690f98c086",
+              "bytes": 460,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Write a short message to Alex saying I will arrive 20 minutes late.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Write a short message to Alex saying I will arrive 20 minutes late.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "unicode-selection-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+        "source_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+        "source_kind": "ogg",
+        "duration_s": 2.1642500000000013
+      },
+      "consumed_source": {
+        "bytes": 4581,
+        "sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 4581,
+        "sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.2048252999957185,
+        "engine_metrics_at_eof": {
+          "requests_produced": 5,
+          "request_protobuf_bytes": 4814,
+          "responses_received": 9,
+          "response_protobuf_bytes": 553,
+          "elapsed_seconds": 1.2046448000037344,
+          "first_response_seconds": 0.03437240000494057,
+          "eof_seconds": 1.2046441000056802
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "81bd81b18a062f66ef14a9a96c059a77469d9ee4566abf53ab23ecc8c7a8d141",
+            "bytes": 381,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "55091a2559f7e0bbe0ea415a5285bbb6ce5e26243f02d53680701b12f9363674",
+              "bytes": 373,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "a59e207f8a692f608bebdd8d8ecd54f3a5a19e8f6f0d49eb8205cc9f7b04a714",
+                "bytes": 370,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "be41e7f121ca9378bbaff40b6d0af014901836e9586a61f247755597a496c735",
+                    "bytes": 181,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "be41e7f121ca9378bbaff40b6d0af014901836e9586a61f247755597a496c735",
+                  "bytes": 181,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "26ebd1a351565c56cc8e7a1a4bc2d09b0919deba5aacf46193907ef662c956e4",
+                      "bytes": 171,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "🙂 The meeting is tomorrow at <cursor>eleven</cursor>.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "c26de01c5228d6b4e250e921dcf536169b408e49af36defb52995ba1c4192ca1",
+                        "bytes": 107,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          },
+                          {
+                            "number": 7,
+                            "wire_type": 2
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "🙂 The meeting is tomorrow at <cursor>eleven</cursor>.",
+                      "alternative_text": null,
+                      "edited_text": null,
+                      "edited_context": {
+                        "raw_summary": {
+                          "sha256": "4557c5f0bc15b927244153761d314eeb8898fa07c7472467e6702af08dae8837",
+                          "bytes": 45,
+                          "top_level_fields": [
+                            {
+                              "number": 1,
+                              "wire_type": 2
+                            },
+                            {
+                              "number": 2,
+                              "wire_type": 2
+                            },
+                            {
+                              "number": 3,
+                              "wire_type": 2
+                            }
+                          ]
+                        },
+                        "unknown_field_summaries": [],
+                        "before": "🙂 The meeting is tomorrow at ",
+                        "selected": "eleven",
+                        "after": ".",
+                        "cursor_aware": true
+                      },
+                      "intent": 2,
+                      "active_field": 7
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "a59e207f8a692f608bebdd8d8ecd54f3a5a19e8f6f0d49eb8205cc9f7b04a714",
+              "bytes": 370,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "🙂 The meeting is tomorrow at ",
+        "selected": "ten",
+        "after": ".",
+        "cursor_aware": true
+      },
+      "rendered_text": "🙂 The meeting is tomorrow at eleven.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "🙂 The meeting is tomorrow at ",
+          "selected": "ten",
+          "after": ".",
+          "cursor_aware": true
+        },
+        "replacement_text": "🙂 The meeting is tomorrow at eleven.",
+        "replacement_context": {
+          "raw_summary": {
+            "sha256": "4557c5f0bc15b927244153761d314eeb8898fa07c7472467e6702af08dae8837",
+            "bytes": 45,
+            "top_level_fields": [
+              {
+                "number": 1,
+                "wire_type": 2
+              },
+              {
+                "number": 2,
+                "wire_type": 2
+              },
+              {
+                "number": 3,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [],
+          "before": "🙂 The meeting is tomorrow at ",
+          "selected": "eleven",
+          "after": ".",
+          "cursor_aware": true
+        }
+      }
+    }
+  ],
+  "schema_version": 1,
+  "report_kind": "sanitized_validate_corpus_report",
+  "privacy_review_required": true,
+  "text_included": true,
+  "publication_warning": "Inspect before publishing. Controlled-text opt-in is not proof that private speech, context, local labels or machine metadata are publishable. Hashes retain correlation and may be guessed.",
+  "withheld": [
+    "raw_protobuf_bytes",
+    "unknown_field_values",
+    "service_result_ids",
+    "session_ids",
+    "expected_revision",
+    "unrecognized_report_keys"
+  ],
+  "source_report_summary": {
+    "sha256": "a7863ba9c3a729ccf4d114b26d45c6d8735a030f6a54bd96f2ea6d60d4504358",
+    "bytes": 85087
+  },
+  "sanitizer_source_sha256": "a052c876f5494eb4558ae324a2cab2fc9670b7004d2d20d2a23777c184f2a530"
+}

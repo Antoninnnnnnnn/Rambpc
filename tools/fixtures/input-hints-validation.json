@@ -1,0 +1,17 @@
+{
+  "schema_version":1,
+  "description":"Ten bounded functional observations of verified optional initial hints. Each adjacent baseline/hinted pair uses the identical WAV, language, late editing context and SDK profile; only the specified initial hint changes. Marked fictional text only. Not proof of general quality gains or guaranteed hint persistence.",
+  "execution_policy":{"maximum_live_calls":10,"automatic_retries":false,"concurrency":1,"no_auth_quota_attestation_or_experiment_changes":true,"no_prompt_transplant_or_backend_change":true},
+  "cases":[
+    {"id":"bias-baseline-en","audio":"artifacts/input-hints-synthetic/hints-bias-en-16k.wav","language":"en-US","context":{"before":""}},
+    {"id":"bias-hinted-en","audio":"artifacts/input-hints-synthetic/hints-bias-en-16k.wav","language":"en-US","context":{"before":""},"initial_hints":{"bias_terms":["Zunarel","Valmera"]}},
+    {"id":"preferences-baseline-en","audio":"artifacts/input-hints-synthetic/hints-preferences-en-16k.wav","language":"en-US","context":{"before":""}},
+    {"id":"preferences-hinted-en","audio":"artifacts/input-hints-synthetic/hints-preferences-en-16k.wav","language":"en-US","context":{"before":""},"initial_hints":{"preferences":["Use British English spelling, including colour and theatre."]}},
+    {"id":"secondary-baseline-fr-en","audio":"artifacts/input-hints-synthetic/hints-mixed-fr-en-16k.wav","language":"fr-FR","context":{"before":""}},
+    {"id":"secondary-hinted-fr-en","audio":"artifacts/input-hints-synthetic/hints-mixed-fr-en-16k.wav","language":"fr-FR","context":{"before":""},"initial_hints":{"secondary_languages":["en-US"]}},
+    {"id":"invocation-hey-baseline-en","audio":"artifacts/input-hints-synthetic/hints-invocation-hey-en-16k.wav","language":"en-US","context":{"before":""}},
+    {"id":"invocation-hey-biased-en","audio":"artifacts/input-hints-synthetic/hints-invocation-hey-en-16k.wav","language":"en-US","context":{"before":""},"initial_hints":{"bias_terms":["Gboard"]}},
+    {"id":"invocation-okay-baseline-en","audio":"artifacts/input-hints-synthetic/hints-invocation-okay-en-16k.wav","language":"en-US","context":{"before":""}},
+    {"id":"invocation-okay-biased-en","audio":"artifacts/input-hints-synthetic/hints-invocation-okay-en-16k.wav","language":"en-US","context":{"before":""},"initial_hints":{"bias_terms":["Gboard"]}}
+  ]
+}

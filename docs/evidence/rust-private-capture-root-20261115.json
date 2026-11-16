@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-15",
+  "scope": "Local Windows test-infrastructure remediation only; not a Rambler service or engine qualification",
+  "previous_observation": "docs/evidence/rust-native-release-preflight-20261115.json",
+  "observed": {
+    "synthetic_tests_passed": 30,
+    "new_private_root_created": true,
+    "contains_only_local_identity_record": true,
+    "original_strict_policy_accepts_new_root": true,
+    "original_strict_policy_still_refuses_old_scratch": true,
+    "original_policy_changed": false,
+    "existing_parent_permissions_changed": false,
+    "ancestor_handle_context_passed": true,
+    "delete_access_open_blocked_while_pinned": true,
+    "delete_access_open_succeeded_after_release": true,
+    "actual_rename_or_delete_performed": false,
+    "native_budget_markers_absent": true,
+    "credentials_loaded": false,
+    "audio_generated": false,
+    "sentinel_launched": false,
+    "native_service_attempts": 0
+  },
+  "mechanism": {
+    "new_object_policy": "Explicit protected owner/current-user, SYSTEM and administrators DACL; existing parent ACLs unchanged",
+    "pins": "Owned top-down directory handles, FILE_TRAVERSE requested, no FILE_SHARE_DELETE, handle-based security and identity checks",
+    "record_policy": "Separate protected non-inheriting file DACL",
+    "runtime_pin_check": "DELETE-access handle request failed with sharing violation while pinned and succeeded after release; no rename, deletion or preexisting-object mutation",
+    "scope_limit": "64-bit CPython 3.14, local Windows NTFS"
+  },
+  "review_and_correction_history": [
+    "Attributes-only directory handles did not enforce sharing; reviewed correction requests traversal access and adds regression assertions",
+    "Identity record uses a file-specific descriptor without directory inheritance flags",
+    "The drive-root-only TrustedInstaller owner literal was corrected after local OS name lookup and independent deterministic public service-SID derivation agreed; a synthetic regression test was added"
+  ],
+  "audited_source_sha256": {
+    "private_capture_root_20261115.py": "97cec0fedfcc0c13a85c6b13de7bb6a2ddd43afa15e27f102a76ff40d173ddff",
+    "test_private_capture_root_20261115.py": "05dd8bc756f2a4fd258f1f82dd670d80d2b8d10fd23a6d072bc5b8bad393da43",
+    "original_controller_at_admission_not_future_integration": "443105b16dd5e9c768251c0fd7acebb41923418ca2d6c3e14bab55258234de54"
+  },
+  "remaining_gates": [
+    "Verified-source/protected-binary launcher integration and fresh review",
+    "Source and input provenance, safe offline generator and sentinel validation",
+    "Credential admission before the irreversible single-opportunity reservation"
+  ],
+  "limits": [
+    "No protection against hostile same-user or administrator processes",
+    "Directory pins do not prevent file-content writes; verified source and protected binary handling remain required",
+    "Creation and subsequent handle admission are not one atomic operation",
+    "No general confidentiality, live access, Android parity, performance or ASR claim"
+  ]
+}

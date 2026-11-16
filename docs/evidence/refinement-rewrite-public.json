@@ -1,0 +1,311 @@
+{
+  "versions": {
+    "python": "3.14.5 (tags/v3.14.5:5607950, May 10 2026, 10:43:50) [MSC v.1944 64 bit (AMD64)]",
+    "os": "Windows-11-10.0.26300-SP0",
+    "libraries": {
+      "av": "19.0.2",
+      "grpcio": "1.85.1",
+      "rambpc-engine": "0.2.0"
+    },
+    "git_head": "4b96696cf656844f8747050ed572059d4e85f38c",
+    "rambler_source_sha256": {
+      "__init__.py": "d8d02fbac4cbcc55a21b31839319b27f4bf2ac013a9ed077045059b8df1d2298",
+      "audio.py": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "cli.py": "ed47d335ddba93452662472ae465a6ff7a2dd2e25ae6f87e3ba78558e96e9d8e",
+      "credentials.py": "3fbf621715874e56e2aaa059469eb620ceee73ef9d1794a6377e9b272cc9920a",
+      "encoding.py": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+      "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol.py": "1604f9420dd48f967ca8bea31fa5ebef1fcb8cfb5e30144f76115637c24ae0b2",
+      "results.py": "9bd80287e48d1a0ba2d99ca94d284db9eab46d71655245fb8962379af4b74aa3",
+      "transport.py": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire.py": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+    },
+    "validator_sha256": "0d070f098dfe19d367b8b280b4ff92bd0bac1278b5aa63d8ba8ea71198a91ad3"
+  },
+  "requested_realtime": false,
+  "source_include_results": true,
+  "summary": {
+    "requested": 1,
+    "completed_successfully": 1,
+    "failed": 0,
+    "not_run": 0,
+    "status": "success"
+  },
+  "cases": [
+    {
+      "id": "rewrite-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "dd16ff387f8abe813a38759dcd7532cb449fd51f2bc5b8e9b4430e355307c2b3",
+        "source_sha256": "617a2edd7d62bcfcd4a9afaa899dc7dcb071445e0bf61724a3ed0afc54a49953",
+        "source_kind": "pcm16le",
+        "duration_s": 4.0288125
+      },
+      "consumed_source": {
+        "bytes": 128922,
+        "sha256": "617a2edd7d62bcfcd4a9afaa899dc7dcb071445e0bf61724a3ed0afc54a49953",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 14621,
+        "sha256": "f34f8675773cb481e3579de41c70764a1767bff60b697e32d31d26ef13f4f5f7",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.1431956000014907,
+        "engine_metrics_at_eof": {
+          "requests_produced": 207,
+          "request_protobuf_bytes": 17702,
+          "responses_received": 11,
+          "response_protobuf_bytes": 1259,
+          "elapsed_seconds": 2.143114099999366,
+          "first_response_seconds": 0.062221199994382914,
+          "eof_seconds": 2.1431132999932743
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "dfbe32c519130d29b1a276d2340c80de969f2d81db0bad889ff6a5053db8c97f",
+            "bytes": 1059,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "042180899cb9965d7d0e39180e907a029aae6490d8c61fd02b3ff5c2984cee64",
+              "bytes": 1051,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "e91a1928f51118bae9658efa74120d40b7613e8feee462ff24ec65c23afad76d",
+                "bytes": 1048,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "3c66fe39642ff53de7bc717f4247d4a9e1aec206372cee182a70195bae08358f",
+                    "bytes": 520,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "df808a13c80ace64575fa9ed73c8c2039549b5a98c257061be4febae1d9269e7",
+                  "bytes": 520,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "1de439b0db7c02120e4dac1b61f26bafe632d0f5bd903f26019d5a0666870c08",
+                      "bytes": 510,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956225,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [
+                      {
+                        "number": 74956225,
+                        "wire_type": 2,
+                        "value_withheld": true,
+                        "payload_summary": {
+                          "sha256": "a97dd4363b60cf9be73bcddb62fe66587f941d25591b5bb689914869c26e1d0a",
+                          "bytes": 259,
+                          "top_level_fields": [
+                            {
+                              "number": 1,
+                              "wire_type": 2
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "text": "Send me the report now. Make this sentence more polite, but keep the same meaning.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "d599d5e5929354c59d4d4a33c48ddf256d58e8026d252f81ba45e715599870bf",
+                        "bytes": 153,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Send me the report now. Make this sentence more polite, but keep the same meaning.",
+                      "alternative_text": null,
+                      "edited_text": "Could you please send me the report at your earliest convenience?",
+                      "edited_context": null,
+                      "intent": 3,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "e91a1928f51118bae9658efa74120d40b7613e8feee462ff24ec65c23afad76d",
+              "bytes": 1048,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "Send me the report now.",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Could you please send me the report at your earliest convenience?"
+    }
+  ],
+  "schema_version": 1,
+  "report_kind": "sanitized_validate_corpus_report",
+  "privacy_review_required": true,
+  "text_included": true,
+  "publication_warning": "Inspect before publishing. Controlled-text opt-in is not proof that private speech, context, local labels or machine metadata are publishable. Hashes retain correlation and may be guessed.",
+  "withheld": [
+    "raw_protobuf_bytes",
+    "unknown_field_values",
+    "service_result_ids",
+    "session_ids",
+    "expected_revision",
+    "unrecognized_report_keys"
+  ],
+  "source_report_summary": {
+    "sha256": "a8bf92fb60e07dd12a93f6a9164b2a37f692ecfabc033cb026d7952034148b31",
+    "bytes": 18649
+  },
+  "sanitizer_source_sha256": "a052c876f5494eb4558ae324a2cab2fc9670b7004d2d20d2a23777c184f2a530"
+}

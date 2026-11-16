@@ -1,0 +1,184 @@
+{
+  "kind": "native_rust_first_slice_service_evidence",
+  "started_utc": "2026-11-13T19:57:27.202928+00:00",
+  "host_platform": "Windows 11 x64",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "reference_python_commit": "ec39b5d",
+  "source_tree_base_commit": "f2b12c5862f280dbfe1a0336e24f544fcaec9c11",
+  "source_state": "new engine/transport/CLI sources measured before their first integration commit; exact file hashes below",
+  "source_files_sha256": {
+    "crates/rambler-cli/Cargo.toml": "caf619a83a5fd68446f2328d063b155385505dd6135beff352904fcae935f223",
+    "crates/rambler-cli/src/main.rs": "b485ca1f622e7ea0d26b5ca93a878791946249d428e0aef4e092ce7cc9ec552d",
+    "crates/rambler-cli/tests/common/mod.rs": "61d1ea65176b650bc330367f8ee87ac67900b590fcd0f887402855844b50b9db",
+    "crates/rambler-cli/tests/loopback.rs": "3d8a01abcbd0b982152b36c62853db15cc5926f06b131d819047bb24f9879554",
+    "crates/rambler-engine/Cargo.toml": "d73af38aed10a5d90f57008b6e2444dd1f608e33e4466d49a589938b9f4b5069",
+    "crates/rambler-engine/src/engine.rs": "9f26eb959f2ec1cf9e71b92704e4bea1caeeaea14050608512072e8e26c22661",
+    "crates/rambler-engine/src/lib.rs": "08a2c667a489189055e51d20d10a71f6536546f4891ab69ec8a5c17b7f49bca6",
+    "crates/rambler-engine/src/results.rs": "2b9a8ba492e25d16f4551f4daea9c3ee33a7fbf1fc2b32db36f43c7a86c911ef",
+    "crates/rambler-engine/tests/common/mod.rs": "61d1ea65176b650bc330367f8ee87ac67900b590fcd0f887402855844b50b9db",
+    "crates/rambler-engine/tests/engine.rs": "a3edb8c22ce4de8df9f8dd94edc1804df2d47dd0017966f0899d84e45fc739f7",
+    "crates/rambler-engine/tests/lifecycle.rs": "882ce45fab967d382e2d969e97b099ce4d492815595d06cec65bdce7bca631ca",
+    "crates/rambler-engine/tests/observation.rs": "1ce61367aa072a85629d345a72d3d1588e6126f6cc29e44c8d38c8bcb38c3b7c",
+    "crates/rambler-engine/tests/policy_oracle.rs": "29f197217f8c87520d01543cfb9967f26f210260a91a8e439a42a469c80dd47b",
+    "crates/rambler-engine/tests/results.rs": "81da72c30295984b750e364604d338736255d111fed027654701dbca0fe33ec9",
+    "crates/rambler-protocol/Cargo.toml": "6787b04d729c945a7fa8b3feda6b885519e80e8bfd2607782dfb5140c06dfe4b",
+    "crates/rambler-protocol/src/decode.rs": "c01beb74f0efbaff5e7cdcfde27844c698fb6aab44a482310a42e7e25f862625",
+    "crates/rambler-protocol/src/lib.rs": "93cf72587a8062bbce7ef17586e2ffc71ffa8104fdb591f06a9661b74b4dce0d",
+    "crates/rambler-protocol/src/models.rs": "59cf5514844868d576a9dda2a43f02d5fd537908a11759e326ac23c224f5328d",
+    "crates/rambler-protocol/src/request.rs": "a4e84533863408f75e0f1a5ed0070880513d70ee4d414d9ae51b0cda9cc1b5fb",
+    "crates/rambler-protocol/src/wire.rs": "c9a6fac56e0497eb12d6104ee418e47b7e9f3c011c9b5fc5f52ae0c80edd2a6b",
+    "crates/rambler-protocol/tests/decode.rs": "27f2e3df967f3b710c3fffcf39281318d61c7d1a5654f53f06cf9467c177ee86",
+    "crates/rambler-protocol/tests/fixtures.rs": "ccf732deb6f9fec7e5262ce088d28bd9cf9a3ae0129c50c30c8f5906ca6a4d0e",
+    "crates/rambler-protocol/tests/requests.rs": "3f360bdfca9a8dc24243483c40db3bb2faaa16b9904e4ca3b7bc47ab51d1277c",
+    "crates/rambler-protocol/tests/wire.rs": "69385048416195021bb891f9063a2ce3c862759572a0a95ec0ed4c5e6bee7819",
+    "crates/rambler-transport/Cargo.toml": "2caf0a3f234709a7063d1a25aa00725bb114eae363b41a694da08fac8a673544",
+    "crates/rambler-transport/src/codec.rs": "277ff349cc0c4047177a5884cd6873aba3f76ba6c47a9c83dd532bc4f0e09651",
+    "crates/rambler-transport/src/connection.rs": "f99487a2226dca29ef41fff1c6e4020438e798135c93955c3a25c6c428f9537d",
+    "crates/rambler-transport/src/credentials.rs": "d08259a74443823145da418ee546e96e44622a0f9bc1543646ecb333f0113b44",
+    "crates/rambler-transport/src/lib.rs": "0e7ea9c3a2041dc206d919a15c4ae3cf53be272febf358b3ec2e3fea1f01ab00",
+    "crates/rambler-transport/src/wire.rs": "169bbd42b2387fb8a774c573cc35d4879700247c382dc53dc4760d9308c58a7e",
+    "crates/rambler-transport/tests/credentials.rs": "7af514b906cb4f468b57e122a72f285671094eb880476e602ab6f318a801f586",
+    "crates/rambler-transport/tests/http2.rs": "a0b70ad94dff28308a9bf120fb688f6b482a41b3cc061b663a03dbd1139132d7",
+    "crates/rambler-transport/tests/loopback.rs": "df0f424cb275280afcccfb6d5a1b501ac7cfa20e42d0729127c156ba175ca164",
+    "Cargo.toml": "83916e32c0ed756829ce2bdfaa8e1547a98c3bc9ba95bb4a967f4c83706178a2"
+  },
+  "binary_sha256": "0b6794879015732604a3fc8c0d7e35d3be733b5a30047619a80a5daccb73e78e",
+  "cargo_lock_sha256": "4f4c2ab7128f94749b75c729f9a36aae7ee77c9d9863ef41ee871a0c1aab05d5",
+  "endpoint": "speechs3proto2-pa.googleapis.com:443",
+  "method": "/speech.s3.S3StubbyClientConnectorService/S3Bidi",
+  "routing": "gboard_gemini_v3_streaming_voice_edit_mul",
+  "client_platform": "Rust",
+  "tls_verification": "system roots, verified TLS, ALPN h2",
+  "runtime_evidence": "Rust executable; no Python/FFmpeg executable available in child PATH",
+  "orchestration": "Python development-only parent; not invoked by Rust",
+  "automatic_retries": false,
+  "rpc_timeout_seconds": 30,
+  "offline_validation": {
+    "rust_tests_passed": 121,
+    "python_reference_tests_passed": 643,
+    "rust_fmt_check": "passed",
+    "rust_clippy_all_targets_deny_warnings": "passed",
+    "release_build": "passed"
+  },
+  "limits": [
+    "Three accelerated synthetic input files on Windows only; not natural-corpus or endurance evidence.",
+    "Known semantics from inspected CLI output, not a new independent raw-protobuf decode.",
+    "Success follows engine completion checks: S3 END, exhausted/half-closed upload, source cleanup and gRPC OK.",
+    "Input SHA identifies local file, not a server acknowledgement or independent wire-byte hash.",
+    "Wall time includes process startup, TLS and remote inference; engine clocks start after connect. No Rust-vs-Python speed claim.",
+    "Ogg already encoded; native Rust PCM encoder is a separate next step.",
+    "Credentials configured locally; no provisioning, refresh or revocation recovery demonstrated."
+  ],
+  "cases": [
+    {
+      "id": "plain-en",
+      "language": "en-US",
+      "input_sha256": "5f9e53bb05e954f16517c618c63eb52da16e5289cc454936815354e9af397bc6",
+      "input_bytes": 14136,
+      "exit_code": 0,
+      "wall_seconds": 3.604193999999552,
+      "stderr_bytes": 0,
+      "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+      "context": null,
+      "final_updates": [
+        {
+          "hypotheses": [
+            {
+              "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+              "voice_edit": {
+                "intent": 2,
+                "active_field": 3,
+                "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+                "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11."
+              }
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "elapsed_seconds": 3.3080568,
+        "eof_seconds": 3.3080567,
+        "first_response_seconds": 0.0385133,
+        "request_protobuf_bytes": 14320,
+        "requests_produced": 4,
+        "response_protobuf_bytes": 773,
+        "responses_received": 13
+      }
+    },
+    {
+      "id": "context-edit-en",
+      "language": "en-US",
+      "input_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+      "input_bytes": 4581,
+      "exit_code": 0,
+      "wall_seconds": 1.3127693999995245,
+      "stderr_bytes": 0,
+      "text": "The meeting is tomorrow at eleven.",
+      "context": {
+        "after": "",
+        "before": "The meeting is tomorrow at ten.",
+        "cursor_aware": false,
+        "selected": ""
+      },
+      "final_updates": [
+        {
+          "hypotheses": [
+            {
+              "text": "The meeting is tomorrow at eleven.",
+              "voice_edit": {
+                "intent": 2,
+                "active_field": 3,
+                "transcript": "The meeting is tomorrow at eleven.",
+                "edited_text": "The meeting is tomorrow at eleven."
+              }
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "elapsed_seconds": 1.2385917,
+        "eof_seconds": 1.2385917,
+        "first_response_seconds": 0.0283926,
+        "request_protobuf_bytes": 4785,
+        "requests_produced": 4,
+        "response_protobuf_bytes": 439,
+        "responses_received": 9
+      }
+    },
+    {
+      "id": "plain-fr",
+      "language": "fr-FR",
+      "input_sha256": "044db16dacee5e13fbd9882ea8d6efe4009f888e427b739e3fe639003b25cff8",
+      "input_bytes": 19098,
+      "exit_code": 0,
+      "wall_seconds": 3.9452681000111625,
+      "stderr_bytes": 0,
+      "text": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+      "context": null,
+      "final_updates": [
+        {
+          "hypotheses": [
+            {
+              "text": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+              "voice_edit": {
+                "intent": 2,
+                "active_field": 3,
+                "transcript": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.",
+                "edited_text": "Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h."
+              }
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "elapsed_seconds": 3.8870391,
+        "eof_seconds": 3.8870391,
+        "first_response_seconds": 0.0410493,
+        "request_protobuf_bytes": 19298,
+        "requests_produced": 5,
+        "response_protobuf_bytes": 852,
+        "responses_received": 14
+      }
+    }
+  ]
+}

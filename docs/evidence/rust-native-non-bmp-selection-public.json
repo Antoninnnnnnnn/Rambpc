@@ -1,0 +1,75 @@
+{
+  "active_field": 7,
+  "after_preserved": true,
+  "asr_matches_prior_known_word_variant": false,
+  "attempt_count": 1,
+  "audio_progress": {
+    "bytes": 4581,
+    "chunks": 5,
+    "cleanup_finished": true,
+    "cleanup_succeeded": true,
+    "eof": true
+  },
+  "automatic_retries": false,
+  "before_preserved": true,
+  "binary_sha256": "2f776623081af323feb59622e8b71256ceb3516f56db0bd6bb7e9fc9bb0298bc",
+  "binary_unchanged": true,
+  "cargo_lock_sha256": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+  "case_id": "native_non_bmp_selection",
+  "exit_code": 0,
+  "input_bytes": 4581,
+  "input_context": {
+    "after": ".",
+    "before": "Answer: ",
+    "cursor_aware": true,
+    "selected": "\ud83d\ude42"
+  },
+  "input_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+  "input_unchanged": true,
+  "input_utf16_range_offline": [
+    8,
+    10
+  ],
+  "intent": 2,
+  "limitations": [
+    "one controlled synthetic case",
+    "not Android matched parity",
+    "no wire-level receipt proof",
+    "CLI does not exercise proposal/revision/range APIs",
+    "no quality or WAN benchmark",
+    "no provisioning/revocation recovery claim"
+  ],
+  "maximum_live_calls": 1,
+  "metrics": {
+    "elapsed_seconds": 1.1896569,
+    "eof_seconds": 1.1896567,
+    "first_response_seconds": 0.0200436,
+    "request_protobuf_bytes": 4831,
+    "requests_produced": 8,
+    "response_protobuf_bytes": 393,
+    "responses_received": 9
+  },
+  "observed_synthetic_replacement": "\ud83d\ude0e",
+  "observed_synthetic_text": "Answer: \ud83d\ude0e.",
+  "original_selection_replaced": true,
+  "outer_process_timeout": false,
+  "prior_result_word_reproduced": false,
+  "process_tree_cleanup_verified": true,
+  "render_matches_edited_context": true,
+  "retained_log_sha256": "9af514c2efb435ab2954aa1edc318e61cfb76dc2f9c8665d7d8991f4fa0e4ef0",
+  "returned_range_origin": "offline derived, not a wire or proposal API range",
+  "returned_selection_unicode_scalars": 1,
+  "returned_selection_utf16_units": 2,
+  "returned_utf16_range_offline_derived": [
+    8,
+    10
+  ],
+  "rpc_timeout_seconds": 30,
+  "semantic_outcome": "Different result from prior eleven replacement on another context; structural Unicode evidence only, not a controlled ASR quality comparison.",
+  "source_reference_commit": "1561f878a0b8714af669771fc7bd091784b1f3d9",
+  "started_utc": "2026-11-15T14:18:38.705220+00:00",
+  "status": "structured_unicode_interop_observed_semantics_unconfirmed",
+  "structured_selection_pass": true,
+  "terminal_gate_pass": true,
+  "wall_seconds": 1.366
+}

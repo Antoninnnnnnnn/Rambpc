@@ -1,0 +1,165 @@
+{
+  "date": "2026-11-14",
+  "source_base_commit": "a4e76801f809ecdcae11b3dc8dcdef77da378efb",
+  "scope": "two HTTP2 client boundary corrections; all tests local or in memory; no remote Rambler/device action",
+  "source_sha256": {
+    "Cargo.toml": "7343a994d018903abffbace669edd83cdc48aa5f8a3c17fa1e0ece2113a13766",
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "crates/rambler-transport/Cargo.toml": "2caf0a3f234709a7063d1a25aa00725bb114eae363b41a694da08fac8a673544",
+    "crates/rambler-transport/src/lib.rs": "e0ced91c02d6339768d6202040b74199784bc61e0d15ad90e91f9aaf2ea55fa5",
+    "crates/rambler-transport/src/connection.rs": "05d33fa79297a9b51bd075cb2b1761cf5fe8b831a85534b517322fabb5570bea",
+    "crates/rambler-transport/src/wire.rs": "8e510c968c1f861cb7f79b4af1b1fa0f0aa9b2869553ec953b494ef65e686f6a",
+    "crates/rambler-transport/src/codec.rs": "277ff349cc0c4047177a5884cd6873aba3f76ba6c47a9c83dd532bc4f0e09651",
+    "crates/rambler-transport/src/credentials.rs": "ff41fbb25637ebc6b15dcf60fa2f1fb6329ffe1b24112777c7f0a02099c8964c",
+    "crates/rambler-transport/tests/http2.rs": "31a1ed72d6c9f675968ff080ed6d806517326dc59303fc066d40c87635613e62",
+    "crates/rambler-transport/tests/credentials.rs": "25a59d7758cb82de04ac2d462674a00f794a32a74c8eae011ef51f71e4758fd6",
+    "crates/rambler-transport/tests/credential_sessions.rs": "f29271fd05d8e9156f8427314d05452ce7f8219627c60d846ba64524a5f5d823"
+  },
+  "full_source_manifest": {
+    "entries": 94,
+    "canonical_sorted_json_sha256": "17b50f7e9a01f74e5778f5e80f3528a330eaa60fe4ff0aa13a0f1ff33359eb1d",
+    "windows_linux_identical": true
+  },
+  "parallel_analysis": {
+    "model": "Sol",
+    "scopes": 10,
+    "finding_verifiers": 2,
+    "completeness_critics": 1,
+    "agents_total": 13,
+    "agent_errors": 0,
+    "skipped": 0,
+    "static_confirmed_initially": 1,
+    "initially_unresolved": 1,
+    "private_journal_sha256": "19a2cc338904ba77d866c8d03dc16531f61cc44099afdd976e0f1b76cdeb4dd8",
+    "limits": "bounded static scopes, at most two findings per scope, no universal completeness proof"
+  },
+  "parallel_corrections": {
+    "implementers": 2,
+    "independent_read_only_reviewers": 2,
+    "agents_total": 4,
+    "agent_errors": 0,
+    "review_blockers_found": 0,
+    "private_journal_sha256": "b111f28189805a9d501da2a1d6f5167ccdc89dd3160cba0296c800318c361562",
+    "review_limit": "reviewers inspected source/logs but did not rerun tests; some worker logs do not independently encode process exit codes; final platform tests below were executed by main"
+  },
+  "reproductions": [
+    {
+      "key": "mixed-case-media-type",
+      "initial_status": "compiled regression assertion failed on Application/Grpc with Err(Protocol)",
+      "worker_reported_red_exit": 101,
+      "red_assertion_verified_in_preserved_log": true,
+      "fix": "ASCII case-insensitive application/grpc base with unchanged end/plus/semicolon boundary, without lowercase allocation",
+      "targeted_green_tests": 2,
+      "http2_suite_green_tests": 13,
+      "service_casing_observed": false
+    },
+    {
+      "key": "http2-connection-specific-metadata",
+      "initial_status": "tonic conversion preserved five names; in-memory h2 send rejected each; valid custom-header control accepted",
+      "validation_red": "0 rejected before fix, expected 5",
+      "worker_reported_red_exit": 101,
+      "red_assertion_verified_in_preserved_log": true,
+      "fix": "reject exactly connection, keep-alive, proxy-connection, transfer-encoding and upgrade as InvalidMetadata; no stripping/rewriting",
+      "credential_unit_green_tests": 3,
+      "credential_integration_green_tests": 5,
+      "not_remote_authentication": true
+    }
+  ],
+  "private_worker_logs_sha256": {
+    "media-type-red.log": "24190fa23d023056e5c7c8d27792c385d0c30082773d0603555196a730312f23",
+    "media-type-green.log": "88239afb5510a2aaa7125396cbae1e2744292f232d4e1d6e43d26e4c81d9b719",
+    "media-type-http2-regressions.log": "db2ae6b591a83c749d9f85091211cf1e6de4318e4149578800240d76a827a4b3",
+    "metadata-hop-headers-premise.log": "de0d7dbda64c7dc0e127df61a0cba305c78eab27429f22613f35dd7bee42608a",
+    "metadata-hop-headers-red.log": "403fb1880e350574f599f00b2b99592ce13deecf7221375b373cac7e7f348f99",
+    "metadata-hop-headers-green.log": "10404917b4a3c04b7a8bf1a816a243860a2c4bee18faaf2522ca2ec90b9fd438",
+    "metadata-hop-headers-final-check.log": "5ed6db5ee800d5a3a6572cda8837b99daa8a2c5261367064f2953f226e83eff0"
+  },
+  "workspace_tests": [
+    {
+      "platform": "Windows x86_64/MSVC",
+      "rust": "1.99.1",
+      "passed": 305,
+      "failed": 0,
+      "ignored": 1,
+      "exit": 0,
+      "private_log_sha256": "4f060fdb928ed1980d4ccd42b16e0ffd164f053bc04709f503675b9a7b631a90"
+    },
+    {
+      "platform": "Windows x86_64/MSVC",
+      "rust": "1.88.0",
+      "passed": 305,
+      "failed": 0,
+      "ignored": 1,
+      "exit": 0,
+      "private_log_sha256": "20e60e39dab96cd6d7fddca0ce5f0f92c5f42b36b359a56df0ddb2cca7fe6439"
+    },
+    {
+      "platform": "Linux x86_64/WSL Ubuntu24.04",
+      "rust": "1.88.0",
+      "passed": 305,
+      "failed": 0,
+      "ignored": 1,
+      "exit": 0,
+      "private_log_sha256": "c9de2edd41dbbadbf070f2c7d3a76cbd1c580ece3715a1516bb5160bb2a3d459"
+    }
+  ],
+  "additional_tests": {
+    "Windows": {
+      "partial_example": 10,
+      "cli_feature_off": 30
+    },
+    "Linux": {
+      "partial_example": 10,
+      "cli_feature_off": 30
+    }
+  },
+  "windows_checks": {
+    "strict-clippy": {
+      "exit": 0,
+      "log_sha256": "f2e7b98faf1e2ca4baf83248f521d1a22c72c96f883da43750eab6873734bd0a"
+    },
+    "release-audio-cli": {
+      "exit": 0,
+      "log_sha256": "465f3f79b69785abe7baa0afae64df042f6b4640e435ca93879aec29a6e6704c",
+      "binary_sha256": "00e06927af9fd773fd44974d500487a83667087821884fe0c18830da25fb163d"
+    },
+    "release-pcm-example": {
+      "exit": 0,
+      "log_sha256": "e4a9de781b226d348e441b577c91250e74ca93f9f0ef9e0b78864971567bc345",
+      "binary_sha256": "ce5766d2a2ebed1e0d1f402ef12dbba4532476494914684df2143d5e26d7f3ef"
+    },
+    "release-minimal-cli": {
+      "exit": 0,
+      "log_sha256": "db43684aca4708ecef8c534329e012e1cd296e02b3ba9b9a67dc7c414345a6fc",
+      "binary_sha256": "564e6fcba0e2642e3a963aa15e59de12c91ded6957ce8007163fb4e34d5f3b08"
+    },
+    "format": {
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "linux_release_binary_sha256": {
+    "rambler": "79f4d344e722cdcfaac7ea2e22c64839198674b0b35ac98ef74a22f5d40c0be0",
+    "pcm_channel": "121a503280a6b01e43d6a651fe8ae69eff9779337824a30cfdb752399b0ff7e1"
+  },
+  "public_pcm_smoke": {
+    "input_samples_16k": 1017,
+    "decoded_trimmed_samples_48k": 3051,
+    "ogg_eos": 1,
+    "windows_release_exit": 0,
+    "windows_system_only_path": true,
+    "linux_release_exit": 0,
+    "not_service_dictation": true
+  },
+  "rambler_service_calls": 0,
+  "device_actions": 0,
+  "tests_read_real_credentials": false,
+  "limits": [
+    "not real-service casing or authentication validation",
+    "no credential recovery/provisioning added",
+    "no change to S3/audio/result safety semantics",
+    "no performance/latency or complete parity claim",
+    "macOS and remote CI remain unexecuted",
+    "one independent PyAV oracle ignored in these workspace runs"
+  ]
+}

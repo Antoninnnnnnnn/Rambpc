@@ -1,0 +1,822 @@
+{
+  "versions": {
+    "python": "3.14.5 (tags/v3.14.5:5607950, May 10 2026, 10:43:50) [MSC v.1944 64 bit (AMD64)]",
+    "os": "Windows-11-10.0.26300-SP0",
+    "libraries": {
+      "av": "19.0.2",
+      "grpcio": "1.85.1",
+      "rambpc-engine": "0.2.0"
+    },
+    "git_head": "a5fa05c2a0492e6f6feb186c9175c3253c918624",
+    "rambler_source_sha256": {
+      "__init__.py": "d8d02fbac4cbcc55a21b31839319b27f4bf2ac013a9ed077045059b8df1d2298",
+      "audio.py": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "cli.py": "ed47d335ddba93452662472ae465a6ff7a2dd2e25ae6f87e3ba78558e96e9d8e",
+      "credentials.py": "3fbf621715874e56e2aaa059469eb620ceee73ef9d1794a6377e9b272cc9920a",
+      "encoding.py": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+      "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol.py": "1604f9420dd48f967ca8bea31fa5ebef1fcb8cfb5e30144f76115637c24ae0b2",
+      "results.py": "9bd80287e48d1a0ba2d99ca94d284db9eab46d71655245fb8962379af4b74aa3",
+      "transport.py": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire.py": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+    },
+    "validator_sha256": "0d070f098dfe19d367b8b280b4ff92bd0bac1278b5aa63d8ba8ea71198a91ad3"
+  },
+  "requested_realtime": false,
+  "source_include_results": true,
+  "summary": {
+    "requested": 3,
+    "completed_successfully": 3,
+    "failed": 0,
+    "not_run": 0,
+    "status": "success"
+  },
+  "cases": [
+    {
+      "id": "compose-invocation-question-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "2860cec848faa170aa21f00db21886b625c53f152169d29d4ff2a4867a030e3c",
+        "source_sha256": "feee946ae2b7483c66da136a75b071d5e333578c9729c22c60089b82d5a91da1",
+        "source_kind": "pcm16le",
+        "duration_s": 3.404
+      },
+      "consumed_source": {
+        "bytes": 108928,
+        "sha256": "feee946ae2b7483c66da136a75b071d5e333578c9729c22c60089b82d5a91da1",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 12096,
+        "sha256": "30c20129242f183c53341385376fff96aadb6313001906e4f420dd7a7abcd610",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.7786498999921605,
+        "engine_metrics_at_eof": {
+          "requests_produced": 176,
+          "request_protobuf_bytes": 14837,
+          "responses_received": 10,
+          "response_protobuf_bytes": 501,
+          "elapsed_seconds": 1.7785326000011992,
+          "first_response_seconds": 0.11911339999642223,
+          "eof_seconds": 1.7785313000058522
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "cdceb57e6f54fe2e41c7375583433313be0d19f8828173ad98b27e540206cf0e",
+            "bytes": 313,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "5cef6b5fbdcf3b0b85065182d72a29a506035c846a38aa1deafdeb50719a2166",
+              "bytes": 305,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "cddb759c3e5b7145523a6760a989949f9ea322ee3cbd74ecd9f55a91ad9a31e4",
+                "bytes": 302,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "e75a9a19434126aa7f29bc4496fce5a6dd5f8d70d568266d5d57502a52a6afdf",
+                    "bytes": 147,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "e75a9a19434126aa7f29bc4496fce5a6dd5f8d70d568266d5d57502a52a6afdf",
+                  "bytes": 147,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "1a786f125d565aaa9a009389af05b1e4bb749424c3879d1f9c3e8431461b1b5b",
+                      "bytes": 137,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Hey board, what is the capital of France?",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "1e10f5d0c27963b3d9b152e3cc23777a361f8c1dd10860e9c92cfe8a952b6b65",
+                        "bytes": 88,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Hey board, what is the capital of France?",
+                      "alternative_text": null,
+                      "edited_text": "Hey board, what is the capital of France?",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "cddb759c3e5b7145523a6760a989949f9ea322ee3cbd74ecd9f55a91ad9a31e4",
+              "bytes": 302,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Hey board, what is the capital of France?",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Hey board, what is the capital of France?",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "compose-invocation-message-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "93c8820e854f4327c0f4bbcd5fa42c0a685bf6ae51f8adc1a2d111f5464951b6",
+        "source_sha256": "6f65ec36521dccb894cad0e0e8c073c096ad4e1d89d8b016cf712fe59ee8ec6e",
+        "source_kind": "pcm16le",
+        "duration_s": 5.4635
+      },
+      "consumed_source": {
+        "bytes": 174832,
+        "sha256": "6f65ec36521dccb894cad0e0e8c073c096ad4e1d89d8b016cf712fe59ee8ec6e",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 21058,
+        "sha256": "e06b5d3b85570468112b37f874fe5f0331879db95d8360bc2e36048cb9fd0615",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.6513254000019515,
+        "engine_metrics_at_eof": {
+          "requests_produced": 279,
+          "request_protobuf_bytes": 25212,
+          "responses_received": 12,
+          "response_protobuf_bytes": 757,
+          "elapsed_seconds": 2.651195300000836,
+          "first_response_seconds": 0.02467330000945367,
+          "eof_seconds": 2.651194200007012
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "0b964cf82f3f831eeb897c5fccca65fad4d96997c6a6bdda0e5d67ae3843a82e",
+            "bytes": 537,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "2920494f2dc9c6e5b5571ba14e4a8ebbba356a40dc039f5d1a61e16c1d669b27",
+              "bytes": 529,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "b08d13fc53b15dfacccce34e1d648ecfd69269080f40281532a4ecfb87f65054",
+                "bytes": 526,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "60dd2666d1215fe556ce308738f485a9195c987a64de909b7d50ca2e91eb41e5",
+                    "bytes": 259,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "60dd2666d1215fe556ce308738f485a9195c987a64de909b7d50ca2e91eb41e5",
+                  "bytes": 259,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "12da6f8235f3a3f83f341cdc7d3e79b0e32934ca5d7f38f3c49ac1a6a6df8e1c",
+                      "bytes": 249,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Hey board, write a short message to Alex saying I will arrive 20 minutes late.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "e4eb477e13edf844b50eeafa8ac0e282ee49b930763c8290530efd4103cc10dc",
+                        "bytes": 162,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Hey board, write a short message to Alex saying I will arrive 20 minutes late.",
+                      "alternative_text": null,
+                      "edited_text": "Hey board, write a short message to Alex saying I will arrive 20 minutes late.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "b08d13fc53b15dfacccce34e1d648ecfd69269080f40281532a4ecfb87f65054",
+              "bytes": 526,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Hey board, write a short message to Alex saying I will arrive 20 minutes late.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Hey board, write a short message to Alex saying I will arrive 20 minutes late.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "compose-invocation-literal-en",
+      "transport": "success",
+      "audio": {
+        "file_sha256": "e6dbb4eccc7f23885c4fcce4715af05a56cb0e3472222ca675862e493f00dfcc",
+        "source_sha256": "ddaf13c4aa938527788387bb4e3bcc6d8d6f742ff734bb5a2c416fe7a9037713",
+        "source_kind": "pcm16le",
+        "duration_s": 5.9084375
+      },
+      "consumed_source": {
+        "bytes": 189070,
+        "sha256": "ddaf13c4aa938527788387bb4e3bcc6d8d6f742ff734bb5a2c416fe7a9037713",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 22231,
+        "sha256": "5597da273b7a13c8db1684c21657fc2e33d30b31d4c7a890573ad7253ba6fa31",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.803270100004738,
+        "engine_metrics_at_eof": {
+          "requests_produced": 301,
+          "request_protobuf_bytes": 26676,
+          "responses_received": 12,
+          "response_protobuf_bytes": 799,
+          "elapsed_seconds": 2.8030657000053907,
+          "first_response_seconds": 0.025302299996837974,
+          "eof_seconds": 2.803064399995492
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "4545111478b917ddab8323d8c6db55a4ef3092faee493b1494a59c6e4b4f9d2f",
+            "bytes": 579,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "c33ae422bb93e1b78022f034ef2c86257c277d04b3d0039a595ddea4b37527fd",
+              "bytes": 571,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "437bc6a77b9f0273e604341e422a02a2ede3854b3b9abad6555785cc48ab9cf8",
+                "bytes": 568,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "1a02325fc90dac9a09c5996990b316d094b3d4aae34f6903da06e8e0f608299c",
+                    "bytes": 280,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "1a02325fc90dac9a09c5996990b316d094b3d4aae34f6903da06e8e0f608299c",
+                  "bytes": 280,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "12371a39521cd5716f29f67c537c2554df6554e6462af8270529e664dae2c156",
+                      "bytes": 270,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "The note should contain the exact sentence: \"Hagbard, what is the capital of France?\"",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "fcab1dd068393193c3d7fcc69a544ca53ac51e9442778ac8197cd6cc6f8e60f0",
+                        "bytes": 176,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "The note should contain the exact sentence: \"Hagbard, what is the capital of France?\"",
+                      "alternative_text": null,
+                      "edited_text": "The note should contain the exact sentence: \"Hagbard, what is the capital of France?\"",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "437bc6a77b9f0273e604341e422a02a2ede3854b3b9abad6555785cc48ab9cf8",
+              "bytes": 568,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "The note should contain the exact sentence: \"Hagbard, what is the capital of France?\"",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "The note should contain the exact sentence: \"Hagbard, what is the capital of France?\"",
+        "replacement_context": null
+      }
+    }
+  ],
+  "schema_version": 1,
+  "report_kind": "sanitized_validate_corpus_report",
+  "privacy_review_required": true,
+  "text_included": true,
+  "publication_warning": "Inspect before publishing. Controlled-text opt-in is not proof that private speech, context, local labels or machine metadata are publishable. Hashes retain correlation and may be guessed.",
+  "withheld": [
+    "raw_protobuf_bytes",
+    "unknown_field_values",
+    "service_result_ids",
+    "session_ids",
+    "expected_revision",
+    "unrecognized_report_keys"
+  ],
+  "source_report_summary": {
+    "sha256": "52b08df6cb4ebfccf3e3c124b6467ad340999ab72a6cbe0909bcb00a644b1a69",
+    "bytes": 32584
+  },
+  "sanitizer_source_sha256": "a052c876f5494eb4558ae324a2cab2fc9670b7004d2d20d2a23777c184f2a530"
+}

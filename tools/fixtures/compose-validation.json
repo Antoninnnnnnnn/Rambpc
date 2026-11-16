@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "description": "Five bounded, falsifiable composition observations on the already reconstructed Rambler S3 path. This is a test plan, not proof of backend composition support.",
+  "speech_fixture_manifest": "tools/fixtures/compose-speech.json",
+  "execution_policy": {
+    "maximum_live_calls": 5,
+    "run_only_by_authorized_coordinator": true,
+    "automatic_retries": false,
+    "target": "speechs3proto2-pa.googleapis.com:443",
+    "method": "/speech.s3.S3StubbyClientConnectorService/S3Bidi",
+    "routing": "gboard_gemini_v3_streaming_voice_edit_mul",
+    "audio_profile": "continuous Ogg/Opus, 16000 Hz, mono, existing encoder profile",
+    "request_sequence": "existing init, audio, current editing context, terminal marker and half-close; drain responses and gRPC status",
+    "constraints": [
+      "No authentication, quota, attestation or consent overrides.",
+      "No new server parameters or preference instructions presented as an enable-compose switch.",
+      "No backend changes or alternative public generative API.",
+      "Retain original captures privately. Inspect unknown payload leaves before publishing anything; publish only reviewed derived fixtures or sanitized reports.",
+      "Record actual wire intent separately from semantic content generation. Do not force intent4 or a particular wording into the success assertion."
+    ]
+  },
+  "offline_findings": {
+    "client_compose_request_switch_proven": false,
+    "server_compose_trigger_predicate": "unknown",
+    "normal_s3_voice_edit_helper_accepted_intents": [2, 3],
+    "normal_s3_voice_edit_helper_caveat": "Recovered ihm.maybeGetVoiceEditedText accepts only intents2/3 for editedHistoryText3 or context7. Other intents fall back to ASR at that callsite; enum4 does not establish an active composition route.",
+    "runtime_mock_is_backend_evidence": false,
+    "runtime_filter_caveat": "The tagged PixelBoard runtime replaces local intent4 output with its transcript and resets intent0. Its capital-of-France test constructs a fake action, not a service response.",
+    "user_preferences": "App context and custom instructions are gated by muq.X/muq.Y, both defaultfalse; the recovered custom-instruction wrapper explicitly limits preferences to dictation and excludes answering questions/non-dictation tasks. These preferences are not a proven enable-compose mechanism.",
+    "request_preference_field": "S3Request extension1203 field5 repeated string, via bundle user_preferences -> kla -> kmy.o -> knt -> iic.g -> ihv. The targeted ihv decompilation has an incomplete attachment branch; exact effective init emission is not claimed here.",
+    "rewrite_compose_rules_flag": "muq.Z is declared with output/privacy rules. No reference was found in the 120 examined adjacent request/extension classes; declaration is not proof of emission or a composition trigger.",
+    "baseline_evidence": "refinement-capabilities-public.json compose-en: transport success, intent2, active field3, output remains the spoken Write-a-short-message instruction with formatting cleanup. This is literal dictation, not demonstrated composition."
+  },
+  "required_observations": [
+    "Audio/source complete and hashed; S3 END plus gRPC OK.",
+    "All final response candidates and actual intent numbers from the original private root payloads.",
+    "VoiceEditingResult oneof member and text/context contents, separately from ASR text and transcript.",
+    "Classify literal dictation, generated answer/message, rewrite, ambiguous output or application/transport failure separately.",
+    "If generated content appears without intent4, report generated-content behavior and the actual numeric intent separately.",
+    "A question answered with a plausible factual answer is evidence only for that input/profile. A literal response is not proof that all Rambler composition paths are unavailable."
+  ],
+  "cases": [
+    {
+      "id": "compose-question-en",
+      "audio": "artifacts/compose-synthetic/compose-question-en-16k.wav",
+      "language": "en-US",
+      "kind": "original synthetic composition question probe",
+      "context": {"before": ""},
+      "hypothesis": "The backend might classify the same direct question used in the PixelBoard mock as a compose request.",
+      "falsifying_observation": "Literal question returned with no generated answer; record the actual intent and do not treat mock intent4 as ground truth."
+    },
+    {
+      "id": "compose-message-empty-en",
+      "audio": "artifacts/compose-synthetic/compose-message-en-16k.wav",
+      "language": "en-US",
+      "kind": "original synthetic composition directive baseline",
+      "context": {"before": ""},
+      "hypothesis": "This previously literal command may reproduce as literal dictation in the unchanged S3 profile.",
+      "falsifying_observation": "An actual generated message rather than the spoken directive; record intent independently of behavior."
+    },
+    {
+      "id": "compose-message-context-en",
+      "audio": "artifacts/compose-synthetic/compose-message-en-16k.wav",
+      "language": "en-US",
+      "kind": "same audio with controlled message-scaffold editing context",
+      "context": {"before": "Message to Alex:\n"},
+      "hypothesis": "An ordinary preceding-message scaffold may change classification relative to the identical empty-context audio, without adding unverified flags.",
+      "falsifying_observation": "Same literal directive behavior as the empty-context case. Any changed output still needs wire/content inspection, not automatic whole-window replacement."
+    },
+    {
+      "id": "compose-question-literal-control-en",
+      "audio": "artifacts/compose-synthetic/compose-question-literal-control-en-16k.wav",
+      "language": "en-US",
+      "kind": "negative control with embedded question intended as literal text",
+      "context": {"before": ""},
+      "hypothesis": "The quoted/instructed-literal question should be distinguished from the direct factual question if composition classification exists.",
+      "falsifying_observation": "A factual answer replaces the intended literal question. Report over-eager generation, not a successful dictation/composition policy."
+    },
+    {
+      "id": "compose-rewrite-control-en",
+      "audio": "artifacts/compose-synthetic/compose-rewrite-control-en-16k.wav",
+      "language": "en-US",
+      "kind": "known contextual rewrite positive control, not composition proof",
+      "context": {"before": "Send me the report now."},
+      "hypothesis": "The known profile can still rewrite the supplied sentence while composition probes remain inconclusive.",
+      "falsifying_observation": "Only the spoken rewrite instruction is returned. A positive rewrite is not evidence of intent4 or authorization for whole-window replacement."
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "status": "PASS",
+  "corpus": {
+    "inputs": 6791,
+    "max_input_bytes": 65536,
+    "total_input_bytes": 6195507,
+    "sha256": "ffdae37c077d73126bc4a360c4b8b7119603d86f2f806d200d9cc0f3c179fb7c",
+    "categories": {
+      "fixture": 4,
+      "request": 6,
+      "edge": 7,
+      "utf8": 12,
+      "oneof": 20,
+      "unknown": 7,
+      "split": 405,
+      "repeated": 36,
+      "float": 10,
+      "safety": 8,
+      "nested": 384,
+      "budget": 18,
+      "bound": 2,
+      "truncate": 1372,
+      "mutation": 4500
+    },
+    "seed": "0x05eedcafe29fc0d1",
+    "production_expected_assertions": 919,
+    "tight_expected_assertions": 495
+  },
+  "comparisons": {
+    "production": {
+      "rows_compared": 47537,
+      "decoder_inputs_compared": 6791,
+      "differing_outputs": 0,
+      "baseline_full_debug_sha256": "439d77f42742790b031df1df01d26d41c13d2b0971434ec62730cc21352d2cde",
+      "current_full_debug_sha256": "439d77f42742790b031df1df01d26d41c13d2b0971434ec62730cc21352d2cde",
+      "baseline_decoder_status_counts": {
+        "Ok": 1821,
+        "Err(FieldNumber)": 407,
+        "Err(WireType)": 338,
+        "Err(Truncated)": 4024,
+        "Err(VarintOverflow)": 12,
+        "Err(Utf8)": 189
+      }
+    },
+    "budget100_instrumented": {
+      "rows_compared": 47537,
+      "decoder_inputs_compared": 6791,
+      "differing_outputs": 0,
+      "baseline_full_debug_sha256": "6c369d9fec0f915f003b2159b9063bab05ff18b79b246b3eea97689eb3bd5d9d",
+      "current_full_debug_sha256": "6c369d9fec0f915f003b2159b9063bab05ff18b79b246b3eea97689eb3bd5d9d",
+      "baseline_decoder_status_counts": {
+        "Ok": 654,
+        "Err(FieldNumber)": 374,
+        "Err(WireType)": 307,
+        "Err(Truncated)": 3993,
+        "Err(VarintOverflow)": 12,
+        "Err(Utf8)": 121,
+        "Err(FieldLimit)": 1330
+      }
+    }
+  },
+  "total_decoder_comparisons": 13582,
+  "total_full_debug_comparisons": 95074,
+  "main_sources_unchanged_during_run": true,
+  "caveat": "Bounded offline Sol fidelity check; not a proof of equivalence and not a substitute for unavailable external Opus review. Full Debug strings, not just success/failure, were compared byte-for-byte before retaining per-case digests.",
+  "date": "2026-11-14",
+  "baseline_commit": "29fc0d143f255bf581faca595be290713993543d",
+  "review_model": "Sol",
+  "source_sha256": {
+    "baseline": "c5064b1719ed3b6608310510ea502b82e83cfb44f6c9d98420054214b5e609d3",
+    "current": "e3bfcb5be3b7a2c024725845d545a555d92770343118bdaed5499c2cb244868b"
+  },
+  "harness_sha256": "1ab690bcf4dbf2c2790854668b721aa4142ea8b0abb18c10c3ed2adb9ed1ef9e",
+  "runner_sha256": "cb86b7172ea05538f3639ffb143c5977ed4fd3dc842145802aa20dae05e3b6dc"
+}

@@ -1,0 +1,193 @@
+{
+  "date": "2026-11-14",
+  "purpose": "development-only Android client reference; no runtime Android dependency in native engine",
+  "apk_sha256": "a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8",
+  "platform": {
+    "android_api": 34,
+    "abi": "arm64-v8a",
+    "frida_version": "17.17.0"
+  },
+  "preflight2": {
+    "outcome": "failed_before_audio_arming",
+    "audio_arms": 0,
+    "voice_ui_attempts": 0,
+    "private_lifecycle_sha256": "f5d4903aa9044305477c835ddab0f8e738fb5dbb7bb9be85ba98de425a8b0ae2",
+    "events": [
+      {
+        "event": "agent_event",
+        "controller_age_seconds": 1.185909600026207,
+        "agent_event": "loaded",
+        "detach_reason": null,
+        "crash_present": false,
+        "crash_signal": null
+      },
+      {
+        "event": "agent_event",
+        "controller_age_seconds": 2.2739328000170644,
+        "agent_event": "ready",
+        "detach_reason": null,
+        "crash_present": false,
+        "crash_signal": null
+      },
+      {
+        "event": "ready",
+        "controller_age_seconds": 2.282082400022773,
+        "detach_reason": null,
+        "crash_present": false,
+        "crash_signal": null
+      },
+      {
+        "event": "script_destroyed",
+        "controller_age_seconds": 2.8097737000207417,
+        "detach_reason": null,
+        "crash_present": false,
+        "crash_signal": null
+      },
+      {
+        "event": "session_detached",
+        "controller_age_seconds": 2.8102477000211366,
+        "detach_reason": "process-terminated",
+        "crash_present": true,
+        "crash_signal": null
+      },
+      {
+        "event": "controller_stopped",
+        "controller_age_seconds": 4.292233000014676,
+        "detach_reason": "process-terminated",
+        "crash_present": true,
+        "crash_signal": null,
+        "device_restoration_exit": 0,
+        "armed_cases": []
+      }
+    ],
+    "android_log_signal_observation": {
+      "signal": "SIGSEGV",
+      "source": "main-only parser scoped to target PID; raw Android log not retained",
+      "not_derived_from_sdk_lifecycle_signal": true
+    }
+  },
+  "isolation_controls": [
+    {
+      "study": "active_pixelboard_ime_without_instrumentation",
+      "audio_arms": 0,
+      "runtime_mic_permission_granted": false,
+      "observation_seconds": 20.00226430001203,
+      "same_process_alive_after_observation": true,
+      "restoration_exit": 0,
+      "java_method_replacements": 0,
+      "voice_ui_attempts": 0,
+      "hardware_microphone_appop": "ignore",
+      "outcome": "passed_20s",
+      "private_report_sha256": "f6ca0d0b292d001a55635b66576eb0093db25919f7e2441f93de9da7440b5e2d",
+      "unexpected_detach": [],
+      "post_observation_counters": []
+    },
+    {
+      "study": "active_ime_readonly_sdk_no_hooks_runtime_permission_granted",
+      "audio_arms": 0,
+      "runtime_mic_permission_granted": true,
+      "observation_seconds": 20.003331900021294,
+      "same_process_alive_after_observation": true,
+      "restoration_exit": 0,
+      "java_method_replacements": 0,
+      "detached_during_observation": false,
+      "voice_ui_attempts": 0,
+      "hardware_microphone_appop": "ignore",
+      "outcome": "passed_20s",
+      "private_report_sha256": "a7113d16852c61892fda49b8def08e73af9ee6334caa4d8ca4d94318a5772aaf",
+      "unexpected_detach": [],
+      "post_observation_counters": []
+    },
+    {
+      "study": "active_ime_inert_new_lab_class_method_hook",
+      "audio_arms": 0,
+      "runtime_mic_permission_granted": true,
+      "observation_seconds": 20.001239000004716,
+      "same_process_alive_after_observation": true,
+      "restoration_exit": 0,
+      "pixelboard_method_replacements": 0,
+      "lab_method_replacements": 1,
+      "detached_during_observation": false,
+      "voice_ui_attempts": 0,
+      "hardware_microphone_appop": "ignore",
+      "outcome": "passed_20s",
+      "private_report_sha256": "e362ea9cacf34f5c73b7821f077c17fdad392aac6d7a03c96c2364e937441422",
+      "unexpected_detach": [],
+      "post_observation_counters": [
+        {
+          "markerCalls": 0
+        }
+      ]
+    },
+    {
+      "study": "active_ime_aaqe_read_only_deny_hook",
+      "audio_arms": 0,
+      "runtime_mic_permission_granted": true,
+      "observation_seconds": 20.006039700005203,
+      "same_process_alive_after_observation": true,
+      "restoration_exit": 0,
+      "pixelboard_method_replacements": 1,
+      "lab_method_replacements": 0,
+      "detached_during_observation": false,
+      "voice_ui_attempts": 0,
+      "hardware_microphone_appop": "ignore",
+      "outcome": "passed_20s",
+      "private_report_sha256": "9cb47d55f9b0e13c8f19cb3efc10c4ca979aebf3286ca16e6837a232a4071f85",
+      "unexpected_detach": [],
+      "post_observation_counters": [
+        {
+          "blockedReadCalls": 0
+        }
+      ]
+    },
+    {
+      "study": "active_ime_aaqe_default_ctor_and_read_deny_hooks",
+      "audio_arms": 0,
+      "runtime_mic_permission_granted": true,
+      "observation_seconds": 0.42574469998362474,
+      "restoration_exit": 0,
+      "pixelboard_method_replacements": 2,
+      "lab_method_replacements": 0,
+      "detached_during_observation": true,
+      "voice_ui_attempts": 0,
+      "hardware_microphone_appop": "ignore",
+      "outcome": "process_crash",
+      "private_report_sha256": "15ed39ba9313daed62fbe8c175d8ce7821310018f727ea6960d76668b48629d9",
+      "unexpected_detach": [
+        {
+          "reason": "process-terminated",
+          "crash_object_present": true,
+          "signal": "SIGSEGV",
+          "allowlisted_module_frames": [
+            {
+              "index": 0,
+              "module": "libart.so",
+              "relative_pc": "0000000000270fd8"
+            }
+          ]
+        }
+      ],
+      "post_observation_counters": []
+    }
+  ],
+  "rejected_before_device_execution": {
+    "proposal": "original aaqe constructor with AudioRecord.startRecording no-op and truthful STOPPED state",
+    "reason": "aaqe constructor immediately requires recording state 3; STOPPED=1 causes IOException and cannot yield the stream; this failure branch does not deterministically release the initialized recorder",
+    "state_spoofing_used": false,
+    "source_or_device_implementation_executed": false
+  },
+  "qualification": {
+    "dictation": "not_attempted",
+    "paired_native_android_parity": "not_established",
+    "remaining_predeclared_audio_arms": 3,
+    "root_cause": "not_established; minimal default-constructor/read hook setup reproduces ART SIGSEGV while read-only hook survives 20s",
+    "constructor_bypass_actual_pcm": "not_exercised",
+    "first_preflight_cause": "still_unknown",
+    "limits": [
+      "different minimal bodies and SDK composition from full preflight",
+      "one 20s observation per control, not general stability",
+      "failed minimal constructor study cannot recover invocation counters after crash",
+      "no full crash reports, memory/registers, symbols, paths, IDs, credentials or audio published"
+    ]
+  }
+}

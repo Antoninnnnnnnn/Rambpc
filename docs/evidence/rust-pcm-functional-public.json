@@ -1,0 +1,267 @@
+{
+  "kind": "native_rust_pcm_and_selection_known_semantics",
+  "started_utc": "2026-11-13T20:29:16.014689+00:00",
+  "source_tree_base_commit": "bafca87",
+  "source_state": "native audio and CLI additions measured before integration commit; exact Rust file hashes recorded",
+  "source_files_sha256": {
+    "crates/rambler-audio/src/encode.rs": "cf645682eaeb2ebd5fcdb026b4bab21edd4b88db7b274a7820cae398e523d463",
+    "crates/rambler-audio/src/lib.rs": "240e57f76b1bb3456a02606370ef31050b37cea7d5c4cb5406a28373872906bd",
+    "crates/rambler-audio/src/lifecycle.rs": "921a1dcf7c11be75bab67cc527018f0be38f980fcbee156dad1c6b85588c1dd2",
+    "crates/rambler-audio/src/ogg.rs": "54a28d7e3fc999677e6b625a3f0ace9db812ac56330a15333f05cd19bda33828",
+    "crates/rambler-audio/src/ogg_tests.rs": "9d9c081e1a9cfb68b72421653929201063aa695b3231551959d959cb3aa79e76",
+    "crates/rambler-audio/src/wav.rs": "9ff1bcd59c005ea8236156f955eecb650eb86de04782d6fd9870adbdc00f5b93",
+    "crates/rambler-audio/tests/common/mod.rs": "ea7d8788a3ba4b2397c06775553be940c5c283d6a556bb69810542e021b709be",
+    "crates/rambler-audio/tests/encoding.rs": "e831639df5e277c1fedc25d1019d84ac8ec2f41f4a638699c0c999fd9baec1ee",
+    "crates/rambler-audio/tests/file_cleanup.rs": "b9f6da62adba5016e366c612156ec1147d7fb8a29f07ba593baef71035f65a4d",
+    "crates/rambler-audio/tests/independent.rs": "293fb790d698f06d830d5d7e3c5012ce281e639bd5136e8c1c70c376be35170d",
+    "crates/rambler-audio/tests/terminal.rs": "3b3e2b156a2c8930372ace77721acf1314c81ac285c1e1370a00fc5636272f64",
+    "crates/rambler-audio/tests/wav.rs": "a6fa6e7b37268cc9c0ca398fa451dd81e3ae9dc6017509e03ae96d2100ff2ccc",
+    "crates/rambler-cli/src/main.rs": "2803b991c7a04e0394febb5865b6ba9146a565ac1b18ed643b96fa8c84d2e096",
+    "crates/rambler-cli/src/tests.rs": "dc01385dce8dc5f96a50c1e538798fdcd59cb7c8cf22bcb25683d491bde4efe9",
+    "crates/rambler-cli/tests/common/mod.rs": "61d1ea65176b650bc330367f8ee87ac67900b590fcd0f887402855844b50b9db",
+    "crates/rambler-cli/tests/feature_off.rs": "d3e4a52e73580ee7d8a3f8838754cb4db42b86abf9a35bf35178e5ad9096bdd5",
+    "crates/rambler-cli/tests/loopback.rs": "3d8a01abcbd0b982152b36c62853db15cc5926f06b131d819047bb24f9879554",
+    "crates/rambler-cli/tests/wav.rs": "aba28c98ea130537d3862cf8480f4fdeea918d1fc2341207b6796176a7899817",
+    "crates/rambler-engine/src/engine.rs": "9f26eb959f2ec1cf9e71b92704e4bea1caeeaea14050608512072e8e26c22661",
+    "crates/rambler-engine/src/lib.rs": "612435f9c3bc108468deefe5a2b5f1e55fca777c0a1a0d99022b5aced22bc591",
+    "crates/rambler-engine/src/results.rs": "2b9a8ba492e25d16f4551f4daea9c3ee33a7fbf1fc2b32db36f43c7a86c911ef",
+    "crates/rambler-engine/tests/common/mod.rs": "61d1ea65176b650bc330367f8ee87ac67900b590fcd0f887402855844b50b9db",
+    "crates/rambler-engine/tests/engine.rs": "a3edb8c22ce4de8df9f8dd94edc1804df2d47dd0017966f0899d84e45fc739f7",
+    "crates/rambler-engine/tests/lifecycle.rs": "882ce45fab967d382e2d969e97b099ce4d492815595d06cec65bdce7bca631ca",
+    "crates/rambler-engine/tests/observation.rs": "1ce61367aa072a85629d345a72d3d1588e6126f6cc29e44c8d38c8bcb38c3b7c",
+    "crates/rambler-engine/tests/policy_oracle.rs": "29f197217f8c87520d01543cfb9967f26f210260a91a8e439a42a469c80dd47b",
+    "crates/rambler-engine/tests/results.rs": "81da72c30295984b750e364604d338736255d111fed027654701dbca0fe33ec9",
+    "crates/rambler-protocol/src/decode.rs": "c01beb74f0efbaff5e7cdcfde27844c698fb6aab44a482310a42e7e25f862625",
+    "crates/rambler-protocol/src/lib.rs": "93cf72587a8062bbce7ef17586e2ffc71ffa8104fdb591f06a9661b74b4dce0d",
+    "crates/rambler-protocol/src/models.rs": "59cf5514844868d576a9dda2a43f02d5fd537908a11759e326ac23c224f5328d",
+    "crates/rambler-protocol/src/request.rs": "a4e84533863408f75e0f1a5ed0070880513d70ee4d414d9ae51b0cda9cc1b5fb",
+    "crates/rambler-protocol/src/wire.rs": "c9a6fac56e0497eb12d6104ee418e47b7e9f3c011c9b5fc5f52ae0c80edd2a6b",
+    "crates/rambler-protocol/tests/decode.rs": "27f2e3df967f3b710c3fffcf39281318d61c7d1a5654f53f06cf9467c177ee86",
+    "crates/rambler-protocol/tests/fixtures.rs": "ccf732deb6f9fec7e5262ce088d28bd9cf9a3ae0129c50c30c8f5906ca6a4d0e",
+    "crates/rambler-protocol/tests/requests.rs": "3f360bdfca9a8dc24243483c40db3bb2faaa16b9904e4ca3b7bc47ab51d1277c",
+    "crates/rambler-protocol/tests/wire.rs": "69385048416195021bb891f9063a2ce3c862759572a0a95ec0ed4c5e6bee7819",
+    "crates/rambler-transport/src/codec.rs": "277ff349cc0c4047177a5884cd6873aba3f76ba6c47a9c83dd532bc4f0e09651",
+    "crates/rambler-transport/src/connection.rs": "f99487a2226dca29ef41fff1c6e4020438e798135c93955c3a25c6c428f9537d",
+    "crates/rambler-transport/src/credentials.rs": "d08259a74443823145da418ee546e96e44622a0f9bc1543646ecb333f0113b44",
+    "crates/rambler-transport/src/lib.rs": "54bca1d92098b8deafe207eed5dd61c6148f10a68e5a81cf54e6881d6ee5a639",
+    "crates/rambler-transport/src/wire.rs": "169bbd42b2387fb8a774c573cc35d4879700247c382dc53dc4760d9308c58a7e",
+    "crates/rambler-transport/tests/credentials.rs": "7af514b906cb4f468b57e122a72f285671094eb880476e602ab6f318a801f586",
+    "crates/rambler-transport/tests/http2.rs": "a0b70ad94dff28308a9bf120fb688f6b482a41b3cc061b663a03dbd1139132d7",
+    "crates/rambler-transport/tests/loopback.rs": "df0f424cb275280afcccfb6d5a1b501ac7cfa20e42d0729127c156ba175ca164",
+    "crates/rambler-transport/tests/source_error.rs": "0664875b28b5e631f942d5f840b84479fef1653ef55cc60118677ec3641be577"
+  },
+  "binary_sha256": "931e9d6b29df458a33c75bb2943997ab254e0a2eefa3be4c670e123cfdb41418",
+  "cargo_lock_sha256": "72ae95fd97c72b78b1fe8086c71d10c74a639b113b4e8b806f7473400f011b74",
+  "build_features": [
+    "audio"
+  ],
+  "libopus": "1.6.1, bundled static via opus0.4.0/opusic-sys0.7.7",
+  "runtime": "Rust with statically linked libopus1.6.1; child PATH restricted to Windows system directories",
+  "orchestration": "Python development-only parent, not called by the Rust program",
+  "automatic_retries": false,
+  "endpoint": "speechs3proto2-pa.googleapis.com:443",
+  "method": "/speech.s3.S3StubbyClientConnectorService/S3Bidi",
+  "client_platform": "Rust",
+  "language": "en-US",
+  "rpc_timeout_seconds": 30,
+  "codec": {
+    "source_rate": 16000,
+    "channels": 1,
+    "pcm_format": "s16le",
+    "bit_rate": 24000,
+    "frame_ms": 20,
+    "page_ms": 20,
+    "wav_chunk_ms": 20
+  },
+  "offline_validation": {
+    "rust_workspace_passed": 156,
+    "development_ignored_oracle_passed_separately": 1,
+    "independent_complete_ogg_streams": 57,
+    "independent_decoder": "PyAV19.0.2; exact sample counts at48k and16k",
+    "fmt": "passed",
+    "clippy_all_features_all_targets_deny_warnings": "passed",
+    "release_build": "passed",
+    "independent_review": "no demonstrated correctness defect in final audio/CLI snapshot"
+  },
+  "limits": [
+    "Four controlled Windows calls only; no natural-corpus generalization.",
+    "Known CLI fields inspected; no new independent binary response decoding.",
+    "Input file hashes are provenance, not server acknowledgements of every byte.",
+    "Sample-count oracle is offline and separate from these live encoded streams.",
+    "Fast/paced text equality is not a network latency benchmark or lossless PCM coding.",
+    "Ctrl-C supervision tested by deterministic simulation, not an injected Windows console signal.",
+    "Rewrite rendering does not authorize automatic editor replacement."
+  ],
+  "fast_and_paced_text_equal": true,
+  "cases": [
+    {
+      "id": "pcm-en-fast",
+      "command": "dictate-wav",
+      "input_sha256": "097a50e074db2fc2028edba6337c5b036d05c94cc948c4f03770e1c4303b1a79",
+      "input_bytes": 213148,
+      "exit_code": 0,
+      "wall_seconds": 3.2927476999902865,
+      "stderr_bytes": 0,
+      "input_unchanged": true,
+      "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+      "context": null,
+      "final_updates": [
+        {
+          "hypotheses": [
+            {
+              "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+              "voice_edit": {
+                "intent": 2,
+                "active_field": 3,
+                "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+                "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+                "edited_context": null
+              }
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "elapsed_seconds": 3.2095605,
+        "eof_seconds": 3.2095604,
+        "first_response_seconds": 0.0313085,
+        "request_protobuf_bytes": 27998,
+        "requests_produced": 338,
+        "response_protobuf_bytes": 773,
+        "responses_received": 13
+      },
+      "source_samples": 106535,
+      "source_duration_seconds": 6.6584375
+    },
+    {
+      "id": "pcm-en-paced",
+      "command": "dictate-wav",
+      "input_sha256": "097a50e074db2fc2028edba6337c5b036d05c94cc948c4f03770e1c4303b1a79",
+      "input_bytes": 213148,
+      "exit_code": 0,
+      "wall_seconds": 7.106262799992692,
+      "stderr_bytes": 0,
+      "input_unchanged": true,
+      "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+      "context": null,
+      "final_updates": [
+        {
+          "hypotheses": [
+            {
+              "text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+              "voice_edit": {
+                "intent": 2,
+                "active_field": 3,
+                "transcript": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+                "edited_text": "Hello. This is a test of intelligent dictation. The meeting is tomorrow at 11.",
+                "edited_context": null
+              }
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "elapsed_seconds": 7.0373023,
+        "eof_seconds": 7.0373022,
+        "first_response_seconds": 0.0227219,
+        "request_protobuf_bytes": 28116,
+        "requests_produced": 338,
+        "response_protobuf_bytes": 901,
+        "responses_received": 21
+      },
+      "source_samples": 106535,
+      "source_duration_seconds": 6.6584375
+    },
+    {
+      "id": "pcm-rewrite",
+      "command": "dictate-wav",
+      "input_sha256": "dd16ff387f8abe813a38759dcd7532cb449fd51f2bc5b8e9b4430e355307c2b3",
+      "input_bytes": 129000,
+      "exit_code": 0,
+      "wall_seconds": 2.257512099997257,
+      "stderr_bytes": 0,
+      "input_unchanged": true,
+      "text": "Could you please send me the report at your earliest convenience?",
+      "context": {
+        "after": "",
+        "before": "Send me the report now.",
+        "cursor_aware": false,
+        "selected": ""
+      },
+      "final_updates": [
+        {
+          "hypotheses": [
+            {
+              "text": "Send me the report now. Make this sentence more polite, but keep the same meaning.",
+              "voice_edit": {
+                "intent": 3,
+                "active_field": 3,
+                "transcript": "Send me the report now. Make this sentence more polite, but keep the same meaning.",
+                "edited_text": "Could you please send me the report at your earliest convenience?",
+                "edited_context": null
+              }
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "elapsed_seconds": 2.1880921,
+        "eof_seconds": 2.1880921,
+        "first_response_seconds": 0.0245446,
+        "request_protobuf_bytes": 17719,
+        "requests_produced": 207,
+        "response_protobuf_bytes": 1259,
+        "responses_received": 11
+      },
+      "source_samples": 64461,
+      "source_duration_seconds": 4.0288125
+    },
+    {
+      "id": "unicode-selection",
+      "command": "dictate",
+      "input_sha256": "55cd2709e3c3670ddde32a5cca8cb90e8ce48cf3d9afd3210fb5ae28fb6abd5a",
+      "input_bytes": 4581,
+      "exit_code": 0,
+      "wall_seconds": 1.4551202000002377,
+      "stderr_bytes": 0,
+      "input_unchanged": true,
+      "text": "🙂 The meeting is tomorrow at eleven.",
+      "context": {
+        "after": ".",
+        "before": "🙂 The meeting is tomorrow at ",
+        "cursor_aware": true,
+        "selected": "ten"
+      },
+      "final_updates": [
+        {
+          "hypotheses": [
+            {
+              "text": "🙂 The meeting is tomorrow at <cursor>eleven</cursor>.",
+              "voice_edit": {
+                "intent": 2,
+                "active_field": 7,
+                "transcript": "🙂 The meeting is tomorrow at <cursor>eleven</cursor>.",
+                "edited_text": null,
+                "edited_context": {
+                  "after": ".",
+                  "before": "🙂 The meeting is tomorrow at ",
+                  "cursor_aware": true,
+                  "selected": "eleven"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "metrics": {
+        "elapsed_seconds": 1.3793758999999999,
+        "eof_seconds": 1.3793758,
+        "first_response_seconds": 0.0264704,
+        "request_protobuf_bytes": 4796,
+        "requests_produced": 4,
+        "response_protobuf_bytes": 553,
+        "responses_received": 9
+      }
+    }
+  ]
+}

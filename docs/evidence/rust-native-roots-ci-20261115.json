@@ -1,0 +1,706 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-15",
+  "repository": "Antoninnnnnnnn/Rambpc",
+  "source_commit": "906905988c5c51d83b05b259cd642a165325b7d2",
+  "event": "push",
+  "branch": "feat/rust-engine",
+  "verification": "Read-only GitHub REST run/job metadata, completed job logs, and source contents pinned to the run commit. No local build/test or rerun.",
+  "source_files": [
+    {
+      "file": ".github/workflows/rust.yml",
+      "sha256": "775415bfaafb1af642b51e6bb527cd0116a15696ebb12fe510131b09034b0a07",
+      "git_blob_sha": "ea5256a3c71b8e3e04829bcb5628b334a65deb77",
+      "local_matches_after_newline_normalization": true
+    },
+    {
+      "file": ".github/workflows/tests.yml",
+      "sha256": "7e1ea6c86e9447f0b076f6f8ee5114b04bb717dde5c06845a7467371d98da7da",
+      "git_blob_sha": "8d89d6c1179b79763795968960930cb15aee1fd6",
+      "local_matches_after_newline_normalization": true
+    },
+    {
+      "file": "tools/check_rust_native_roots.py",
+      "sha256": "2d76968488f4cfb41f524599f7d3fc62962cb50246d25db8ff460460aa26289d",
+      "git_blob_sha": "77585aa52e48eec4c4b83e3e73d150ff71690e43",
+      "local_matches_after_newline_normalization": true
+    },
+    {
+      "file": "tests/test_rust_native_roots.py",
+      "sha256": "632b8ec4933d3ed07227f4d5264276bc6e3f26c676beb91dba17bbc1126bcd38",
+      "git_blob_sha": "5a15bfeeb83cd0c3dbe9951fc35fc31d9027ddd6",
+      "local_matches_after_newline_normalization": true
+    },
+    {
+      "file": "crates/rambler-transport/src/connection.rs",
+      "sha256": "17c014e717ddf2ae0bb897c69613cc66bb5026b039853ce38b0b9c6fb80d335a",
+      "git_blob_sha": "fad77e40bf07223f2952566b4b7c539750aa6714",
+      "local_matches_after_newline_normalization": true
+    },
+    {
+      "file": "Cargo.toml",
+      "sha256": "7343a994d018903abffbace669edd83cdc48aa5f8a3c17fa1e0ece2113a13766",
+      "git_blob_sha": "5eba1501ccf50b25b88527a277c991a433dd369f",
+      "local_matches_after_newline_normalization": true
+    },
+    {
+      "file": "Cargo.lock",
+      "sha256": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+      "git_blob_sha": "1f0f3cadace0431ec17189850e56ee9b53177a1e",
+      "local_matches_after_newline_normalization": true
+    }
+  ],
+  "changed_files_at_commit": [
+    ".github/workflows/rust.yml",
+    "tests/test_rust_native_roots.py",
+    "tools/check_rust_native_roots.py"
+  ],
+  "runs": [
+    {
+      "id": 43730415832,
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832",
+      "workflow": "rust-offline-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 132861392934,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832/job/132861392934",
+          "name": "lint",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861392934.log",
+            "bytes": 47226,
+            "sha256": "67f42f99350dab29d92aec243179b924f9f4306a3bf7707ac1fbaf3137ebf8b3",
+            "hash_reverified": true
+          },
+          "rustc": [
+            "1.100.0"
+          ],
+          "host_target": [
+            "x86_64-unknown-linux-gnu"
+          ],
+          "checks": [
+            "cargo fmt --all -- --check",
+            "cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings"
+          ]
+        },
+        {
+          "id": 132861393192,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832/job/132861393192",
+          "name": "test (windows-latest, 1.88.0)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393192.log",
+            "bytes": 155594,
+            "sha256": "231abb2967ffda0eb51a942b384b045b24d39735339fef91e76afd781805eed1",
+            "hash_reverified": true
+          },
+          "rustc": [
+            "1.88.0"
+          ],
+          "host_target": [
+            "x86_64-pc-windows-msvc"
+          ],
+          "stdlib_units": {
+            "audio_boundary": 17,
+            "native_roots_launcher": 23,
+            "native_roots_named_ok_lines": 23
+          },
+          "rust_results_by_command": [
+            {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "passed": 382,
+              "failed": 0,
+              "ignored": 2,
+              "libtest_summary_count": 60
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "passed": 10,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "passed": 1,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "passed": 31,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 11
+            }
+          ],
+          "workspace_ignored_tests": [
+            "independent_pyav_decodes_complete_ogg_with_exact_preskip_tail_and_eos_trim",
+            "connection::tests::tls_setup_native_public_roots_smoke"
+          ],
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "success_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "exact_marker_occurrences": 1,
+            "evidence": "One uniquely listed ignored test enforced, followed by direct exact-test process exit 0 through the helper. Libtest stdout captured; no raw one-pass Rust summary claimed."
+          },
+          "release_build_audio_cli": "success",
+          "release_pcm": {
+            "input_samples": 1017,
+            "decoded_samples_48k": 3051,
+            "ogg_eos": 1,
+            "service_calls": 0
+          }
+        },
+        {
+          "id": 132861393196,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832/job/132861393196",
+          "name": "test (ubuntu-latest, stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393196.log",
+            "bytes": 158004,
+            "sha256": "b871b63beea4871e9307e1bfa23388dedc4ae2e90eb7ab17b0a04148ab6c43f2",
+            "hash_reverified": true
+          },
+          "rustc": [
+            "1.100.0"
+          ],
+          "host_target": [
+            "x86_64-unknown-linux-gnu"
+          ],
+          "stdlib_units": {
+            "audio_boundary": 17,
+            "native_roots_launcher": 23,
+            "native_roots_named_ok_lines": 23
+          },
+          "rust_results_by_command": [
+            {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "passed": 383,
+              "failed": 0,
+              "ignored": 2,
+              "libtest_summary_count": 60
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "passed": 10,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "passed": 1,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "passed": 31,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 11
+            }
+          ],
+          "workspace_ignored_tests": [
+            "independent_pyav_decodes_complete_ogg_with_exact_preskip_tail_and_eos_trim",
+            "connection::tests::tls_setup_native_public_roots_smoke"
+          ],
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "success_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "exact_marker_occurrences": 1,
+            "evidence": "One uniquely listed ignored test enforced, followed by direct exact-test process exit 0 through the helper. Libtest stdout captured; no raw one-pass Rust summary claimed."
+          },
+          "release_build_audio_cli": "success",
+          "release_pcm": {
+            "input_samples": 1017,
+            "decoded_samples_48k": 3051,
+            "ogg_eos": 1,
+            "service_calls": 0
+          }
+        },
+        {
+          "id": 132861393206,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832/job/132861393206",
+          "name": "test (macos-latest, 1.88.0)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393206.log",
+            "bytes": 154880,
+            "sha256": "9f3999f13b8ebd1784437f8833cfa3e6320ab99aed1255f6281f3a249b84e884",
+            "hash_reverified": true
+          },
+          "rustc": [
+            "1.88.0"
+          ],
+          "host_target": [
+            "aarch64-apple-darwin"
+          ],
+          "stdlib_units": {
+            "audio_boundary": 17,
+            "native_roots_launcher": 23,
+            "native_roots_named_ok_lines": 23
+          },
+          "rust_results_by_command": [
+            {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "passed": 383,
+              "failed": 0,
+              "ignored": 2,
+              "libtest_summary_count": 60
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "passed": 10,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "passed": 1,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "passed": 31,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 11
+            }
+          ],
+          "workspace_ignored_tests": [
+            "independent_pyav_decodes_complete_ogg_with_exact_preskip_tail_and_eos_trim",
+            "connection::tests::tls_setup_native_public_roots_smoke"
+          ],
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "success_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "exact_marker_occurrences": 1,
+            "evidence": "One uniquely listed ignored test enforced, followed by direct exact-test process exit 0 through the helper. Libtest stdout captured; no raw one-pass Rust summary claimed."
+          },
+          "release_build_audio_cli": "success",
+          "release_pcm": {
+            "input_samples": 1017,
+            "decoded_samples_48k": 3051,
+            "ogg_eos": 1,
+            "service_calls": 0
+          }
+        },
+        {
+          "id": 132861393238,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832/job/132861393238",
+          "name": "test (macos-latest, stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393238.log",
+            "bytes": 158764,
+            "sha256": "a98a32d5e381704fce394f82411d03f6379a6b6242ef804a10ebd59a37606492",
+            "hash_reverified": true
+          },
+          "rustc": [
+            "1.100.0"
+          ],
+          "host_target": [
+            "aarch64-apple-darwin"
+          ],
+          "stdlib_units": {
+            "audio_boundary": 17,
+            "native_roots_launcher": 23,
+            "native_roots_named_ok_lines": 23
+          },
+          "rust_results_by_command": [
+            {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "passed": 383,
+              "failed": 0,
+              "ignored": 2,
+              "libtest_summary_count": 60
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "passed": 10,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "passed": 1,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "passed": 31,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 11
+            }
+          ],
+          "workspace_ignored_tests": [
+            "independent_pyav_decodes_complete_ogg_with_exact_preskip_tail_and_eos_trim",
+            "connection::tests::tls_setup_native_public_roots_smoke"
+          ],
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "success_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "exact_marker_occurrences": 1,
+            "evidence": "One uniquely listed ignored test enforced, followed by direct exact-test process exit 0 through the helper. Libtest stdout captured; no raw one-pass Rust summary claimed."
+          },
+          "release_build_audio_cli": "success",
+          "release_pcm": {
+            "input_samples": 1017,
+            "decoded_samples_48k": 3051,
+            "ogg_eos": 1,
+            "service_calls": 0
+          }
+        },
+        {
+          "id": 132861393242,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832/job/132861393242",
+          "name": "test (ubuntu-latest, 1.88.0)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393242.log",
+            "bytes": 154113,
+            "sha256": "ceb9e578e5c54df1eef64ae37de7d95f3ceb5bdbe737e1e73a76d12c03edf729",
+            "hash_reverified": true
+          },
+          "rustc": [
+            "1.88.0"
+          ],
+          "host_target": [
+            "x86_64-unknown-linux-gnu"
+          ],
+          "stdlib_units": {
+            "audio_boundary": 17,
+            "native_roots_launcher": 23,
+            "native_roots_named_ok_lines": 23
+          },
+          "rust_results_by_command": [
+            {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "passed": 383,
+              "failed": 0,
+              "ignored": 2,
+              "libtest_summary_count": 60
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "passed": 10,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "passed": 1,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "passed": 31,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 11
+            }
+          ],
+          "workspace_ignored_tests": [
+            "independent_pyav_decodes_complete_ogg_with_exact_preskip_tail_and_eos_trim",
+            "connection::tests::tls_setup_native_public_roots_smoke"
+          ],
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "success_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "exact_marker_occurrences": 1,
+            "evidence": "One uniquely listed ignored test enforced, followed by direct exact-test process exit 0 through the helper. Libtest stdout captured; no raw one-pass Rust summary claimed."
+          },
+          "release_build_audio_cli": "success",
+          "release_pcm": {
+            "input_samples": 1017,
+            "decoded_samples_48k": 3051,
+            "ogg_eos": 1,
+            "service_calls": 0
+          }
+        },
+        {
+          "id": 132861393279,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832/job/132861393279",
+          "name": "test (windows-latest, stable)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393279.log",
+            "bytes": 159742,
+            "sha256": "5205ca98f6a55ca0396bab6976d83862c9b7ec4261a9a6f1894d33c4a35e03e0",
+            "hash_reverified": true
+          },
+          "rustc": [
+            "1.100.0"
+          ],
+          "host_target": [
+            "x86_64-pc-windows-msvc"
+          ],
+          "stdlib_units": {
+            "audio_boundary": 17,
+            "native_roots_launcher": 23,
+            "native_roots_named_ok_lines": 23
+          },
+          "rust_results_by_command": [
+            {
+              "command": "cargo test --workspace --all-features --locked --offline",
+              "passed": 382,
+              "failed": 0,
+              "ignored": 2,
+              "libtest_summary_count": 60
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --example session_reuse --locked --offline",
+              "passed": 10,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --features audio --test finalization_cli --locked --offline -- s3_end_without_grpc_trailers_exits_with_finalize_timeout --exact",
+              "passed": 1,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 1
+            },
+            {
+              "command": "cargo test -p rambler-cli --no-default-features --locked --offline",
+              "passed": 31,
+              "failed": 0,
+              "ignored": 0,
+              "libtest_summary_count": 11
+            }
+          ],
+          "workspace_ignored_tests": [
+            "independent_pyav_decodes_complete_ogg_with_exact_preskip_tail_and_eos_trim",
+            "connection::tests::tls_setup_native_public_roots_smoke"
+          ],
+          "native_roots": {
+            "command": "python -I tools/check_rust_native_roots.py",
+            "success_marker": "Rust native roots OK: exact ignored smoke passed via direct test executable",
+            "exact_marker_occurrences": 1,
+            "evidence": "One uniquely listed ignored test enforced, followed by direct exact-test process exit 0 through the helper. Libtest stdout captured; no raw one-pass Rust summary claimed."
+          },
+          "release_build_audio_cli": "success",
+          "release_pcm": {
+            "input_samples": 1017,
+            "decoded_samples_48k": 3051,
+            "ogg_eos": 1,
+            "service_calls": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": 43730415914,
+      "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914",
+      "workflow": "offline-tests",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 132861393046,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914/job/132861393046",
+          "name": "tests (ubuntu-latest, 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [
+            "Install optional native audio on current Python"
+          ],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393046.log",
+            "bytes": 22665,
+            "sha256": "2ceeacec4708c9118b02a8113a697c23834e89139efb7d2611030a826ef9f76c",
+            "hash_reverified": true
+          },
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 663,
+            "skipped": 71,
+            "subtests_passed_separate": 335
+          },
+          "additional_gates": [
+            "CLI help",
+            "wheel build"
+          ]
+        },
+        {
+          "id": 132861393281,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914/job/132861393281",
+          "name": "tests (windows-latest, 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [
+            "Install optional native audio on current Python"
+          ],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393281.log",
+            "bytes": 22541,
+            "sha256": "4985d481bb910e012fd4878f90ff36b069fd66f0c0c96e24332817b5b14aa027",
+            "hash_reverified": true
+          },
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 663,
+            "skipped": 71,
+            "subtests_passed_separate": 335
+          },
+          "additional_gates": [
+            "CLI help",
+            "wheel build"
+          ]
+        },
+        {
+          "id": 132861393316,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914/job/132861393316",
+          "name": "tests (windows-latest, 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393316.log",
+            "bytes": 26320,
+            "sha256": "ad1d51439d7b09736abee6e500df181189b31b527e0ad2bd8150aa6868d3a5be",
+            "hash_reverified": true
+          },
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 733,
+            "skipped": 1,
+            "subtests_passed_separate": 335
+          },
+          "additional_gates": [
+            "CLI help",
+            "wheel build"
+          ]
+        },
+        {
+          "id": 132861393388,
+          "url": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914/job/132861393388",
+          "name": "tests (ubuntu-latest, 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "all_required_api_steps_success": true,
+          "conditionally_skipped_steps": [],
+          "checkout_commit_verified_in_log": true,
+          "private_job_log": {
+            "filename": "132861393388.log",
+            "bytes": 26488,
+            "sha256": "57616602d3cf8cd2ae3e1310dfe7b294437f131848214ccb64433d4cd5506f8c",
+            "hash_reverified": true
+          },
+          "pytest": {
+            "command": "python -m pytest -q -W error -o faulthandler_timeout=30",
+            "passed": 733,
+            "skipped": 1,
+            "subtests_passed_separate": 335
+          },
+          "additional_gates": [
+            "CLI help",
+            "wheel build"
+          ]
+        }
+      ]
+    }
+  ],
+  "log_verification": {
+    "jobs": 11,
+    "total_bytes": 1086337,
+    "all_sha256_reverified": true,
+    "download_limits": {
+      "max_total_bytes": 33554432,
+      "max_total_seconds": 60
+    },
+    "private_logs_not_committed": true
+  },
+  "counting_rules": [
+    "Counts are per job and command, not sums over platforms/toolchains or overlapping commands.",
+    "Default workspace ignores two tests: independent Rust PyAV oracle and native-root smoke. Root smoke runs explicitly later through the helper; the Rust PyAV oracle remains unexecuted.",
+    "The 23 stdlib launcher units also belong to each Python pytest suite: do not add them to pytest totals. The 335 separately reported subtests are not extra top-level passes.",
+    "Actual Python 3.11 logs: 663 passed, 71 skipped per OS. Python 3.14: 733 passed, 1 skipped per OS; not historical 640/710 and 259 subtests."
+  ],
+  "root_qualification": {
+    "test": "connection::tests::tls_setup_native_public_roots_smoke",
+    "qualified": "Real OS public-root loading and production Rust TLS configuration construction on all six native jobs, with h2 ALPN asserted.",
+    "preconditions": "Rust assertions requiring SSL_CERT_FILE and SSL_CERT_DIR absent are unchanged. Helper copies child environments and removes both names case-insensitively. Cargo only builds/selects the artifact; the helper directly launches the test executable.",
+    "unchanged_at_fix": [
+      "production Rust TLS code and test assertions",
+      "Cargo manifests and lock"
+    ],
+    "macos_scope": "Only aarch64-apple-darwin logged; no Intel macOS qualification.",
+    "not_qualified": [
+      "TLS peer handshake",
+      "chain or hostname verification against a peer",
+      "trust rotation",
+      "complete enumeration of OS public roots",
+      "client authentication or private keys",
+      "service requests",
+      "provisioning or revocation",
+      "Android parity",
+      "WAN speed or general performance",
+      "semantic quality or determinism of the separate Unicode observation"
+    ]
+  },
+  "historical_context": {
+    "runner_history_evidence": "docs/evidence/rust-native-root-runner-history.json",
+    "earlier_success_evidence": "docs/evidence/rust-remote-ci-20261115.json",
+    "ci2": "At bc5449c, both Ubuntu native jobs failed the SSL_CERT_FILE absence precondition before the loader; local Linux R1 had the same precondition failure. Exact injector unverified; not evidence of a production root-loader defect.",
+    "local_followup": "Windows child processes exited 0 but its aggregator returned qualified=false due to a CRLF summary parser; independent assessment passed without replay. Linux R2 direct helper passed. These are separate from CI3.",
+    "preservation": "Prior FAILED proofs and the historical 1561f87 success are not rewritten."
+  },
+  "exclusions": [
+    "No new builds/tests, reruns, dispatches, push, commit, service/device requests or credential/environment-file access.",
+    "No raw logs, environment values, certificate values, private paths, credentials or PCM in this public proof.",
+    "Existing single Unicode selection observation remains semantically unconfirmed; no new native calls."
+  ]
+}

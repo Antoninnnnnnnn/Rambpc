@@ -1,8 +1,9 @@
 # Rambpc — moteur Rambler sans Android
 
-Client Python réutilisable du **véritable service Rambler/Jetson**, reconstruit à
-partir de PixelBoard 1.3.4. Connexion directe gRPC, sans Android, téléphone, émulateur
-ni API Gemini publique à l'exécution. Pas d'interface graphique.
+Moteur du **véritable service Rambler/Jetson**, reconstruit à partir de PixelBoard
+1.3.4. Cœur Rust opérationnel ; Python 0.3 reste la référence de conformité.
+Connexion directe gRPC, sans Android, téléphone, émulateur ni API Gemini publique
+à l'exécution. Pas d'interface graphique.
 
 ## Fonctionnement réellement observé
 
@@ -18,13 +19,65 @@ Le 12 novembre 2026, le client natif a obtenu des réponses de
 | Sélection `ten`, contexte différé avant/sélection/après | Sélection remplacée par `eleven`, retour structuré en trois parties |
 | Dictée française | `Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.` |
 
+Le raffinement du **13 novembre 2026** ajoute une réécriture réelle (« Send me the
+report now. » → « Could you please send me the report at your earliest convenience? »),
+une sélection avec emoji, une dictée de **40,56 s** en accéléré puis à débit simulé,
+et dix nouveaux extraits naturels (7 anglais, 3 français), en plus du premier clip
+anglais de 3,505 s. Ces dix extraits totalisent 72,825 s ; leurs écarts WER normalisés
+sont de 3/109 mots en anglais et 3/79 en français, dont des variations de formatage
+et une différence de temps verbal par rapport aux références du jeu de données.
+La composition n'a pas été observée dans les essais ciblés du profil S3 actuel ;
+ce n'est pas une preuve d'impossibilité générale. Voir [l'analyse](docs/research/composition.md).
+
 Les flux ont consommé l'intégralité des octets audio avec vérification SHA-256.
 Les [observations expurgées](docs/evidence/) et la [reconstruction du protocole](docs/research/protocol.md)
-précisent les preuves et leurs limites. Ce petit corpus synthétique n'établit pas
-la qualité sur voix naturelles, toutes les intentions, ni la disponibilité future
+précisent les preuves et leurs limites. Ces petits corpus n'établissent pas la qualité
+générale sur voix naturelles, toutes les intentions, ni la disponibilité future
 du service interne.
 
-## Installer et tester
+## Cœur Rust
+
+Le workspace contient le codec, le transport, le moteur et une CLI fichier
+Ogg/Opus. Voir **[construire, utiliser et intégrer le moteur Rust](docs/rust.md)**
+pour les commandes Cargo, les garanties de fermeture et le périmètre validé.
+Python 0.3 reste la **référence de conformité**, pas un runtime caché du binaire.
+Les **trois premiers appels Rust réels** ont réussi sur Windows : anglais,
+français et édition sur contexte, avec un PATH système sans Python/FFmpeg.
+[Preuves et limites](docs/evidence/rust-first-slice-public.json). Le lot audio ajoute
+l'entrée **WAV/PCM native optionnelle**, liée à libopus statique : quatre autres
+appels réels réussissent (accéléré/progressif, réécriture et sélection avec emoji).
+[Preuves PCM](docs/evidence/rust-pcm-functional-public.json). La consolidation du
+**14 novembre** passe **279 tests Rust** sous Windows (stable et1.88) et Linux1.88,
+plus4 tests de réutilisation et30 tests CLI sans audio, et **656 tests Python/outils**.
+L'oracle indépendant de57 conteneurs passe séparément. La matrice CI est écrite,
+pas exécutée à distance ; macOS n'a pas été exécuté. [Validation](docs/research/rust-build-validation.md).
+Trois sessions contrôlées réussissent sur un même moteur natif ; puis
+[trois voix naturelles EN/FR licenciées](docs/evidence/rust-native-natural-public.json)
+réussissent avec PCM intégral vérifié et textes hashés identiques aux références
+Python historiques (petit échantillon, pas une garantie de qualité générale).
+La [matrice de parité](docs/research/rust-feature-parity.md) distingue preuves,
+inconnues et chemins Android. Rendu opt-in avec provenance, partiels, collecte de
+candidats et classification de commandes sans effets sont exposés. Le validateur
+Ogg est progressif et borné ; les erreurs de connexion/nettoyage restent observables.
+Le [profil backend](docs/research/rust-backend-profiling.md) établit un gain local de
+sérialisation (8 allocations+3 réallocations →1), pas de gain global WAN robuste.
+L'ancien [candidat CRC](docs/research/rust-audio-profiling.md) reste rejeté.
+Le partage des raw réduit de70,82% la rétention logique du banc sans perdre les
+inconnus ; migration `Bytes` explicitée. Le [raffinement défensif du décodeur](docs/research/rust-backend-decode-defensive-capacity.md)
+réduit ensuite39→24 allocations par réponse mesurée, avec les pics mémoire
+sparse défavorables explicités ; ce n'est pas un optimum universel.
+Les entrées pipe/FIFO sont refusées sans
+bloquer, et trois options RecognizerInfo vérifiées sont exposées avec défauts inchangés.
+L'endurance conserve un échec intermittent ; le suivi instrumenté réussit sans
+établir sa cause ni prétendre l'avoir corrigé. Voir
+[l'état détaillé](docs/STATUS.md) et le [diagnostic](docs/evidence/rust-incomplete-diagnostic-followup.json).
+
+Les preuves historiques ci-dessus concernent Python tant qu'une preuve Rust
+n'est pas explicitement identifiée. Tauri, microphone et intégrations système
+restent hors de ce lot. Voir le [contrat de portage](docs/architecture/portage-rust.md)
+et la [recommandation desktop](docs/architecture/application-desktop-multiplateforme.md).
+
+## Référence Python : installer et tester
 
 Python **3.11 ou plus récent**. Exemple Windows / Git Bash :
 
@@ -113,7 +166,7 @@ from rambler.protocol import ProtocolConfig, EditingContext
 
 async def ogg_chunks(path):
     with open(path, 'rb') as audio:
-        while chunk := audio.read(224):
+        while chunk := audio.read(8192):
             yield chunk
 
 async def dictate(path):
@@ -154,6 +207,50 @@ flushe l'encodeur, envoie le contexte et le marqueur final, puis half-close.
 **Annulation :** annuler la tâche consommatrice, fermer explicitement le stream
 ou appeler `engine.close()` ; cela interrompt la session, ce n'est pas une
 finalisation de dictée. Le test réel de reprise après annulation est dans les preuves.
+
+### Biais, préférences et langues secondaires
+
+`ProtocolConfig` accepte les tuples optionnels `bias_terms`, `preferences` et
+`secondary_languages` ; ils sont envoyés à l'initialisation, tandis que le contexte
+d'édition reste différé après l'audio. Leurs limites et la différence entre encodage
+SDK et effet serveur sont précisées dans [raffinement](docs/refinement.md). Les essais
+bornés n'établissent ni gain général, ni composition vocale intention 4.
+
+### Résultat final et proposition d'édition
+
+Pour une intégration qui n'a pas besoin de traiter chaque événement, l'API publique
+`collect_dictation` consomme le flux jusqu'à une fin S3 et gRPC réussie. Elle conserve
+les mises à jour finales séparément avec leurs réponses brutes et expose les métriques
+EOF. Les erreurs tardives sont propagées ; les limites `max_final_updates` et
+`max_result_bytes` bornent la conservation.
+
+```python
+from rambler import (AmbiguousResultError, EditingContext, ProtocolConfig,
+                     collect_dictation)
+
+async def collect(engine, ogg_chunks):
+    result = await collect_dictation(
+        engine, ogg_chunks, config=ProtocolConfig(language='fr-FR'),
+        context=EditingContext(before='Texte existant.'),
+    )
+    try:
+        print(result.text)  # seulement si le résultat est unique et interprétable
+    except AmbiguousResultError:
+        print('Inspecter result.final_updates sans choisir arbitrairement.')
+    return result
+```
+
+`result.text` rend les champs vérifiés d'édition historique (intention 2) et le
+texte réécrit du champ 3 pour l'intention 3 ; il ne choisit pas arbitrairement parmi
+plusieurs résultats. `replacement_proposal` reste limité à l'intention 2 : rendre
+une réécriture ne prouve pas sa portée de remplacement dans un éditeur.
+
+`replacement_proposal` peut décrire le remplacement d'une fenêtre de contexte pour
+le cas d'édition historique vérifié, avec contrôle de contexte et révision avant
+application. Aucun texte n'est appliqué automatiquement : un résultat édité peut
+inclure l'historique complet et ne doit pas lui être ajouté. Pour les détails, les
+exemples exécutables, les unités UTF-16 et les limites de validation, voir
+[API de résultat et raffinement](docs/refinement.md).
 
 ## Documentation et contribution
 

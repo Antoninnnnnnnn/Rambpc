@@ -1,0 +1,437 @@
+{
+  "schema_version": 1,
+  "publication_date": "2026-11-15",
+  "execution_date": "2026-11-14",
+  "execution_date_basis": "Windows report date; Linux report/log stamped 2026-11-14 UTC. Linux JSON has no execution-date field; file timestamps are provenance, not a trusted clock attestation.",
+  "base_commit": "7c758e9e96d516ec77ace25c3c492a0b84651743",
+  "scope": "Five original, audio-feature CLI integration tests composing pcm_channel -> Pcm16Opus -> Engine -> GrpcTransport with a synthetic tonic HTTP/2 loopback peer.",
+  "production_behavior_changed": false,
+  "dependencies_added": false,
+  "source_verification": {
+    "full_manifests_identical": true,
+    "all_current_file_hashes_match": true,
+    "manifest_entries": 96,
+    "canonical_manifest_sha256": "27a8bb0c2251f022fd25049ad1707603f47ffed531fca9b9d20c4f32840ec98e",
+    "canonicalization": "SHA-256 of the complete source_sha256 object serialized as UTF-8 JSON: sort_keys=True, separators=(comma, colon), ensure_ascii=True, no trailing newline. Hashes cover original file bytes, with no newline normalization.",
+    "selected_source_sha256": {
+      "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+      "Cargo.toml": "7343a994d018903abffbace669edd83cdc48aa5f8a3c17fa1e0ece2113a13766",
+      "crates/rambler-cli/tests/pcm_channel_engine.rs": "e5d7a98fff4195b0fd5c31365343e89210dccbfd6bdcd562d1ff562e3a66717c",
+      "crates/rambler-cli/tests/pcm_engine_failure.rs": "cf872f9be5a52d9e22ad077b00cd76b3d6a772997994a0f1b87e4720f52c3dcc",
+      "crates/rambler-audio/tests/common/mod.rs": "ea7d8788a3ba4b2397c06775553be940c5c283d6a556bb69810542e021b709be",
+      "crates/rambler-engine/tests/common/mod.rs": "61d1ea65176b650bc330367f8ee87ac67900b590fcd0f887402855844b50b9db",
+      "crates/rambler-cli/Cargo.toml": "af1375ef7e712352cb2e395eabe23fd6955713e6c698bc50086591d758a4fcb8",
+      "crates/rambler-audio/src/input.rs": "2c38b76923ee6dc876139827e63e7107101be4af567effc28229428570af3822",
+      "crates/rambler-audio/src/encode.rs": "cf645682eaeb2ebd5fcdb026b4bab21edd4b88db7b274a7820cae398e523d463",
+      "crates/rambler-audio/src/lifecycle.rs": "921a1dcf7c11be75bab67cc527018f0be38f980fcbee156dad1c6b85588c1dd2",
+      "crates/rambler-audio/src/ogg.rs": "54a28d7e3fc999677e6b625a3f0ace9db812ac56330a15333f05cd19bda33828",
+      "crates/rambler-audio/examples/pcm_channel.rs": "0b763ecb13ccff9140e9ebe7b778d78f3ed3f1b9c3358eeae70f515fdaf29518",
+      "crates/rambler-engine/src/engine.rs": "be85ab38937edf14138609a99bb1c660431c09acc726f84272078c7cc23bcd4f",
+      "crates/rambler-protocol/src/request.rs": "22d10c05c8d5d609cf0210a055789cd69399f4dd30d2f64854ebfb127c648bcf",
+      "crates/rambler-protocol/src/wire.rs": "c9a6fac56e0497eb12d6104ee418e47b7e9f3c011c9b5fc5f52ae0c80edd2a6b",
+      "crates/rambler-transport/src/connection.rs": "05d33fa79297a9b51bd075cb2b1761cf5fe8b831a85534b517322fabb5570bea",
+      "crates/rambler-transport/src/codec.rs": "277ff349cc0c4047177a5884cd6873aba3f76ba6c47a9c83dd532bc4f0e09651"
+    }
+  },
+  "coverage": {
+    "normal_and_context": {
+      "file": "crates/rambler-cli/tests/pcm_channel_engine.rs",
+      "tests": [
+        "fragmented_finished_pcm_reaches_peer_as_continuous_ogg_then_normal_engine_eof",
+        "late_context_waits_for_real_audio_cleanup_and_s3_end_waits_for_grpc_status"
+      ],
+      "assertions": [
+        "Actual peer-received Ogg: CRC/framing and independently decoded duration with pre-skip/final-granule trimming; 1607 input samples at 20/1000 ms paging.",
+        "Peer Opus sample packets equal those produced by the existing memory source for the same PCM/configuration; this is not PCM bit equality for a lossy codec.",
+        "Exact init/audio/context/END requests, actual HTTP upload half-close, normal engine EOF and encoded progress/metrics.",
+        "Late context invoked once after real audio EOF/cleanup; peer consumes Ogg EOS. S3 END cannot complete while gRPC status is withheld; terminal PermissionDenied remains an error. Peer duration checked for 967 samples."
+      ]
+    },
+    "failure_boundaries": {
+      "file": "crates/rambler-cli/tests/pcm_engine_failure.rs",
+      "tests": [
+        "abandoned_producer_preserves_typed_audio_error_and_finishes_cleanup",
+        "engine_cancellation_wakes_full_queue_reservation_without_taking_caller_pcm",
+        "early_healthy_server_end_closes_unfinished_live_producer_as_incomplete"
+      ],
+      "assertions": [
+        "Dropping unfinished producer retains original AudioError::InputAbandoned through EngineError::Audio, cleans up without healthy audio EOF, and suppresses context.",
+        "A registered reservation is genuinely Pending on a full queue before Engine::close; closure wakes it with Closed while caller bytes and pointer remain unchanged. No RPC is emitted in this gated-metadata case.",
+        "Early synthetic S3 END plus gRPC OK with the producer still alive is IncompleteSession, not healthy completion; diagnostic flags, cleanup and producer closure are checked."
+      ],
+      "abandonment_peer_limit": "Only arrival of an audio-wrapper payload beginning with OggS is proved. An OpusHead/header page satisfies this gate; it does not establish sample-packet delivery, CRC, codec validity or decoded duration in the abandonment case."
+    }
+  },
+  "validation": {
+    "windows": {
+      "report": {
+        "file": "windows-pcm-engine-validation-r1.json",
+        "sha256": "2774ffa3275213be28ffa4c856d69ad6e2f3ce5e9f55e64e857066ebd440060a",
+        "file_mtime_utc_at_publication": "2026-11-14T22:43:45.416315+00:00"
+      },
+      "toolchains": [
+        "stable (cargo default)",
+        "1.88.0 (explicit cargo selector)"
+      ],
+      "all_reported_steps_exit_zero": true,
+      "steps": [
+        {
+          "label": "workspace-stable",
+          "exit": 0,
+          "passed_failed_ignored": [
+            310,
+            0,
+            1
+          ],
+          "log_sha256": "fa484533a0da1441c9d41113349fb2efe58f600046bd3e0998ef349248dd1c9d",
+          "log_file": "windows-pcm-engine-validation-r1-workspace-stable.log",
+          "command": [
+            "cargo",
+            "test",
+            "--workspace",
+            "--all-features",
+            "--locked",
+            "--offline"
+          ]
+        },
+        {
+          "label": "workspace-msrv",
+          "exit": 0,
+          "passed_failed_ignored": [
+            310,
+            0,
+            1
+          ],
+          "log_sha256": "0acb672829d54e0d6f7b8dab85f1af2fad13d3126dfd8aabe7670eb2ff6a7bca",
+          "log_file": "windows-pcm-engine-validation-r1-workspace-msrv.log",
+          "command": [
+            "cargo",
+            "+1.88.0",
+            "test",
+            "--workspace",
+            "--all-features",
+            "--locked",
+            "--offline"
+          ]
+        },
+        {
+          "label": "partial-example",
+          "exit": 0,
+          "passed_failed_ignored": [
+            10,
+            0,
+            0
+          ],
+          "log_sha256": "537ee5432018df209a36611bb4c25c14d124a6b68beb0a2dfa91d3e524843314",
+          "log_file": "windows-pcm-engine-validation-r1-partial-example.log",
+          "command": [
+            "cargo",
+            "test",
+            "-p",
+            "rambler-cli",
+            "--features",
+            "audio",
+            "--example",
+            "session_reuse",
+            "--locked",
+            "--offline"
+          ]
+        },
+        {
+          "label": "cli-feature-off",
+          "exit": 0,
+          "passed_failed_ignored": [
+            30,
+            0,
+            0
+          ],
+          "log_sha256": "fb598d3294d2d37af14a98bed3e2cd5f7a4440d49fb203bdb2690112709330c7",
+          "log_file": "windows-pcm-engine-validation-r1-cli-feature-off.log",
+          "command": [
+            "cargo",
+            "test",
+            "-p",
+            "rambler-cli",
+            "--no-default-features",
+            "--locked",
+            "--offline"
+          ]
+        },
+        {
+          "label": "strict-clippy",
+          "exit": 0,
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "log_sha256": "8f9135a2863919ba83335258314759a064674e1de353aa504dc5217c055be9d0",
+          "log_file": "windows-pcm-engine-validation-r1-strict-clippy.log",
+          "command": [
+            "cargo",
+            "clippy",
+            "--workspace",
+            "--all-targets",
+            "--all-features",
+            "--locked",
+            "--offline",
+            "--",
+            "-D",
+            "warnings"
+          ]
+        },
+        {
+          "label": "release-audio-cli",
+          "exit": 0,
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "log_sha256": "1e0c817fb1d44795e84c0a0f69a25bc874130f92ade34708010751bd46cac4f6",
+          "log_file": "windows-pcm-engine-validation-r1-release-audio-cli.log",
+          "command": [
+            "cargo",
+            "build",
+            "--release",
+            "-p",
+            "rambler-cli",
+            "--features",
+            "audio",
+            "--locked",
+            "--offline"
+          ],
+          "binary_sha256": "64b4be31ec9beb6192777c5bb31b2c2485197a639e7b1fd3a4df66e5510354b6"
+        },
+        {
+          "label": "release-pcm-example",
+          "exit": 0,
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "log_sha256": "a50f4a953f17e887d3844be51c0df233623b83d4462c96d5392c2671458d7fef",
+          "log_file": "windows-pcm-engine-validation-r1-release-pcm-example.log",
+          "command": [
+            "cargo",
+            "build",
+            "--release",
+            "-p",
+            "rambler-audio",
+            "--example",
+            "pcm_channel",
+            "--locked",
+            "--offline"
+          ],
+          "binary_sha256": "ce5766d2a2ebed1e0d1f402ef12dbba4532476494914684df2143d5e26d7f3ef"
+        },
+        {
+          "label": "pcm-public-smoke",
+          "exit": 0,
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "log_sha256": "486ea2dd91040a1edd7bef7ae76d98e1f073afef2bf174a136345620874b4b67",
+          "log_file": "windows-pcm-engine-validation-r1-pcm-public-smoke.log",
+          "command": [
+            "pcm_channel.exe"
+          ],
+          "command_note": "Published basename only; execution used the locally built release example.",
+          "system_only_path": true
+        },
+        {
+          "label": "release-minimal-cli",
+          "exit": 0,
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "log_sha256": "ac6021a50a09438032165f9c7dea556bdd635493932570ade92adc1a8c32ce54",
+          "log_file": "windows-pcm-engine-validation-r1-release-minimal-cli.log",
+          "command": [
+            "cargo",
+            "build",
+            "--release",
+            "-p",
+            "rambler-cli",
+            "--no-default-features",
+            "--locked",
+            "--offline"
+          ],
+          "binary_sha256": "275f6ecdb73092e7a7cb404200f25e3a8b91e5268a665ea8c4b1a5e5bac7a3c5"
+        },
+        {
+          "label": "format",
+          "exit": 0,
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "log_file": "windows-pcm-engine-validation-r1-format.log",
+          "command": [
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "report": {
+        "file": "linux-pcm-engine-validation-r1.json",
+        "sha256": "753acc37cfa69eabb5568ec2fbee9656b60286b4bf190a1e009ce0565795b52b",
+        "file_mtime_utc_at_publication": "2026-11-14T22:43:23.357923+00:00"
+      },
+      "platform": "Linux x86_64, WSL2",
+      "rust_version_verified_in_log": "1.88.0",
+      "overall_exit": 0,
+      "log_file": "linux-pcm-engine-validation-r1.log",
+      "log_sha256": "3f053936dc3b43eb1721661d67447328a4c8ae1fd9e7bb79be0211540e8f5c20",
+      "section_hash_method": "Exact UTF-8 text after each @@phase LABEL newline until the next @@phase marker or EOF; no trimming.",
+      "steps": [
+        {
+          "label": "workspace-msrv",
+          "passed_failed_ignored": [
+            310,
+            0,
+            1
+          ],
+          "section_sha256": "12c65ba0f390b359f6860831805b6f5c28b22311b0a503b74ce7f7e01ff50838"
+        },
+        {
+          "label": "partial-example",
+          "passed_failed_ignored": [
+            10,
+            0,
+            0
+          ],
+          "section_sha256": "65920313031d2d5204ffa47319e0f5670a993d5be3290ff8b7cdac3c0c21a982"
+        },
+        {
+          "label": "cli-feature-off",
+          "passed_failed_ignored": [
+            30,
+            0,
+            0
+          ],
+          "section_sha256": "9ae08617cda6a46071b0ca4d3faba3e8f6d61c9673376f41494e9d3d07b73939"
+        },
+        {
+          "label": "release-audio-cli",
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "section_sha256": "c4d03fa668709f344f5237d364e5474ad6525f7064ca0a46147f37db369d1a77"
+        },
+        {
+          "label": "release-pcm-example",
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "section_sha256": "bd7870e0d2c42028507ece5c1b55bad19487258816cdc509c860e8a9916ae18e"
+        },
+        {
+          "label": "pcm-public-smoke",
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "section_sha256": "16452ab309cacb27386241e81f6d5b4777c262d0b0f55d6edb8969119e1dde97"
+        },
+        {
+          "label": "binary-hashes",
+          "passed_failed_ignored": [
+            0,
+            0,
+            0
+          ],
+          "section_sha256": "c49873a2f8785cac13669c5f6c5da543250695c31ad2e5e8edd666f76963fc91"
+        }
+      ],
+      "binary_sha256": {
+        "rambler": "79f4d344e722cdcfaac7ea2e22c64839198674b0b35ac98ef74a22f5d40c0be0",
+        "pcm_channel": "121a503280a6b01e43d6a651fe8ae69eff9779337824a30cfdb752399b0ff7e1"
+      },
+      "scope_limit": "This Linux report covers MSRV workspace/example/feature-off, release audio CLI/example and smoke. It does not claim Linux Clippy, fmt or a minimal-CLI release build."
+    },
+    "targeted_windows_logs": [
+      {
+        "log_file": "pcm_channel_engine-test-20261114-01.log",
+        "log_sha256": "4523f28f31d1041a2cce09ae25c87e5f303c38a54a5e875e13171a3ae01ab80b",
+        "test_target": "pcm_channel_engine",
+        "passed_failed_ignored": [
+          2,
+          0,
+          0
+        ]
+      },
+      {
+        "log_file": "pcm_engine_failure-test-01.log",
+        "log_sha256": "a58b99106ae4fc0e51680eb79c069e1813220fd416e92557ec12ac9654a31f33",
+        "test_target": "pcm_engine_failure",
+        "passed_failed_ignored": [
+          3,
+          0,
+          0
+        ]
+      }
+    ],
+    "release_smoke_output": "offline PCM channel: input_samples=1017, decoded_samples_48k=3051, ogg_eos=1, service_calls=0",
+    "matrix_final_names_and_all_five_tests_verified": true,
+    "test_count_note": "310 passed / 0 failed / 1 ignored per workspace run, not 930 distinct tests. The example 10/0/0 and feature-off 30/0/0 are separate configurations. Baseline 305 plus five integration tests; the earlier 19 PCM channel/encoder tests are not five new remote-dictation tests.",
+    "verification_at_publication": "Offline report/log hashes, aggregate result counts, Linux section hashes, final test-target names, all 96 current source hashes and final review records checked without rerunning any build, test or binary."
+  },
+  "independent_source_reviews": {
+    "journal_sha256": "5d00422cb434c068eb35a815c1781263a5a1ee20844d71da94d03e2f177003ca",
+    "method": "Read-only source reviews, not additional test executions, formal proof or certified Opus-model attribution.",
+    "initial_attempt": "Blocked because the requested pcm_engine_finish.rs target did not exist and differed from author target pcm_channel_engine.rs. Corrected through workflow resume; not a production failure and not a successful initial review.",
+    "final_reviews": [
+      {
+        "target": "crates/rambler-cli/tests/pcm_engine_failure.rs",
+        "safe_to_integrate": true,
+        "defects": [],
+        "result_canonical_sha256": "c0d80b87c994e6b894af3c19933dc7c52822e7f8fd5f90340fc1544e22ea369c",
+        "retained_gaps": [
+          "Abandonment peer gate can be header-only.",
+          "Healthy ordering/codec assertions are in the complementary normal file.",
+          "Author commands used the old pcm_input_failures name; final-name execution is established separately by the targeted log and main matrix."
+        ]
+      },
+      {
+        "target": "crates/rambler-cli/tests/pcm_channel_engine.rs",
+        "safe_to_integrate": true,
+        "defects": [],
+        "result_canonical_sha256": "f685ad7f89968715c9448d65a369dbe5f2ad71221c175b4dbc1ba0fe98e4bfef",
+        "retained_gaps": [
+          "No blocked-reservation assertion in this file.",
+          "No early-OK unfinished-upload case in this file.",
+          "Those two boundaries are covered by the complementary failure file."
+        ]
+      }
+    ],
+    "rename_history": "Failure author file pcm_input_failures.rs became pcm_engine_failure.rs. Both final names are observed executing in the main Windows stable/MSRV and Linux MSRV workspace logs."
+  },
+  "remote_service_calls": 0,
+  "device_actions": 0,
+  "limits": [
+    "Synthetic response peer only: no real Rambler/Google recognition, access provisioning/recovery, microphone, Android UI or new intent semantics qualified.",
+    "Acceptance, producer finish and encoded-progress counters are not acknowledgements of sample delivery or successful remote dictation.",
+    "No new WAN, latency, endurance, RSS or quality claim; build/test counts and static reviews do not prove perfection or full Gboard parity.",
+    "No macOS execution. Existing COMPOSE/intents 0/1/5/6, remote partials and Android constructor-hook limitations remain separate and unresolved.",
+    "Private reports, logs, workflow journal and publisher remain local; this closed-field projection publishes no credentials, private audio, raw service payload or account identifiers."
+  ],
+  "publisher_sha256": "b731a0be2a80cb38d09ca9ccf292c04f4eadffb4274f8716fab6f219e506d2b0"
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "captured_utc": "2026-11-13T18:00:09.032859+00:00",
+  "wheel": {
+    "file": "rambpc_engine-0.3.0-py3-none-any.whl",
+    "sha256": "0da7b2b018f5f3d6c32251a6abdb017c1d48fcd78ab07e008a4889eeec250dd7"
+  },
+  "versions": {
+    "python": "3.14.5",
+    "rambpc-engine": "0.3.0",
+    "grpcio": "1.85.1",
+    "av": null
+  },
+  "checks": {
+    "package_imported_from_clean_venv_site_packages": true,
+    "public_results_api_imports_without_av": true,
+    "wheel_modules_match_current_source_bytes": true,
+    "sanitized_derived_rewrite_fixture_decodes_and_renders": true,
+    "intent_3_replacement_proposal_rejected": true,
+    "network_calls": 0,
+    "initial_hints_and_secondary_locale_wire_without_av": true
+  },
+  "rambler_source_sha256": {
+    "__init__.py": "d8d02fbac4cbcc55a21b31839319b27f4bf2ac013a9ed077045059b8df1d2298",
+    "audio.py": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+    "cli.py": "ed47d335ddba93452662472ae465a6ff7a2dd2e25ae6f87e3ba78558e96e9d8e",
+    "credentials.py": "3fbf621715874e56e2aaa059469eb620ceee73ef9d1794a6377e9b272cc9920a",
+    "encoding.py": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+    "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+    "protocol.py": "11bfc3c9475bad8c7a99077d5b7eba50f8a893476f5bbd0bbb19692f02e489c5",
+    "results.py": "9bd80287e48d1a0ba2d99ca94d284db9eab46d71655245fb8962379af4b74aa3",
+    "transport.py": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+    "wire.py": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+  },
+  "derived_fixture_payload_sha256": "0874d1f2021cd27f03bf1fd3c494d9133dedac8a7c97ea061acd84239ea000bb",
+  "scope": "Offline import, installed-source equality and derived-fixture smoke on Windows; not another Google session or a CI run."
+}

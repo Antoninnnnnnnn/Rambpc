@@ -1,0 +1,854 @@
+{
+  "report_kind": "rambler_endurance_v1",
+  "schema_version": 1,
+  "provenance": {
+    "python": "3.14.5",
+    "os": "Windows-11-10.0.26300-SP0",
+    "grpcio": "1.85.1",
+    "pyav": "19.0.2",
+    "module_sha256": {
+      "audio": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "encoding": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+      "engine": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol": "1604f9420dd48f967ca8bea31fa5ebef1fcb8cfb5e30144f76115637c24ae0b2",
+      "results": "9bd80287e48d1a0ba2d99ca94d284db9eab46d71655245fb8962379af4b74aa3",
+      "transport": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+    },
+    "tool_sha256": "e8d4680655b569fd823fc0a3f902051d9ed6cb59b9f1fdb1633fb70ff2a9db27"
+  },
+  "manifest_summary": {
+    "sha256": "7e911034db7ffdc2326d3da9f6f5980ee8163fe2b0d94fa3974bbf2daa5aeded",
+    "bytes": 970
+  },
+  "previous_report_summary": null,
+  "audio": {
+    "file": {
+      "sha256": "a09c8f2efd7e188bf251bcde6700a1a65675b75d3534e2439c2f1d8898ee2981",
+      "bytes": 3797914
+    },
+    "pcm": {
+      "sha256": "1477635add13be85bdc97fe3b7bdda1b2562f217e905540f6812452d7ca86b86",
+      "bytes": 3797836
+    },
+    "duration_seconds": 118.682375,
+    "sample_rate": 16000,
+    "channels": 1,
+    "sample_width": 2
+  },
+  "config": {
+    "stage": "120",
+    "sessions": 1,
+    "concurrency": 1,
+    "target_kind": "live",
+    "secure": true,
+    "context": {
+      "before": "",
+      "selected": "",
+      "after": "",
+      "cursor_aware": false
+    },
+    "timeout_seconds": 180.0,
+    "sample_interval_seconds": 1,
+    "pcm_chunk_ms": 20,
+    "ogg_page_ms": 20,
+    "language": "en-US",
+    "encoding_profile": {
+      "codec": "libopus",
+      "sample_rate": 16000,
+      "channels": 1,
+      "sample_width": 2,
+      "bitrate": 24000,
+      "application": "voip",
+      "frame_duration_ms": 20,
+      "page_duration_ms": 20,
+      "pcm_chunk_ms": 20
+    },
+    "case_id": "endurance-two-minute-en",
+    "markers": {
+      "beginning": "amber orchard",
+      "middle": "cobalt lantern",
+      "end": "violet harbor"
+    },
+    "include_text": true,
+    "max_final_updates": 256,
+    "max_final_protobuf_bytes": 8388608,
+    "max_resource_samples": 400,
+    "max_pcm_bytes": 9600000,
+    "max_encoded_bytes": 16777216
+  },
+  "preparation": {
+    "pyav_version": "19.0.2",
+    "wall_seconds": 0.3679448000038974,
+    "process_cpu_seconds": 0.15625,
+    "scope": "PyAV import and provenance only; WAV inspection precedes this. Encoder setup is per session, not separately isolated."
+  },
+  "summary": {
+    "status": "healthy",
+    "requested": 1,
+    "completed": 1
+  },
+  "sessions": [
+    {
+      "index": 0,
+      "status": "healthy",
+      "transport": "success",
+      "consumed_source": {
+        "bytes": 3797836,
+        "complete": true,
+        "sha256": "1477635add13be85bdc97fe3b7bdda1b2562f217e905540f6812452d7ca86b86"
+      },
+      "sent_ogg": {
+        "bytes": 453505,
+        "complete": true,
+        "sha256": "0812c32a2fc75cddeb03be918c868c80e9dae37c6a4b73190227c5f01cb1034e"
+      },
+      "progress": {
+        "first_pcm_yield_seconds": 0.003166199996485375,
+        "last_pcm_yield_seconds": 118.69252539999434,
+        "first_ogg_yield_seconds": 0.007616100003360771,
+        "last_ogg_yield_seconds": 118.69334929999604,
+        "half_pcm_yield_seconds": 59.3547644999926,
+        "pcm_source_eof_seconds": 118.69270600000164,
+        "encoded_source_eof_seconds": 118.69353499999852
+      },
+      "events": {
+        "responses": 246,
+        "final_updates": 1,
+        "first_response_seconds": 0.027276699998765253,
+        "first_final_seconds": 119.87746590000461,
+        "s3_end_seconds": 119.877939900005,
+        "engine_eof_seconds": 119.87907070000074
+      },
+      "engine_metrics": {
+        "requests_produced": 5940,
+        "request_protobuf_bytes": 547828,
+        "responses_received": 246,
+        "response_protobuf_bytes": 14787,
+        "elapsed_seconds": 119.87835160001123,
+        "first_response_seconds": 0.02650210000865627,
+        "eof_seconds": 119.87834999999905
+      },
+      "source_integrity": true,
+      "markers": {
+        "observations": {
+          "beginning": [
+            {
+              "update_index": 0,
+              "normalized_codepoint_span": [
+                44,
+                57
+              ]
+            }
+          ],
+          "middle": [
+            {
+              "update_index": 0,
+              "normalized_codepoint_span": [
+                857,
+                871
+              ]
+            }
+          ],
+          "end": [
+            {
+              "update_index": 0,
+              "normalized_codepoint_span": [
+                1705,
+                1718
+              ]
+            }
+          ]
+        },
+        "all_observed": true,
+        "ambiguous_update_indices": [],
+        "scope": "First normalized occurrence per marker per independently renderable final update. No update concatenation/dedup; spans are normalized Unicode codepoints, not original-text offsets or acoustic times. Coverage alone is not quality proof."
+      },
+      "pipeline_wall_seconds": 119.87983109999914,
+      "pipeline_process_cpu_seconds": 5.890625,
+      "pipeline_scope": "Collection, rolling source hashes, native encoding, engine, marker observations, resource sampling and session cleanup; excludes preinspection/import/channel open, post-file verification and report serialization. No isolated server-compute estimate.",
+      "resources": {
+        "samples": [
+          {
+            "elapsed_seconds": 0.0004710999928647652,
+            "process_cpu_seconds": 0.0,
+            "current_rss_bytes": 58511360
+          },
+          {
+            "elapsed_seconds": 1.0050406999944244,
+            "process_cpu_seconds": 0.0625,
+            "current_rss_bytes": 60805120
+          },
+          {
+            "elapsed_seconds": 2.006082099993364,
+            "process_cpu_seconds": 0.15625,
+            "current_rss_bytes": 60755968
+          },
+          {
+            "elapsed_seconds": 3.014467799992417,
+            "process_cpu_seconds": 0.21875,
+            "current_rss_bytes": 60760064
+          },
+          {
+            "elapsed_seconds": 4.024662499999977,
+            "process_cpu_seconds": 0.234375,
+            "current_rss_bytes": 60833792
+          },
+          {
+            "elapsed_seconds": 5.025593499987735,
+            "process_cpu_seconds": 0.40625,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 6.026703499999712,
+            "process_cpu_seconds": 0.421875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 7.0315789000014775,
+            "process_cpu_seconds": 0.46875,
+            "current_rss_bytes": 60776448
+          },
+          {
+            "elapsed_seconds": 8.035736999998335,
+            "process_cpu_seconds": 0.484375,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 9.040118899996742,
+            "process_cpu_seconds": 0.484375,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 10.045691699997406,
+            "process_cpu_seconds": 0.578125,
+            "current_rss_bytes": 60788736
+          },
+          {
+            "elapsed_seconds": 11.053127499995753,
+            "process_cpu_seconds": 0.625,
+            "current_rss_bytes": 60862464
+          },
+          {
+            "elapsed_seconds": 12.068362599995453,
+            "process_cpu_seconds": 0.71875,
+            "current_rss_bytes": 60862464
+          },
+          {
+            "elapsed_seconds": 13.070158499991521,
+            "process_cpu_seconds": 0.765625,
+            "current_rss_bytes": 60801024
+          },
+          {
+            "elapsed_seconds": 14.071121000000858,
+            "process_cpu_seconds": 0.921875,
+            "current_rss_bytes": 60866560
+          },
+          {
+            "elapsed_seconds": 15.080488199993852,
+            "process_cpu_seconds": 1.078125,
+            "current_rss_bytes": 60866560
+          },
+          {
+            "elapsed_seconds": 16.09009810000134,
+            "process_cpu_seconds": 1.109375,
+            "current_rss_bytes": 60866560
+          },
+          {
+            "elapsed_seconds": 17.09076749999076,
+            "process_cpu_seconds": 1.1875,
+            "current_rss_bytes": 60866560
+          },
+          {
+            "elapsed_seconds": 18.0980630999984,
+            "process_cpu_seconds": 1.234375,
+            "current_rss_bytes": 60866560
+          },
+          {
+            "elapsed_seconds": 19.09848729999794,
+            "process_cpu_seconds": 1.328125,
+            "current_rss_bytes": 60866560
+          },
+          {
+            "elapsed_seconds": 20.110646799992537,
+            "process_cpu_seconds": 1.46875,
+            "current_rss_bytes": 60870656
+          },
+          {
+            "elapsed_seconds": 21.116980899998453,
+            "process_cpu_seconds": 1.546875,
+            "current_rss_bytes": 60870656
+          },
+          {
+            "elapsed_seconds": 22.117493099998683,
+            "process_cpu_seconds": 1.578125,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 23.118616899999324,
+            "process_cpu_seconds": 1.671875,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 24.120013299994753,
+            "process_cpu_seconds": 1.71875,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 25.12733429999207,
+            "process_cpu_seconds": 1.75,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 26.134090199993807,
+            "process_cpu_seconds": 1.75,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 27.140872799995122,
+            "process_cpu_seconds": 1.75,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 28.14634289999958,
+            "process_cpu_seconds": 1.828125,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 29.150290099991253,
+            "process_cpu_seconds": 1.84375,
+            "current_rss_bytes": 60874752
+          },
+          {
+            "elapsed_seconds": 30.154060799992294,
+            "process_cpu_seconds": 1.90625,
+            "current_rss_bytes": 60878848
+          },
+          {
+            "elapsed_seconds": 31.16036979999626,
+            "process_cpu_seconds": 1.953125,
+            "current_rss_bytes": 60878848
+          },
+          {
+            "elapsed_seconds": 32.168414599989774,
+            "process_cpu_seconds": 1.953125,
+            "current_rss_bytes": 60878848
+          },
+          {
+            "elapsed_seconds": 33.17952689999947,
+            "process_cpu_seconds": 2.046875,
+            "current_rss_bytes": 60878848
+          },
+          {
+            "elapsed_seconds": 34.19019789999584,
+            "process_cpu_seconds": 2.09375,
+            "current_rss_bytes": 60882944
+          },
+          {
+            "elapsed_seconds": 35.19848339998862,
+            "process_cpu_seconds": 2.09375,
+            "current_rss_bytes": 60891136
+          },
+          {
+            "elapsed_seconds": 36.20288109999092,
+            "process_cpu_seconds": 2.109375,
+            "current_rss_bytes": 60891136
+          },
+          {
+            "elapsed_seconds": 37.208430200000294,
+            "process_cpu_seconds": 2.25,
+            "current_rss_bytes": 60891136
+          },
+          {
+            "elapsed_seconds": 38.216167199992924,
+            "process_cpu_seconds": 2.25,
+            "current_rss_bytes": 60891136
+          },
+          {
+            "elapsed_seconds": 39.22952699998859,
+            "process_cpu_seconds": 2.28125,
+            "current_rss_bytes": 60891136
+          },
+          {
+            "elapsed_seconds": 40.23098449999816,
+            "process_cpu_seconds": 2.3125,
+            "current_rss_bytes": 60891136
+          },
+          {
+            "elapsed_seconds": 41.23576199999661,
+            "process_cpu_seconds": 2.375,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 42.23592209999333,
+            "process_cpu_seconds": 2.375,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 43.237971800001105,
+            "process_cpu_seconds": 2.421875,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 44.24040270000114,
+            "process_cpu_seconds": 2.5,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 45.254674499999965,
+            "process_cpu_seconds": 2.59375,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 46.25480919999245,
+            "process_cpu_seconds": 2.609375,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 47.260576899992884,
+            "process_cpu_seconds": 2.65625,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 48.26517899999453,
+            "process_cpu_seconds": 2.65625,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 49.26760129998729,
+            "process_cpu_seconds": 2.765625,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 50.279370599993854,
+            "process_cpu_seconds": 2.796875,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 51.28387929999735,
+            "process_cpu_seconds": 2.859375,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 52.29332069998782,
+            "process_cpu_seconds": 2.921875,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 53.29466780000075,
+            "process_cpu_seconds": 2.984375,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 54.30098149999685,
+            "process_cpu_seconds": 3.0625,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 55.30299369999557,
+            "process_cpu_seconds": 3.109375,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 56.30488039999909,
+            "process_cpu_seconds": 3.109375,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 57.30645829999412,
+            "process_cpu_seconds": 3.1875,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 58.314027999993414,
+            "process_cpu_seconds": 3.203125,
+            "current_rss_bytes": 60907520
+          },
+          {
+            "elapsed_seconds": 59.32421069999691,
+            "process_cpu_seconds": 3.21875,
+            "current_rss_bytes": 60833792
+          },
+          {
+            "elapsed_seconds": 60.33679869999469,
+            "process_cpu_seconds": 3.28125,
+            "current_rss_bytes": 60837888
+          },
+          {
+            "elapsed_seconds": 61.343037300001015,
+            "process_cpu_seconds": 3.296875,
+            "current_rss_bytes": 60837888
+          },
+          {
+            "elapsed_seconds": 62.35807760000171,
+            "process_cpu_seconds": 3.3125,
+            "current_rss_bytes": 60837888
+          },
+          {
+            "elapsed_seconds": 63.35828739999852,
+            "process_cpu_seconds": 3.375,
+            "current_rss_bytes": 60837888
+          },
+          {
+            "elapsed_seconds": 64.36047759999929,
+            "process_cpu_seconds": 3.421875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 65.37568709999323,
+            "process_cpu_seconds": 3.421875,
+            "current_rss_bytes": 60776448
+          },
+          {
+            "elapsed_seconds": 66.38963179998973,
+            "process_cpu_seconds": 3.46875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 67.39370529999724,
+            "process_cpu_seconds": 3.484375,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 68.39881839998998,
+            "process_cpu_seconds": 3.484375,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 69.40345199999865,
+            "process_cpu_seconds": 3.59375,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 70.41169799999625,
+            "process_cpu_seconds": 3.6875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 71.42659509999794,
+            "process_cpu_seconds": 3.71875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 72.42902599999798,
+            "process_cpu_seconds": 3.71875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 73.44215239999176,
+            "process_cpu_seconds": 3.78125,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 74.4466870999895,
+            "process_cpu_seconds": 3.78125,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 75.44865690000006,
+            "process_cpu_seconds": 3.859375,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 76.45189820000087,
+            "process_cpu_seconds": 3.953125,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 77.4621252999932,
+            "process_cpu_seconds": 3.953125,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 78.46759719999682,
+            "process_cpu_seconds": 4.09375,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 79.47094220000145,
+            "process_cpu_seconds": 4.171875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 80.47804109999561,
+            "process_cpu_seconds": 4.171875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 81.48303009998926,
+            "process_cpu_seconds": 4.21875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 82.48903499999142,
+            "process_cpu_seconds": 4.21875,
+            "current_rss_bytes": 60841984
+          },
+          {
+            "elapsed_seconds": 83.4916411999875,
+            "process_cpu_seconds": 4.25,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 84.49205229998915,
+            "process_cpu_seconds": 4.28125,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 85.49646470000152,
+            "process_cpu_seconds": 4.3125,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 86.49804569999105,
+            "process_cpu_seconds": 4.34375,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 87.49823489999108,
+            "process_cpu_seconds": 4.40625,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 88.50286769999366,
+            "process_cpu_seconds": 4.515625,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 89.51685970000108,
+            "process_cpu_seconds": 4.578125,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 90.51953009999124,
+            "process_cpu_seconds": 4.609375,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 91.52029259999108,
+            "process_cpu_seconds": 4.640625,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 92.52568409999367,
+            "process_cpu_seconds": 4.640625,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 93.53299139998853,
+            "process_cpu_seconds": 4.703125,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 94.53374039998744,
+            "process_cpu_seconds": 4.71875,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 95.54234669999278,
+            "process_cpu_seconds": 4.78125,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 96.55685229999654,
+            "process_cpu_seconds": 4.796875,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 97.55822009999247,
+            "process_cpu_seconds": 4.875,
+            "current_rss_bytes": 60846080
+          },
+          {
+            "elapsed_seconds": 98.55901079998876,
+            "process_cpu_seconds": 4.90625,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 99.56033709998883,
+            "process_cpu_seconds": 4.953125,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 100.56392179999966,
+            "process_cpu_seconds": 5.0625,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 101.5735577000014,
+            "process_cpu_seconds": 5.109375,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 102.58278959999734,
+            "process_cpu_seconds": 5.1875,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 103.5975594999909,
+            "process_cpu_seconds": 5.21875,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 104.60298169999442,
+            "process_cpu_seconds": 5.21875,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 105.60693470000115,
+            "process_cpu_seconds": 5.21875,
+            "current_rss_bytes": 60850176
+          },
+          {
+            "elapsed_seconds": 106.6139414999925,
+            "process_cpu_seconds": 5.3125,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 107.62025310000172,
+            "process_cpu_seconds": 5.3125,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 108.62588449999748,
+            "process_cpu_seconds": 5.421875,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 109.63183610000124,
+            "process_cpu_seconds": 5.4375,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 110.63509559999511,
+            "process_cpu_seconds": 5.453125,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 111.63577209999494,
+            "process_cpu_seconds": 5.53125,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 112.64947779999056,
+            "process_cpu_seconds": 5.59375,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 113.66310890000022,
+            "process_cpu_seconds": 5.609375,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 114.66513229999691,
+            "process_cpu_seconds": 5.65625,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 115.66545489999407,
+            "process_cpu_seconds": 5.6875,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 116.67785849999927,
+            "process_cpu_seconds": 5.75,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 117.69223599998804,
+            "process_cpu_seconds": 5.84375,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 118.69251129998884,
+            "process_cpu_seconds": 5.890625,
+            "current_rss_bytes": 60854272
+          },
+          {
+            "elapsed_seconds": 119.69346889998997,
+            "process_cpu_seconds": 5.890625,
+            "current_rss_bytes": 60661760
+          },
+          {
+            "elapsed_seconds": 119.87975979999464,
+            "process_cpu_seconds": 5.890625,
+            "current_rss_bytes": 60723200
+          }
+        ],
+        "sample_limit_exceeded": false,
+        "coverage_ok": true,
+        "minimum_sample_count": 96,
+        "maximum_allowed_gap_seconds": 3.0,
+        "max_observed_sample_gap_seconds": 1.0152350999996997,
+        "coverage_policy": "at least floor(80% of duration/interval)+1 samples (minimum 2), bounded gaps and covered endpoints",
+        "profiling_status": "covered",
+        "rss_error_classes": [],
+        "all_rss_available": true,
+        "rss_first_bytes": 58511360,
+        "rss_last_bytes": 60723200,
+        "rss_sampled_max_bytes": 60907520,
+        "scope": "Current process resident/working-set bytes, including native libraries. Sampled maximum is NOT lifetime high-water or exact peak. Not Python heap or total system/virtual memory."
+      },
+      "retained_final_protobuf_bytes": 10594,
+      "semantic_signature": {
+        "sha256": "cc05e89af79cb01f88704843d827977b3f91a95768103948c7514d461f47aae6",
+        "policy": "all_ordered_state_1_sets_no_dedup_scores_excluded_v1",
+        "update_count": 1,
+        "hypothesis_counts": [
+          1
+        ]
+      },
+      "final_updates": [
+        {
+          "status": null,
+          "error_code": null,
+          "recognition_state": 1,
+          "raw_summary": {
+            "sha256": "e004da5a39b3518cbb439061751a373b5525e06370305266b4a95da888aff3d5",
+            "bytes": 10594
+          },
+          "hypotheses": [
+            {
+              "text": "Section 1. The reference for this section is Amber Orchard. The warehouse team reviewed the first delivery this morning. There are 12 wooden crates beside the north entrance and 7 sealed cartons on the lower shelf. The blue labels belong to the first shipment. The transport company expects to collect them on Friday afternoon. No new order has been placed. These quantities are provisional until the afternoon count is complete.\n\nSection 2. The reference for this section is Ledger Section 2. The workshop report concerns replacement equipment for the small assembly room. 4 lamps need new bulbs, and the second bench needs a stronger support. The original estimate was $60. A spare cable is already available in the cupboard. The team will inspect the equipment before deciding whether another purchase is necessary next month.\n\nSection 3. The reference for this section is Cobalt Lantern. The garden group discussed the planting schedule beside the eastern fence. The first row contains rosemary and the second row contains thyme. 5 empty pots are waiting near the water tank. The group agreed that the soil should be checked again after the next rainfall. The large ceramic planter remains in its original position beside the narrow stone path.\n\nSection 4. The reference for this section is Ledger Section 4. The library inventory lists several boxes of donated books awaiting inspection. The history collection is on the upper trolley, while the travel collection is on the table nearest the window. 3 damaged covers need attention before the books can be placed on shelves. The volunteer schedule has not changed. The next review of the collection is planned for Wednesday morning. The final reference for this complete recording is Violet Harbor.",
+              "confidence": null,
+              "voice_edit": {
+                "intent": 2,
+                "active_field": 3,
+                "transcript": "Section 1. The reference for this section is Amber Orchard. The warehouse team reviewed the first delivery this morning. There are 12 wooden crates beside the north entrance and 7 sealed cartons on the lower shelf. The blue labels belong to the first shipment. The transport company expects to collect them on Friday afternoon. No new order has been placed. These quantities are provisional until the afternoon count is complete.\n\nSection 2. The reference for this section is Ledger Section 2. The workshop report concerns replacement equipment for the small assembly room. 4 lamps need new bulbs, and the second bench needs a stronger support. The original estimate was $60. A spare cable is already available in the cupboard. The team will inspect the equipment before deciding whether another purchase is necessary next month.\n\nSection 3. The reference for this section is Cobalt Lantern. The garden group discussed the planting schedule beside the eastern fence. The first row contains rosemary and the second row contains thyme. 5 empty pots are waiting near the water tank. The group agreed that the soil should be checked again after the next rainfall. The large ceramic planter remains in its original position beside the narrow stone path.\n\nSection 4. The reference for this section is Ledger Section 4. The library inventory lists several boxes of donated books awaiting inspection. The history collection is on the upper trolley, while the travel collection is on the table nearest the window. 3 damaged covers need attention before the books can be placed on shelves. The volunteer schedule has not changed. The next review of the collection is planned for Wednesday morning. The final reference for this complete recording is Violet Harbor.",
+                "edited_text": "Section 1. The reference for this section is Amber Orchard. The warehouse team reviewed the first delivery this morning. There are 12 wooden crates beside the north entrance and 7 sealed cartons on the lower shelf. The blue labels belong to the first shipment. The transport company expects to collect them on Friday afternoon. No new order has been placed. These quantities are provisional until the afternoon count is complete.\n\nSection 2. The reference for this section is Ledger Section 2. The workshop report concerns replacement equipment for the small assembly room. 4 lamps need new bulbs, and the second bench needs a stronger support. The original estimate was $60. A spare cable is already available in the cupboard. The team will inspect the equipment before deciding whether another purchase is necessary next month.\n\nSection 3. The reference for this section is Cobalt Lantern. The garden group discussed the planting schedule beside the eastern fence. The first row contains rosemary and the second row contains thyme. 5 empty pots are waiting near the water tank. The group agreed that the soil should be checked again after the next rainfall. The large ceramic planter remains in its original position beside the narrow stone path.\n\nSection 4. The reference for this section is Ledger Section 4. The library inventory lists several boxes of donated books awaiting inspection. The history collection is on the upper trolley, while the travel collection is on the table nearest the window. 3 damaged covers need attention before the books can be placed on shelves. The volunteer schedule has not changed. The next review of the collection is planned for Wednesday morning. The final reference for this complete recording is Violet Harbor.",
+                "alternative_text": null,
+                "raw_summary": {
+                  "sha256": "10628bdd357eeaefd4138028f2ffe6105769f12b453408a2dbd893d3cb44cb1e",
+                  "bytes": 3514
+                },
+                "edited_context": null
+              },
+              "raw_summary": {
+                "sha256": "c2721059ae4da3d699a57fbae938c3d03387c6dddf319a706a1ba5b2e9b1c9f3",
+                "bytes": 5277
+              }
+            }
+          ],
+          "retention_note": "Ordered known semantics; raw bytes/unknown values/server IDs retained only in bounded in-memory responses, not published in this report."
+        }
+      ],
+      "profiling_inconclusive": false,
+      "file_unchanged": true,
+      "verification_wall_seconds": 0.0033467000030213967,
+      "verification_process_cpu_seconds": 0.015625
+    }
+  ],
+  "notes": [
+    "Sequential sessions, no retries; stop after the first non-healthy outcome.",
+    "Stage gate checks complete local predecessor evidence and compatible target/profile, not an authenticated service attestation or anti-forgery proof.",
+    "RSS profiling requires bounded sample gaps, covered endpoints and at least 80% of nominal interval observations; otherwise profiling is inconclusive even if transport succeeds.",
+    "WAV pacing is at chunk starts, not microphone completion; EOF timestamps are producer observations, not network writes.",
+    "CPU includes codec, hashing, sampler and engine; no network/server compute isolation. RSS includes native memory, but not all address-space/remote memory.",
+    "Only bounded finals and resource samples retained; provisional events counted, not stored. All final updates remain ordered without deduplication.",
+    "Repeated sessions must have identical ordered known final semantics; confidence/raw IDs excluded. A difference is inconclusive, not a transport failure.",
+    "Preinspection reads the complete WAV and may warm OS file caches; this is not a cold-start benchmark.",
+    "Text opt-in requires controlled-corpus review. Raw protobuf/unknown values/server IDs are never included in this report.",
+    "Marker observation is not a quality score; repeated-session RSS observations do not prove absence of leaks."
+  ],
+  "channel_open_seconds": 0.060156100007588975
+}

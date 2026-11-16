@@ -1,0 +1,2768 @@
+{
+  "versions": {
+    "python": "3.14.5 (tags/v3.14.5:5607950, May 10 2026, 10:43:50) [MSC v.1944 64 bit (AMD64)]",
+    "os": "Windows-11-10.0.26300-SP0",
+    "libraries": {
+      "av": "19.0.2",
+      "grpcio": "1.85.1",
+      "rambpc-engine": "0.3.0"
+    },
+    "git_head": "a5fa05c2a0492e6f6feb186c9175c3253c918624",
+    "rambler_source_sha256": {
+      "__init__.py": "d8d02fbac4cbcc55a21b31839319b27f4bf2ac013a9ed077045059b8df1d2298",
+      "audio.py": "0ca342e25cdc81dc1109ba64b79a2a8d640bd47c8a3ee843917d656d96f0394a",
+      "cli.py": "ed47d335ddba93452662472ae465a6ff7a2dd2e25ae6f87e3ba78558e96e9d8e",
+      "credentials.py": "3fbf621715874e56e2aaa059469eb620ceee73ef9d1794a6377e9b272cc9920a",
+      "encoding.py": "a857003455ef89325fea7aa187cd220c810f389659055d379142f169e9f9d4b6",
+      "engine.py": "cac7e58807cc912103baf5e39f555d1e7e11e6099914f2aed46b98e6afc0b966",
+      "protocol.py": "11bfc3c9475bad8c7a99077d5b7eba50f8a893476f5bbd0bbb19692f02e489c5",
+      "results.py": "9bd80287e48d1a0ba2d99ca94d284db9eab46d71655245fb8962379af4b74aa3",
+      "transport.py": "11295ca434352b0ba640a49256980ffc180aa7d050d5d44b854cf59e18ac9b95",
+      "wire.py": "d37a6b9f7c81126193c851515749210761f7cdfa3ac7cad156d2461af1aa4ad5"
+    },
+    "validator_sha256": "421446d4be47f7b7027f6ea5ed773d166fb21c32d340cd60a54ff2ddbeba1efa"
+  },
+  "requested_realtime": false,
+  "manifest_summary": {
+    "sha256": "0a31bd1e7a66d9380d1f8c2ceee326755c9dccfa0c85300e2c4f724b477828eb",
+    "bytes": 2355
+  },
+  "source_include_results": true,
+  "summary": {
+    "requested": 10,
+    "completed_successfully": 10,
+    "failed": 0,
+    "not_run": 0,
+    "status": "success"
+  },
+  "cases": [
+    {
+      "id": "bias-baseline-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "78805b8988a0b5127b5fb306800df63d4d1cd6d55f9e13264627660c6bc91f26",
+        "source_sha256": "17efba3ce9607924f6cfa7d9412ada217ed0a801d811559eb7cad4d2587e807f",
+        "source_kind": "pcm16le",
+        "duration_s": 3.093875
+      },
+      "consumed_source": {
+        "bytes": 99004,
+        "sha256": "17efba3ce9607924f6cfa7d9412ada217ed0a801d811559eb7cad4d2587e807f",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 11457,
+        "sha256": "6aa1f9796dc1a98f594f7e8cca668e4df161f792018c8d01ae1177c1ac38d1f9",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.5088493000075687,
+        "engine_metrics_at_eof": {
+          "requests_produced": 161,
+          "request_protobuf_bytes": 13879,
+          "responses_received": 9,
+          "response_protobuf_bytes": 497,
+          "elapsed_seconds": 1.5087787999946158,
+          "first_response_seconds": 0.07450969998899382,
+          "eof_seconds": 1.5087779999885242
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "17cff1c7c1dec5e1cf5e73091cdc4ead957998d4d94a426498e8cf0413b54a16",
+            "bytes": 325,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "be54793aa1a2a8d1046fef497aec539b6f75c5fb85769ddcbf8d2fce3160cb91",
+              "bytes": 317,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "4e9d19c26208028a8528248a46aefb615a45d48613f52e83ecba263f3a553c43",
+                "bytes": 314,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "befd0b001f47473f9b1761d6c2d69d318cfa5a5c62e83b3463c78b1d3ba457e5",
+                    "bytes": 153,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "befd0b001f47473f9b1761d6c2d69d318cfa5a5c62e83b3463c78b1d3ba457e5",
+                  "bytes": 153,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "d23e6aff6cb54f417736363c91acfd43d978ef461550a20f4ca6f370b0133e65",
+                      "bytes": 143,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "The project names are Zunarell and Valmera.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "932d43b377b06d069fdc3ef73fb4e692e5881ceb47aef3e466d152bfa35c6908",
+                        "bytes": 92,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "The project names are Zunarell and Valmera.",
+                      "alternative_text": null,
+                      "edited_text": "The project names are Zunarell and Valmera.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "4e9d19c26208028a8528248a46aefb615a45d48613f52e83ecba263f3a553c43",
+              "bytes": 314,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "The project names are Zunarell and Valmera.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "The project names are Zunarell and Valmera.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "bias-hinted-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "47167cb6f38374469c7b1aa746f531d0f3a032bddb46da45924d4d24a2d02cbf",
+          "count": 2
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "78805b8988a0b5127b5fb306800df63d4d1cd6d55f9e13264627660c6bc91f26",
+        "source_sha256": "17efba3ce9607924f6cfa7d9412ada217ed0a801d811559eb7cad4d2587e807f",
+        "source_kind": "pcm16le",
+        "duration_s": 3.093875
+      },
+      "consumed_source": {
+        "bytes": 99004,
+        "sha256": "17efba3ce9607924f6cfa7d9412ada217ed0a801d811559eb7cad4d2587e807f",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 11457,
+        "sha256": "2b455ba31dacde7244efcba8eacdd1517465ec418563a11d6c5620e1dc077097",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.8701062000036472,
+        "engine_metrics_at_eof": {
+          "requests_produced": 161,
+          "request_protobuf_bytes": 13849,
+          "responses_received": 10,
+          "response_protobuf_bytes": 489,
+          "elapsed_seconds": 1.8700145000038901,
+          "first_response_seconds": 0.028621299992664717,
+          "eof_seconds": 1.8700134999962756
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "065882e6f8c45277ebb13fc53e1cc5de89fdad6602414e778c36491c5bd334dc",
+            "bytes": 301,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "01807797c597390a502fbca599ea9ea43782ca665edbb05bdb1a8ad5518d44ad",
+              "bytes": 293,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "fce6ee71c5d05d95cdb3c39cffa34d98ab58f3762a6ada365d3607b1a5c2cdc7",
+                "bytes": 290,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "372c5cb5e6b33a74264da5354b34ae4b551ab6fc40e70df60f1a29e923f92feb",
+                    "bytes": 141,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "372c5cb5e6b33a74264da5354b34ae4b551ab6fc40e70df60f1a29e923f92feb",
+                  "bytes": 141,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "85040272a4c0b8c3c1cd8f6b19d3975b16a0b2ed24e8b164aae4fa7f982f1b1a",
+                      "bytes": 131,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "The project names are Zunarel, Valmera.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "fa84f2ff24ae8ec3283ca424e34d025d06b59f3dedfb10cc6e378641e43a5bf5",
+                        "bytes": 84,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "The project names are Zunarel, Valmera.",
+                      "alternative_text": null,
+                      "edited_text": "The project names are Zunarel, Valmera.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "fce6ee71c5d05d95cdb3c39cffa34d98ab58f3762a6ada365d3607b1a5c2cdc7",
+              "bytes": 290,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "The project names are Zunarel, Valmera.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "The project names are Zunarel, Valmera.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "preferences-baseline-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "8fe04b996898f4007b66a9b329327d65bdc3ff29f73901d3c9d391eaa102cf78",
+        "source_sha256": "d78960c7a81840a2169e4e0088dd537831d203594d96e6f5118a0c396586b2d7",
+        "source_kind": "pcm16le",
+        "duration_s": 2.944
+      },
+      "consumed_source": {
+        "bytes": 94208,
+        "sha256": "d78960c7a81840a2169e4e0088dd537831d203594d96e6f5118a0c396586b2d7",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 10837,
+        "sha256": "b12839847279ea3cf2552ce56e8a36f9a5ac2af178db405fc66be5faadfab1b0",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.6135871000005864,
+        "engine_metrics_at_eof": {
+          "requests_produced": 153,
+          "request_protobuf_bytes": 13096,
+          "responses_received": 10,
+          "response_protobuf_bytes": 525,
+          "elapsed_seconds": 1.6135074000048917,
+          "first_response_seconds": 0.026815100005478598,
+          "eof_seconds": 1.6135069000010844
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "c030eb65ac519cda727a76052fa08da0e52aa3734610eda33c48ca43855ff776",
+            "bytes": 337,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "731eb02f25a177768795c2c26a2121bc2d16266028c91ade113d9668cf206001",
+              "bytes": 329,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "83a6b503d8702ed59e27a5062257d14057cbe86d6c23853f62efbc1c2c61e5c8",
+                "bytes": 326,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "4b9ff678a3647a7717a54e01d3634cb3474afa541dc1d0fa3cea3f20cabba7ff",
+                    "bytes": 159,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "4b9ff678a3647a7717a54e01d3634cb3474afa541dc1d0fa3cea3f20cabba7ff",
+                  "bytes": 159,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "8ae207d4ec56e025ae58ebc5d8effcbb42e039096e707f433c04d863219fafc8",
+                      "bytes": 149,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "The color of the new theater curtain is blue.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "b9bbc069d2fce19f4eca44f65beaf0551c1473adc3ba6d9c053f5d99c1f5639e",
+                        "bytes": 96,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "The color of the new theater curtain is blue.",
+                      "alternative_text": null,
+                      "edited_text": "The color of the new theater curtain is blue.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "83a6b503d8702ed59e27a5062257d14057cbe86d6c23853f62efbc1c2c61e5c8",
+              "bytes": 326,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "The color of the new theater curtain is blue.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "The color of the new theater curtain is blue.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "preferences-hinted-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "preferences": {
+          "sha256": "480f10058c0e7951720d6d4bd1474c50ac3733d720c0e52398e3fa9dd0db18d0",
+          "count": 1
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "8fe04b996898f4007b66a9b329327d65bdc3ff29f73901d3c9d391eaa102cf78",
+        "source_sha256": "d78960c7a81840a2169e4e0088dd537831d203594d96e6f5118a0c396586b2d7",
+        "source_kind": "pcm16le",
+        "duration_s": 2.944
+      },
+      "consumed_source": {
+        "bytes": 94208,
+        "sha256": "d78960c7a81840a2169e4e0088dd537831d203594d96e6f5118a0c396586b2d7",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 10837,
+        "sha256": "b37203ab1095953e4cbe5191d0f5bb7c92bf9dd6a33a8446cdba7e5c3a2d592c",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 1.6057391999929678,
+        "engine_metrics_at_eof": {
+          "requests_produced": 153,
+          "request_protobuf_bytes": 13160,
+          "responses_received": 10,
+          "response_protobuf_bytes": 525,
+          "elapsed_seconds": 1.6056459999963408,
+          "first_response_seconds": 0.02961079998931382,
+          "eof_seconds": 1.6056452999910107
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "c030eb65ac519cda727a76052fa08da0e52aa3734610eda33c48ca43855ff776",
+            "bytes": 337,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "731eb02f25a177768795c2c26a2121bc2d16266028c91ade113d9668cf206001",
+              "bytes": 329,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "83a6b503d8702ed59e27a5062257d14057cbe86d6c23853f62efbc1c2c61e5c8",
+                "bytes": 326,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "4b9ff678a3647a7717a54e01d3634cb3474afa541dc1d0fa3cea3f20cabba7ff",
+                    "bytes": 159,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "4b9ff678a3647a7717a54e01d3634cb3474afa541dc1d0fa3cea3f20cabba7ff",
+                  "bytes": 159,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "8ae207d4ec56e025ae58ebc5d8effcbb42e039096e707f433c04d863219fafc8",
+                      "bytes": 149,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "The color of the new theater curtain is blue.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "b9bbc069d2fce19f4eca44f65beaf0551c1473adc3ba6d9c053f5d99c1f5639e",
+                        "bytes": 96,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "The color of the new theater curtain is blue.",
+                      "alternative_text": null,
+                      "edited_text": "The color of the new theater curtain is blue.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "83a6b503d8702ed59e27a5062257d14057cbe86d6c23853f62efbc1c2c61e5c8",
+              "bytes": 326,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "The color of the new theater curtain is blue.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "The color of the new theater curtain is blue.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "secondary-baseline-fr-en",
+      "language": "fr-FR",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "4c7c67fdc2ca1bd31e72328d84104d8373d9bad9a75c6c97a662919871dcf724",
+        "source_sha256": "868d3ff24ec5d8797861c7061bc38bc274c434144e01c0cd75345f82ef9b46a8",
+        "source_kind": "pcm16le",
+        "duration_s": 6.5480625
+      },
+      "consumed_source": {
+        "bytes": 209538,
+        "sha256": "868d3ff24ec5d8797861c7061bc38bc274c434144e01c0cd75345f82ef9b46a8",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 23810,
+        "sha256": "8d3babebd1377d4d677ac068e398529b3634b848b8bd28cbeb0656447d32106a",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.9043774000019766,
+        "engine_metrics_at_eof": {
+          "requests_produced": 333,
+          "request_protobuf_bytes": 28761,
+          "responses_received": 12,
+          "response_protobuf_bytes": 724,
+          "elapsed_seconds": 2.9042265999887604,
+          "first_response_seconds": 0.027762600002461113,
+          "eof_seconds": 2.9042252999934135
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "45cbde4ddf2314d1c935bdd4abdff664ae3f9871ae989e0be2da4f2aae1ecc76",
+            "bytes": 501,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "48919db2e45199f9be668f32aecff4c80255cb01ab2b5f0df5ebe8be3217e573",
+              "bytes": 493,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "364be7ecd55d4c64cf2c36a04d1f25dec3e8308587f11cf3d6e7d832b8e4a339",
+                "bytes": 490,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "45e9c5721a3ccbd45e6c8e44730b904ac0076bdd3adb5a619482ac0bbd923cc4",
+                    "bytes": 241,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "45e9c5721a3ccbd45e6c8e44730b904ac0076bdd3adb5a619482ac0bbd923cc4",
+                  "bytes": 241,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "899433b1d98306ace6b42ec91fd009638e2512b1a32848ef79e983693b270f32",
+                      "bytes": 231,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "a3bc811543fff2c0b2d363708c39e962d0fdad0111daad3a690af4747aa9751f",
+                        "bytes": 150,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+                      "alternative_text": null,
+                      "edited_text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "364be7ecd55d4c64cf2c36a04d1f25dec3e8308587f11cf3d6e7d832b8e4a339",
+              "bytes": 490,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "secondary-hinted-fr-en",
+      "language": "fr-FR",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "266b67fe04906910f371cbf704e2923e947f6ab487a1fc255074287ce53f0321",
+          "count": 1
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "4c7c67fdc2ca1bd31e72328d84104d8373d9bad9a75c6c97a662919871dcf724",
+        "source_sha256": "868d3ff24ec5d8797861c7061bc38bc274c434144e01c0cd75345f82ef9b46a8",
+        "source_kind": "pcm16le",
+        "duration_s": 6.5480625
+      },
+      "consumed_source": {
+        "bytes": 209538,
+        "sha256": "868d3ff24ec5d8797861c7061bc38bc274c434144e01c0cd75345f82ef9b46a8",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 23810,
+        "sha256": "419d6d930d43cfe48db4dc98d42ffe7d2af84fca3024e02855336d9003a6e042",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.8278993999992963,
+        "engine_metrics_at_eof": {
+          "requests_produced": 333,
+          "request_protobuf_bytes": 28768,
+          "responses_received": 12,
+          "response_protobuf_bytes": 738,
+          "elapsed_seconds": 2.8278243000095244,
+          "first_response_seconds": 0.028042000005370937,
+          "eof_seconds": 2.8278236000041943
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "45cbde4ddf2314d1c935bdd4abdff664ae3f9871ae989e0be2da4f2aae1ecc76",
+            "bytes": 501,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "48919db2e45199f9be668f32aecff4c80255cb01ab2b5f0df5ebe8be3217e573",
+              "bytes": 493,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "364be7ecd55d4c64cf2c36a04d1f25dec3e8308587f11cf3d6e7d832b8e4a339",
+                "bytes": 490,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "45e9c5721a3ccbd45e6c8e44730b904ac0076bdd3adb5a619482ac0bbd923cc4",
+                    "bytes": 241,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "45e9c5721a3ccbd45e6c8e44730b904ac0076bdd3adb5a619482ac0bbd923cc4",
+                  "bytes": 241,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "899433b1d98306ace6b42ec91fd009638e2512b1a32848ef79e983693b270f32",
+                      "bytes": 231,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "a3bc811543fff2c0b2d363708c39e962d0fdad0111daad3a690af4747aa9751f",
+                        "bytes": 150,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+                      "alternative_text": null,
+                      "edited_text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "364be7ecd55d4c64cf2c36a04d1f25dec3e8308587f11cf3d6e7d832b8e4a339",
+              "bytes": 490,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "La réunion aura lieu vendredi à 11h. The project meeting begins at 11.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "invocation-hey-baseline-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "2b76f3bf494524305c443e6631dd829bcc349d87f4faab5e70f88f57f84f3cb7",
+        "source_sha256": "536c39b70db610b20f5cec01982f64e7879c8c23d39cc79458e81d55ef0d2cbc",
+        "source_kind": "pcm16le",
+        "duration_s": 6.1934375
+      },
+      "consumed_source": {
+        "bytes": 198190,
+        "sha256": "536c39b70db610b20f5cec01982f64e7879c8c23d39cc79458e81d55ef0d2cbc",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 23327,
+        "sha256": "d21f4c28d648484d35b0e7d480991d5d15fdaed36b14061aa674fd4d2c99ccd7",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.6973322999983793,
+        "engine_metrics_at_eof": {
+          "requests_produced": 315,
+          "request_protobuf_bytes": 28013,
+          "responses_received": 12,
+          "response_protobuf_bytes": 763,
+          "elapsed_seconds": 2.697207100005471,
+          "first_response_seconds": 0.02968769999279175,
+          "eof_seconds": 2.6972062999993796
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "1e4b1c45296bc5c88e6b301f27c3525290e6b689b52d9457b1436bce1be2379f",
+            "bytes": 543,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "eccad593c809fe539be8bba232002bb2c781a7426fe64a970bceb9c2c4bdd66f",
+              "bytes": 535,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "4450c46ffd2c7bb4df7033a7286f9929671ab30ee3aa94e16e6dd6ed38265fbf",
+                "bytes": 532,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "c7d6fe1ea178b769f05c6b27e820a83a6d2d421d12f9dffc207281559c227e50",
+                    "bytes": 262,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "c7d6fe1ea178b769f05c6b27e820a83a6d2d421d12f9dffc207281559c227e50",
+                  "bytes": 262,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "7727692fe4b59f7615c6f85f956d5aed71867cf854119b7542fe2e9db52e3530",
+                      "bytes": 252,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "81733c9e8a5d630630973ff05df76a7a4b9d394c2306489f8dce14ec141fd780",
+                        "bytes": 164,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+                      "alternative_text": null,
+                      "edited_text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "4450c46ffd2c7bb4df7033a7286f9929671ab30ee3aa94e16e6dd6ed38265fbf",
+              "bytes": 532,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "invocation-hey-biased-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "80a08cfb1f3f5629bd5a70b0d81874acac8f172f961c342468eb0d567647c271",
+          "count": 1
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "2b76f3bf494524305c443e6631dd829bcc349d87f4faab5e70f88f57f84f3cb7",
+        "source_sha256": "536c39b70db610b20f5cec01982f64e7879c8c23d39cc79458e81d55ef0d2cbc",
+        "source_kind": "pcm16le",
+        "duration_s": 6.1934375
+      },
+      "consumed_source": {
+        "bytes": 198190,
+        "sha256": "536c39b70db610b20f5cec01982f64e7879c8c23d39cc79458e81d55ef0d2cbc",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 23327,
+        "sha256": "9daaabc38b5117b82e3a3c2614a34679cd81c58a250b935a580ede7189d69e4b",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 3.002290400007041,
+        "engine_metrics_at_eof": {
+          "requests_produced": 315,
+          "request_protobuf_bytes": 28023,
+          "responses_received": 12,
+          "response_protobuf_bytes": 763,
+          "elapsed_seconds": 3.002189000006183,
+          "first_response_seconds": 0.021369800000684336,
+          "eof_seconds": 3.0021884000016144
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "1e4b1c45296bc5c88e6b301f27c3525290e6b689b52d9457b1436bce1be2379f",
+            "bytes": 543,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "eccad593c809fe539be8bba232002bb2c781a7426fe64a970bceb9c2c4bdd66f",
+              "bytes": 535,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "4450c46ffd2c7bb4df7033a7286f9929671ab30ee3aa94e16e6dd6ed38265fbf",
+                "bytes": 532,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "c7d6fe1ea178b769f05c6b27e820a83a6d2d421d12f9dffc207281559c227e50",
+                    "bytes": 262,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "c7d6fe1ea178b769f05c6b27e820a83a6d2d421d12f9dffc207281559c227e50",
+                  "bytes": 262,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "7727692fe4b59f7615c6f85f956d5aed71867cf854119b7542fe2e9db52e3530",
+                      "bytes": 252,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "81733c9e8a5d630630973ff05df76a7a4b9d394c2306489f8dce14ec141fd780",
+                        "bytes": 164,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+                      "alternative_text": null,
+                      "edited_text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "4450c46ffd2c7bb4df7033a7286f9929671ab30ee3aa94e16e6dd6ed38265fbf",
+              "bytes": 532,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "invocation-okay-baseline-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "e1ea110f00250bc52d654d0026d5163288b3d8c524e004f6ff729dfb312ebe68",
+        "source_sha256": "49fafd8efbb4e954fbf2cb8ec218a33ea5c5ff1a5ac49d8d7b0b8c4b20568f5f",
+        "source_kind": "pcm16le",
+        "duration_s": 4.2139375
+      },
+      "consumed_source": {
+        "bytes": 134846,
+        "sha256": "49fafd8efbb4e954fbf2cb8ec218a33ea5c5ff1a5ac49d8d7b0b8c4b20568f5f",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 14780,
+        "sha256": "bde4b452b8dc13627038b24c7f9a79bfab56a77c33c53270c8e5dfa7ca1816df",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.0660147000016877,
+        "engine_metrics_at_eof": {
+          "requests_produced": 217,
+          "request_protobuf_bytes": 17983,
+          "responses_received": 11,
+          "response_protobuf_bytes": 499,
+          "elapsed_seconds": 2.0658866000012495,
+          "first_response_seconds": 0.020855099995969795,
+          "eof_seconds": 2.0658856999943964
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "9bd7273188c67fe7737e88653bf84ca4defec6d7f1afebdf0114981d2e706f7b",
+            "bytes": 295,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "4762e9ab7b04fa852a8d1f1a3a16cb06fd96d624a9b5f2e416d0a23906725612",
+              "bytes": 287,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "0ec86f6b94dd86f4908d0b678722742bf59e98d96dca8f3eaa9cba85f1ca5437",
+                "bytes": 284,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "b932457fb05b24d79d8f95200d23d14641eb1e6c5dcb89284189de10c36c8403",
+                    "bytes": 138,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "b932457fb05b24d79d8f95200d23d14641eb1e6c5dcb89284189de10c36c8403",
+                  "bytes": 138,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "07ff5a9c49b38eae7ef1dbacb7bb2aa6747e8f43451c1a8ea75686f89dfd4d5c",
+                      "bytes": 128,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Gboard, what is the capital of France?",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "e5ebd4194f778d3fcfdf89988ab8e031a4b5b1bfb591aaa90d30869fa62f9fb3",
+                        "bytes": 82,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Gboard, what is the capital of France?",
+                      "alternative_text": null,
+                      "edited_text": "Gboard, what is the capital of France?",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "0ec86f6b94dd86f4908d0b678722742bf59e98d96dca8f3eaa9cba85f1ca5437",
+              "bytes": 284,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Gboard, what is the capital of France?",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Gboard, what is the capital of France?",
+        "replacement_context": null
+      }
+    },
+    {
+      "id": "invocation-okay-biased-en",
+      "language": "en-US",
+      "initial_hints_summary": {
+        "bias_terms": {
+          "sha256": "80a08cfb1f3f5629bd5a70b0d81874acac8f172f961c342468eb0d567647c271",
+          "count": 1
+        },
+        "preferences": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        },
+        "secondary_languages": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "count": 0
+        }
+      },
+      "transport": "success",
+      "audio": {
+        "file_sha256": "e1ea110f00250bc52d654d0026d5163288b3d8c524e004f6ff729dfb312ebe68",
+        "source_sha256": "49fafd8efbb4e954fbf2cb8ec218a33ea5c5ff1a5ac49d8d7b0b8c4b20568f5f",
+        "source_kind": "pcm16le",
+        "duration_s": 4.2139375
+      },
+      "consumed_source": {
+        "bytes": 134846,
+        "sha256": "49fafd8efbb4e954fbf2cb8ec218a33ea5c5ff1a5ac49d8d7b0b8c4b20568f5f",
+        "complete": true
+      },
+      "sent_ogg": {
+        "bytes": 14780,
+        "sha256": "ab142466ca9860c51b66d23b576a84ab8d816542a55570d627a0566ef99edcc9",
+        "complete": true
+      },
+      "effective_pacing": "unpaced",
+      "timing": {
+        "collection_seconds": 2.071263199992245,
+        "engine_metrics_at_eof": {
+          "requests_produced": 217,
+          "request_protobuf_bytes": 17990,
+          "responses_received": 11,
+          "response_protobuf_bytes": 535,
+          "elapsed_seconds": 2.0711883999902057,
+          "first_response_seconds": 0.022631499989074655,
+          "eof_seconds": 2.07118799998716
+        }
+      },
+      "final_update_count": 1,
+      "rendering": "unique",
+      "final_updates": [
+        {
+          "raw_summary": {
+            "sha256": "e47ed197082481cc3e28e554401078af49ac1cc5fcf18f151bb43c663a6c5045",
+            "bytes": 331,
+            "top_level_fields": [
+              {
+                "number": 5,
+                "wire_type": 0
+              },
+              {
+                "number": 1253625,
+                "wire_type": 2
+              }
+            ]
+          },
+          "unknown_field_summaries": [
+            {
+              "number": 5,
+              "wire_type": 0,
+              "value_withheld": true
+            }
+          ],
+          "status": null,
+          "error_code": null,
+          "error_message_summary": null,
+          "result": {
+            "raw_summary": {
+              "sha256": "a9b73ebc5d3a2afda8d259de5159b4e4b4fafa7967c65b43f963fee2b6b20624",
+              "bytes": 323,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 2
+                }
+              ]
+            },
+            "unknown_field_summaries": [],
+            "recognition": {
+              "raw_summary": {
+                "sha256": "debc8d16af924621234dc7439b15dce158603a10b68093c2c673811969f18245",
+                "bytes": 320,
+                "top_level_fields": [
+                  {
+                    "number": 1,
+                    "wire_type": 0
+                  },
+                  {
+                    "number": 3,
+                    "wire_type": 2
+                  },
+                  {
+                    "number": 5,
+                    "wire_type": 2
+                  }
+                ]
+              },
+              "unknown_field_summaries": [
+                {
+                  "number": 5,
+                  "wire_type": 2,
+                  "value_withheld": true,
+                  "payload_summary": {
+                    "sha256": "307cdafbd4d7e6e85c012dea5e2a7914be16f48b0ca7aeff587bf04a32fa7e43",
+                    "bytes": 156,
+                    "top_level_fields": [
+                      {
+                        "number": 1,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 2,
+                        "wire_type": 0
+                      },
+                      {
+                        "number": 3,
+                        "wire_type": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "state": 1,
+              "hypothesis_result": {
+                "raw_summary": {
+                  "sha256": "307cdafbd4d7e6e85c012dea5e2a7914be16f48b0ca7aeff587bf04a32fa7e43",
+                  "bytes": 156,
+                  "top_level_fields": [
+                    {
+                      "number": 1,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 2,
+                      "wire_type": 0
+                    },
+                    {
+                      "number": 3,
+                      "wire_type": 2
+                    }
+                  ]
+                },
+                "unknown_field_summaries": [
+                  {
+                    "number": 1,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  },
+                  {
+                    "number": 2,
+                    "wire_type": 0,
+                    "value_withheld": true
+                  }
+                ],
+                "hypotheses": [
+                  {
+                    "raw_summary": {
+                      "sha256": "c750896e0cd848cff1a6e6229063c414e55f8306973398f73a5b16aabdd9a4df",
+                      "bytes": 146,
+                      "top_level_fields": [
+                        {
+                          "number": 1,
+                          "wire_type": 2
+                        },
+                        {
+                          "number": 74956224,
+                          "wire_type": 2
+                        }
+                      ]
+                    },
+                    "unknown_field_summaries": [],
+                    "text": "Okay, Gboard, what is the capital of France?",
+                    "confidence": null,
+                    "voice_edit": {
+                      "raw_summary": {
+                        "sha256": "a46bcc6c9b20b6f567dd9c63306c4dbd080a70274237a117959e7b674a414802",
+                        "bytes": 94,
+                        "top_level_fields": [
+                          {
+                            "number": 1,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 3,
+                            "wire_type": 2
+                          },
+                          {
+                            "number": 4,
+                            "wire_type": 0
+                          }
+                        ]
+                      },
+                      "unknown_field_summaries": [],
+                      "transcript": "Okay, Gboard, what is the capital of France?",
+                      "alternative_text": null,
+                      "edited_text": "Okay, Gboard, what is the capital of France?",
+                      "edited_context": null,
+                      "intent": 2,
+                      "active_field": 3
+                    }
+                  }
+                ]
+              },
+              "partial_result": null
+            },
+            "speech": null,
+            "alternative_text": null,
+            "active_field": 1,
+            "active_payload_summary": {
+              "sha256": "debc8d16af924621234dc7439b15dce158603a10b68093c2c673811969f18245",
+              "bytes": 320,
+              "top_level_fields": [
+                {
+                  "number": 1,
+                  "wire_type": 0
+                },
+                {
+                  "number": 3,
+                  "wire_type": 2
+                },
+                {
+                  "number": 5,
+                  "wire_type": 2
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "context": {
+        "raw_summary": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "top_level_fields": []
+        },
+        "unknown_field_summaries": [],
+        "before": "",
+        "selected": "",
+        "after": "",
+        "cursor_aware": false
+      },
+      "rendered_text": "Okay, Gboard, what is the capital of France?",
+      "context_conflict_detected": true,
+      "revision_conflict_detected": true,
+      "replacement_verified": true,
+      "replacement_proposal": {
+        "snapshot": {
+          "raw_summary": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "top_level_fields": []
+          },
+          "unknown_field_summaries": [],
+          "before": "",
+          "selected": "",
+          "after": "",
+          "cursor_aware": false
+        },
+        "replacement_text": "Okay, Gboard, what is the capital of France?",
+        "replacement_context": null
+      }
+    }
+  ],
+  "schema_version": 1,
+  "report_kind": "sanitized_validate_corpus_report",
+  "privacy_review_required": true,
+  "text_included": true,
+  "publication_warning": "Inspect before publishing. Controlled-text opt-in is not proof that private speech, context, local labels or machine metadata are publishable. Hashes retain correlation and may be guessed.",
+  "withheld": [
+    "raw_protobuf_bytes",
+    "unknown_field_values",
+    "service_result_ids",
+    "session_ids",
+    "expected_revision",
+    "unrecognized_report_keys"
+  ],
+  "source_report_summary": {
+    "sha256": "19003305cf633d7375844309bb2b315205d321bf220cbcf01f8be202e079bad2",
+    "bytes": 100583
+  },
+  "sanitizer_source_sha256": "c73a84833ee1095e624917e83631dbaf3adb4a0f6562b1ff652811c0873372ea"
+}

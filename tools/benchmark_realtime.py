@@ -1,8 +1,9 @@
-"""Reproducible real-time paging experiment with FFmpeg or native test sources.
+"""Sequential paging experiments with FFmpeg or native test sources.
 
-Pairs alternate 1000ms/20ms then 20ms/1000ms on one open channel, with no
-concurrent sessions or retries. A producer timestamp is not a completed network
-write; final S3 status and gRPC EOF do not imply a final Rambler action.
+Legacy pairs alternate two durations unchanged; grid rounds rotate/reverse the
+recorded order, up to 24 sessions on one ready channel, without retries.
+A producer timestamp is not a completed network write; final S3 status and gRPC
+EOF do not imply a final Rambler action.
 """
 from __future__ import annotations
 
@@ -37,8 +38,8 @@ def page_durations(value: str) -> list[int]:
         pages = [int(x) for x in value.split(',')]
     except ValueError as exc:
         raise argparse.ArgumentTypeError('page durations must be comma-separated integers') from exc
-    if len(pages) != 2 or len(set(pages)) != 2 or any(p < 20000 or p > 1000000 for p in pages):
-        raise argparse.ArgumentTypeError('provide two distinct page durations between 20000 and 1000000 microseconds')
+    if not 2 <= len(pages) <= 4 or len(set(pages)) != len(pages) or any(p < 20000 or p > 1000000 for p in pages):
+        raise argparse.ArgumentTypeError('provide 2..4 distinct page durations between 20000 and 1000000 microseconds')
     return pages
 
 
@@ -46,6 +47,73 @@ def schedule(pairs: int, pages: list[int]) -> list[int]:
     if not 1 <= pairs <= 3 or len(pages) != 2 or len(set(pages)) != 2 or any(p < 20000 or p > 1000000 for p in pages):
         raise ValueError('invalid pairs or page durations')
     return [p for i in range(pairs) for p in (pages if i % 2 == 0 else pages[::-1])]
+
+
+def grid_schedule(rounds: int, pages: list[int]) -> list[int]:
+    """Equal repetitions; rotate positions and reverse alternate cycles."""
+    if (type(rounds) is not int or not 1 <= rounds or not 2 <= len(pages) <= 4
+            or len(set(pages)) != len(pages) or rounds * len(pages) > 24
+            or any(type(p) is not int or not 20000 <= p <= 1000000 for p in pages)):
+        raise ValueError('grid requires 2..4 unique durations and at most 24 sessions')
+    plan = []
+    for index in range(rounds):
+        order = pages if (index // len(pages)) % 2 == 0 else pages[::-1]
+        offset = index % len(pages)
+        plan.extend(order[offset:] + order[:offset])
+    return plan
+
+
+def experiment_schedule(args) -> list[int]:
+    rounds = getattr(args, 'rounds', None)
+    return grid_schedule(rounds, args.page_durations) if rounds is not None else schedule(args.pairs, args.page_durations)
+
+
+def native_chunks(data: bytes, policy: str):
+    """Never accumulate across muxer writes or wait for a target size."""
+    if policy == 'muxer':
+        yield data
+    elif policy == 'legacy224':
+        for offset in range(0, len(data), 224):
+            yield data[offset:offset + 224]
+    else:
+        raise ValueError('unknown native chunk policy')
+
+
+class OggMilestones:
+    """Observe complete Ogg pages without changing bytes or upload boundaries.
+
+    Headers are not useful audio. A complete page containing packet data other
+    than OpusHead/OpusTags is the conservative first-audio availability marker.
+    """
+    def __init__(self):
+        self.pending = bytearray()
+        self.first_header_ms = None
+        self.first_audio_page_ms = None
+
+    def feed(self, data: bytes, now: float):
+        if self.first_audio_page_ms is not None:
+            return
+        self.pending.extend(data)
+        while len(self.pending) >= 27:
+            if self.pending[:4] != b'OggS':
+                raise ValueError('invalid native Ogg page')
+            segments = self.pending[26]
+            header_size = 27 + segments
+            if len(self.pending) < header_size:
+                return
+            size = header_size + sum(self.pending[27:header_size])
+            if len(self.pending) < size:
+                return
+            body = self.pending[header_size:size]
+            if body.startswith(b'OpusHead') or body.startswith(b'OpusTags'):
+                if self.first_header_ms is None:
+                    self.first_header_ms = now
+            elif body:
+                self.first_audio_page_ms = now
+            del self.pending[:size]
+            if self.first_audio_page_ms is not None:
+                self.pending.clear()
+                return
 
 
 def hash_file(path: Path) -> tuple[str, int]:
@@ -175,7 +243,21 @@ async def take_sample(args, engine, ffmpeg: str | None, index: int, page: int, *
            'encoded_bytes_yielded': 0, 'encoded_sha256': None, 'decoded_pcm': None,
            'pcm_bytes_consumed': None, 'pcm_sha256_consumed': None,
            's3_statuses': [], 's3_error_codes': [], 'grpc_status': None,
-           'results': [], 'metrics': None, 'success': False, 'error_type': None}
+           'results': [], 'metrics': None, 'success': False, 'error_type': None,
+           'semantic_result': None, 'pipeline_wall_ms': None, 'pipeline_cpu_ms': None,
+           'verification_wall_ms': 0.0, 'verification_cpu_ms': 0.0,
+           'artifact_write_wall_ms': 0.0, 'artifact_write_cpu_ms': 0.0,
+           'native_first_header_ms': None, 'native_first_audio_page_ms': None,
+           'native_encoder_setup_ms': None,
+           'native_encoder_setup_note': 'Not separately instrumented; first output includes setup and encoding.'}
+    milestones = OggMilestones()
+    semantics = _helpers.SemanticHistory()
+    semantics.update_row(row)
+    def write_artifact(file, block):
+        wall, cpu = time.monotonic(), time.process_time()
+        file.write(block)
+        row['artifact_write_wall_ms'] += (time.monotonic() - wall) * 1000
+        row['artifact_write_cpu_ms'] += (time.process_time() - cpu) * 1000
     digest = hashlib.sha256()
     candidates = []
     s3_end = False
@@ -190,7 +272,7 @@ async def take_sample(args, engine, ffmpeg: str | None, index: int, page: int, *
         try:
             with output_path.open('xb') as file:
                 while block := await process.stdout.read(224):
-                    file.write(block)
+                    write_artifact(file, block)
                     digest.update(block)
                     row['encoded_bytes_yielded'] += len(block)
                     if row['first_encoded_bytes_ms'] is None:
@@ -223,9 +305,11 @@ async def take_sample(args, engine, ffmpeg: str | None, index: int, page: int, *
         with output_path.open('xb') as file:
             async with aclosing(encoding.pcm16_to_ogg(pcm(), page_duration_ms=page // 1000)) as encoded:
                 async for page_bytes in encoded:
-                    for offset in range(0, len(page_bytes), 224):
-                        block = page_bytes[offset:offset + 224]
-                        file.write(block)
+                    milestones.feed(page_bytes, clock())
+                    row['native_first_header_ms'] = milestones.first_header_ms
+                    row['native_first_audio_page_ms'] = milestones.first_audio_page_ms
+                    for block in native_chunks(page_bytes, getattr(args, 'native_chunk_policy', 'muxer')):
+                        write_artifact(file, block)
                         digest.update(block)
                         row['encoded_bytes_yielded'] += len(block)
                         if row['first_encoded_bytes_ms'] is None:
@@ -251,6 +335,7 @@ async def take_sample(args, engine, ffmpeg: str | None, index: int, page: int, *
                         row['first_response_ms'] = now
                     if response.speech_event == 0 and row['start_speech_ms'] is None:
                         row['start_speech_ms'] = now
+                    semantics.observe(response)
                     found = _helpers.texts(response)
                     if found:
                         candidates.extend(found)
@@ -266,19 +351,26 @@ async def take_sample(args, engine, ffmpeg: str | None, index: int, page: int, *
                     if response.status == 2 or response.error_code not in (None, 0):
                         s3_error = True
                         row['s3_error_codes'].append(response.error_code)
-            row['encoded_sha256'] = digest.hexdigest()
-            if row['source_exhausted_ms'] is None:
-                raise RuntimeError('source incomplete')
-            if hash_file(output_path) != (row['encoded_sha256'], row['encoded_bytes_yielded']):
-                raise RuntimeError('encoded artifact integrity failure')
-            if native is not None:
-                if pcm_reference is None or (row['pcm_sha256_consumed'], row['pcm_bytes_consumed']) != (pcm_reference['sha256'], pcm_reference['bytes']):
-                    raise ValueError('native PCM source integrity failure')
-                row['decoded_pcm'] = native_decode_pcm(native[0], output_path)
-                if row['decoded_pcm']['bytes'] != pcm_reference['bytes']:
-                    raise ValueError('decoded PCM duration mismatch')
-            else:
-                row['decoded_pcm'] = await decode_pcm(ffmpeg, output_path)
+            row['pipeline_wall_ms'] = clock()
+            row['pipeline_cpu_ms'] = (time.process_time() - cpu_start) * 1000
+            verify_wall, verify_cpu = time.monotonic(), time.process_time()
+            try:
+                row['encoded_sha256'] = digest.hexdigest()
+                if row['source_exhausted_ms'] is None:
+                    raise RuntimeError('source incomplete')
+                if hash_file(output_path) != (row['encoded_sha256'], row['encoded_bytes_yielded']):
+                    raise RuntimeError('encoded artifact integrity failure')
+                if native is not None:
+                    if pcm_reference is None or (row['pcm_sha256_consumed'], row['pcm_bytes_consumed']) != (pcm_reference['sha256'], pcm_reference['bytes']):
+                        raise ValueError('native PCM source integrity failure')
+                    row['decoded_pcm'] = native_decode_pcm(native[0], output_path)
+                    if row['decoded_pcm']['bytes'] != pcm_reference['bytes']:
+                        raise ValueError('decoded PCM duration mismatch')
+                else:
+                    row['decoded_pcm'] = await decode_pcm(ffmpeg, output_path)
+            finally:
+                row['verification_wall_ms'] = (time.monotonic() - verify_wall) * 1000
+                row['verification_cpu_ms'] = (time.process_time() - verify_cpu) * 1000
             row['success'] = bool(eof and s3_end and candidates and not s3_error)
             if not row['success']:
                 row['error_type'] = 'S3Error' if s3_error else 'IncompleteSession'
@@ -289,6 +381,10 @@ async def take_sample(args, engine, ffmpeg: str | None, index: int, page: int, *
             code = exc.code()
             row['grpc_status'] = code.name if code is not None else None
     finally:
+        if row['pipeline_wall_ms'] is None:
+            row['pipeline_wall_ms'] = clock()
+            row['pipeline_cpu_ms'] = (time.process_time() - cpu_start) * 1000
+        semantics.update_row(row)
         row['results'] = _helpers.safe_results(candidates, args.include_results)
         row['elapsed_ms'] = clock()
         row['python_process_cpu_ms'] = (time.process_time() - cpu_start) * 1000
@@ -312,7 +408,7 @@ def ffmpeg_metadata(executable: str) -> dict:
 
 async def run(args, output, ffmpeg: str | None) -> bool:
     wav_hash, wav_size = hash_file(args.wav)
-    plan = schedule(args.pairs, args.page_durations)
+    plan = experiment_schedule(args)
     native = None
     pcm_reference = None
     native_metadata = None
@@ -322,11 +418,13 @@ async def run(args, output, ffmpeg: str | None) -> bool:
         pcm_reference = await native_pcm_reference(audio, args.wav)
     # Common helper captures engine, wire, protocol, transport, OS and git state.
     common_args = argparse.Namespace(language=args.language, timeout=args.timeout,
-        chunk_sizes=[224], samples=args.pairs)
+        chunk_sizes=[224], samples=args.pairs, insecure=args.insecure,
+        include_results=args.include_results)
     metadata = _helpers.reproducibility(common_args)
     metadata['source'] = args.source
     # Shared helper's chunk_sizes describe its own benchmark, not this one.
     metadata.pop('chunk_sizes', None)
+    metadata.pop('samples_per_mode_and_chunk', None)
     metadata['pacing'] = 'realtime_wav_chunk_start' if native else 'realtime_ffmpeg_re'
     metadata['code_sha256']['benchmark_engine_helpers'] = metadata['code_sha256'].pop('harness')
     metadata['code_sha256']['realtime_harness'] = hash_file(Path(__file__))[0]
@@ -337,27 +435,48 @@ async def run(args, output, ffmpeg: str | None) -> bool:
     else:
         metadata['ffmpeg_test_source'] = ffmpeg_metadata(ffmpeg)
     metadata['page_durations_us'] = args.page_durations
-    metadata['pairs'] = args.pairs
+    metadata['pairs'] = args.pairs if getattr(args, 'rounds', None) is None else None
+    metadata['rounds'] = getattr(args, 'rounds', None)
+    metadata['schedule_mode'] = 'rotating_grid' if metadata['rounds'] is not None else 'legacy_alternating_pairs'
+    metadata['scheduled_page_durations_us'] = plan
+    metadata['session_limit'] = 24
+    metadata['timeout_scope'] = 'pipeline plus verification; native synchronous work cancels cooperatively'
+    metadata['context'] = {'before': '', 'selected': '', 'after': '', 'cursor_aware': True}
+    metadata['native_chunk_policy'] = getattr(args, 'native_chunk_policy', 'muxer') if native else None
+    metadata['include_results'] = args.include_results
     metadata['encoder'] = {'codec': 'libopus', 'bitrate': '24k', 'vbr': 'on', 'application': 'voip',
                            'frame_duration_ms': 20, 'sample_rate': 16000, 'channels': 1,
                            'flush_packets': 1}
     if native:
         metadata['encoder']['pcm_chunk_ms'] = 20
-        metadata['encoder']['encoded_chunk_policy'] = 'native muxer writes subdivided into at most 224 bytes'
+        metadata['encoder']['encoded_chunk_policy'] = (
+            'native muxer writes unchanged, immediately' if metadata['native_chunk_policy'] == 'muxer'
+            else 'native muxer writes subdivided into at most 224 bytes')
     else:
         metadata['encoder']['encoded_chunk_policy'] = 'FFmpeg stdout reads of at most 224 bytes'
     report = {'reproducibility': metadata, 'source_wav_sha256': wav_hash, 'source_wav_bytes': wav_size,
               'source_pcm_reference': pcm_reference,
+              'schema_version': 2,
               'samples': [], 'decoded_pcm_identical_across_samples': None, 'complete': False,
+              'comparison_status': 'inconclusive', 'semantic_reference': None,
+              'semantic_policy': _helpers.SemanticHistory.policy,
+              'semantic_policy_note': 'Compare every ordered recognition-state-1 hypothesis set, including empty sets and repeats. Provisional observations and confidence scores are separate.',
               'notes': ['FFmpeg is an optional test source and verifier, not an engine dependency.',
                         'Native PyAV/Opus is an optional audio extra, not a core dependency.',
-                        'One ready channel; sequential alternating pairs, no retry.',
+                        'One ready channel; sequential recorded schedule, no retry.',
                         'Audio producer timestamps are not network writes; source_exhausted_ms is not end-request yield.',
                         'Native source EOF is PCM reader exhaustion; FFmpeg source EOF is encoded stdout exhaustion; timings are not directly equivalent.',
                         'Last candidate or S3 end text is not necessarily final Rambler output.',
                         'Python process CPU includes native encoding/decoding but excludes FFmpeg child processes; it may have coarse platform resolution.',
                         'FFmpeg encoder and decoder CPU are not measured.',
-                        'Decoded PCM hashes compare samples, not fidelity to the uncompressed WAV.']}
+                        'Decoded PCM hashes compare samples, not fidelity to the uncompressed WAV.',
+                        'pipeline CPU/wall stop before verification; artifact write timings are an included subset, not independent totals.',
+                        'Artifact write timings cover buffered file.write only; open/flush/close remain in pipeline totals.',
+                        'Pipeline includes hashing, instrumentation and native codec; process CPU excludes FFmpeg children.',
+                        'Report JSON saves and source rehash between samples are outside sample timings.',
+                        'Native first header/audio markers observe complete muxer pages before upload, not completed network writes.',
+                        'Import preparation and channel readiness precede samples; encoder setup is not separately observable.',
+                        'Grid has equal repetition counts; positional balance is exact only over complete rotation cycles.']}
     def save():
         output.seek(0)
         json.dump(report, output, ensure_ascii=False, indent=2, allow_nan=False)
@@ -375,6 +494,10 @@ async def run(args, output, ffmpeg: str | None) -> bool:
         for index, page in enumerate(plan):
             row = await take_sample(args, engine, ffmpeg, index, page, native=native, pcm_reference=pcm_reference)
             report['samples'].append(row)
+            row['scheduled_round'] = index // len(args.page_durations)
+            row['position_in_round'] = index % len(args.page_durations)
+            if row['success']:
+                report['semantic_reference'] = _helpers.semantic_guard(row, report['semantic_reference'])
             if hash_file(args.wav) != (wav_hash, wav_size):
                 row['success'] = False
                 row['error_type'] = 'WavIntegrityError'
@@ -393,6 +516,7 @@ async def run(args, output, ffmpeg: str | None) -> bool:
             save()
         report['decoded_pcm_identical_across_samples'] = True
         report['complete'] = True
+        report['comparison_status'] = 'semantic_match_observed_not_quality_proof'
         save()
         return True
     except Exception as exc:
@@ -416,7 +540,11 @@ def parser():
     p.add_argument('--wav', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--encoded-dir', type=Path, required=True)
-    p.add_argument('--pairs', type=int, default=3)
+    repetitions = p.add_mutually_exclusive_group()
+    repetitions.add_argument('--pairs', type=int, default=3, help='legacy alternating schedule; exactly two durations, 1..3 pairs')
+    repetitions.add_argument('--rounds', type=int, help='rotating grid repetitions per duration; at most 24 sessions total')
+    p.add_argument('--native-chunk-policy', choices=('muxer', 'legacy224'), default='muxer',
+                   help='muxer matches the PCM CLI; legacy224 reproduces historical fragmentation')
     p.add_argument('--page-durations', type=page_durations, default=[1000000, 20000])
     p.add_argument('--include-results', action='store_true', help='synthetic corpus only')
     p.add_argument('--language', default='en-US')
@@ -428,7 +556,7 @@ def main(argv=None):
     p = parser()
     args = p.parse_args(argv)
     try:
-        schedule(args.pairs, args.page_durations)
+        experiment_schedule(args)
         if not math.isfinite(args.timeout) or not 0 < args.timeout <= 30:
             raise ValueError('timeout must be positive and at most 30 seconds')
         if not _helpers.loopback(args.target) and not args.live:

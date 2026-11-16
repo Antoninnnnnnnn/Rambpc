@@ -4,6 +4,18 @@ Mesures initiales du 2026-11-12. Il ne s'agit ni d'un classement de langages ni
 d'une garantie de latence du service. Chaque réponse comptée réussie a un texte
 exploitable, une fin S3, un gRPC OK et une entrée audio complète.
 
+## Profilage natif Rust séparé — 2026-11-13
+
+[Protocole, mesures brutes, hashes et candidat reproductible](research/rust-audio-profiling.md).
+Banc release ABBA, signaux synthétiques5,001s, encodeur/mux/pipeline mesurés
+séparément sans compilation concurrente annoncée. Total baseline médian groupé
+45–134ms ; mux14–81µs. Aucun gain uniforme du candidat CRC ; **production inchangée**.
+Les variations d'un encodeur inchangé interdisent d'attribuer les écarts totaux
+au CRC. Aucun gain réseau, de qualité ASR, de CPU processus ou Rust/Python déduit.
+Le banc `cargo run --release -p rambler-audio --example profile_pipeline -- 7 5 100 80017`
+est offline, pas une nouvelle session Rambler. Les fenêtres et entrées ne sont
+pas un benchmark de voix naturelles ni un optimum global.
+
 ## Conditions et horloges
 
 Windows11, Python3.14.5, grpcio1.85.1, 12 processeurs logiques ; détails et limites
@@ -163,6 +175,109 @@ Ogg : sortie0 et résultat attendu, total3,533s. Elle utilise seulement la confi
 locale déjà provisionnée ; aucun APK, JADX ou Android n'est consulté à l'exécution.
 Ce sample isolé n'est pas directement comparable à la CLI PCM d'une autre session.
 
+## 5. Grille native affinée — 2026-11-13
+
+[20 sessions supplémentaires](evidence/refinement-page-grid.json), cinq par durée de
+page 20/40/60/100 ms, ordre tournant puis inversé, concurrence 1. Même phrase et
+même PCM source que le banc natif historique. Code du checkpoint `4b96696`, hashes
+exacts enregistrés ; `git_dirty` inclut les nouveaux fichiers de preuve. La politique
+`muxer` transmet immédiatement les écritures natives, comme la CLI/SDK, sans les
+subdiviser systématiquement à 224 octets comme le banc historique. **Ne pas fusionner
+les deux populations.**
+
+Les 20 sources ont été intégralement consommées, les PCM redécodés ont le même hash
+et toutes les sessions terminent S3/gRPC avec succès. Le garde-fou
+`ordered_all_recognition_state_1_sets_v2` compare toutes les listes d'hypothèses
+finales ordonnées, y compris listes vides et répétitions : pas seulement le dernier
+texte, pas de fusion/déduplication. Il n'a constaté aucune divergence.
+
+| Page Ogg | Texte après EOF PCM, médiane (min–max) | Fin S3 médiane | Ogg produit | CPU pipeline médian |
+|---|---:|---:|---:|---:|
+| 20 ms | 348 ms (297–858) | 349 ms | 22 955 o | 469 ms |
+| 40 ms | 417 ms (407–489) | 421 ms | 18 446 o | 281 ms |
+| 60 ms | 365 ms (348–428) | 366 ms | 16 961 o | 328 ms |
+| 100 ms | 422 ms (354–485) | 423 ms | 15 746 o | 203 ms |
+
+**Décision : conserver 20 ms par défaut.** Ce réglage a la plus faible médiane texte
+observée et le marqueur de parole médian le plus précoce (322 ms contre 366/413/483 ms).
+60 ms économise **26,1 % d'octets Ogg**, avec environ **17 ms** de médiane finale
+supplémentaire sur ce seul banc : option de compromis réseau, pas nouveau gain de
+vitesse ni preuve d'équivalence. Les octets Ogg ne sont pas le trafic TLS total.
+
+L'outlier 20 ms à **858 ms** n'est pas exclu. Avec n=5, la longue traîne n'est pas
+estimée fiablement ; le réseau et la charge ne sont pas contrôlés. Une médiane
+favorable ne prouve pas une meilleure latence dans toutes les conditions. Aucune
+configuration n'est établie comme optimum global.
+
+Le CPU pipeline exclut la vérification/redécodage. Les écritures d'artefacts sont
+mesurées séparément mais restent incluses dans ce total, avec l'encodage, le
+transport, le hashing et l'instrumentation du pipeline.
+Ses plages restent larges (20 ms : 297–547 ms ; 60 ms : 188–766 ms), avec granularité
+Windows. Pas de gain CPU du seul moteur établi. En-tête Ogg et première page audio
+utile sont distingués ; le setup de l'encodeur reste **non instrumenté**, pas estimé
+par différence.
+
+Une [dictée progressive distincte](evidence/refinement-long-realtime-public.json)
+de 40,564 s PCM a terminé en 41,454 s de collecte complète, source intégrale et même
+texte que son essai accéléré. Ce sample isolé ne mesure ni latence microphone
+après arrêt ni endurance prolongée ; il n'entre pas dans la grille ci-dessus.
+
+## 6. Endurance à cadence simulée — continuation
+
+[Une session de 118,682 s](evidence/endurance-120-public.json), puis
+[trois sessions de 288,3515625 s](evidence/endurance-300-public.json) ont été
+réalisées séquentiellement avec pages et chunks 20 ms. Au palier long : même canal,
+9 227 250 octets PCM consommés par session, marqueurs observés et ensembles de
+finales ordonnés identiques. Les quatre sessions sont saines selon le banc.
+
+| Session | Pipeline wall | CPU processus | RSS début → fin (octets) | Maximum RSS échantillonné |
+|---|---:|---:|---:|---:|
+| 118,682 s | 119,880 s | 5,891 s | 58 511 360 → 60 723 200 | 60 907 520 |
+| 288,352 s, 1 | 291,238 s | 17,094 s | 58 396 672 → 60 694 528 | 60 796 928 |
+| 288,352 s, 2 | 290,908 s | 14,469 s | 60 739 584 → 61 001 728 | 61 120 512 |
+| 288,352 s, 3 | 290,747 s | 14,672 s | 61 341 696 → 61 464 576 | 61 661 184 |
+
+Le RSS est celui du processus courant échantillonné, non le pic exact ou un
+high-water ; ces quatre sessions ne prouvent pas l'absence de fuite. Le CPU inclut
+codec, moteur, hashes et instrumentation ; il n'isole ni serveur ni moteur seul.
+La cadence représente une source fichier, pas un microphone. Les données utilisent la
+base 0.2 **avant** intégration des hints 0.3 ; les hashes exacts sont dans les rapports.
+Les limites 300 s / 360 s du banc ne sont pas des limites établies du service.
+
+## 7. Rust natif — premières mesures séparées
+
+Les [trois appels Ogg](evidence/rust-first-slice-public.json) et
+[quatre appels PCM/édition](evidence/rust-pcm-functional-public.json) valident le
+chemin natif, pas un avantage de latence sur Python. Le PCM anglais6,658s termine
+en3,293s accéléré et7,106s en cadence simulée, même texte ; un seul essai par
+mode, incluant démarrage/TLS/réseau/service. `metrics.eof_seconds` du Rust est la
+fin consommateur après drainage/nettoyage, pas l'EOF du lecteur PCM : ne pas en
+déduire les deltas « après EOF PCM » des bancs précédents.
+
+[Endurance Rust](evidence/rust-endurance-120-public.json) :118,682s audio,
+119,929s processus, maximum RSS échantillonné11 898 880octets et CPU enfant au
+dernier échantillon6,766s. Au [palier long](evidence/rust-endurance-300-public.json),
+le premier288,352s termine en290,905s, max RSS11 862 016octets et CPU dernier
+échantillon12,984s. Le deuxième est refusé comme **incomplet après282,202s** ;
+le troisième n'est pas lancé. Ce lot n'est pas trois réussites et sa cause précise
+n'est pas déduite des seuls compteurs disponibles.
+
+Ces ressources sont celles du seul enfant Rust, sans le pilote Python de
+mesure. RSS est courant/échantillonné, CPU cumulatif/échantillonné : pas un pic
+exact ni forcément tout le CPU avant sortie. Le premier point peut précéder le
+chargement de TLS/codec. Chaque essai crée un processus/canal neuf, contrairement
+aux trois longs essais Python sur un canal réutilisé. Codec/version, instrumentation,
+charge et réseau diffèrent : **aucun pourcentage de gain Rust/Python ni preuve
+d'absence de fuite** ne ressort de ces observations. Les limites300/360s restent
+celles du banc, pas des garanties du service.
+
+Un [suivi diagnostique distinct](evidence/rust-incomplete-diagnostic-followup.json)
+qualifie le nouveau binaire sur118,682s, puis termine un unique288,352s en290,904s,
+avec mêmes finales connues, max RSS11 792 384octets et CPU dernier échantillon15,344s.
+Cet incident n'est pas reproduit, pas résolu : l'ancien échec reste conservé, sans
+flags récupérables rétrospectivement. La revue indépendante recommande de ne pas
+multiplier les replays. Le suivi ne remplace pas le lot initial par trois succès.
+
 ## Reproduire
 
 Préparer un WAV/Opus synthétique avec `tools/make_fixture.ps1` ou un corpus autorisé,
@@ -177,6 +292,8 @@ mkdir -p local
 ffmpeg -n -i artifacts/synthetic-v1/plain-en.wav -ac 1 -ar 16000 -c:a pcm_s16le artifacts/synthetic-v1/plain-en-16k.wav
 # Extra audio requis ; aucun binaire FFmpeg utilisé dans ce banc natif
 .venv/Scripts/python tools/benchmark_realtime.py --source native --live --wav artifacts/synthetic-v1/plain-en-16k.wav --language en-US --output local/native-run.json --encoded-dir artifacts/new-native-run --pairs 3
+# Grille affinée : 20 sessions, politique fidèle aux écritures SDK/CLI
+.venv/Scripts/python tools/benchmark_realtime.py --source native --live --native-chunk-policy muxer --rounds 5 --page-durations 20000,40000,60000,100000 --wav artifacts/synthetic-v1/plain-en-16k.wav --language en-US --output local/grid-run.json --encoded-dir artifacts/new-grid-run
 ```
 
 Linux/macOS : remplacer `.venv/Scripts/python` par `.venv/bin/python`. Les voix
@@ -185,16 +302,23 @@ utiliser un corpus autorisé propre, avec son hash et ses conditions. Le fichier
 WAV16k et les chemins de sortie doivent être nouveaux, pas écrasés.
 
 Les outils refusent d'écraser une observation existante. Les fichiers bruts et les
-audios restent locaux. `--include-results` est réservé aux textes contrôlés que
-l'on souhaite publier. Sans ce flag, les résultats du banc sont hachés. Les tests
+audios restent locaux. `--include-results` enregistre du texte connu dans les bancs ;
+dans `validate_corpus.py`, il conserve aussi les réponses complètes et peut donc
+capturer des identifiants opaques du service. Ne pas publier ces rapports bruts,
+même avec une phrase synthétique : créer une copie avec
+`tools/sanitize_corpus_report.py`, puis l'inspecter. Sans ce flag, les résultats du
+banc sont hachés. Les tests
 locaux sont indépendants du service ; les tests FFmpeg optionnels ne prouvent que
 le producteur de test.
 
 ## Ce qui reste à mesurer
 
-Démarrage de processus réellement froid, microphone/PCM réel, longues sessions,
-réseaux dégradés, ressources par session isolée, trafic réseau exact et qualité sur
-voix naturelles. Aucun langage concurrent n'a été benchmarké ; on ne prétend pas
-que Python soit le plus rapide possible. Les mesures montrent à ce stade que le
-levier important identifié est le pipeline d'entrée ; une réécriture du transport
-n'aurait pas, à elle seule, démontré le gain de finalisation observé.
+Démarrage de processus réellement froid, microphone/PCM réel, endurance au-delà
+des sessions de 288 s, réseaux dégradés, ressources par session isolée, trafic réseau
+exact et qualité représentative sur voix naturelles (dix clips supplémentaires lus,
+plus l'échantillon initial).
+Les observations Rust ne sont pas une comparaison contrôlée de langages ; on ne
+prétend pas que Python soit le plus rapide possible, ni que Rust accélère le
+calcul distant. Les mesures identifient à ce stade le pipeline d'entrée comme
+levier important ; une réécriture du transport n'aurait pas, à elle seule,
+démontré le gain de finalisation observé.

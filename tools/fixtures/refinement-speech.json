@@ -1,0 +1,24 @@
+[
+  {
+    "id": "long-planning-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "Here are the notes for today's planning meeting. The delivery date is Thursday, no, make that Friday. We need eight blue folders, actually, six blue folders. The budget is two hundred dollars, not two thousand dollars. First, send the draft to Alex. Then check the quantities and confirm the final delivery date. Please keep the message concise and clear. To summarize, the delivery is on Friday, we need six blue folders, and the budget is two hundred dollars. Do not add any new tasks or promises. The last reference is silver meadow.",
+    "property": "Longer dictation: consume the entire input, preserve the final silver meadow reference and observe oral corrections; wording is not forced."
+  },
+  {
+    "id": "rewrite-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "Make this sentence more polite, but keep the same meaning.",
+    "before": "Send me the report now.",
+    "property": "Observe whether the service rewrites the supplied context rather than transcribing the instruction; do not presume the intent number."
+  },
+  {
+    "id": "compose-en",
+    "language": "en-US",
+    "voice": "Microsoft Zira Desktop",
+    "text": "Write a short message to Alex saying I will arrive twenty minutes late.",
+    "property": "Capability probe: record whether composition is performed or the words are merely dictated. A schema enum alone is not proof of this capability."
+  }
+]
