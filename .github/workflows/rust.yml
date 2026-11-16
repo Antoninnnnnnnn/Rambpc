@@ -69,6 +69,24 @@ jobs:
       - name: Test CLI without audio offline
         run: cargo test -p rambler-cli --no-default-features --locked --offline
 
+  vs17-opus:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+      - name: Test VS17 qualification validators on synthetic data
+        run: python -I tools/opus_vs_ci_selftest.py
+      - name: Fetch locked dependencies
+        run: cargo +stable fetch --locked
+      - name: Isolate and verify the functional VS17 Release branch
+        timeout-minutes: 13
+        run: python -I tools/qualify_opus_vs_ci.py
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 20

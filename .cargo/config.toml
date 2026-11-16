@@ -1,0 +1,2 @@
+[env]
+CMAKE_GENERATOR_x86_64_pc_windows_msvc = { value = "Visual Studio 17 2022", force = false }

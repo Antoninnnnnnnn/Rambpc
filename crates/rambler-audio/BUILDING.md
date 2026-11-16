@@ -16,6 +16,73 @@ Community / MSVC **14.44.35207**, x64, CMake **3.31.10**. Other targets/toolchai
 versions are not claimed as validated by that Windows run. On Unix install the
 usual C compiler, make (or Ninja), and CMake through your platform's tooling.
 
+### Windows x64 MSVC generator
+
+The repository Cargo environment sets `CMAKE_GENERATOR_x86_64_pc_windows_msvc`
+to `Visual Studio 17 2022`. Cargo discovers this configuration from its
+**current working directory** and ancestors, not from the manifest location.
+Downstream dependency consumers in another workspace, and outside-repo calls
+with `--manifest-path`, do not inherit it. There, arrange Ninja or set the
+exact target generator environment key explicitly.
+
+Without Ninja in child tool discovery, this default requires VS 2022 C++
+build tools and a Windows SDK. VS 2019 or VS 2026 alone is not enough for this
+default branch; this is not a universal Windows minimum or toolchain claim.
+When opusic-sys finds Ninja, it selects Ninja and never consults this key.
+Its Windows tool lookup can include the application/current/system locations
+as well as PATH; the functional checker also asserts the actual generator.
+
+Passing an explicit generator also makes cmake 0.1.58 preserve CMake's
+normal Release `/O2 /Ob2 /DNDEBUG` flags for bundled Opus. Do not simplify this
+setting away on the assumption that it only names the generator.
+
+For another VS version, override the exact same key in the Cargo process
+environment (and arrange the corresponding installed tools), for example:
+
+```powershell
+$env:CMAKE_GENERATOR_x86_64_pc_windows_msvc = 'Visual Studio 16 2019'
+```
+
+`force = false` protects an override of that exact key only; a plain
+`CMAKE_GENERATOR` is lower priority and shadowed. The optional hyphenated key
+`CMAKE_GENERATOR_x86_64-pc-windows-msvc` has still higher priority.
+Linux/macOS target lookups do not consult this Windows-specific key.
+These lookup rules do not validate an alternative generator's compatibility.
+
+This takes effect **only when opusic-sys's build script reruns for that
+profile**, using a fresh target or a reviewed profile-specific package clean.
+Changing the key alone is not a promise that Cargo rebuilds existing Opus;
+a rerun against an incompatible CMake cache can fail. Before any clean,
+**preserve needed user artifacts first** and inspect the dev-only dry run:
+
+```sh
+cargo clean -p opusic-sys --profile dev --dry-run -v
+```
+
+Review the listed files before considering the same command without dry-run.
+For Release, preserve its artifacts separately and separately inspect
+`cargo clean -p opusic-sys --profile release --dry-run -v`; only then consider
+the corresponding Release clean without dry-run. Never blindly clean target,
+delete a CLI executable, or infer a Release rebuild from a dev clean.
+
+The separate `vs17-opus` functional job pins `windows-2022` and stable Rust,
+keeps the ordinary eight native matrix jobs and their PATH unchanged, and runs
+only the eight Release `profile_pipeline` unit tests, not the example main or
+the release CLI. A child-only PATH excludes Ninja without altering installed
+files. The actual cache, VS instance, x64 host tools and 152 compiler records
+must pass runtime checks. Built/installed archive SHA-256 identity is local to
+that checkout, not a cross-machine checksum or performance comparison. Logs
+are retained only in local temporary storage, never uploaded; failure may
+print a bounded build-log tail. No metadata log is dumped or timing collected.
+
+The official
+[Windows2022 runner-image readme](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)
+lists VS 2022 Enterprise 17.14.37906.3, CMake 3.31.6 and Ninja 1.13.2 at the
+source-review checkpoint. Those exact minor versions are not pinned; installed
+VS major 17 with x64 C++ tools and the selected CMake are still verified at
+runtime. A source proposal is not a passing hosted-CI qualification, and local
+Windows gains do not establish gains for other toolsets or other platforms.
+
 If CMake is absent on Windows, an isolated development tool is sufficient; no
 administrator/global installation is needed. One reproducible option is the
 PyPI `cmake==3.31.10` binary wheel (`cmake-3.31.10-py3-none-win_amd64.whl`):
