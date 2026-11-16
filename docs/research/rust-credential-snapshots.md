@@ -121,3 +121,46 @@ pas combinés avec le remplacement ici. Une trace finie ne prouve pas tout
 comportement futur ; la rotation explicite fictive n'est ni un provisionnement,
 ni une autorisation ou récupération après révocation auprès du vrai service.
 Le smoke racines et l'oracle PyAV ignorés ne sont pas requalifiés par ces commandes.
+
+### CI du contrat après upload complet — commit `0e5ce23`
+
+Les 13 jobs Rust/Python ont réussi sur
+`0e5ce2336ce6d85fc487930198fb3ca93491b7cf`. Les huit jobs natifs couvrent
+Windows, Ubuntu, macOS ARM64 et macOS Intel, chacun sur Rust 1.88.0 et stable.
+Les 48 groupes Rust sont qualifiés par commande : workspace Windows 404/0/2,
+autres OS 405/0/2 ; reuse 10, profiling 8, finalisation 1, budgets 3 et feature-off
+38 réussites par job. Les deux noms du contrat après upload sont présents dans
+les huit workspaces. Les huit gates publics racines/PCM et le lint passent aussi.
+
+Les quatre jobs Python passent : 663 réussis/71 ignorés sous 3.11, 733/1 sous
+3.14, chacun sur deux OS ; 335 sous-tests séparés, sans addition aux tests.
+Les API run/job/step, le HEAD et les hashes des 1 492 824 octets de logs sont
+vérifiés. [Preuve CI et versions observées](../evidence/rust-credential-rejection-ci-20261116.json).
+Cette CI ne qualifie pas l'extension précoce décrite ensuite, ni une authentification
+réelle. Le smoke racines établit une configuration, pas un handshake TLS.
+
+## Refus headers-only pendant un autre upload — extension locale
+
+Deux tests supplémentaires rejouent les mêmes codes avec HTTP 200, `grpc-status`
+dans les HEADERS initiaux et END_STREAM, sans DATA ni trailers. Le pair attend
+le premier message complet et l'entrée réelle dans le second futur `next` avant
+le refus ; l'EOF de la source refusée n'est jamais libéré. Après cleanup, ses flags
+`source_exhausted` et `upload_eof_polled` restent faux, `source_closed` vrai.
+
+Le voisin est encore en upload pendant refus, remplacement des métadonnées et
+succès de la nouvelle session explicite. Sa porte est ouverte seulement ensuite :
+le pair vérifie ses deux frames distinctes complètes et sa fin saine. Les comptes
+des futurs `next` entrés ne sont pas des comptes de tous les appels bas niveau à
+`Future::poll`. Refus sticky, absence observée de rejeu/seconde connexion, isolation,
+cleanup unique et fermeture idempotente restent contrôlés par le harness partagé.
+Les deux scénarios précédents et leurs noms sont conservés.
+
+Windows stable 1.99.1 et MSRV 1.88.0 passent **109/0/1** au transport ; workspace
+stable toutes features **406/0/2**, fmt global et Clippy transport strict passent.
+Les quatre noms sont confirmés dans les trois groupes, sources avant/après et
+CLI release inchangées. Pas de nouveau build release ; CI de cette extension
+non exécutée à ce checkpoint. [Preuve locale distincte](../evidence/rust-credential-rejection-early-offline-20261116.json).
+
+Ces pairs et messages inventés n'établissent ni révocation réelle, provisionnement,
+récupération autorisée, qualité ASR, gain de performance ou parité Android. Aucun
+nouvel appel service, appareil ou chargement de vrais credentials n'est effectué.

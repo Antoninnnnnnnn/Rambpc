@@ -91,27 +91,83 @@ fn assert_metadata(headers: &http::HeaderMap, generation: &str) {
 struct SourceCounts {
     closes: Arc<AtomicUsize>,
     drops: Arc<AtomicUsize>,
+    polls: Arc<AtomicUsize>,
+    natural_eofs: Arc<AtomicUsize>,
 }
 impl SourceCounts {
     fn source(&self, bytes: &'static [u8]) -> TrackedSource {
         TrackedSource {
             counts: self.clone(),
             message: Some(Bytes::from_static(bytes)),
+            gate: None,
+            tail: None,
         }
+    }
+    fn gated_source(
+        &self,
+        bytes: &'static [u8],
+        gate: &SourceGate,
+        tail: Option<&'static [u8]>,
+    ) -> TrackedSource {
+        let mut source = self.source(bytes);
+        source.gate = Some(gate.clone());
+        source.tail = tail.map(Bytes::from_static);
+        source
+    }
+    fn assert_blocked(&self, completion: &Completion) {
+        assert_eq!(self.polls.load(Ordering::SeqCst), 2);
+        assert_eq!(self.natural_eofs.load(Ordering::SeqCst), 0);
+        assert_eq!(self.closes.load(Ordering::SeqCst), 0);
+        assert_eq!(self.drops.load(Ordering::SeqCst), 0);
+        assert!(!completion.source_exhausted && !completion.upload_eof_polled);
+        assert!(!completion.source_closed);
+        assert_eq!(completion.requests_produced, 1);
+        assert_eq!(completion.requests_polled, 1);
+        assert_eq!(completion.terminal_code, None);
     }
     fn assert_cleaned(&self) {
         assert_eq!(self.closes.load(Ordering::SeqCst), 1);
         assert_eq!(self.drops.load(Ordering::SeqCst), 1);
     }
 }
+#[derive(Clone)]
+struct SourceGate {
+    blocked: Arc<Semaphore>,
+    release: Arc<Semaphore>,
+}
+impl SourceGate {
+    fn new() -> Self {
+        Self {
+            blocked: Arc::new(Semaphore::new(0)),
+            release: Arc::new(Semaphore::new(0)),
+        }
+    }
+}
 struct TrackedSource {
     counts: SourceCounts,
     message: Option<Bytes>,
+    gate: Option<SourceGate>,
+    tail: Option<Bytes>,
 }
 impl RequestSource for TrackedSource {
     fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>> {
-        let message = self.message.take();
-        Box::pin(async move { Ok(message) })
+        Box::pin(async move {
+            // Signal from inside the future: constructing next() is not proof
+            // that the production supervisor actually polled the source.
+            self.counts.polls.fetch_add(1, Ordering::SeqCst);
+            if let Some(message) = self.message.take() {
+                return Ok(Some(message));
+            }
+            if let Some(gate) = self.gate.take() {
+                gate.blocked.add_permits(1);
+                gate.release.acquire().await.unwrap().forget();
+                if let Some(tail) = self.tail.take() {
+                    return Ok(Some(tail));
+                }
+            }
+            self.counts.natural_eofs.fetch_add(1, Ordering::SeqCst);
+            Ok(None)
+        })
     }
     fn close(&mut self) -> SourceFuture<'_, Result<(), SourceError>> {
         self.counts.closes.fetch_add(1, Ordering::SeqCst);
@@ -166,8 +222,30 @@ fn trailers(code: Code) -> http::HeaderMap {
     }
     trailers
 }
-async fn assert_upload(mut request: http::Request<h2::RecvStream>, expected: &'static [u8]) {
+async fn upload_prefix(request: &mut http::Request<h2::RecvStream>, expected: &[u8]) -> Vec<u8> {
+    let expected = frame(expected);
     let mut uploaded = Vec::new();
+    while uploaded.len() < expected.len() {
+        let data = request.body_mut().data().await.unwrap().unwrap();
+        uploaded.extend_from_slice(&data);
+        request
+            .body_mut()
+            .flow_control()
+            .release_capacity(data.len())
+            .unwrap();
+    }
+    assert_eq!(uploaded.as_slice(), expected.as_ref());
+    assert!(!request.body().is_end_stream(), "upload must still be open");
+    uploaded
+}
+async fn assert_upload(request: http::Request<h2::RecvStream>, expected: &'static [u8]) {
+    assert_upload_remaining(request, Vec::new(), &frame(expected)).await;
+}
+async fn assert_upload_remaining(
+    mut request: http::Request<h2::RecvStream>,
+    mut uploaded: Vec<u8>,
+    expected: &[u8],
+) {
     while let Some(data) = request.body_mut().data().await {
         let data = data.unwrap();
         uploaded.extend_from_slice(&data);
@@ -178,23 +256,31 @@ async fn assert_upload(mut request: http::Request<h2::RecvStream>, expected: &'s
             .unwrap();
     }
     assert!(request.body_mut().trailers().await.unwrap().is_none());
-    assert_eq!(uploaded.as_slice(), frame(expected).as_ref());
+    assert_eq!(uploaded.as_slice(), expected);
 }
-fn assert_completion(completion: &Completion, code: Code, responses: u64) {
+fn assert_completion(completion: &Completion, code: Code, requests: u64, responses: u64) {
     assert_eq!(completion.terminal_code, Some(code));
     assert!(completion.source_exhausted && completion.upload_eof_polled);
     assert!(completion.source_closed);
-    assert_eq!(completion.requests_produced, 1);
-    assert_eq!(completion.requests_polled, 1);
+    assert_eq!(completion.requests_produced, requests);
+    assert_eq!(completion.requests_polled, requests);
     assert_eq!(completion.responses_received, responses);
 }
 
-async fn replacement_after_denial(code: Code) {
+async fn replacement_after_denial(code: Code, early_upload_denial: bool) {
     tokio::time::timeout(WHOLE, async {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let neighbour_progress = Arc::new(Semaphore::new(0));
         let neighbour_finish = Arc::new(Semaphore::new(0));
+        let neighbour_gate = SourceGate::new();
+        let denied_gate = SourceGate::new();
+        // Retain the denied RecvStream until the client has observed cleanup;
+        // dropping a still-open request early must not manufacture a peer reset.
+        let denied_finished = Arc::new(Semaphore::new(0));
+        let neighbour_source_gate = neighbour_gate.clone();
+        let denied_source_gate = denied_gate.clone();
+        let denied_cleanup = denied_finished.clone();
         let progress = neighbour_progress.clone();
         let finish = neighbour_finish.clone();
         let peer = PeerTask(tokio::spawn(async move {
@@ -233,15 +319,40 @@ async fn replacement_after_denial(code: Code) {
                         assert_metadata(request.headers(), generation);
                         let progress = progress.clone();
                         let finish = finish.clone();
+                        let neighbour_source_gate = neighbour_source_gate.clone();
+                        let denied_source_gate = denied_source_gate.clone();
+                        let denied_cleanup = denied_cleanup.clone();
                         handlers.spawn(async move {
+                            let mut request = Some(request);
                             let expected: &'static [u8] = match generation {
                                 "neighbour" => b"synthetic-neighbour-request",
                                 "prior" => b"synthetic-denied-request",
                                 _ => b"synthetic-explicit-replacement-request",
                             };
-                            // Complete upload before denial: this contract is
-                            // credential replacement, not an early-upload race.
-                            assert_upload(request, expected).await;
+                            let incomplete = early_upload_denial && generation != "replacement";
+                            let prefix = if incomplete {
+                                let prefix = upload_prefix(request.as_mut().unwrap(), expected).await;
+                                let gate = if generation == "neighbour" {
+                                    &neighbour_source_gate
+                                } else {
+                                    &denied_source_gate
+                                };
+                                gate.blocked.acquire().await.unwrap().forget();
+                                prefix
+                            } else {
+                                // Preserve the original post-complete-upload tests.
+                                assert_upload(request.take().unwrap(), expected).await;
+                                Vec::new()
+                            };
+                            if incomplete && generation == "prior" {
+                                let mut head = response_headers();
+                                assert_eq!(head.status(), http::StatusCode::OK);
+                                head.headers_mut().extend(trailers(code));
+                                reply.send_response(head, true).unwrap();
+                                denied_cleanup.acquire().await.unwrap().forget();
+                                drop(request);
+                                return;
+                            }
                             let mut response = reply.send_response(response_headers(), false).unwrap();
                             match generation {
                                 "neighbour" => {
@@ -249,6 +360,10 @@ async fn replacement_after_denial(code: Code) {
                                     progress.acquire().await.unwrap().forget();
                                     response.send_data(frame(b"neighbour-after-denial"), false).unwrap();
                                     finish.acquire().await.unwrap().forget();
+                                    if incomplete {
+                                        let all = [frame(expected), frame(b"synthetic-neighbour-tail")].concat();
+                                        assert_upload_remaining(request.take().unwrap(), prefix, &all).await;
+                                    }
                                     response.send_data(frame(b"neighbour-after-replacement"), false).unwrap();
                                     response.send_trailers(trailers(Code::Ok)).unwrap();
                                 }
@@ -278,9 +393,18 @@ async fn replacement_after_denial(code: Code) {
         let neighbour_counts = SourceCounts::default();
         let denied_counts = SourceCounts::default();
         let replacement_counts = SourceCounts::default();
+        let neighbour_source = if early_upload_denial {
+            neighbour_counts.gated_source(
+                b"synthetic-neighbour-request",
+                &neighbour_gate,
+                Some(b"synthetic-neighbour-tail"),
+            )
+        } else {
+            neighbour_counts.source(b"synthetic-neighbour-request")
+        };
         let mut neighbour = transport
             .start_with_provider(
-                neighbour_counts.source(b"synthetic-neighbour-request"),
+                neighbour_source,
                 neighbour_provider.clone(),
                 WHOLE,
             )
@@ -289,9 +413,17 @@ async fn replacement_after_denial(code: Code) {
             bounded(neighbour.next()).await.unwrap(),
             Some(Bytes::from_static(b"neighbour-before-denial")),
         );
+        if early_upload_denial {
+            neighbour_counts.assert_blocked(&neighbour.completion());
+        }
+        let denied_source = if early_upload_denial {
+            denied_counts.gated_source(b"synthetic-denied-request", &denied_gate, None)
+        } else {
+            denied_counts.source(b"synthetic-denied-request")
+        };
         let mut denied = transport
             .start_with_provider(
-                denied_counts.source(b"synthetic-denied-request"),
+                denied_source,
                 provider.clone(),
                 WHOLE,
             )
@@ -303,7 +435,23 @@ async fn replacement_after_denial(code: Code) {
             bounded(denied.finish()).await,
             Err(TransportError::Grpc(actual)) if actual == code
         ));
-        assert_completion(&denied.completion(), code, 0);
+        if early_upload_denial {
+            let completion = denied.completion();
+            assert_eq!(completion.terminal_code, Some(code));
+            // wire::rpc drops the unfinished writer on the remote terminal;
+            // supervise then stops/joins produce and its exactly-once close.
+            assert!(!completion.source_exhausted && !completion.upload_eof_polled);
+            assert!(completion.source_closed);
+            assert_eq!(completion.requests_produced, 1);
+            assert_eq!(completion.requests_polled, 1);
+            assert_eq!(completion.responses_received, 0);
+            assert_eq!(denied_counts.polls.load(Ordering::SeqCst), 2);
+            assert_eq!(denied_counts.natural_eofs.load(Ordering::SeqCst), 0);
+            denied_finished.add_permits(1);
+            neighbour_counts.assert_blocked(&neighbour.completion());
+        } else {
+            assert_completion(&denied.completion(), code, 1, 0);
+        }
         denied_counts.assert_cleaned();
         assert_eq!(provider.calls.load(Ordering::SeqCst), 1);
         assert_eq!(neighbour.completion().terminal_code, None);
@@ -320,6 +468,9 @@ async fn replacement_after_denial(code: Code) {
         assert_eq!(neighbour.completion().terminal_code, None);
         assert_eq!(provider.calls.load(Ordering::SeqCst), 1);
         assert_eq!(neighbour_provider.calls.load(Ordering::SeqCst), 1);
+        if early_upload_denial {
+            neighbour_counts.assert_blocked(&neighbour.completion());
+        }
 
         let mut replacement = transport
             .start_with_provider(
@@ -334,11 +485,17 @@ async fn replacement_after_denial(code: Code) {
         );
         assert!(bounded(replacement.next()).await.unwrap().is_none());
         let completion = bounded(replacement.finish()).await.unwrap();
-        assert_completion(&completion, Code::Ok, 1);
+        assert_completion(&completion, Code::Ok, 1, 1);
         replacement_counts.assert_cleaned();
         assert_eq!(provider.calls.load(Ordering::SeqCst), 2);
         assert_eq!(neighbour.completion().terminal_code, None);
 
+        if early_upload_denial {
+            // Neither rejection nor explicit replacement may exhaust/close the
+            // neighbour. Only now release its second distinct message and EOF.
+            neighbour_counts.assert_blocked(&neighbour.completion());
+            neighbour_gate.release.add_permits(1);
+        }
         neighbour_finish.add_permits(1);
         assert_eq!(
             bounded(neighbour.next()).await.unwrap(),
@@ -346,7 +503,16 @@ async fn replacement_after_denial(code: Code) {
         );
         assert!(bounded(neighbour.next()).await.unwrap().is_none());
         let completion = bounded(neighbour.finish()).await.unwrap();
-        assert_completion(&completion, Code::Ok, 3);
+        assert_completion(
+            &completion,
+            Code::Ok,
+            if early_upload_denial { 2 } else { 1 },
+            3,
+        );
+        if early_upload_denial {
+            assert_eq!(neighbour_counts.polls.load(Ordering::SeqCst), 3);
+            assert_eq!(neighbour_counts.natural_eofs.load(Ordering::SeqCst), 1);
+        }
         neighbour_counts.assert_cleaned();
         // The old Session retains its denial after provider replacement/reaping.
         assert!(matches!(
@@ -376,10 +542,20 @@ async fn replacement_after_denial(code: Code) {
 
 #[tokio::test]
 async fn unauthenticated_requires_explicit_replacement_and_preserves_live_neighbour() {
-    replacement_after_denial(Code::Unauthenticated).await;
+    replacement_after_denial(Code::Unauthenticated, false).await;
 }
 
 #[tokio::test]
 async fn permission_denied_requires_explicit_replacement_and_preserves_live_neighbour() {
-    replacement_after_denial(Code::PermissionDenied).await;
+    replacement_after_denial(Code::PermissionDenied, false).await;
+}
+
+#[tokio::test]
+async fn early_unauthenticated_preserves_uploading_neighbour_and_requires_explicit_replacement() {
+    replacement_after_denial(Code::Unauthenticated, true).await;
+}
+
+#[tokio::test]
+async fn early_permission_denied_preserves_uploading_neighbour_and_requires_explicit_replacement() {
+    replacement_after_denial(Code::PermissionDenied, true).await;
 }

@@ -1,5 +1,25 @@
 # État du moteur — 2026-11-16
 
+## Refus précoces — qualification locale, sans nouveau service
+
+Deux tests supplémentaires couvrent un refus headers-only avant EOF pendant
+qu'un voisin est encore en upload ; remplacement explicite puis drainage intégral
+du voisin passent. Les quatre scénarios passent sous Windows : transport 109/0/1
+sur stable 1.99.1 et Rust 1.88.0, workspace stable toutes features 406/0/2,
+fmt et Clippy transport strict. Aucun changement de production ou de binaire release.
+[Contrat, preuve et exclusions](research/rust-credential-snapshots.md#refus-headers-only-pendant-un-autre-upload--extension-locale).
+La CI ci-dessous porte sur le commit précédent, pas cette extension locale.
+
+## CI des refus après upload — source `0e5ce23`
+
+Les 13 jobs Rust/Python ont réussi. Huit jobs natifs sur Windows, Ubuntu,
+macOS ARM64 et Intel × 1.88.0/stable : workspace 404/0/2 sous Windows,
+405/0/2 ailleurs ; les deux tests de refus après upload passent dans les huit.
+Les 48 groupes Rust et 1 492 824 octets de logs sont vérifiés par commande et
+provenance ; pas une somme de tests distincts. Les quatre jobs Python et le lint
+passent aussi. [Preuve CI liée au commit exact](evidence/rust-credential-rejection-ci-20261116.json).
+Ni nouveau TLS/service réel ni provisionnement/récupération après révocation déduit.
+
 ## Refus d'authentification — isolation offline
 
 Deux nouveaux tests loopback couvrent les refus `UNAUTHENTICATED` et
