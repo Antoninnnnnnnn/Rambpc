@@ -73,6 +73,48 @@ La [preuve ciblée](../evidence/rust-credential-snapshots.json) conserve les sou
 hashées, plateformes, résultats, logs hashés et limites. Il s'agit de la suite
 transport, pas d'un nouveau run de tout le workspace ou du service Rambler.
 
+## Inspection HPACK brute — qualification locale Windows S1
+
+Le constat « aucune inspection indépendante » ci-dessus décrit le checkpoint
+historique, non ce nouveau contrôle. Source qualifiée : le nouveau fichier
+`crates/rambler-transport/tests/credential_hpack_wire.rs`, mesuré non committé sur
+la base `cb7c707` ; CI distante encore en attente à ce checkpoint local. Aucun
+changement de production, de Cargo ou de CI n'est inclus.
+
+L'oracle indépendant parcourt les frames et décode HPACK et Huffman à partir des
+tables de la RFC 7541, sans déléguer la décision de confidentialité au décodeur
+du pair. Sur une capture native loopback il lie exactement champs et streams de
+**trois RPC simultanément ouvertes**, avec rotation de credentials fictifs puis
+snapshot vide, sur un TCP par fixture. Il impose never-indexed aux champs
+sensibles, accepte explicitement le nom statique 23, contrôle l'absence d'entrées
+sensibles dans la table dynamique et l'ordre exact des valeurs pour chaque nom.
+Les dix champs sensibles de la capture réelle du test subissent chacun deux
+mutations ciblées, soit **20 mutations**, et les préfixes incomplets pertinents
+sont rejetés. Pas d'audio, de service ou de vrais credentials.
+
+Les **quatre tests** ciblés passent sous Windows stable 1.99.1 et MSRV 1.88 ;
+transport **119/0/1** sur chacune, workspace stable toutes features **422/0/2**,
+feature-off **38/0/0**, fmt et Clippy transport strict toutes features passent.
+Ce sont des groupes rejoués, pas des comptes à additionner. QA1 a échoué uniquement
+sur un lint Clippy du helper de fixture hexadécimale ; la correction limitée à ce
+helper précède QA2 réussi et l'échec initial est conservé. Les 187 sources
+sélectionnées sont inchangées avant/après QA2. [Preuve locale](../evidence/rust-credential-hpack-wire-windows-20261116.json).
+
+```sh
+cargo test -p rambler-transport --test credential_hpack_wire --locked --offline
+cargo +1.88.0 test -p rambler-transport --test credential_hpack_wire --locked --offline
+cargo clippy -p rambler-transport --all-targets --all-features --locked --offline -- -D warnings
+```
+
+Cette fermeture du manque d'inspection ne porte que sur la trace S1 observée.
+Le reset reste une observation terminale finie, sans preuve d'absence d'octets
+TCP non lus ; le chemin effectif de débordement du tee n'est pas exercé, seul le
+contrôle négatif du flag l'est. S2 et CONTINUATION, éviction, mises à jour de table,
+TLS, conformité HTTP/2 générale, confidentialité du service réel, isolation
+universelle, performance et authentification durable restent hors qualification.
+Aucun nouveau build CLI release ou appel réel ; G1 Linux reste non satisfait et
+live NO_GO, budget Windows MAX1 déjà consommé et téléphone inchangés.
+
 ## Refus du pair, remplacement explicite et voisin actif — 16 novembre 2026
 
 Deux nouveaux tests `credential_rejection.rs` couvrent séparément

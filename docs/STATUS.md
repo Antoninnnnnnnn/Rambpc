@@ -1,5 +1,30 @@
 # État du moteur — 2026-11-16
 
+## HPACK des métadonnées — qualification locale Windows S1
+
+Un oracle indépendant décode les frames et HPACK/Huffman selon la RFC 7541 sur
+une trace loopback native : trois RPC simultanées, credentials fictifs en rotation
+puis retrait, un TCP par fixture. Il vérifie la liaison exacte aux streams, le
+codage never-indexed, le nom statique 23, une table dynamique sans entrée sensible
+et l'ordre des valeurs par nom. Vingt mutations de la capture réelle du test et
+les préfixes négatifs contrôlent l'oracle ; aucun audio, service ou credential réel.
+
+Les **quatre tests** ciblés passent sur Windows stable 1.99.1 et 1.88 ; transport
+**119/0/1** sur chaque toolchain, workspace stable **422/0/2**, feature-off
+**38/0/0**, fmt et Clippy transport strict toutes features passent. Ces groupes
+ne sont pas à additionner. QA1 a échoué sur un lint Clippy du helper hexadécimal ;
+sa correction limitée au test précède QA2 réussi, échec initial conservé. Les 187
+sources sélectionnées restent inchangées avant/après QA2. Source qualifiée :
+candidat mesuré non committé sur `cb7c707` ; CI distante encore en attente à ce
+checkpoint local, aucune modification de production.
+[Contrat et limites](research/rust-credential-snapshots.md#inspection-hpack-brute--qualification-locale-windows-s1) ·
+[Preuve locale](evidence/rust-credential-hpack-wire-windows-20261116.json).
+
+S1 est une observation finie : un reset ne prouve pas l'absence d'octets non lus.
+S2/CONTINUATION, éviction, mises à jour de table, TLS, isolation universelle,
+performance et accès durable restent hors qualification. G1 Linux reste non satisfait,
+live NO_GO ; budget réel Windows MAX1 déjà consommé et téléphone inchangés.
+
 ## Préfixes gRPC — allocation retirée sur le chemin court mesuré
 
 Une table immuable de **1280 octets de données source** remplace l'allocation du
