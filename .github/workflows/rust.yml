@@ -48,6 +48,8 @@ jobs:
         run: cargo test -p rambler-cli --features audio --example session_reuse --locked --offline
       - name: Test synthetic audio profiling invariants offline
         run: cargo test -p rambler-audio --example profile_pipeline --locked --offline
+      - name: Test guarded SDK loopback example offline
+        run: cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline
       - name: Build release CLI with audio offline
         run: cargo build -p rambler-cli --bin rambler --features audio --release --locked --offline
       - name: Test release CLI finalization timeout on loopback offline

@@ -1,5 +1,20 @@
 # État du moteur — 2026-11-16
 
+## SDK complet derrière admission simulée — Windows qualifié
+
+Le nouvel exemple compose réellement PCM/Opus, Engine et transport vers un pair
+numérique loopback, avec ordre init/audio/contexte/END, CRC/décodage et nettoyage
+vérifiés : 1017 échantillons, 2034 octets PCM, 3051 échantillons après trim à 48 kHz.
+Ses **9 tests** passent sur Windows stable et Rust 1.88 ; workspace stable
+**406/0/2**, feature-off 38, fmt, Clippy CLI strict et build de l'exemple passent.
+Le binaire Windows vérifie no-op et refus natif unsupported avant toute lecture
+ou connexion. Aucun durcissement du processus de test, ni appel service réel.
+
+Seul l'exemple/sa registration et son gate CI sont ajoutés ; production et lock
+inchangés. Le mode natif Linux de ce nouvel exemple reste à exécuter séparément,
+la sonde précédente ne le qualifie pas. [Contrat et preuve Windows](research/rust-linux-guarded-loopback.md).
+G1 reste non satisfait ; aucun budget ou accès réel supplémentaire déduit.
+
 ## Préprotection Linux — observation offline, pas admission live
 
 Un [prototype Rust autonome à entrée publique fixe](../tools/reference/LINUX_PRECREDENTIAL_CANARY.md)

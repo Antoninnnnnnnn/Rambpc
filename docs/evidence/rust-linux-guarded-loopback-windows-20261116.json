@@ -1,0 +1,229 @@
+{
+  "contract": {
+    "automatic_tests_never_instantiate_native_or_change_dumpability": true,
+    "decoded_trimmed_samples_48000_hz": 3051,
+    "environment_names_allowlist": [
+      "PATH",
+      "LC_ALL"
+    ],
+    "expected_success_stdout_bytes": 38,
+    "explicit_guarded_example_test_gate_added_to_all_eight_native_ci_jobs": true,
+    "fixed_canary_bytes": 26,
+    "healthy_end_grpc_cleanup_and_all_owners_close_required": true,
+    "independent_ogg_crc_and_opus_decode": true,
+    "maximum_native_stdout_bytes": 64,
+    "maximum_stdin_requested_bytes_including_eof_probe": 27,
+    "natural_pcm_and_encoded_eof_required": true,
+    "negative_test_requires_exact_typed_permission_denied_and_one_drained_peer": true,
+    "numeric_loopback_only": true,
+    "pcm_input_bytes": 2034,
+    "pcm_input_samples": 1017,
+    "peer_exact_init_audio_context_end_and_complete_upload_required": true,
+    "runtime_audio_metadata_socket_creation_after_admission": true,
+    "upstream_close_receipt_exactly_one": true
+  },
+  "date": "2026-11-16",
+  "g1_met": false,
+  "limits": [
+    "Windows native executable verifies only no-op and unsupported-target rejection; no native Linux hardening observed for this SDK binary yet.",
+    "Earlier standalone Linux canary observation does not qualify this example.",
+    "Plaintext synthetic loopback is not TLS trust loading, handshake, service auth, ASR or Google endpoint behaviour.",
+    "Root/CAP_SYS_PTRACE, same Windows user WSL root, relay/kernel pipe buffers, swap/VM/WER, fatal termination and races remain.",
+    "No actual core suppression or pipe-helper non-dispatch observed; G1 unchanged and unmet.",
+    "Source tripwires and fakes are regression aids, not complete security/build attestation.",
+    "The consumed Windows opportunity and every historical budget remain unchanged."
+  ],
+  "linux_live_authorized": false,
+  "phone_actions": 0,
+  "real_credentials_read": 0,
+  "remote_service_calls": 0,
+  "review": {
+    "actual_models": {
+      "opus:guarded-sdk-boundary-review": "claude-opus-5-5",
+      "sol:guarded-real-sdk-loopback": "gpt-6.1-sol"
+    },
+    "main_corrections_before_execution": [
+      "whitespace-normalized source tripwire plus positive zero-dumpability assertion",
+      "exact typed late-grpc error with drained one-RPC evidence rather than generic failure",
+      "clarified std startup can reopen missing standard descriptors on devnull",
+      "exact PATH/LC_ALL environment-name allowlist",
+      "explicit CI example-test gate and scoped non-Linux dead-code annotations",
+      "30-second test envelope over five internal 5-second watchdogs",
+      "upstream close counter rather than boolean"
+    ],
+    "production_defect_or_optimization_claimed": false
+  },
+  "schema": 1,
+  "scope": "local Windows tests of fixed fake admission and real native audio/Engine/transport to numeric loopback only",
+  "source": {
+    "base_head": "6d820af3854013848954479f9715dc7fc794c521",
+    "manifest_change": "one additive example requiring audio; dependency/features/lock and production src unchanged",
+    "manifest_encoding": "sorted compact ensure_ascii JSON path-to-sha256; no newline",
+    "raw_files_sha256": {
+      ".github/workflows/rust.yml": "ae577dbb1cf3ab65a71dfe4c98ff1dba80929e2a748488c941a8145799361451",
+      "crates/rambler-cli/Cargo.toml": "82373fa2970b1298d51b2b61778525f996a3e091a42200ec86c8627c2c733187",
+      "crates/rambler-cli/examples/linux_guarded_loopback.rs": "99a3c5dd046dc435883a54e7cf1b7e352dc0265f7ec083347f5efa067e9e605a",
+      "crates/rambler-cli/examples/support/linux_guarded_loopback_tests.rs": "46b3012cbcc66215131b7e85d06c7536a45d61cb4938c05acc51178792f2711e"
+    },
+    "selected_files": 178,
+    "selected_manifest_sha256": "c407bb5fbe1ffc4309167ddf45c481239f2c1a196ff0de9bac9ce3c10e8a3d90",
+    "unchanged_during_qualification": true
+  },
+  "validation": {
+    "counts_note": "Per command; repeated example runs are not 18 distinct tests or additive workspace tests.",
+    "example_build_pass": true,
+    "example_tests_each_stable_1_99_1_and_msrv_1_88_0": {
+      "failed": 0,
+      "ignored": 0,
+      "passed": 9
+    },
+    "feature_off": {
+      "failed": 0,
+      "ignored": 0,
+      "passed": 38
+    },
+    "format_all_pass": true,
+    "helper_sha256": {
+      "qualify_reliability_windows_r4.py": "70713c92b7a94b8767e0cdec5dea551033ab9a099484a6ab025322eda56c502b",
+      "reliability_inputs_20261115.py": "9c18a45528bb071a2f81b89d6c038576a67dd53fba8084d82af1b2d0372f5b50"
+    },
+    "linux_native_optin": "not_executed_at_this_checkpoint",
+    "original_release_cli_unchanged_sha256": "3d1d2916e337419d4f2987084c2d7002cc02b59c2ad07b6e1e0fc91d7507cb8e",
+    "phases": [
+      {
+        "exit": 0,
+        "label": "source-before",
+        "log_sha256": "95771beadacebea261f15f439119088328fca12b1edfc4e0fd6d7d12aab078a3",
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "rustc-stable",
+        "log_sha256": "55cd0529c005d3f62869ea6e2271bfa9d5196f56dc65a8be00a371af114a4a98",
+        "observed_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "rustc-msrv",
+        "log_sha256": "1ac65f1cd11fa83e9530348b787fa3e5bdd85b0f3727099df8bcdf3e24274138",
+        "observed_version": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "format",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "example-tests-stable",
+        "log_sha256": "12ca48d245a4a40545d3600b76807d287639690e5b2ec5f0306dea7d0ce8a01f",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 9
+        },
+        "rust_summary_rows": 1,
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "example-tests-msrv",
+        "log_sha256": "c14f675d0d9c2d50be4776c900d1787450025fce6986a666463694889ddec018",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 9
+        },
+        "rust_summary_rows": 1,
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "strict-cli-clippy",
+        "log_sha256": "54fbe680c1fdfb8b78d498e06cc736995525f39afe57df7f2c5011bfea50189a",
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "workspace-stable",
+        "log_sha256": "c598a59fc1d34039b7d0c4e69f1fe847d0302d3b217c6c64e81a2c9fcb17d4aa",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 2,
+          "measured": 0,
+          "passed": 406
+        },
+        "rust_summary_rows": 65,
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "cli-feature-off",
+        "log_sha256": "426a45974128a85ee365868cc91b263c1c33efa0261eaaf56067cd34ad6f23d0",
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 38
+        },
+        "rust_summary_rows": 13,
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "example-build-stable",
+        "log_sha256": "5d3854ffad79cb013fec0f1b69afafa25f7152a5a27efbbd593a79f1544f00df",
+        "status": "passed"
+      },
+      {
+        "exit": 0,
+        "label": "source-after",
+        "log_sha256": "95771beadacebea261f15f439119088328fca12b1edfc4e0fd6d7d12aab078a3",
+        "status": "passed"
+      }
+    ],
+    "remote_ci": "not_executed_at_this_checkpoint",
+    "runner_sha256": "0d207cf3c73f07767a6a3cb1e37870a08e945c2c1eeb8b6ee8a198a6a28eb8fe",
+    "status": "passed",
+    "strict_cli_clippy_all_targets_audio": true,
+    "test_kinds": {
+      "memory_only": 7,
+      "real_codec_sdk_loopback_with_fake_admission": 2
+    },
+    "windows_example_binary_sha256": "403951ed79b443ecacfe16e0cc7e428e07746a604b2e9c136ac07cf53a155f38",
+    "windows_executable_boundaries": [
+      {
+        "actual_exit": 0,
+        "expected_exit": 0,
+        "fixed_stdout_matches": true,
+        "label": "native-noop",
+        "owned_job_empty": true,
+        "passed": true,
+        "stdout_bytes": 0
+      },
+      {
+        "actual_exit": 1,
+        "expected_exit": 1,
+        "fixed_stdout_matches": true,
+        "label": "unsupported-target",
+        "owned_job_empty": true,
+        "passed": true,
+        "stdout_bytes": 20
+      }
+    ],
+    "workspace_stable_all_features": {
+      "failed": 0,
+      "ignored": 2,
+      "passed": 406
+    }
+  }
+}
