@@ -1,5 +1,32 @@
 # État du moteur — 2026-11-16
 
+## Objectif global : backend non terminé
+
+Les jalons et les CI ci-dessous qualifient des périmètres précis, **pas un backend
+complet ni « parfait »**. Le jalon Opus et ses 14 jobs verts ne ferment pas les
+écarts fonctionnels suivants.
+
+| Domaine | État vérifiable | Ce qui manque pour fermer le point |
+|---|---|---|
+| Accès durable | Snapshots, remplacement par génération et refus serveur gérés côté client | Contrat légitime de provisionnement, validité/rotation et révocation côté fournisseur ; ne pas inventer un renouvellement OAuth |
+| COMPOSE / RAMBLE / RAMBLE_HISTORY | Valeurs décodées et conservées ; pas de sémantique serveur implémentée | Échanges autorisés démontrant leur activation et leur contrat ; un fallback ASR ne les remplace pas |
+| Parité Android | Traces statiques et plusieurs comportements natifs observés | Référence appariée service → client → éditeur, sans méthode de hooking/tampering refusée |
+| Linux réel avec identifiants | Compilation, tests et SDK loopback qualifiés | G1 toujours non satisfait ; gestion des secrets et suppression indépendante des cores non qualifiées ; live NO_GO |
+| Performance et fiabilité réelles | Gains locaux synthétiques bornés et invariants offline documentés | Pas de preuve de voix naturelle/WAN représentative ni de vitesse optimale universelle |
+
+Sources : [matrice fonctionnelle](research/rust-feature-parity.md),
+[authentification](research/authentication.md),
+[qualification Linux et limites](research/rust-linux-guarded-loopback.md),
+[Opus Release et 14 jobs CI](research/rust-opus-release-build.md).
+
+Les deux audits ciblés du 16 novembre (cycle des credentials et résultats
+structurés) ne trouvent pas de manque client corrigeable démontré dans leurs
+périmètres ; ce n’est pas une preuve d’absence de défaut. Ils ne fournissent ni
+contrat serveur ni autorisation de nouveaux essais. Les budgets réels et les
+quatre runs de performance consommés restent fermés. Aucun gain ou accès durable
+ne doit être déduit d’une nouvelle série de mocks. Microphone, GUI et insertion OS
+restent hors du périmètre moteur initial, pas des fonctions cloud manquantes.
+
 ## Enveloppes gRPC — CI des huit configurations natives qualifiée
 
 Les 13 jobs de la source exacte `8cb381e8d26d448db80481d4aab9472aee3b096c`
