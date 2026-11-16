@@ -116,7 +116,7 @@ Les messages audio réels ajoutent aussi extension293100 avec **uniquement field
 | 11 | string | `Build.MODEL` |
 | 16 | string | trigger application id (`kmy.d`) |
 | 17 | string | usage non établi |
-| 22 | message `aalw` | field1 bool venant de `kmy.m` |
+| 22 | message `aalw`, avec présence | field1 BOOL, également avec présence : `kmy.m` / `supervisionEnabled` ; signal d'état de compte, voir ci-dessous |
 | 26 | enum | valeur1 affectée par le mutateur |
 
 Ces valeurs décrivent le client Android observé ; aucun besoin établi de falsifier modèle/appareil pour un port natif.
@@ -138,7 +138,37 @@ Ces valeurs décrivent le client Android observé ; aucun besoin établi de fals
 - Extension interne de `aalz` **229601060** -> `aamg`, repeated int64 field1. Une branche de `knv` ajoute un identifiant d'expérience. Ce n'est pas nécessairement une exigence d'interopérabilité ; ne pas reproduire une expérience de quota pour modifier des contrôles serveur.
 - Donation : extension **307792803** -> `aame`, ajoutée par `saz.a()` seulement si opt-in et conditions locales. **Le chemin Jetson du mutateur passe false**, donc `saz.a()` retourne sans ajouter cette extension (`knv-simple` lignes196–228 ; `saz` lignes25–35). Ne pas ajouter une déclaration de consentement par supposition.
 
-Les champs RecognizerInfo7/40/91, ClientInfo26 et UserInfo20 sont explicitement écrits par le chemin observé ; certains dépendent de l'état local. Les omettre dans un client minimal est une approximation à valider, pas une reproduction statique exacte. `kmy.toString()` lignes67–68 confirme les propriétés `blockOffensiveWords`, `supervisionEnabled` et `jetsonVoiceInput`.
+Les champs RecognizerInfo7/40/91, ClientInfo22/26 et UserInfo20 sont explicitement écrits par le chemin observé ; certains dépendent de l'état local. Leur omission n'est pas une reproduction statique exacte. `kmy.toString()` lignes67–68 confirme les propriétés `blockOffensiveWords`, `supervisionEnabled` et `jetsonVoiceInput`.
+
+### Signaux d'état de compte : non-parité native volontaire
+
+Précision statique du 2026-11-16, limitée à l'APK identifié en §1 :
+
+- **ClientInfo22 → `aalw.field1`** : message et BOOL ont chacun une présence
+  (`aaly.java:25,43`, `aalw.java:23`). `kla.s` initialise le paramètre à false
+  (`kla.java:240`), puis le met à true si le composant **UnsupervisedAccount**
+  n'est pas positivement prêt (`kla.java:264–265`, `mtd.java:21`). Le contrôle
+  `hky.java:17–36`, étiqueté **MinorsChecker**, lie ce signal à l'état de compte
+  mineur/supervisé ; ce n'est pas un commutateur de fonctionnalité.
+- Le paramètre passe par `kmw.i` → `kmw.l` → `kmy.m`
+  (`kmw.java:47,117–119`, `kmy.java:68`). Pour l'init Rambler sans ClientInfo
+  préexistant, le mutateur écrit la présence et la valeur, **y compris false**
+  (`knv-simple:128–129,344–355`, appels `ihv.java:125,166`). La sortie `ihv`
+  porte un avertissement JADX ; le contrôle bas niveau `knv-simple` est la
+  référence pour cette branche.
+- **RecognizerInfo91.2** = absence de **AdultAccount** et **UserInfo20** =
+  absence de **UnmanagedAccount** sont deux autres signaux d'état de compte
+  (`knv-simple:115–125,188–192`), pas des consentements ni des options libres.
+
+Le client Rust sans fournisseur légitime d'état de compte **omet volontairement
+ces trois signaux**. Aucune API true/false ni option CLI n'est ajoutée. Android
+émet explicitement true pour la supervision lorsque son état est inconnu ;
+l'omission native est donc une divergence, **pas une reproduction de ce défaut**.
+Une absence protobuf ne doit pas être décrite comme une assertion false.
+Le traitement serveur de l'absence, de true et de false reste inconnu, notamment
+sans compte/Zwieback. Cette analyse ne prouve ni son comportement de sécurité ni
+une activation COMPOSE ; aucun essai serveur deviné ne la complète.
+
 
 ## 5. Contexte d'édition : extension **1203**
 

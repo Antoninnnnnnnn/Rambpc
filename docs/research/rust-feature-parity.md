@@ -1,7 +1,7 @@
 # Parité Rambler / Gboard : matrice vérifiable
 
-État initial de l'analyse : 2026-11-14 ; frontière du contexte applicatif précisée
-le 2026-11-16. Jalon sécurité initial : `e427fb1`, sur `4fdf29e` ;
+État initial de l'analyse : 2026-11-14 ; frontières du contexte applicatif et des
+signaux d'état de compte précisées le 2026-11-16. Jalon sécurité initial : `e427fb1`, sur `4fdf29e` ;
 les API de rendu explicite et conteneurs décrites ici appartiennent au lot suivant.
 Il s'agit d'un **sous-ensemble du client Rambler S3**, pas d'un clone de toute
 l'application Gboard. Un enum décodé n'est pas une fonctionnalité distante validée,
@@ -118,6 +118,7 @@ contrôlées par l'intégrateur.
 |MUSE/MUSE_LITE|`ffi.java:21–30`, injection `erz:1895`, `wmr.b` carte vide|Pas d'autre backend distant manquant établi ; changement d'enum peut revenir au fournisseur S3.|
 |Jetson Lite / génération locale|`kkj.a`, `ohq.java:69` Binder Speech Services, `enm.java:38` Binder AICore|Chemin Android distinct, services/modèles/gates requis. Non porté ; prompts embarqués ≠ activation S3. Aucun autre ASR/API Gemini substitué.|
 |Authentification / cycle de vie accès|Métadonnées applicatives injectées, branche Zwieback conditionnelle|Profil réel sans compte/Zwieback. Pas de provisionnement automatique, renouvellement/révocation ni garantie d'accès durable.|
+|Signaux d'état de compte : ClientInfo22 / RecognizerInfo91.2 / UserInfo20|**Non portés volontairement** : aucun fournisseur légitime d'état de compte, aucune API d'assertion true/false|[Schéma et chaîne statique](protocol.md) : supervision liée à MinorsChecker ; Android émet true si UnsupervisedAccount n'est pas prêt. L'omission native n'est ni false ni la reproduction de ce défaut Android ; sémantique serveur inconnue. Aucun nouveau test distant ni changement de politique de sécurité.|
 |Microphone, GUI, insertion OS|Non implémentés|Hors périmètre moteur initial ; pas présentés comme fonctions cloud manquantes.|
 
 Observation non-BMP du 2026-11-15 : un seul appel synthétique natif, sans rejeu,
