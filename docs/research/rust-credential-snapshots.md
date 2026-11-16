@@ -164,3 +164,25 @@ non exécutée à ce checkpoint. [Preuve locale distincte](../evidence/rust-cred
 Ces pairs et messages inventés n'établissent ni révocation réelle, provisionnement,
 récupération autorisée, qualité ASR, gain de performance ou parité Android. Aucun
 nouvel appel service, appareil ou chargement de vrais credentials n'est effectué.
+
+### Qualification distante de l'extension — source `1d66138`
+
+Les 13 jobs de `1d66138fbb79a1dcad1f52e6d2d4c49350da462d` ont réussi :
+huit natifs Windows/Ubuntu/macOS ARM64/macOS Intel × Rust 1.88.0/stable, lint
+et quatre Python. Les quatre noms de scénarios sont confirmés dans chacun des
+huit workspaces. Chaque workspace Windows rapporte **406/0/2**, les autres OS
+**407/0/2** ; les cinq autres groupes restent reuse 10, profiling 8, finalisation
+1, budgets 3 et feature-off 38 réussites par job. Les quatre groupes Python
+restent 663/71 sous 3.11 et 733/1 sous 3.14, chacun sur deux OS, avec 335
+sous-tests rapportés séparément.
+
+Les métadonnées API run/job/step et 1 494 689 octets de logs sont vérifiés ; les
+48 groupes Rust restent séparés par commande, sans addition de réexécutions.
+La source Linux/MSRV et macOS Intel/MSRV est donc effectivement exécutée,
+pas déduite de l'inspection statique. Le dernier job Intel 1.88 a terminé avec
+succès après son build release. [Preuve CI liée au commit](../evidence/rust-credential-rejection-early-ci-20261116.json).
+
+Le checkpoint local « CI non exécutée » précédent reste historique. Les
+qualifications de racines publiques/PCM sont celles des gates offline existants,
+pas un handshake, une authentification distante ou une nouvelle dictée Rambler.
+Les limites de provisionnement, révocation réelle et parité restent inchangées.

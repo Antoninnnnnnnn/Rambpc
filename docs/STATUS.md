@@ -1,5 +1,16 @@
 # État du moteur — 2026-11-16
 
+## CI des refus précoces — source `1d66138` qualifiée
+
+Les 13 jobs Rust/Python réussissent, dont huit natifs sur Windows, Ubuntu,
+macOS ARM64 et Intel × Rust 1.88.0/stable. Les quatre scénarios sont confirmés
+par nom dans chaque workspace : Windows **406/0/2**, autres OS **407/0/2**.
+Les 48 groupes Rust et 1 494 689 octets de logs sont vérifiés par commande et
+provenance, sans sommer les réexécutions. Lint, gates release/racines/PCM et
+quatre jobs Python passent. [Preuve CI du commit exact](evidence/rust-credential-rejection-early-ci-20261116.json).
+Les checkpoints locaux « CI non exécutée » ci-dessous sont historiques ; aucune
+nouvelle dictée, authentification distante ou récupération après révocation déduite.
+
 ## Refus précoces — qualification locale, sans nouveau service
 
 Deux tests supplémentaires couvrent un refus headers-only avant EOF pendant
