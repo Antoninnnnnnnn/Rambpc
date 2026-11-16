@@ -70,10 +70,13 @@ keeps the ordinary eight native matrix jobs and their PATH unchanged, and runs
 only the eight Release `profile_pipeline` unit tests, not the example main or
 the release CLI. A child-only PATH excludes Ninja without altering installed
 files. The actual cache, VS instance, x64 host tools and 152 compiler records
-must pass runtime checks. Built/installed archive SHA-256 identity is local to
-that checkout, not a cross-machine checksum or performance comparison. Logs
-are retained only in local temporary storage, never uploaded; failure may
-print a bounded build-log tail. No metadata log is dumped or timing collected.
+must pass runtime checks. Native output is located through Cargo's documented
+`build-script-executed` JSON `out_dir`, not a private Cargo directory layout.
+Built/installed archive SHA-256 identity is local to that checkout, not a
+cross-machine checksum or performance comparison. Logs are retained only in
+local temporary storage, never uploaded; failure may print a bounded build-log
+tail, including Cargo JSON. Tool-discovery logs are never dumped, and no timing
+is collected.
 
 The official
 [Windows2022 runner-image readme](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)

@@ -10,8 +10,10 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import tempfile
 import types
 import unittest
+from unittest.mock import patch
 
 
 def load_sibling_checker():
@@ -27,6 +29,14 @@ def load_sibling_checker():
 
 CHECKER = load_sibling_checker()
 HELPER = CHECKER.load_owned_helper()
+TARGET = Path("C:/fabricated/repo/target/vs17-functional")
+NATIVE_OUT = TARGET / "release/build/opusic-sys/0123456789abcdef/out"
+
+
+def build_message(out=NATIVE_OUT):
+    return {"reason": "build-script-executed", "package_id": CHECKER.OPUS_PACKAGE_ID,
+            "out_dir": str(out), "linked_libs": ["static=opus"],
+            "linked_paths": ["native=" + str(out / "lib")]}
 
 
 def options():
@@ -68,6 +78,10 @@ def cache_fixture():
         "CMAKE_GENERATOR_INSTANCE:INTERNAL=C:/Tools/Visual Studio/2022",
         "CMAKE_COMMAND:INTERNAL=C:/Tools/CMake/bin/cmake.exe",
         "CMAKE_BUILD_TYPE:UNINITIALIZED=Release",
+        "CMAKE_C_FLAGS_RELEASE:STRING=/O2 /Ob2 /DNDEBUG",
+        "CMAKE_INSTALL_PREFIX:PATH=" + str(NATIVE_OUT),
+        "CMAKE_CACHEFILE_DIR:INTERNAL=" + str(NATIVE_OUT / "build"),
+        "CMAKE_HOME_DIRECTORY:INTERNAL=C:/fabricated/cache/opusic-sys-0.7.7/opus",
         "OPUS_HARDENING:BOOL=ON", "OPUS_DISABLE_INTRINSICS:BOOL=OFF",
         "OPUS_BUILD_SHARED_LIBRARY:BOOL=OFF",
     ))
@@ -195,6 +209,15 @@ class RecordTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(CHECKER.QualificationError):
                 self.validate(lines, mapping)
 
+    def test_records_bind_to_cache_source_home(self):
+        lines, mapping = records_fixture()
+        text = "\n".join(lines)
+        home = "c:/fabricated/cache/opusic-sys-0.7.7/opus"
+        self.assertEqual(CHECKER.validate_records(text, mapping.__getitem__, home),
+                         {"compiler_records": 152, "avx2_records": 3})
+        with self.assertRaises(CHECKER.QualificationError):
+            CHECKER.validate_records(text, mapping.__getitem__, home.replace("/cache/", "/other/"))
+
     def test_tokenizer_is_injected_and_options_checked_each_record(self):
         lines, mapping = records_fixture()
         calls = []
@@ -234,12 +257,88 @@ class HarnessTests(unittest.TestCase):
                 CHECKER.validate_test_output(bad)
 
 
+class CargoOutputTests(unittest.TestCase):
+    def parse(self, message):
+        text = json.dumps(message) + "\n" + harness_output()
+        self.assertEqual(CHECKER.validate_test_output(text), 8)
+        return CHECKER.opus_output_directory(text, TARGET)
+
+    def test_out_dir_independent_of_old_new_or_future_private_layout(self):
+        for suffix in ("release/build/opusic-sys-0123456789abcdef/out",
+                       "release/build/opusic-sys/0123456789abcdef/out",
+                       "release/build/opusic-sys/0123456789abcdef/run-custom-build/out"):
+            out = TARGET / suffix
+            with self.subTest(suffix=suffix):
+                self.assertEqual(self.parse(build_message(out)), out)
+        noise = {"reason": "compiler-artifact", "package_id": "other"}
+        text = json.dumps(noise) + "\n" + json.dumps(build_message()) + "\n" + harness_output()
+        self.assertEqual(CHECKER.opus_output_directory(text, TARGET), NATIVE_OUT)
+
+    def test_missing_duplicate_wrong_version_name_and_source(self):
+        good = build_message()
+        bad_messages = [{}, dict(good, reason="compiler-artifact")]
+        for package in (CHECKER.OPUS_PACKAGE_ID.replace("0.7.7", "0.7.8"),
+                        CHECKER.OPUS_PACKAGE_ID.replace("opusic-sys@", "opusic-sys2@"),
+                        "path+file:///fabricated#opusic-sys@0.7.7",
+                        "sparse+https://index.crates.io/#opusic-sys@0.7.7"):
+            bad_messages.append(dict(good, package_id=package))
+        for bad in bad_messages:
+            with self.subTest(message=bad), self.assertRaises(CHECKER.QualificationError):
+                self.parse(bad)
+        for text in (harness_output(), (json.dumps(good) + "\n") * 2 + harness_output()):
+            with self.assertRaises(CHECKER.QualificationError):
+                CHECKER.opus_output_directory(text, TARGET)
+
+    def test_out_dir_and_native_link_binding(self):
+        for out in (None, 17, "relative/out", "//host/share/out", "\\\\?\\C:\\out",
+                    str(TARGET / "../escape/out"), str(TARGET) + "-other/out", str(TARGET)):
+            with self.subTest(out=out), self.assertRaises(CHECKER.QualificationError):
+                self.parse(dict(build_message(), out_dir=out))
+        for field, value in (("linked_libs", ["opus"]), ("linked_libs", ["static=other"]),
+                             ("linked_libs", ["static=opus", "static=opus"]),
+                             ("linked_paths", []), ("linked_paths", ["native=C:/other/lib"]),
+                             ("linked_paths", ["C:/other/lib"]),
+                             ("linked_paths", build_message()["linked_paths"] * 2)):
+            with self.subTest(field=field, value=value), self.assertRaises(CHECKER.QualificationError):
+                self.parse(dict(build_message(), **{field: value}))
+        missing = build_message()
+        del missing["out_dir"]
+        with self.assertRaises(CHECKER.QualificationError):
+            self.parse(missing)
+
+    def test_malformed_json_duplicate_keys_and_reason_type(self):
+        for line in ("{", '{"reason":3}', '{"reason":"a","reason":"b"}'):
+            with self.subTest(line=line), self.assertRaises(CHECKER.QualificationError):
+                CHECKER.opus_output_directory(line + "\n" + json.dumps(build_message()), TARGET)
+
+    def test_native_file_guard_checks_target_and_all_components(self):
+        with tempfile.TemporaryDirectory(prefix="rambler-fabricated-layout-") as folder:
+            base = Path(folder)
+            path = base / "out/build/CMakeCache.txt"
+            path.parent.mkdir(parents=True)
+            path.write_text("fabricated", encoding="utf-8")
+            self.assertEqual(CHECKER.plain_native_path(path, base), path)
+            with self.assertRaises(CHECKER.QualificationError):
+                CHECKER.plain_native_path(base.parent / "outside", base)
+            for poisoned in (base, base / "out", path.parent, path):
+                for mode, attributes in ((CHECKER.stat.S_IFLNK, 0), (CHECKER.stat.S_IFDIR, 0x400)):
+                    real_lstat = Path.lstat
+                    def fake_lstat(item, *, poisoned=poisoned, mode=mode, attributes=attributes):
+                        if item == poisoned:
+                            return types.SimpleNamespace(st_mode=mode, st_file_attributes=attributes)
+                        return real_lstat(item)
+                    with self.subTest(component=poisoned, attributes=attributes), \
+                            patch.object(Path, "lstat", fake_lstat), \
+                            self.assertRaises(CHECKER.QualificationError):
+                        CHECKER.plain_native_path(path, base)
+
+
 class MetadataTests(unittest.TestCase):
     def approved(self):
         return CHECKER.validate_vswhere(json.dumps(instance_fixture()).encode("utf-8"))
 
     def test_vs_utf8_and_case_slash_normalized_identity(self):
-        self.assertTrue(CHECKER.validate_cache(cache_fixture(), self.approved(), "c:\\TOOLS\\cmake\\bin\\CMAKE.exe"))
+        self.assertTrue(CHECKER.validate_cache(cache_fixture(), self.approved(), "c:\\TOOLS\\cmake\\bin\\CMAKE.exe", NATIVE_OUT))
         self.assertEqual(self.approved(), {"c:/tools/visual studio/2022"})
         items = instance_fixture()
         items[0]["displayName"] = "Fabricated édition"
@@ -267,11 +366,17 @@ class MetadataTests(unittest.TestCase):
             text.replace("/Visual Studio/2022", "/Visual Studio/other"),
             text.replace("/CMake/bin/", "/Other/bin/"), text.replace("HARDENING:BOOL=ON", "HARDENING:BOOL=OFF"),
             text.replace("INTRINSICS:BOOL=OFF", "INTRINSICS:BOOL=ON"),
+            text.replace("/O2 /Ob2 /DNDEBUG", "-nologo -MD -Brepro"),
+            text.replace("CMAKE_INSTALL_PREFIX:PATH=", "CMAKE_INSTALL_PREFIX:STRING="),
+            text.replace("CMAKE_CACHEFILE_DIR:INTERNAL=", "CMAKE_CACHEFILE_DIR:PATH="),
+            text.replace("0123456789abcdef", "fedcba9876543210"),
+            text.replace("opusic-sys-0.7.7/opus", "opusic-sys-0.7.8/opus"),
+            text.replace("CMAKE_HOME_DIRECTORY:INTERNAL=", "CMAKE_HOME_DIRECTORY:PATH="),
             text + "\nCMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022", text + "\nmalformed",
         )
         for bad in variants:
             with self.subTest(tail=bad[-100:]), self.assertRaises(CHECKER.QualificationError):
-                CHECKER.validate_cache(bad, self.approved(), "C:/Tools/CMake/bin/cmake.exe")
+                CHECKER.validate_cache(bad, self.approved(), "C:/Tools/CMake/bin/cmake.exe", NATIVE_OUT)
 
     def test_stable_host_identity(self):
         text = "rustc 1.99.1 (fabricated)\nhost: x86_64-pc-windows-msvc\nrelease: 1.99.1\n"

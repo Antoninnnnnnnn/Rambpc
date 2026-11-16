@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import sys
 import tempfile
 import time
@@ -22,6 +23,7 @@ import types
 
 OWNED_JOB_SHA256 = "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa"
 GENERATOR = "Visual Studio 17 2022"
+OPUS_PACKAGE_ID = "registry+https://github.com/rust-lang/crates.io-index#opusic-sys@0.7.7"
 REQUIRED_DEFINES = frozenset((
     "NDEBUG", "OPUS_BUILD", "ENABLE_HARDENING", "DISABLE_DEBUG_FLOAT", "USE_ALLOCA",
     "OPUS_HAVE_RTCD", "OPUS_X86_MAY_HAVE_SSE", "OPUS_X86_PRESUME_SSE",
@@ -177,7 +179,7 @@ def validate_options(tokens):
     return bool(families["arch"])
 
 
-def validate_records(text, tokenizer):
+def validate_records(text, tokenizer, opus_home=None):
     """Strict source/command pairs; tokenizer injection is the synthetic-data seam."""
     require(isinstance(text, str) and "\x00" not in text, "invalid_tlog_text")
     lines = text.rstrip("\r\n").splitlines()
@@ -207,6 +209,9 @@ def validate_records(text, tokenizer):
     require(len(sources) == 152 and avx_sources == AVX2_SOURCES, "wrong_source_or_avx2_set")
     require(len({source.split("/opus/")[0] for source in sources}) == 1,
             "multiple_opus_source_trees")
+    if opus_home is not None:
+        require(all(source.startswith(opus_home + "/") for source in sources),
+                "compiler_sources_not_in_cache_home")
     return {"compiler_records": 152, "avx2_records": 3}
 
 
@@ -238,6 +243,47 @@ def unique_json_object(pairs):
     return value
 
 
+def opus_output_directory(text, target):
+    """Use Cargo's documented OUT_DIR message, not its private folder layout."""
+    matches = []
+    for line in text.splitlines():
+        if not line.startswith("{"):
+            continue
+        try:
+            message = json.loads(line, object_pairs_hook=unique_json_object)
+        except json.JSONDecodeError as error:
+            raise QualificationError("malformed_cargo_json") from error
+        require(isinstance(message, dict) and isinstance(message.get("reason"), str),
+                "invalid_cargo_message")
+        if (message["reason"] == "build-script-executed" and
+                message.get("package_id") == OPUS_PACKAGE_ID):
+            matches.append(message)
+    message = one(matches, "expected_one_opus_build_script")
+    out = message.get("out_dir")
+    normalized = windows_path(out)
+    base = windows_path(str(target))
+    require(normalized.startswith(base.rstrip("/") + "/"), "opus_output_outside_target")
+    require(message.get("linked_libs") == ["static=opus"], "wrong_opus_linked_libraries")
+    paths = message.get("linked_paths")
+    require(isinstance(paths, list) and len(paths) == 1 and isinstance(paths[0], str) and
+            paths[0].startswith("native=") and
+            windows_path(paths[0][7:]) == normalized + "/lib", "wrong_opus_linked_path")
+    return Path(out)
+
+
+def plain_native_path(path, target):
+    """Reject links/junctions in every component before reading native evidence."""
+    require(path.is_relative_to(target), "native_path_outside_target")
+    current = target
+    for part in (None, *path.relative_to(target).parts):
+        if part is not None:
+            current /= part
+        info = current.lstat()
+        require(not stat.S_ISLNK(info.st_mode) and
+                not getattr(info, "st_file_attributes", 0) & 0x400, "native_path_is_reparse_point")
+    return path
+
+
 def validate_vswhere(raw):
     require(isinstance(raw, bytes), "vswhere_requires_utf8_bytes")
     try:
@@ -258,7 +304,7 @@ def validate_vswhere(raw):
     return approved
 
 
-def validate_cache(text, approved_instances, selected_cmake):
+def validate_cache(text, approved_instances, selected_cmake, out_dir):
     cache = {}
     for line in text.splitlines():
         if not line or line.startswith(("//", "#")):
@@ -271,6 +317,7 @@ def validate_cache(text, approved_instances, selected_cmake):
         "CMAKE_GENERATOR_PLATFORM": ("INTERNAL", "x64"),
         "CMAKE_GENERATOR_TOOLSET": ("INTERNAL", "host=x64"),
         "CMAKE_BUILD_TYPE": ("UNINITIALIZED", "Release"),
+        "CMAKE_C_FLAGS_RELEASE": ("STRING", "/O2 /Ob2 /DNDEBUG"),
         "OPUS_HARDENING": ("BOOL", "ON"),
         "OPUS_DISABLE_INTRINSICS": ("BOOL", "OFF"),
         "OPUS_BUILD_SHARED_LIBRARY": ("BOOL", "OFF"),
@@ -283,7 +330,15 @@ def validate_cache(text, approved_instances, selected_cmake):
             "cache_instance_not_approved")
     require(windows_path(cache["CMAKE_COMMAND"][1]) == windows_path(str(selected_cmake)),
             "cache_cmake_not_selected")
-    return True
+    for key, kind, value in (("CMAKE_INSTALL_PREFIX", "PATH", str(out_dir)),
+                             ("CMAKE_CACHEFILE_DIR", "INTERNAL", str(out_dir / "build"))):
+        require(key in cache and cache[key][0] == kind and
+                windows_path(cache[key][1]) == windows_path(value), "cache_output_binding_mismatch")
+    require("CMAKE_HOME_DIRECTORY" in cache and cache["CMAKE_HOME_DIRECTORY"][0] == "INTERNAL",
+            "missing_cache_source_home")
+    home = windows_path(cache["CMAKE_HOME_DIRECTORY"][1])
+    require(home.endswith("/opusic-sys-0.7.7/opus"), "unexpected_opus_source_home")
+    return home
 
 
 def validate_rustc(text):
@@ -377,18 +432,19 @@ def main():
         rust_release = validate_rustc(capture([str(rustc), "+stable", "-vV"], 30).decode("utf-8", "strict"))
         raw = capture([
             str(cargo), "+stable", "test", "-p", "rambler-audio", "--example", "profile_pipeline",
-            "--release", "--locked", "--offline", "--", "--color", "never",
+            "--release", "--locked", "--offline", "--message-format=json-render-diagnostics",
+            "--", "--color", "never",
         ], 720, build=True)
-        validate_test_output(raw.decode("utf-8", "strict"))
-        root = one(target.glob("release/build/opusic-sys-*/out/build/CMakeCache.txt"),
-                   "expected_one_opus_cache").parent
-        validate_cache((root / "CMakeCache.txt").read_text(encoding="utf-8"), approved, cmake)
-        output = (root.parent.parent / "output").read_text(encoding="utf-8")
-        lookup = 'CMAKE_GENERATOR_x86_64_pc_windows_msvc = Some("Visual Studio 17 2022")'
-        require(output.splitlines().count(lookup) == 1, "target_generator_lookup_not_exactly_once")
-        tlog = one(root.glob("opus.dir/Release/opus.tlog/CL.command.1.tlog"), "expected_one_release_tlog")
-        record_summary = validate_records(tlog.read_text(encoding="utf-16"), windows_arguments)
-        built, installed = root / "Release/opus.lib", root.parent / "lib/opus.lib"
+        text = raw.decode("utf-8", "strict")
+        validate_test_output(text)
+        out = opus_output_directory(text, target)
+        cache = plain_native_path(out / "build/CMakeCache.txt", target)
+        root = cache.parent
+        opus_home = validate_cache(cache.read_text(encoding="utf-8"), approved, cmake, out)
+        tlog = plain_native_path(root / "opus.dir/Release/opus.tlog/CL.command.1.tlog", target)
+        record_summary = validate_records(tlog.read_text(encoding="utf-16"), windows_arguments, opus_home)
+        built = plain_native_path(root / "Release/opus.lib", target)
+        installed = plain_native_path(out / "lib/opus.lib", target)
         require(built.is_file() and installed.is_file() and built.stat().st_size > 0, "static_archive_missing")
         archive_hash = hashlib.sha256(built.read_bytes()).hexdigest()
         require(archive_hash == hashlib.sha256(installed.read_bytes()).hexdigest(), "archive_identity_mismatch")
