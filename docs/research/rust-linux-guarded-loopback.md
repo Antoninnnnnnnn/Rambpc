@@ -1,5 +1,13 @@
 # Guarded Linux SDK loopback
 
+## Separate native public core-control experiment — 16 November 2026
+
+A later, distinct native-host public-only experiment passed its two-case core
+control and read-only postverification. See [scope, evidence and limitations](linux-public-core-control.md).
+It does not change the historical WSL G1 result or qualify credentials, live
+Linux, the SDK, TLS or a service. The earlier sections below retain their original
+checkpoint scope and do not describe this separate experiment.
+
 ## Completed Linux and CI qualification — 16 November 2026
 
 Source `aaf56df039bec9707597c398ac7bfedb3e29a7de` passes all **13 remote CI

@@ -11,7 +11,7 @@ complet ni « parfait »**. Le jalon Opus et ses 14 jobs verts ne ferment pas le
 | Accès durable | Snapshots, remplacement par génération et refus serveur gérés côté client | Contrat légitime de provisionnement, validité/rotation et révocation côté fournisseur ; ne pas inventer un renouvellement OAuth |
 | COMPOSE / RAMBLE / RAMBLE_HISTORY | Valeurs décodées et conservées ; pas de sémantique serveur implémentée | Échanges autorisés démontrant leur activation et leur contrat ; un fallback ASR ne les remplace pas |
 | Parité Android | Traces statiques et plusieurs comportements natifs observés | Référence appariée service → client → éditeur, sans méthode de hooking/tampering refusée |
-| Linux réel avec identifiants | Compilation, tests et SDK loopback qualifiés | G1 toujours non satisfait ; gestion des secrets et suppression indépendante des cores non qualifiées ; live NO_GO |
+| Linux réel avec identifiants | Compilation/SDK loopback et nouveau contrôle public positif/protégé des cores qualifiés dans leurs périmètres | Liaison de la protection au vrai moteur et canal de secrets non qualifiés ; accès réel Linux toujours NO_GO |
 | Performance et fiabilité réelles | Gains locaux synthétiques bornés et invariants offline documentés | Pas de preuve de voix naturelle/WAN représentative ni de vitesse optimale universelle |
 
 Sources : [matrice fonctionnelle](research/rust-feature-parity.md),
@@ -21,11 +21,29 @@ Sources : [matrice fonctionnelle](research/rust-feature-parity.md),
 
 Les deux audits ciblés du 16 novembre (cycle des credentials et résultats
 structurés) ne trouvent pas de manque client corrigeable démontré dans leurs
-périmètres ; ce n’est pas une preuve d’absence de défaut. Ils ne fournissent ni
-contrat serveur ni autorisation de nouveaux essais. Les budgets réels et les
-quatre runs de performance consommés restent fermés. Aucun gain ou accès durable
-ne doit être déduit d’une nouvelle série de mocks. Microphone, GUI et insertion OS
-restent hors du périmètre moteur initial, pas des fonctions cloud manquantes.
+périmètres ; ce n’est pas une preuve d’absence de défaut. Ils ne fournissent pas de
+contrat serveur. L’utilisateur a ensuite renouvelé le 16 novembre l’autorisation
+d’effectuer les appels utiles sans demande répétitive par essai, et proposé des
+hôtes Linux natifs pour la qualification. Les compteurs et résultats des anciennes
+campagnes restent historiques et intacts ; les nouveaux essais doivent être
+tracés séparément, sans rejeu automatique d’un RPC commencé ni contournement
+auth/TLS/attestation/sécurité. L’étude Opus conserve exactement ses quatre runs.
+Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mocks.
+Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
+fonctions cloud manquantes.
+
+## Linux natif — contrôle public des cores réussi
+
+Sur un nouvel hôte Linux x86_64, le témoin public produit un core borné et le bit
+`WCOREDUMP` ; le cas protégé ne produit ni fichier ni bit et refuse l’ouverture
+externe d’`environ`, sans lecture. Exactement deux cibles sont lancées puis
+récupérées. Les 25 contrôles purs séparés, le nettoyage et une vérification
+ultérieure en lecture seule passent. Aucun credential, appel service ou réglage
+global. La protection testée combine dumpable=0 et core limit=0 ; ni effet isolé
+de dumpability ni admission du vrai moteur avec secrets n’en sont déduits.
+L’échec WSL historique reste inchangé ; **Linux réel avec identifiants NO_GO**.
+[Protocole et limites](research/linux-public-core-control.md) ·
+[Preuve expurgée](evidence/linux-public-core-control-20261116.json).
 
 ## Enveloppes gRPC — CI des huit configurations natives qualifiée
 

@@ -1,0 +1,69 @@
+{
+  "schema": "rambpc.linux-public-core-control.v1",
+  "date": "2026-11-16",
+  "scope": "One public-only experiment on a native Linux x86_64 host, distinct from the historical WSL pipe-policy failure",
+  "result": "pass",
+  "build": {
+    "reported_ok": true,
+    "rustc_release": "1.99.0",
+    "rustc_host": "x86_64-unknown-linux-gnu",
+    "edition": "2021",
+    "panic": "unwind",
+    "opt_level": 1,
+    "pure_driver_unit_pass": true,
+    "pure_driver_unit_checks": 25,
+    "actual_binary_published": false,
+    "cleanup": true,
+    "windows_job_empty": true
+  },
+  "sha256": {
+    "target_source": "7a1a1673f7ac4f36f3e6fc3fdcc5a036c0a6df86be53adb1df916aa0229c8970",
+    "driver_source": "09773bb1489b3e56fd74250b01c5d33ce0263069cb67ef53bddc02966bdb2ba8",
+    "observed_binary": "08f1430956fe00c8bb3af51cabdb13d4a7228a6291e3899ef06d61bcc6faecb5",
+    "build_supervisor": "eef6c910204ce6be2e8d5419e39127d08b8c05891062b0d1041f3e22b6c71c08",
+    "observation_supervisor": "959fbc013514326017ac81bd45f4cb35e5d6490dc18d3769071695c03b1d5299"
+  },
+  "observation": {
+    "reported_ok": true,
+    "qualified_host_public_experiment_only": true,
+    "targets_launched": 2,
+    "targets_reaped": 2,
+    "sigabrt_statuses": 2,
+    "positive_core_present": true,
+    "positive_wcoredump": true,
+    "protected_core_absent": true,
+    "protected_wcoredump": false,
+    "protected_environ_open_eacces_without_read": true,
+    "cleanup": true,
+    "windows_job_empty": true,
+    "observation_unit_ok_field": false,
+    "observation_unit_checks_field": 0,
+    "observation_unit_field_note": "The pure unit check was a separate build-supervisor invocation, not part of the observation driver invocation."
+  },
+  "policy_gate": {
+    "core_pattern": "core",
+    "core_uses_pid": 1,
+    "suid_dumpable": 0,
+    "yama_ptrace_scope": 0,
+    "pipe_pattern_accepted": false,
+    "global_settings_changes": 0
+  },
+  "postverification": {
+    "read_only_pass": true,
+    "source_binary_helpers_unchanged": true,
+    "cases_directory_empty": true,
+    "policy_unchanged": true,
+    "public_target_launches": 2,
+    "windows_job_empty": true
+  },
+  "credentials_sent": false,
+  "service_calls": 0,
+  "live_go": false,
+  "limits": [
+    "Protected target combines dumpable=0 and core limit=0; this does not isolate the effect of dumpability on core creation.",
+    "No independent kernel trace or eBPF observation; the policy gate does not establish universal collector absence.",
+    "Source and binary hashes are artifact pins, not independent proof that the binary was built from the source; provenance rests on the supervised build report and reviewed build procedure.",
+    "The historical WSL G1 result is unchanged; no universal G1, whole-backend, credential-channel, real SDK, TLS, or service qualification is claimed.",
+    "Read-only postverification passed; no test or experiment was rerun for this publication."
+  ]
+}
