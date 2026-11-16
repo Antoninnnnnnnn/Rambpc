@@ -115,9 +115,7 @@ async fn upload(
     while let Some(bytes) = input.next().await {
         // Exact original payload; the only bytes added are gRPC's envelope.
         let len = u32::try_from(bytes.len()).map_err(|_| TransportError::MessageTooLarge)?;
-        let mut header = [0u8; 5];
-        header[1..].copy_from_slice(&len.to_be_bytes());
-        send_bytes(&sender, Bytes::copy_from_slice(&header)).await?;
+        send_bytes(&sender, crate::grpc_prefix::grpc_prefix(len)).await?;
         send_bytes(&sender, bytes).await?;
     }
     sender.lock().unwrap().send_data(Bytes::new(), true)?;

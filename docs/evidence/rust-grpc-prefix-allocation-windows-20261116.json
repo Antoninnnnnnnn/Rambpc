@@ -1,0 +1,2526 @@
+{
+  "baseline": {
+    "commit": "7a03f386d1d93380efe35d2aba47ca01a2d83067",
+    "old_constructor_statements_exact": true,
+    "transport_wire_git_lf_sha256": "d1666c1093edf62b65806775e4fc4cef4a2e2795d845575b0e43e45566343f95"
+  },
+  "candidate": {
+    "cache_length_domain": [
+      0,
+      255
+    ],
+    "debug_benchmark_sha256": "1b3db10094315ad12541f5d157e65dda1ae7ab70be7d8f30c4065ce30108b559",
+    "identity_scope": "Selected raw Windows source/artifact hashes, not full TCB or reproducible binary attestation",
+    "immutable_table_source_data_bytes": 1280,
+    "measured_uncommitted_on_baseline_head": true,
+    "modified_or_added_raw_source_sha256": {
+      ".github/workflows/rust.yml": "4d87cca266b5b8d89d5ebdb8170872b0e25cb1d627fd9112f881d47e350b4bdb",
+      "crates/rambler-cli/tests/grpc_prefix_eligibility.rs": "e5e3fc3c4d0731c54c523de188ddfe0811b3337beb02a3604d3d2bfac5a14954",
+      "crates/rambler-transport/examples/profile_grpc_prefix.rs": "5b4f2ec1febc72568ddebc132b206255723ae354e14055c1518739eede9b78cc",
+      "crates/rambler-transport/src/grpc_prefix.rs": "3485932cbd0b626c423f0bde9c1554322e1065b1f191ce1ae592f02939fcf6a7",
+      "crates/rambler-transport/src/lib.rs": "9eba773c0d01e3da9834d3507ea6937e30af363c97120393044ccf96d0fa0361",
+      "crates/rambler-transport/src/wire.rs": "95bffe1958ddf4d0e48d4d380b344e9a40b1fc0dff17b87644d521b79951f151",
+      "crates/rambler-transport/tests/grpc_prefix_framing.rs": "8e45d4cbfecabd9f1226db10cbff85deb832e2aab251ac9d49667ee6176c2467"
+    },
+    "no_payload_copy_removal_claim": true,
+    "original_u32_length_validation_preserved": true,
+    "payload_already_zero_copy_before_change": true,
+    "production_unsafe_added": false,
+    "release_benchmark_sha256": "0867fcb5032d48105214eb7a7db784088e011d3965085c1ae9386fa7a1954f64",
+    "selected_files": 186,
+    "selected_manifest_sha256": "4ac76c2145c7d879f035a7ee461fbf73bc4efdb7acf310fafb60f38e6eb1cc0c",
+    "send_flow_reset_receive_cleanup_logic_unchanged": true,
+    "source_and_binaries_unchanged_during_observation": true
+  },
+  "cases": [
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1376500,
+            254100,
+            true
+          ],
+          [
+            1551000,
+            258700,
+            false
+          ],
+          [
+            1357600,
+            246800,
+            true
+          ],
+          [
+            1474100,
+            271600,
+            false
+          ],
+          [
+            1475300,
+            272400,
+            true
+          ],
+          [
+            1372400,
+            261500,
+            false
+          ],
+          [
+            1350100,
+            255800,
+            true
+          ],
+          [
+            1591900,
+            262400,
+            false
+          ]
+        ],
+        [
+          [
+            1391200,
+            250600,
+            true
+          ],
+          [
+            1446600,
+            271100,
+            false
+          ],
+          [
+            1559300,
+            285400,
+            true
+          ],
+          [
+            1394600,
+            285000,
+            false
+          ],
+          [
+            1509200,
+            271600,
+            true
+          ],
+          [
+            1397200,
+            252600,
+            false
+          ],
+          [
+            1352200,
+            246800,
+            true
+          ],
+          [
+            1350500,
+            246800,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 0,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1355800,
+            260400,
+            false
+          ],
+          [
+            1564900,
+            305900,
+            true
+          ],
+          [
+            1369600,
+            246700,
+            false
+          ],
+          [
+            1473900,
+            275300,
+            true
+          ],
+          [
+            1489400,
+            271300,
+            false
+          ],
+          [
+            1342800,
+            384800,
+            true
+          ],
+          [
+            1527300,
+            257400,
+            false
+          ],
+          [
+            1542100,
+            276500,
+            true
+          ]
+        ],
+        [
+          [
+            1404500,
+            246800,
+            false
+          ],
+          [
+            1446300,
+            277600,
+            true
+          ],
+          [
+            1624300,
+            285600,
+            false
+          ],
+          [
+            1368300,
+            249300,
+            true
+          ],
+          [
+            1426800,
+            282700,
+            false
+          ],
+          [
+            1411500,
+            271600,
+            true
+          ],
+          [
+            1374700,
+            246600,
+            false
+          ],
+          [
+            1341800,
+            256500,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 1,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1356300,
+            246700,
+            true
+          ],
+          [
+            1683500,
+            338800,
+            false
+          ],
+          [
+            1336300,
+            257100,
+            true
+          ],
+          [
+            1476300,
+            271300,
+            false
+          ],
+          [
+            1466500,
+            271400,
+            true
+          ],
+          [
+            1351400,
+            256500,
+            false
+          ],
+          [
+            1431400,
+            247100,
+            true
+          ],
+          [
+            1434300,
+            264700,
+            false
+          ]
+        ],
+        [
+          [
+            1356700,
+            250600,
+            true
+          ],
+          [
+            1469900,
+            276400,
+            false
+          ],
+          [
+            1601800,
+            282200,
+            true
+          ],
+          [
+            1377000,
+            258200,
+            false
+          ],
+          [
+            1430400,
+            281900,
+            true
+          ],
+          [
+            1476400,
+            271400,
+            false
+          ],
+          [
+            1364700,
+            252300,
+            true
+          ],
+          [
+            1383900,
+            248600,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        4
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 4,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1356900,
+            249300,
+            false
+          ],
+          [
+            1420800,
+            264900,
+            true
+          ],
+          [
+            1338100,
+            246700,
+            false
+          ],
+          [
+            1476600,
+            271400,
+            true
+          ],
+          [
+            1501600,
+            271400,
+            false
+          ],
+          [
+            1349800,
+            280200,
+            true
+          ],
+          [
+            1361800,
+            247100,
+            false
+          ],
+          [
+            1389000,
+            265000,
+            true
+          ]
+        ],
+        [
+          [
+            1404600,
+            261400,
+            false
+          ],
+          [
+            1479200,
+            271500,
+            true
+          ],
+          [
+            1522000,
+            278400,
+            false
+          ],
+          [
+            1376400,
+            249900,
+            true
+          ],
+          [
+            1429200,
+            264700,
+            false
+          ],
+          [
+            1472800,
+            271500,
+            true
+          ],
+          [
+            1365400,
+            253700,
+            false
+          ],
+          [
+            1373700,
+            246800,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        32
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 32,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1335900,
+            257400,
+            true
+          ],
+          [
+            1897700,
+            264700,
+            false
+          ],
+          [
+            1352200,
+            246700,
+            true
+          ],
+          [
+            1478400,
+            271400,
+            false
+          ],
+          [
+            1475500,
+            271400,
+            true
+          ],
+          [
+            1330000,
+            251400,
+            false
+          ],
+          [
+            1356800,
+            246700,
+            true
+          ],
+          [
+            1442300,
+            264800,
+            false
+          ]
+        ],
+        [
+          [
+            1410400,
+            279800,
+            true
+          ],
+          [
+            1547300,
+            271400,
+            false
+          ],
+          [
+            1517400,
+            278500,
+            true
+          ],
+          [
+            1350000,
+            246800,
+            false
+          ],
+          [
+            1382800,
+            250800,
+            true
+          ],
+          [
+            1467000,
+            271500,
+            false
+          ],
+          [
+            1447000,
+            268300,
+            true
+          ],
+          [
+            1351800,
+            246700,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        64
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 64,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1341100,
+            246800,
+            false
+          ],
+          [
+            1675100,
+            265000,
+            true
+          ],
+          [
+            1363500,
+            252000,
+            false
+          ],
+          [
+            1620500,
+            314400,
+            true
+          ],
+          [
+            1473200,
+            271400,
+            false
+          ],
+          [
+            1345300,
+            248500,
+            true
+          ],
+          [
+            1436500,
+            246600,
+            false
+          ],
+          [
+            1449800,
+            264900,
+            true
+          ]
+        ],
+        [
+          [
+            1627700,
+            278300,
+            false
+          ],
+          [
+            1476700,
+            278600,
+            true
+          ],
+          [
+            1517300,
+            282000,
+            false
+          ],
+          [
+            1366300,
+            246700,
+            true
+          ],
+          [
+            1399800,
+            246800,
+            false
+          ],
+          [
+            1475200,
+            271800,
+            true
+          ],
+          [
+            1450300,
+            264700,
+            false
+          ],
+          [
+            1512600,
+            246800,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        96
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 96,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1350700,
+            246800,
+            true
+          ],
+          [
+            1572300,
+            271600,
+            false
+          ],
+          [
+            1366300,
+            264800,
+            true
+          ],
+          [
+            1735900,
+            315200,
+            false
+          ],
+          [
+            1471000,
+            275400,
+            true
+          ],
+          [
+            1362400,
+            250800,
+            false
+          ],
+          [
+            1436700,
+            252900,
+            true
+          ],
+          [
+            1518700,
+            264800,
+            false
+          ]
+        ],
+        [
+          [
+            1462100,
+            260300,
+            true
+          ],
+          [
+            1514400,
+            278700,
+            false
+          ],
+          [
+            1548600,
+            278500,
+            true
+          ],
+          [
+            1341400,
+            246700,
+            false
+          ],
+          [
+            1365000,
+            290100,
+            true
+          ],
+          [
+            1473000,
+            271600,
+            false
+          ],
+          [
+            1426400,
+            335100,
+            true
+          ],
+          [
+            1365700,
+            246700,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        127
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 127,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1366000,
+            251600,
+            false
+          ],
+          [
+            1440500,
+            391600,
+            true
+          ],
+          [
+            1436700,
+            282400,
+            false
+          ],
+          [
+            1476000,
+            271700,
+            true
+          ],
+          [
+            1470700,
+            271300,
+            false
+          ],
+          [
+            1343700,
+            253500,
+            true
+          ],
+          [
+            1351100,
+            264700,
+            false
+          ],
+          [
+            1470700,
+            335500,
+            true
+          ]
+        ],
+        [
+          [
+            1402300,
+            266400,
+            false
+          ],
+          [
+            1511000,
+            273000,
+            true
+          ],
+          [
+            1497300,
+            278400,
+            false
+          ],
+          [
+            1347400,
+            246800,
+            true
+          ],
+          [
+            1348600,
+            246700,
+            false
+          ],
+          [
+            1465100,
+            274500,
+            true
+          ],
+          [
+            1804900,
+            289600,
+            false
+          ],
+          [
+            1337400,
+            249600,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        128
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 128,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1348400,
+            265200,
+            true
+          ],
+          [
+            2226200,
+            583700,
+            false
+          ],
+          [
+            1409200,
+            259200,
+            true
+          ],
+          [
+            1469800,
+            271400,
+            false
+          ],
+          [
+            1472300,
+            271500,
+            true
+          ],
+          [
+            1348600,
+            246800,
+            false
+          ],
+          [
+            1414200,
+            263400,
+            true
+          ],
+          [
+            1632300,
+            535700,
+            false
+          ]
+        ],
+        [
+          [
+            1358700,
+            249900,
+            true
+          ],
+          [
+            1476000,
+            271500,
+            false
+          ],
+          [
+            1530800,
+            282400,
+            true
+          ],
+          [
+            1360300,
+            250500,
+            false
+          ],
+          [
+            1483100,
+            246900,
+            true
+          ],
+          [
+            1471500,
+            354200,
+            false
+          ],
+          [
+            1385200,
+            250900,
+            true
+          ],
+          [
+            1349300,
+            251600,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        160
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 160,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1351500,
+            249400,
+            false
+          ],
+          [
+            1467600,
+            265000,
+            true
+          ],
+          [
+            1427200,
+            260800,
+            false
+          ],
+          [
+            1465200,
+            274200,
+            true
+          ],
+          [
+            1476300,
+            271600,
+            false
+          ],
+          [
+            1347400,
+            307400,
+            true
+          ],
+          [
+            1440600,
+            249300,
+            false
+          ],
+          [
+            1477800,
+            250600,
+            true
+          ]
+        ],
+        [
+          [
+            1371100,
+            247200,
+            false
+          ],
+          [
+            1471500,
+            271400,
+            true
+          ],
+          [
+            1511000,
+            278400,
+            false
+          ],
+          [
+            1408900,
+            264900,
+            true
+          ],
+          [
+            1462200,
+            246700,
+            false
+          ],
+          [
+            1424800,
+            258300,
+            true
+          ],
+          [
+            1356400,
+            248800,
+            false
+          ],
+          [
+            1352900,
+            246800,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        192
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 192,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1349100,
+            246800,
+            true
+          ],
+          [
+            1437200,
+            264800,
+            false
+          ],
+          [
+            1421100,
+            264900,
+            true
+          ],
+          [
+            1446100,
+            271400,
+            false
+          ],
+          [
+            1474200,
+            271400,
+            true
+          ],
+          [
+            1351900,
+            246700,
+            false
+          ],
+          [
+            1349600,
+            252800,
+            true
+          ],
+          [
+            1655900,
+            267600,
+            false
+          ]
+        ],
+        [
+          [
+            1446600,
+            264800,
+            true
+          ],
+          [
+            1472100,
+            271400,
+            false
+          ],
+          [
+            1645000,
+            278600,
+            true
+          ],
+          [
+            1451400,
+            264800,
+            false
+          ],
+          [
+            1343500,
+            246900,
+            true
+          ],
+          [
+            1462100,
+            256600,
+            false
+          ],
+          [
+            1367400,
+            246900,
+            true
+          ],
+          [
+            1346700,
+            247000,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": true,
+      "candidate_counters": {
+        "alloc_calls": 0,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 0,
+        "realloc_calls": 0,
+        "requested_bytes": 0
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        0,
+        255
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 255,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1354700,
+            1345900,
+            false
+          ],
+          [
+            1439100,
+            1430800,
+            true
+          ],
+          [
+            1453200,
+            1432400,
+            false
+          ],
+          [
+            1468600,
+            1468900,
+            true
+          ],
+          [
+            2087400,
+            1469400,
+            false
+          ],
+          [
+            1519300,
+            1385000,
+            true
+          ],
+          [
+            1351400,
+            1553400,
+            false
+          ],
+          [
+            1433500,
+            1587100,
+            true
+          ]
+        ],
+        [
+          [
+            1361400,
+            1356900,
+            false
+          ],
+          [
+            1470200,
+            1467800,
+            true
+          ],
+          [
+            1464600,
+            1474300,
+            false
+          ],
+          [
+            1482500,
+            1467800,
+            true
+          ],
+          [
+            1348100,
+            1357200,
+            false
+          ],
+          [
+            1380400,
+            1370900,
+            true
+          ],
+          [
+            1360100,
+            1398200,
+            false
+          ],
+          [
+            1339100,
+            1353000,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": false,
+      "candidate_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 256,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1432900,
+            1379100,
+            true
+          ],
+          [
+            1441200,
+            1436000,
+            false
+          ],
+          [
+            1470100,
+            1794000,
+            true
+          ],
+          [
+            1482000,
+            1468600,
+            false
+          ],
+          [
+            1504100,
+            1471300,
+            true
+          ],
+          [
+            1342200,
+            1367300,
+            false
+          ],
+          [
+            1346600,
+            1359600,
+            true
+          ],
+          [
+            1417300,
+            1363800,
+            false
+          ]
+        ],
+        [
+          [
+            1416400,
+            1338600,
+            true
+          ],
+          [
+            1541300,
+            1666200,
+            false
+          ],
+          [
+            1428900,
+            1491200,
+            true
+          ],
+          [
+            1472200,
+            1463500,
+            false
+          ],
+          [
+            1335100,
+            1344000,
+            true
+          ],
+          [
+            1400600,
+            1368700,
+            false
+          ],
+          [
+            1386000,
+            1375800,
+            true
+          ],
+          [
+            1348600,
+            1330300,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": false,
+      "candidate_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 1024,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1350300,
+            1374800,
+            false
+          ],
+          [
+            1427700,
+            1336900,
+            true
+          ],
+          [
+            1499700,
+            1520000,
+            false
+          ],
+          [
+            1496800,
+            1481600,
+            true
+          ],
+          [
+            1470400,
+            1463300,
+            false
+          ],
+          [
+            1358900,
+            1368500,
+            true
+          ],
+          [
+            1417900,
+            1399200,
+            false
+          ],
+          [
+            1385900,
+            1364000,
+            true
+          ]
+        ],
+        [
+          [
+            1396900,
+            1534700,
+            false
+          ],
+          [
+            1558800,
+            1545200,
+            true
+          ],
+          [
+            1360300,
+            1374700,
+            false
+          ],
+          [
+            1495400,
+            1487500,
+            true
+          ],
+          [
+            1346600,
+            1330000,
+            false
+          ],
+          [
+            1542800,
+            1390600,
+            true
+          ],
+          [
+            1443400,
+            1389400,
+            false
+          ],
+          [
+            1397500,
+            1342400,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": false,
+      "candidate_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        0,
+        255,
+        255
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 65535,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1373900,
+            1396100,
+            true
+          ],
+          [
+            1400800,
+            1464100,
+            false
+          ],
+          [
+            1520400,
+            1482000,
+            true
+          ],
+          [
+            1471700,
+            1469900,
+            false
+          ],
+          [
+            1468000,
+            1560000,
+            true
+          ],
+          [
+            1531300,
+            1349600,
+            false
+          ],
+          [
+            1383000,
+            1407600,
+            true
+          ],
+          [
+            1365300,
+            1389900,
+            false
+          ]
+        ],
+        [
+          [
+            1439500,
+            1449500,
+            true
+          ],
+          [
+            1548400,
+            1559200,
+            false
+          ],
+          [
+            1340800,
+            1359900,
+            true
+          ],
+          [
+            1506000,
+            1503400,
+            false
+          ],
+          [
+            1357800,
+            1361800,
+            true
+          ],
+          [
+            1542200,
+            1352900,
+            false
+          ],
+          [
+            1403100,
+            1347900,
+            true
+          ],
+          [
+            1358400,
+            1470500,
+            false
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": false,
+      "candidate_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 65536,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    },
+    {
+      "all_raw_timing_runs": [
+        [
+          [
+            1544200,
+            1404200,
+            false
+          ],
+          [
+            1374100,
+            1342800,
+            true
+          ],
+          [
+            1470400,
+            1498800,
+            false
+          ],
+          [
+            1467800,
+            1465900,
+            true
+          ],
+          [
+            1398700,
+            1439600,
+            false
+          ],
+          [
+            1341100,
+            1386200,
+            true
+          ],
+          [
+            1369500,
+            1367700,
+            false
+          ],
+          [
+            1481800,
+            1904600,
+            true
+          ]
+        ],
+        [
+          [
+            1488200,
+            1450400,
+            false
+          ],
+          [
+            1548300,
+            1545000,
+            true
+          ],
+          [
+            1475300,
+            1344700,
+            false
+          ],
+          [
+            1503500,
+            1575400,
+            true
+          ],
+          [
+            1389000,
+            1420100,
+            false
+          ],
+          [
+            1420500,
+            1339800,
+            true
+          ],
+          [
+            1390700,
+            1349300,
+            false
+          ],
+          [
+            1395400,
+            1336000,
+            true
+          ]
+        ]
+      ],
+      "baseline_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "cached": false,
+      "candidate_counters": {
+        "alloc_calls": 4096,
+        "alloc_zeroed_calls": 0,
+        "dealloc_calls": 4096,
+        "realloc_calls": 0,
+        "requested_bytes": 20480
+      },
+      "count_iterations_per_variant": 4096,
+      "expected_prefix": [
+        0,
+        255,
+        255,
+        255,
+        255
+      ],
+      "identical_counter_observations_in_both_runs": true,
+      "payload_length": 4294967295,
+      "prefix_bytes_verified_before_each_run": true,
+      "repeated_fallback_over10percent_regression": false,
+      "timing_iterations_per_variant_per_repetition": 32768,
+      "timing_tuple_columns": [
+        "baseline_elapsed_batch_ns",
+        "candidate_elapsed_batch_ns",
+        "baseline_first"
+      ]
+    }
+  ],
+  "date": "2026-11-16",
+  "decision": "ACCEPT_LOCAL_PREFIX_ALLOCATION_REDUCTION_PENDING_REMOTE_CI",
+  "guards": {
+    "audio_profile_changed": false,
+    "g1_met": false,
+    "linux_live_authorized": false,
+    "new_dependencies_or_features": false,
+    "new_service_reservations": 0,
+    "phone_actions": 0,
+    "real_credential_reads": 0,
+    "real_service_calls": 0
+  },
+  "history": {
+    "failed_cargo_exit": 101,
+    "failed_log_sha256": "3b04df7e2b5e8f2617441225841f232a97cdc866a3c6e429a8454f240eee57fb",
+    "initial_controller_exit": 2,
+    "initial_failed_history_retained": true,
+    "initial_qa": "r1 FAILED only strict Clippy manual_is_multiple_of after transport115/0/1 and example7/0/0 passed stable and1.88",
+    "later_qa": "r2 PASS",
+    "main_remediation": "Benchmark order selector uses is_multiple_of(2), compatible with Rust1.88; no production fix",
+    "owned_jobs_empty_and_cli_source_budgets_unchanged": true,
+    "reviewer_process_note": "One read-only scratch directory ls despite no-shell rule; recorded by main. Agents performed no candidate build, test or measurement."
+  },
+  "limits": [
+    "1280bytes is static source-table data, not a measured linked-binary, physical-memory or RSS delta. Cached prefixes still use five bytes on the wire.",
+    "Constructor timing includes opaque dispatch, Bytes destruction and disabled allocator-gate checks; the instrumentation cost does not cancel when allocation counts differ.",
+    "No normal-allocator, full-upload/engine, process CPU, cycles, WAN, quality, Android parity, durable access or global optimality claim.",
+    "Eligibility comes from three non-speech synthetic signals, not a representative real-voice corpus or actual service trace. Rows reuse each encoding across three elapsed-width checks.",
+    "Elapsed values1/2/9byte widths are observed; other widths are not individually sampled. Their serialization sizes lie between the checked extremes by unchanged audio_request arithmetic.",
+    "No real receiver, TLS handshake, private capture, phone action, core-suppression evidence or Linux live waiver is established.",
+    "Only this local candidate is qualified; remote CI has not run at this checkpoint and cannot reproduce instrumented timing merely by running invariant tests.",
+    "Old releaseCLI/live result is deliberately historical and does not qualify this new production header helper."
+  ],
+  "method": {
+    "all_raw_elapsed_values_retained": true,
+    "count_iterations": 4096,
+    "counter_semantics": "Rust alloc/alloc_zeroed/realloc calls and requested sizes, realloc full new_size; not live/peak/RSS or copied bytes",
+    "counters_separate_from_timing": true,
+    "csv_placeholder_semantics": "Phase0 elapsed and phase1 count zero columns are placeholders, not observations",
+    "measurement_driver_sha256": "11eb7c7c21932422763e21b174e2c44b9bd82b1135f03b113153da34cafc46cb",
+    "outliers_excluded": 0,
+    "preregistration_sha256": "df4ede951d838ce81ccc8be44dabacf9a935790a33aee254733b5710e8d4fb60",
+    "qa_driver_sha256": "ab0783ef2366eb6e6a2cad276eb5df6bf1e935a3db1d892724fc83a6f6000a15",
+    "same_binary_baseline_candidate": true,
+    "source_preflight_sha256": "a3482a84c3c99fe442504c7e9d3a6973084cbc5973fcb6c617dfd2fcf09de343",
+    "timing_iterations": 32768,
+    "timing_repetitions": 8,
+    "warmup_iterations_each_case_variant": 1024
+  },
+  "pipeline_sizing": {
+    "all18_numeric_rows": [
+      {
+        "elapsed_ms": 0,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 71,
+        "messages": 253,
+        "min_message_bytes": 50,
+        "page_ms": 20,
+        "signal": 0,
+        "total_message_bytes": 12683
+      },
+      {
+        "elapsed_ms": 128,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 72,
+        "messages": 253,
+        "min_message_bytes": 51,
+        "page_ms": 20,
+        "signal": 0,
+        "total_message_bytes": 12936
+      },
+      {
+        "elapsed_ms": 9223372036854775807,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 79,
+        "messages": 253,
+        "min_message_bytes": 58,
+        "page_ms": 20,
+        "signal": 0,
+        "total_message_bytes": 14707
+      },
+      {
+        "elapsed_ms": 0,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 494,
+        "messages": 8,
+        "min_message_bytes": 50,
+        "page_ms": 1000,
+        "signal": 0,
+        "total_message_bytes": 2648
+      },
+      {
+        "elapsed_ms": 128,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 495,
+        "messages": 8,
+        "min_message_bytes": 51,
+        "page_ms": 1000,
+        "signal": 0,
+        "total_message_bytes": 2656
+      },
+      {
+        "elapsed_ms": 9223372036854775807,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 502,
+        "messages": 8,
+        "min_message_bytes": 58,
+        "page_ms": 1000,
+        "signal": 0,
+        "total_message_bytes": 2712
+      },
+      {
+        "elapsed_ms": 0,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 134,
+        "messages": 253,
+        "min_message_bytes": 45,
+        "page_ms": 20,
+        "signal": 1,
+        "total_message_bytes": 24093
+      },
+      {
+        "elapsed_ms": 128,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 135,
+        "messages": 253,
+        "min_message_bytes": 46,
+        "page_ms": 20,
+        "signal": 1,
+        "total_message_bytes": 24346
+      },
+      {
+        "elapsed_ms": 9223372036854775807,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 142,
+        "messages": 253,
+        "min_message_bytes": 53,
+        "page_ms": 20,
+        "signal": 1,
+        "total_message_bytes": 26117
+      },
+      {
+        "elapsed_ms": 0,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 2851,
+        "messages": 8,
+        "min_message_bytes": 61,
+        "page_ms": 1000,
+        "signal": 1,
+        "total_message_bytes": 14058
+      },
+      {
+        "elapsed_ms": 128,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 2852,
+        "messages": 8,
+        "min_message_bytes": 62,
+        "page_ms": 1000,
+        "signal": 1,
+        "total_message_bytes": 14066
+      },
+      {
+        "elapsed_ms": 9223372036854775807,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 2859,
+        "messages": 8,
+        "min_message_bytes": 69,
+        "page_ms": 1000,
+        "signal": 1,
+        "total_message_bytes": 14122
+      },
+      {
+        "elapsed_ms": 0,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 107,
+        "messages": 253,
+        "min_message_bytes": 61,
+        "page_ms": 20,
+        "signal": 2,
+        "total_message_bytes": 24134
+      },
+      {
+        "elapsed_ms": 128,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 108,
+        "messages": 253,
+        "min_message_bytes": 62,
+        "page_ms": 20,
+        "signal": 2,
+        "total_message_bytes": 24387
+      },
+      {
+        "elapsed_ms": 9223372036854775807,
+        "eligible": 253,
+        "fallback": 0,
+        "max_message_bytes": 115,
+        "messages": 253,
+        "min_message_bytes": 69,
+        "page_ms": 20,
+        "signal": 2,
+        "total_message_bytes": 26158
+      },
+      {
+        "elapsed_ms": 0,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 2865,
+        "messages": 8,
+        "min_message_bytes": 61,
+        "page_ms": 1000,
+        "signal": 2,
+        "total_message_bytes": 14099
+      },
+      {
+        "elapsed_ms": 128,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 2866,
+        "messages": 8,
+        "min_message_bytes": 62,
+        "page_ms": 1000,
+        "signal": 2,
+        "total_message_bytes": 14107
+      },
+      {
+        "elapsed_ms": 9223372036854775807,
+        "eligible": 3,
+        "fallback": 5,
+        "max_message_bytes": 2873,
+        "messages": 8,
+        "min_message_bytes": 69,
+        "page_ms": 1000,
+        "signal": 2,
+        "total_message_bytes": 14163
+      }
+    ],
+    "all_sample_progress_natural_eof_once_upstream_close_drop_and_idempotent_cleanup_asserted": true,
+    "bitrate": 24000,
+    "channels": 1,
+    "default_majority_acceptance_pass": true,
+    "elapsed_ms": [
+      0,
+      128,
+      9223372036854775807
+    ],
+    "input_chunks": 251,
+    "last_input_chunk_bytes": 34,
+    "measurements": "Actual Pcm16Opus output chunks passed to actual audio_request; same one-to-one boundary used by Engine",
+    "native_application": "VoIP",
+    "page_durations_ms": [
+      20,
+      1000
+    ],
+    "pcm_bytes_per_input": 160034,
+    "sample_rate": 16000,
+    "samples_per_input": 80017,
+    "scope": "Only audio message eligibility, not init/context/end requests or measured service cache hits",
+    "signals": [
+      "silence",
+      "harmonic_triangles",
+      "seeded_noise"
+    ],
+    "vbr": true
+  },
+  "qualification": {
+    "actual_constructor_campaigns": 1,
+    "actual_constructor_runs": 2,
+    "actual_measurement_controller_process_exit": 0,
+    "actual_qa_r2_process_exit": 0,
+    "all_fallback_allocator_counts_and_requested_bytes_equal": true,
+    "all_small_measured_prefixes_zero_allocator_calls": true,
+    "captures": [
+      {
+        "actual_exit": 0,
+        "label": "release-default-noop",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "release-unknown-noop",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "release-extra-noop",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "debug-optin-noop",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "run1",
+        "log_bytes": 11048,
+        "log_sha256": "87bbb2b57cbe1a4d1677359fc1856e240e32d39629c22e32ccc594a767f0a68a",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "run2",
+        "log_bytes": 11048,
+        "log_sha256": "8ad8a53151659eb26865f4f651a0709abaa2d7b08306d07050f80485c999d7ad",
+        "owned_job_empty": true
+      }
+    ],
+    "constructor_cases_per_run": 16,
+    "count_rows_per_run": 32,
+    "elapsed_observations_both_runs": 512,
+    "forced_split": {
+      "complete_independent_framing_and_eof_before_ok": true,
+      "explicit_ping_pong_source_release_barrier": true,
+      "first_data_bytes": 3,
+      "payload_bytes": 4,
+      "remote_stream_window": 3,
+      "wire_bytes": 9
+    },
+    "historical_original_release_cli_unchanged_and_not_invoked": true,
+    "no_repeated_fallback_over10percent_median_regression": true,
+    "numeric_csv_rows_per_run": 288,
+    "qa_groups": [
+      {
+        "actual_exit": 0,
+        "label": "format-apply-affected-packages",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "source-before",
+        "log_bytes": 7973,
+        "log_sha256": "d99a328ee707880d1ba3330691a1763d876bc4c36d50bb9e116506e9ca3b3dcb",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "rustc-stable",
+        "log_bytes": 36,
+        "log_sha256": "55cd0529c005d3f62869ea6e2271bfa9d5196f56dc65a8be00a371af114a4a98",
+        "observed_version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "rustc-msrv",
+        "log_bytes": 36,
+        "log_sha256": "1ac65f1cd11fa83e9530348b787fa3e5bdd85b0f3727099df8bcdf3e24274138",
+        "observed_version": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "format",
+        "log_bytes": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "four_existing_auth_denial_and_six_new_prefix_names_confirmed": true,
+        "label": "transport-tests-stable",
+        "log_bytes": 12111,
+        "log_sha256": "d80a247f76c44b745e4d1e898cb6168991ea40912c7d237b216a1a66152e0a54",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 1,
+          "measured": 0,
+          "passed": 115
+        }
+      },
+      {
+        "actual_exit": 0,
+        "four_existing_auth_denial_and_six_new_prefix_names_confirmed": true,
+        "label": "transport-tests-msrv",
+        "log_bytes": 12111,
+        "log_sha256": "71e9880428d578764bb4b6a37e7d4bd95e0bfcefc413315c22b9156017a9a13f",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 1,
+          "measured": 0,
+          "passed": 115
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "benchmark-tests-stable",
+        "log_bytes": 878,
+        "log_sha256": "e945f263f7ed2ed458ef219aac02c671ebfe5ef0133c1987030b2333185cdbcf",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 7
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "benchmark-tests-msrv",
+        "log_bytes": 878,
+        "log_sha256": "28406ec040d5f0f6bbc53f1ccbbde7680c22dc2771fba6559716026670847ee3",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 7
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "strict-transport-clippy",
+        "log_bytes": 164,
+        "log_sha256": "d2d0429fb8a16f40ee302dd629eed113421b8e5cbaf3f357c6aa5fb19e2eb507",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "all18_fixed_numeric_pipeline_rows_verified": true,
+        "label": "native-codec-message-sizes",
+        "log_bytes": 1791,
+        "log_sha256": "69841476b0aa2c792a50ec29a1b85ffd81967659fa19bf9485920f5938d9fbad",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 1
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "workspace-stable",
+        "log_bytes": 47028,
+        "log_sha256": "9aa633482d33adeafdb7f0033c2fd7bfe9f28539137b902560a00d529b2e991d",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 2,
+          "measured": 0,
+          "passed": 418
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "guarded-sdk-loopback",
+        "log_bytes": 1047,
+        "log_sha256": "479d34e5d12b6b60ef898b3d58a0b00450853bc19c3d10f969a16c37d68cd4fb",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 9
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "cli-feature-off",
+        "log_bytes": 5986,
+        "log_sha256": "db7086730c24b6e4d71766b5d48aff2b678cf2cc3d54e5b390a6f87b2d928069",
+        "owned_job_empty": true,
+        "rust_counts": {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 38
+        }
+      },
+      {
+        "actual_exit": 0,
+        "label": "benchmark-release-build",
+        "log_bytes": 166,
+        "log_sha256": "d71322c53bf58113b4e0732c56a3c86341ab04cb284f6b3a7f7a740945c7c9d2",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "source-after",
+        "log_bytes": 7973,
+        "log_sha256": "d99a328ee707880d1ba3330691a1763d876bc4c36d50bb9e116506e9ca3b3dcb",
+        "owned_job_empty": true
+      }
+    ],
+    "raw_h2_matrix": {
+      "empty_message_preserved": true,
+      "messages": 260,
+      "payload_bytes": 115840,
+      "single_rpc_and_tcp": true,
+      "upload_eof_before_ok": true,
+      "wire_bytes": 117140
+    },
+    "setup_groups": [
+      {
+        "actual_exit": 0,
+        "label": "source-before",
+        "log_bytes": 7973,
+        "log_sha256": "d99a328ee707880d1ba3330691a1763d876bc4c36d50bb9e116506e9ca3b3dcb",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "debug-entrypoint-build",
+        "log_bytes": 164,
+        "log_sha256": "db53e8007bc64e0b76f7061cfdb61928b75bde6d882b2c3d2ad1ea527e69a119",
+        "owned_job_empty": true
+      },
+      {
+        "actual_exit": 0,
+        "label": "source-after",
+        "log_bytes": 7973,
+        "log_sha256": "d99a328ee707880d1ba3330691a1763d876bc4c36d50bb9e116506e9ca3b3dcb",
+        "owned_job_empty": true
+      }
+    ],
+    "upstream_source_close_and_marker_claims": "Matrix checks close completion and source capture release; tiny test checks close completion, not a separately counted close callback"
+  },
+  "schema": 1,
+  "scope": "fixed synthetic prefix constructors, native PCM/Opus-to-S3 message sizing, and owned plaintext loopback framing only"
+}

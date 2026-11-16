@@ -1,5 +1,25 @@
 # État du moteur — 2026-11-16
 
+## Préfixes gRPC — allocation retirée sur le chemin court mesuré
+
+Une table immuable de **1280 octets de données source** remplace l'allocation du
+préfixe de cinq octets pour les messages0–255 ; le payload était déjà zéro-copy,
+le chemin de repli et le contrôle de flux sont inchangés. Deux runs sur le même
+binaire confirment **1 → 0 allocation/libération** pour les onze tailles courtes
+mesurées ; cinq contrôles de repli identiques en compteurs, sans dépassement du
+seuil de régression temporelle répétée. Aucun gain global de dictée attribué.
+
+Sur le vrai pipeline PCM/Opus synthétique + enveloppe S3, chaque signal avec pages
+20ms donne **253/253 messages éligibles**, même à la largeur d'elapsed maximale
+testée. Contrôle1000ms :3/8. Ce n'est ni une voix représentative ni un hit serveur.
+Framing brut260messages et préfixe réellement coupé à3octets par fenêtre distante
+passent sur stable/1.88. Transport **115/0/1**, banc **7/0/0** chacun, workspace
+stable **418/0/2**, SDK9, feature-off38, format/Clippy/build passent. Échec lint du
+premier lot conservé ; CLI historique et budgets inchangés. CI du candidat encore
+en attente ; les qualifications ci-dessous gardent leurs commits exacts.
+[Contrat et limites](research/rust-grpc-prefix-allocation.md) ·
+[Preuve locale complète](evidence/rust-grpc-prefix-allocation-windows-20261116.json).
+
 ## Optimisation de sérialisation — CI des huit configurations natives qualifiée
 
 Le commit `43e918d` passe les **13 jobs CI** : Windows, Ubuntu, macOS ARM64 et

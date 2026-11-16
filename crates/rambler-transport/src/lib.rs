@@ -46,6 +46,7 @@
 pub mod codec;
 mod connection;
 pub mod credentials;
+mod grpc_prefix;
 mod wire;
 
 use bytes::Bytes;
