@@ -1,5 +1,20 @@
 # État du moteur — 2026-11-16
 
+## Préprotection Linux — observation offline, pas admission live
+
+Un [prototype Rust autonome à entrée publique fixe](../tools/reference/LINUX_PRECREDENTIAL_CANARY.md)
+passe ses 12 tests simulés sous Windows stable/1.88 et Linux 1.88. Sur Linux,
+no-op, acceptation littérale, refus et arrêt de l'enfant bloqué passent ; trois
+ouvertures externes de son `environ` sont refusées à l'observateur non privilégié,
+avec propriété proc root. Cleanup invité et job de pont Windows sont vérifiés.
+Zéro credential, service, réservation, téléphone, crash core provoqué ou réglage
+global modifié. Ce code de référence est hors workspace Cargo, pas une intégration
+production ni une nouvelle qualification de la CI cœur.
+
+Ces effets d'accès ne prouvent ni suppression réelle des cores ni absence de
+lancement du collecteur : **G1 reste non satisfait et Linux live NO_GO**. Aucun
+budget n'est réinitialisé. [Preuve et limites](evidence/linux-precredential-canary-offline-20261116.json).
+
 ## CI des refus précoces — source `1d66138` qualifiée
 
 Les 13 jobs Rust/Python réussissent, dont huit natifs sur Windows, Ubuntu,
