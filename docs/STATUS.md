@@ -258,6 +258,18 @@ La mesure Windows locale reste distincte et l'ISA native liée n'est pas attest�
 [Preuve CI](evidence/rust-codec-attribution-ci-20261115.json) ·
 [protocole et limites](research/rust-audio-profiling.md#qualification-ci-distante-du-banc--2026-11-15).
 
+## Opus Release Windows — gain local borné et contrôle VS17
+
+Une nouvelle comparaison fraîche et indépendante de l'étude CRC rejetée mesure
+`native_frames` 3,0–3,6× plus rapide et le pipeline audio 67,4–71,6 % plus court
+sur trois signaux synthétiques Windows, à fidélité inter-build identique.
+Quatre runs uniquement ; aucun gain WAN/ASR ou optimum global revendiqué.
+Le Debug/MSRV local et les **14 jobs CI** du correctif `2334b76` passent, dont
+le contrôle VS2022 explicite. Deux jobs ARM ont été relancés une seule fois après
+un manque de capacité GitHub, avant toute exécution initiale ; incidents conservés.
+[Protocole, incidents et limites](research/rust-opus-release-build.md) ·
+[588 mesures brutes](evidence/rust-opus-release-build-windows-20261116.json).
+
 ## Répertoire privé de validation — remédiation locale
 
 Un nouveau répertoire est créé et accepté par le contrôle strict d'origine,

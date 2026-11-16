@@ -357,6 +357,10 @@ ou qu'une autre architecture aurait les mêmes résultats. Il suffit ici pour
 campagne pourrait instrumenter séparément setup/encode natif ou CPU processus,
 avec profilage d'échantillonnage ; aucune telle attribution n'est inventée ici.
 
+> Suite distincte du 16 novembre : [Opus Release Windows](rust-opus-release-build.md),
+> baseline fraîche, fidélité inter-build et budget de quatre runs. Les gains locaux
+> et la qualification VS17 ne réécrivent ni le rejet CRC ni les mesures historiques ci-dessus.
+
 ## Qualification complémentaire — attribution codec synthétique du 2026-11-15
 
 Le jeu [de preuves typées et mesures brutes](../evidence/rust-codec-attribution-20261115.json)
