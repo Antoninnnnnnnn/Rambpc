@@ -1,6 +1,21 @@
 # État du moteur — 2026-11-16
 
-## Sérialisation protobuf — gain d'allocations mesuré, CI candidate en attente
+## Optimisation de sérialisation — CI des huit configurations natives qualifiée
+
+Le commit `43e918d` passe les **13 jobs CI** : Windows, Ubuntu, macOS ARM64 et
+Intel × 1.88/stable, lint et quatre Python. Workspace **411/0/2** sous Windows,
+**412/0/2** ailleurs ; les cinq nouveaux noms fidélité/fixed32 et le gate de trois
+tests du banc sont confirmés dans les huit jobs natifs. Les 64 groupes Rust,
+1 545 494 octets de logs, métadonnées, étapes, hashes et hosts sont vérifiés.
+[Preuve CI du commit exact](evidence/rust-wire-encoding-allocation-ci-20261116.json).
+
+Les gains de compteurs restent ceux des deux mesures Windows locales : aucun
+nouveau timing en CI ni gain WAN/moteur complet attribué. La qualification locale
+« CI en attente » ci-dessous est historique ; accès durable, parité Android et
+G1/Linux live ne sont pas résolus par cette optimisation.
+[Mesure et limites](research/rust-wire-encoding-allocation.md).
+
+## Sérialisation protobuf — gain d'allocations mesuré (checkpoint local historique)
 
 Les encodeurs génériques écrivent sans vecteurs temporaires, avec octets, erreurs
 et bornes préservés. Deux runs synthétiques sur le même binaire confirment les

@@ -1,6 +1,29 @@
 # Réduction des allocations de sérialisation protobuf
 
-## Décision locale — 16 novembre 2026
+## CI multiplateforme — source `43e918d` qualifiée
+
+Les **13 jobs** Rust/Python du commit
+`43e918d44c4612cad46c3de4270d59bcf49ce35f` passent : huit jobs natifs
+Windows, Ubuntu, macOS ARM64 et Intel × Rust 1.88/stable, lint et quatre Python.
+Chaque workspace rapporte **411/0/2** sous Windows, **412/0/2** ailleurs. Les cinq
+nouveaux noms de fidélité/fixed32 et les trois tests du banc sont vérifiés dans
+les huit jobs ; le nouveau gate donne **3/0/0** partout. Les neuf tests SDK gardés
+et les refus d'authentification existants restent présents et passent.
+
+Les 64 groupes de commandes et **1 545 494 octets** de logs ont été recomptés avec
+provenance API run/job/step, HEAD, hashes et lignes de host du compilateur. Un seul
+attempt par run, aucun rejeu de CI. Les comptes sont par commande/job, pas des tests
+distincts à additionner. Les builds/gates release, PCM et racines publiques passent
+également ; le smoke des racines reste une configuration, pas un handshake TLS.
+[Preuve CI séparée liée au commit exact](../evidence/rust-wire-encoding-allocation-ci-20261116.json).
+
+Cette CI exécute les **invariants**, pas la campagne d'allocations/temps. Elle ne
+rend pas les timings Windows représentatifs du moteur, du réseau ou des autres
+OS. Le checkpoint local et sa preuve « CI en attente » ci-dessous sont conservés
+comme historique ; leur identité de build et leurs limites ne sont pas réécrites.
+Aucune nouvelle dictée, parité Android, admission Linux live ou levée de G1.
+
+## Décision locale — 16 novembre 2026 (checkpoint historique)
 
 **Optimisation de production retenue localement, CI distante encore en attente.**
 Les encodeurs de `crates/rambler-protocol/src/wire.rs` écrivent désormais clé,
