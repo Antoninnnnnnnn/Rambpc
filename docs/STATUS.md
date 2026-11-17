@@ -47,6 +47,19 @@ restent non qualifiés** ; ni résultat Linux/CI de ce lot ni accès durable dé
 [Contrat](research/credential-frame-source.md) ·
 [Preuve locale bornée](evidence/credential-frame-source-fake-qa-20261117.json).
 
+Un cas supplémentaire, distinct, accepte ensuite les **vraies opérations de
+fichier Windows sur un fichier neuf aux seules valeurs inventées** : trame
+attendue, second appel refusé, fichier/pins inchangés et Job nettoyé. Ce n’est
+qu’un point de compatibilité, pas la qualification d’un fichier sensible ni du
+canal READY. [Observation séparée](evidence/credential-frame-source-windows-public-file-20261117.json).
+
+Le CI de `45ff404` termine d’abord à **13 réussites et une annulation** : GitHub
+n’a pas attribué le runner macOS ARM, sans aucune étape projet enregistrée.
+L’annotation de capacité est conservée ; une seule relance du job annulé est
+alors demandée, sans relancer les treize succès. Résultat de cette relance et
+vérification de réutilisation encore en attente à ce checkpoint.
+[Provenance CI](evidence/credential-frame-source-ci-20261117.json).
+
 ## Contrôleur de session gardé — 17 novembre
 
 Le nouveau contrôleur passe **49 tests simulés sous Windows et 49 sous Linux**,

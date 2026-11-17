@@ -6,9 +6,10 @@ is delivered. Initial authoring was static only. Independent source review and a
 narrow opening-flags follow-up permitted one finite Windows/Python 3.14 fake run:
 **60 tests, zero failures/errors/skips**, source pins unchanged, outer owned Job
 membership and emptiness verified. [QA evidence](../evidence/credential-frame-source-fake-qa-20261117.json).
-The source's `SOURCE_UNQUALIFIED` marker remains conservative: actual input files,
-READY integration and a REAL caller are not qualified. Linux/CI results are not
-claimed by this local record.
+The source's `SOURCE_UNQUALIFIED` marker remains conservative: actual sensitive
+input files, READY integration and a REAL caller are not qualified. Linux/CI
+results are not claimed by this local fake record; the later public-file
+observation below is separate.
 
 ## Contract and API
 
@@ -74,6 +75,17 @@ The three fields follow in the listed order, each as u16 big-endian length + val
 Total frame length is 17..12302. The exact 85-byte public fixture tuple
 `invented-public-frame-key`, `invalid.public.frame`, `invented-public-frame-cert`
 is rejected; the constants are cross-checked locally without importing a receiver.
+
+## One actual Windows public file — separate observation
+
+After its own source review, one new local file containing only invented values
+passed the default Windows/Python 3.14 metadata/open/read path and exact frame
+comparison. Its second producer call was rejected. The file and source pins were
+unchanged, and outer Job membership/emptiness were verified. This observes one
+real-filesystem compatibility point, not arbitrary source files, concurrent-write
+safety, READY/channel integration, ACL protection or secrecy. No actual credentials,
+native engine or service were used; the exclusive attempt is not replayed.
+[Public-file evidence](../evidence/credential-frame-source-windows-public-file-20261117.json).
 
 ## Memory and qualification limits
 
