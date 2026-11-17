@@ -32,6 +32,25 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Modes avancés et accès natif — audits documentaires, 17 novembre
+
+L’audit statique de la base `ee336cf` ne démontre pas de champ client confirmé
+manquant pour COMPOSE/RAMBLE/HISTORY : préférences, contexte tardif, projections
+legacy/cursor et résultats structurés sont déjà représentés. Il ne qualifie pas
+l’activation serveur ni leurs effets. Une référence autorisée et appariée entre
+requête, réponse brute, helper S3, filtre PixelBoard et état éditeur est nécessaire
+pour distinguer un manque client d’un traitement local ou d’un gate serveur ;
+pas de flag, état de compte ou effet SEND/CLEAR inventé.
+[Audit et discriminants précis](research/rust-advanced-mode-contract-audit.md).
+
+La recherche publique bornée (six requêtes, deux pages officielles lues) n’a pas
+identifié de contrat de provisionnement natif pour ce S3 exact. Ce résultat
+n’établit ni absence universelle de voie d’accès, ni autorisation ou interdiction
+d’une configuration particulière. La possession d’une clé ou un ancien succès
+ne remplace pas une provenance et un périmètre d’utilisation vérifiables.
+Aucune nouvelle connexion service/appareil ou lecture d’identifiants dans ces
+deux audits. [Sources, bornes et prérequis](research/native-access-public-research.md).
+
 ## Décodage safety — gain local mesuré, 17 novembre
 
 La source `c89f140` évite de matérialiser comme inconnus les marqueurs exacts
