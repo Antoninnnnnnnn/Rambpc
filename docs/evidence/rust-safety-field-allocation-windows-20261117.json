@@ -1,0 +1,1248 @@
+{
+  "baseline_commit": "ee336cf309bb8cd8e654a435e0a85ce24632f8fb",
+  "builds": {
+    "baseline": {
+      "binary_sha256": "c987932a0a21c2148eedad9c4bad1044ba773a2917de27274e2e1e76d62f4131",
+      "binary_size": 594432,
+      "credentials_loaded": false,
+      "exit": 0,
+      "historical_inputs_unchanged": true,
+      "job_empty": true,
+      "membership_verified": true,
+      "provider_calls": 0,
+      "source_manifest": {
+        "crates/rambler-engine/examples/backend_cpu_profile.rs": "bdaad791d7d91378ae7239e793e3c67b11f559fe2b975b76a9baead441e7da7a",
+        "crates/rambler-engine/examples/profile_support/mod.rs": "02a0f7797e613156bdf9d43e4f50adfe123525b0050e2eb9fe694dcec3eca3f3",
+        "crates/rambler-protocol/src/decode.rs": "e3bfcb5be3b7a2c024725845d545a555d92770343118bdaed5499c2cb244868b",
+        "crates/rambler-protocol/src/lib.rs": "0709259da7b82e23aed402f1420f8503abd88cc824fc36f4cd0eaa2f80bbb0b0",
+        "crates/rambler-protocol/src/models.rs": "104ab6274155470ee6be77bbb0d084a3cd7b26b4e50c9d78b4d975d6359240a0",
+        "crates/rambler-protocol/src/request.rs": "22d10c05c8d5d609cf0210a055789cd69399f4dd30d2f64854ebfb127c648bcf",
+        "crates/rambler-protocol/src/wire.rs": "eec19faf1539459235aaaa05d4cc9346101ce8fa8ddbf838e63cc1ea89c521e5",
+        "crates/rambler-protocol/tests/safety_storage.rs": "013055321f4f8cea2356a2d229ffacd60eb60ccccb1d51bd8ed3aa3630fefa00"
+      },
+      "source_unchanged": true,
+      "status": "PASS_OFFLINE_STEP",
+      "step": "baseline-formatted"
+    },
+    "candidate": {
+      "binary_sha256": "8aa919a6799779389173e9cfeb7b015fca51b01e4dfb2d6e4c9d26400c6b72f9",
+      "binary_size": 595968,
+      "credentials_loaded": false,
+      "exit": 0,
+      "historical_inputs_unchanged": true,
+      "job_empty": true,
+      "membership_verified": true,
+      "provider_calls": 0,
+      "source_manifest": {
+        "crates/rambler-engine/examples/backend_cpu_profile.rs": "bdaad791d7d91378ae7239e793e3c67b11f559fe2b975b76a9baead441e7da7a",
+        "crates/rambler-engine/examples/profile_support/mod.rs": "02a0f7797e613156bdf9d43e4f50adfe123525b0050e2eb9fe694dcec3eca3f3",
+        "crates/rambler-protocol/src/decode.rs": "f2bbf3e5cef20569a8b58d437aeffb480185da3e53e46a900e6d5e4b2df8541f",
+        "crates/rambler-protocol/src/lib.rs": "0709259da7b82e23aed402f1420f8503abd88cc824fc36f4cd0eaa2f80bbb0b0",
+        "crates/rambler-protocol/src/models.rs": "104ab6274155470ee6be77bbb0d084a3cd7b26b4e50c9d78b4d975d6359240a0",
+        "crates/rambler-protocol/src/request.rs": "22d10c05c8d5d609cf0210a055789cd69399f4dd30d2f64854ebfb127c648bcf",
+        "crates/rambler-protocol/src/wire.rs": "eec19faf1539459235aaaa05d4cc9346101ce8fa8ddbf838e63cc1ea89c521e5",
+        "crates/rambler-protocol/tests/safety_storage.rs": "013055321f4f8cea2356a2d229ffacd60eb60ccccb1d51bd8ed3aa3630fefa00"
+      },
+      "source_unchanged": true,
+      "status": "PASS_OFFLINE_STEP",
+      "step": "candidate"
+    }
+  },
+  "date": "2026-11-17",
+  "limits": [
+    "Logical allocator bytes, not RSS.",
+    "Five process pairs on one Windows machine; noisy ranges retained.",
+    "No service latency, real traffic, end-to-end or fastest-engine claim."
+  ],
+  "measurement": {
+    "allocation_counts_stable_across_five_processes": true,
+    "full_model_oracles_passed": true,
+    "logical_bytes_not_RSS": true,
+    "plan": {
+      "automatic_retry": false,
+      "binary_sha256": {
+        "baseline": "c987932a0a21c2148eedad9c4bad1044ba773a2917de27274e2e1e76d62f4131",
+        "candidate": "8aa919a6799779389173e9cfeb7b015fca51b01e4dfb2d6e4c9d26400c6b72f9"
+      },
+      "credentials_loaded": false,
+      "historical_opus_study_repeated": false,
+      "iterations": 20000,
+      "order": [
+        [
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "candidate"
+        ]
+      ],
+      "provider_calls": 0,
+      "repeats": 1,
+      "schema": "offline-decoder-safety-five-pairs-v1",
+      "source_sha256": {
+        "crates/rambler-engine/examples/backend_cpu_profile.rs": "bdaad791d7d91378ae7239e793e3c67b11f559fe2b975b76a9baead441e7da7a",
+        "crates/rambler-engine/examples/profile_support/mod.rs": "02a0f7797e613156bdf9d43e4f50adfe123525b0050e2eb9fe694dcec3eca3f3",
+        "crates/rambler-protocol/src/decode.rs": "f2bbf3e5cef20569a8b58d437aeffb480185da3e53e46a900e6d5e4b2df8541f",
+        "crates/rambler-protocol/src/lib.rs": "0709259da7b82e23aed402f1420f8503abd88cc824fc36f4cd0eaa2f80bbb0b0",
+        "crates/rambler-protocol/src/models.rs": "104ab6274155470ee6be77bbb0d084a3cd7b26b4e50c9d78b4d975d6359240a0",
+        "crates/rambler-protocol/src/request.rs": "22d10c05c8d5d609cf0210a055789cd69399f4dd30d2f64854ebfb127c648bcf",
+        "crates/rambler-protocol/src/wire.rs": "eec19faf1539459235aaaa05d4cc9346101ce8fa8ddbf838e63cc1ea89c521e5",
+        "crates/rambler-protocol/tests/safety_storage.rs": "013055321f4f8cea2356a2d229ffacd60eb60ccccb1d51bd8ed3aa3630fefa00"
+      }
+    },
+    "processes": 10,
+    "results": {
+      "baseline": {
+        "cases": {
+          "decode_safety_absent": {
+            "peak_logical_bytes": 1199,
+            "per_model_allocations": {
+              "alloc_calls": 11.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1359.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                817.335,
+                823.165,
+                809.07,
+                798.635,
+                787.89
+              ],
+              "max": 823.165,
+              "median": 809.07,
+              "min": 787.89
+            }
+          },
+          "decode_safety_alternating16": {
+            "peak_logical_bytes": 3094,
+            "per_model_allocations": {
+              "alloc_calls": 28.0,
+              "realloc_calls": 5.0,
+              "requested_bytes": 5263.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                2179.205,
+                2254.6,
+                2290.4,
+                2407.63,
+                2344.14
+              ],
+              "max": 2407.63,
+              "median": 2290.4,
+              "min": 2179.205
+            }
+          },
+          "decode_safety_mixed_unknown42_wrongwire30": {
+            "peak_logical_bytes": 1685,
+            "per_model_allocations": {
+              "alloc_calls": 19.0,
+              "realloc_calls": 2.0,
+              "requested_bytes": 2398.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                1517.645,
+                1512.825,
+                1555.83,
+                1599.295,
+                1659.85
+              ],
+              "max": 1659.85,
+              "median": 1555.83,
+              "min": 1512.825
+            }
+          },
+          "decode_safety_noncanonical0": {
+            "peak_logical_bytes": 1428,
+            "per_model_allocations": {
+              "alloc_calls": 13.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1593.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                836.505,
+                857.015,
+                935.505,
+                865.425,
+                843.855
+              ],
+              "max": 935.505,
+              "median": 857.015,
+              "min": 836.505
+            }
+          },
+          "decode_safety_noncanonical1": {
+            "peak_logical_bytes": 1428,
+            "per_model_allocations": {
+              "alloc_calls": 13.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1593.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                877.51,
+                925.6,
+                845.13,
+                910.835,
+                830.26
+              ],
+              "max": 925.6,
+              "median": 877.51,
+              "min": 830.26
+            }
+          },
+          "decode_safety_one0": {
+            "peak_logical_bytes": 1426,
+            "per_model_allocations": {
+              "alloc_calls": 13.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1589.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                859.255,
+                900.285,
+                828.32,
+                1099.945,
+                865.885
+              ],
+              "max": 1099.945,
+              "median": 865.885,
+              "min": 828.32
+            }
+          },
+          "decode_safety_one1": {
+            "peak_logical_bytes": 1426,
+            "per_model_allocations": {
+              "alloc_calls": 13.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1589.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                835.065,
+                874.945,
+                1415.755,
+                869.785,
+                843.07
+              ],
+              "max": 1415.755,
+              "median": 869.785,
+              "min": 835.065
+            }
+          },
+          "decode_safety_retain128_absent": {
+            "peak_logical_bytes": 307856,
+            "per_model_allocations": {
+              "alloc_calls": 11.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5311.5
+            },
+            "retained_logical_bytes": 307072,
+            "wall_ns_per_model": {
+              "all": [
+                1437.8756009615386,
+                1724.9399038461538,
+                1745.0020032051282,
+                1877.7794471153845,
+                1531.375200320513
+              ],
+              "max": 1877.7794471153845,
+              "median": 1724.9399038461538,
+              "min": 1437.8756009615386
+            }
+          },
+          "decode_safety_retain128_alternating16": {
+            "peak_logical_bytes": 429639,
+            "per_model_allocations": {
+              "alloc_calls": 28.0078125,
+              "realloc_calls": 5.0546875,
+              "requested_bytes": 9215.5
+            },
+            "retained_logical_bytes": 427904,
+            "wall_ns_per_model": {
+              "all": [
+                2302.9947916666665,
+                2462.8455528846152,
+                2587.4348958333335,
+                2315.910456730769,
+                2639.4481169871797
+              ],
+              "max": 2639.4481169871797,
+              "median": 2462.8455528846152,
+              "min": 2302.9947916666665
+            }
+          },
+          "decode_safety_retain128_mixed_unknown42_wrongwire30": {
+            "peak_logical_bytes": 370064,
+            "per_model_allocations": {
+              "alloc_calls": 19.0078125,
+              "realloc_calls": 2.0546875,
+              "requested_bytes": 6350.5
+            },
+            "retained_logical_bytes": 369280,
+            "wall_ns_per_model": {
+              "all": [
+                1395.3275240384614,
+                1535.6971153846155,
+                1643.5546875,
+                1584.7706330128206,
+                1496.8098958333333
+              ],
+              "max": 1643.5546875,
+              "median": 1535.6971153846155,
+              "min": 1395.3275240384614
+            }
+          },
+          "decode_safety_retain128_noncanonical0": {
+            "peak_logical_bytes": 337168,
+            "per_model_allocations": {
+              "alloc_calls": 13.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5545.5
+            },
+            "retained_logical_bytes": 336384,
+            "wall_ns_per_model": {
+              "all": [
+                976.0817307692307,
+                1105.8243189102564,
+                1068.5596955128206,
+                980.5939503205128,
+                963.9873798076923
+              ],
+              "max": 1105.8243189102564,
+              "median": 980.5939503205128,
+              "min": 963.9873798076923
+            }
+          },
+          "decode_safety_retain128_noncanonical1": {
+            "peak_logical_bytes": 337168,
+            "per_model_allocations": {
+              "alloc_calls": 13.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5545.5
+            },
+            "retained_logical_bytes": 336384,
+            "wall_ns_per_model": {
+              "all": [
+                947.9066506410256,
+                1054.366987179487,
+                1034.4951923076924,
+                994.2307692307693,
+                959.0695112179487
+              ],
+              "max": 1054.366987179487,
+              "median": 994.2307692307693,
+              "min": 947.9066506410256
+            }
+          },
+          "decode_safety_retain128_one0": {
+            "peak_logical_bytes": 336912,
+            "per_model_allocations": {
+              "alloc_calls": 13.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5541.5
+            },
+            "retained_logical_bytes": 336128,
+            "wall_ns_per_model": {
+              "all": [
+                1300.5308493589744,
+                2085.64703525641,
+                1661.6636618589744,
+                1806.004607371795,
+                1830.7191506410256
+              ],
+              "max": 2085.64703525641,
+              "median": 1806.004607371795,
+              "min": 1300.5308493589744
+            }
+          },
+          "decode_safety_retain128_one1": {
+            "peak_logical_bytes": 336912,
+            "per_model_allocations": {
+              "alloc_calls": 13.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5541.5
+            },
+            "retained_logical_bytes": 336128,
+            "wall_ns_per_model": {
+              "all": [
+                1404.071514423077,
+                1586.4132612179487,
+                1270.322516025641,
+                1810.281450320513,
+                1742.6832932692307
+              ],
+              "max": 1810.281450320513,
+              "median": 1586.4132612179487,
+              "min": 1270.322516025641
+            }
+          }
+        },
+        "census": {
+          "absent": {
+            "case": "absent",
+            "decode_case": "decode_safety_absent",
+            "expected_status": null,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 0,
+            "marker_count": 0,
+            "retain_case": "decode_safety_retain128_absent",
+            "unknown_capacity": 0,
+            "wire_bytes": 14
+          },
+          "alternating16": {
+            "case": "alternating16",
+            "decode_case": "decode_safety_alternating16",
+            "expected_status": 1,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 896,
+            "marker_count": 16,
+            "retain_case": "decode_safety_retain128_alternating16",
+            "unknown_capacity": 16,
+            "wire_bytes": 62
+          },
+          "mixed_unknown42_wrongwire30": {
+            "case": "mixed_unknown42_wrongwire30",
+            "decode_case": "decode_safety_mixed_unknown42_wrongwire30",
+            "expected_status": 0,
+            "field_size": 56,
+            "genuine_unknown_count": 3,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 448,
+            "marker_count": 3,
+            "retain_case": "decode_safety_retain128_mixed_unknown42_wrongwire30",
+            "unknown_capacity": 8,
+            "wire_bytes": 36
+          },
+          "noncanonical0": {
+            "case": "noncanonical0",
+            "decode_case": "decode_safety_noncanonical0",
+            "expected_status": 0,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 224,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_noncanonical0",
+            "unknown_capacity": 4,
+            "wire_bytes": 19
+          },
+          "noncanonical1": {
+            "case": "noncanonical1",
+            "decode_case": "decode_safety_noncanonical1",
+            "expected_status": 1,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 224,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_noncanonical1",
+            "unknown_capacity": 4,
+            "wire_bytes": 19
+          },
+          "one0": {
+            "case": "one0",
+            "decode_case": "decode_safety_one0",
+            "expected_status": 0,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 224,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_one0",
+            "unknown_capacity": 4,
+            "wire_bytes": 17
+          },
+          "one1": {
+            "case": "one1",
+            "decode_case": "decode_safety_one1",
+            "expected_status": 1,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 224,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_one1",
+            "unknown_capacity": 4,
+            "wire_bytes": 17
+          }
+        }
+      },
+      "candidate": {
+        "cases": {
+          "decode_safety_absent": {
+            "peak_logical_bytes": 1199,
+            "per_model_allocations": {
+              "alloc_calls": 11.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1359.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                755.46,
+                746.56,
+                767.185,
+                780.36,
+                838.365
+              ],
+              "max": 838.365,
+              "median": 767.185,
+              "min": 746.56
+            }
+          },
+          "decode_safety_alternating16": {
+            "peak_logical_bytes": 2151,
+            "per_model_allocations": {
+              "alloc_calls": 11.0,
+              "realloc_calls": 3.0,
+              "requested_bytes": 3647.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                1174.44,
+                1075.395,
+                1128.315,
+                1151.795,
+                1124.4
+              ],
+              "max": 1174.44,
+              "median": 1128.315,
+              "min": 1075.395
+            }
+          },
+          "decode_safety_mixed_unknown42_wrongwire30": {
+            "peak_logical_bytes": 1461,
+            "per_model_allocations": {
+              "alloc_calls": 16.0,
+              "realloc_calls": 1.0,
+              "requested_bytes": 1941.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                1142.28,
+                1029.675,
+                1034.03,
+                1020.64,
+                1107.66
+              ],
+              "max": 1142.28,
+              "median": 1034.03,
+              "min": 1020.64
+            }
+          },
+          "decode_safety_noncanonical0": {
+            "peak_logical_bytes": 1204,
+            "per_model_allocations": {
+              "alloc_calls": 11.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1364.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                781.115,
+                759.1,
+                784.78,
+                790.005,
+                807.695
+              ],
+              "max": 807.695,
+              "median": 784.78,
+              "min": 759.1
+            }
+          },
+          "decode_safety_noncanonical1": {
+            "peak_logical_bytes": 1204,
+            "per_model_allocations": {
+              "alloc_calls": 11.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1364.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                756.545,
+                757.195,
+                827.68,
+                761.775,
+                798.71
+              ],
+              "max": 827.68,
+              "median": 761.775,
+              "min": 756.545
+            }
+          },
+          "decode_safety_one0": {
+            "peak_logical_bytes": 1202,
+            "per_model_allocations": {
+              "alloc_calls": 11.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1362.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                793.13,
+                786.34,
+                754.04,
+                864.795,
+                830.175
+              ],
+              "max": 864.795,
+              "median": 793.13,
+              "min": 754.04
+            }
+          },
+          "decode_safety_one1": {
+            "peak_logical_bytes": 1202,
+            "per_model_allocations": {
+              "alloc_calls": 11.0,
+              "realloc_calls": 0.0,
+              "requested_bytes": 1362.0
+            },
+            "retained_logical_bytes": 0,
+            "wall_ns_per_model": {
+              "all": [
+                776.39,
+                788.765,
+                797.635,
+                771.495,
+                813.615
+              ],
+              "max": 813.615,
+              "median": 788.765,
+              "min": 771.495
+            }
+          },
+          "decode_safety_retain128_absent": {
+            "peak_logical_bytes": 307856,
+            "per_model_allocations": {
+              "alloc_calls": 11.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5311.5
+            },
+            "retained_logical_bytes": 307072,
+            "wall_ns_per_model": {
+              "all": [
+                1731.5354567307693,
+                2074.013421474359,
+                1853.7359775641025,
+                1673.3423477564102,
+                1672.7714342948718
+              ],
+              "max": 2074.013421474359,
+              "median": 1731.5354567307693,
+              "min": 1672.7714342948718
+            }
+          },
+          "decode_safety_retain128_alternating16": {
+            "peak_logical_bytes": 314904,
+            "per_model_allocations": {
+              "alloc_calls": 11.0078125,
+              "realloc_calls": 3.0546875,
+              "requested_bytes": 7599.5
+            },
+            "retained_logical_bytes": 313216,
+            "wall_ns_per_model": {
+              "all": [
+                1511.2880608974358,
+                1462.9507211538462,
+                1534.6254006410256,
+                1526.4222756410256,
+                2089.6033653846152
+              ],
+              "max": 2089.6033653846152,
+              "median": 1526.4222756410256,
+              "min": 1462.9507211538462
+            }
+          },
+          "decode_safety_retain128_mixed_unknown42_wrongwire30": {
+            "peak_logical_bytes": 341392,
+            "per_model_allocations": {
+              "alloc_calls": 16.0078125,
+              "realloc_calls": 1.0546875,
+              "requested_bytes": 5893.5
+            },
+            "retained_logical_bytes": 340608,
+            "wall_ns_per_model": {
+              "all": [
+                1265.3946314102564,
+                1214.8888221153845,
+                1284.7105368589744,
+                1603.3804086538462,
+                1445.6580528846155
+              ],
+              "max": 1603.3804086538462,
+              "median": 1284.7105368589744,
+              "min": 1214.8888221153845
+            }
+          },
+          "decode_safety_retain128_noncanonical0": {
+            "peak_logical_bytes": 308496,
+            "per_model_allocations": {
+              "alloc_calls": 11.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5316.5
+            },
+            "retained_logical_bytes": 307712,
+            "wall_ns_per_model": {
+              "all": [
+                892.1824919871794,
+                890.1893028846154,
+                975.6510416666666,
+                914.0975560897435,
+                1249.013421474359
+              ],
+              "max": 1249.013421474359,
+              "median": 914.0975560897435,
+              "min": 890.1893028846154
+            }
+          },
+          "decode_safety_retain128_noncanonical1": {
+            "peak_logical_bytes": 308496,
+            "per_model_allocations": {
+              "alloc_calls": 11.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5316.5
+            },
+            "retained_logical_bytes": 307712,
+            "wall_ns_per_model": {
+              "all": [
+                878.0048076923077,
+                878.515625,
+                945.4076522435897,
+                942.3227163461538,
+                1127.2085336538462
+              ],
+              "max": 1127.2085336538462,
+              "median": 942.3227163461538,
+              "min": 878.0048076923077
+            }
+          },
+          "decode_safety_retain128_one0": {
+            "peak_logical_bytes": 308240,
+            "per_model_allocations": {
+              "alloc_calls": 11.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5314.5
+            },
+            "retained_logical_bytes": 307456,
+            "wall_ns_per_model": {
+              "all": [
+                1574.629407051282,
+                1819.1556490384614,
+                1791.2560096153845,
+                1654.5723157051282,
+                1309.0895432692307
+              ],
+              "max": 1819.1556490384614,
+              "median": 1654.5723157051282,
+              "min": 1309.0895432692307
+            }
+          },
+          "decode_safety_retain128_one1": {
+            "peak_logical_bytes": 308240,
+            "per_model_allocations": {
+              "alloc_calls": 11.0078125,
+              "realloc_calls": 0.0546875,
+              "requested_bytes": 5314.5
+            },
+            "retained_logical_bytes": 307456,
+            "wall_ns_per_model": {
+              "all": [
+                1556.3100961538462,
+                1891.045673076923,
+                1529.4070512820513,
+                1520.4677483974358,
+                893.6848958333334
+              ],
+              "max": 1891.045673076923,
+              "median": 1529.4070512820513,
+              "min": 893.6848958333334
+            }
+          }
+        },
+        "census": {
+          "absent": {
+            "case": "absent",
+            "decode_case": "decode_safety_absent",
+            "expected_status": null,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 0,
+            "marker_count": 0,
+            "retain_case": "decode_safety_retain128_absent",
+            "unknown_capacity": 0,
+            "wire_bytes": 14
+          },
+          "alternating16": {
+            "case": "alternating16",
+            "decode_case": "decode_safety_alternating16",
+            "expected_status": 1,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 0,
+            "marker_count": 16,
+            "retain_case": "decode_safety_retain128_alternating16",
+            "unknown_capacity": 0,
+            "wire_bytes": 62
+          },
+          "mixed_unknown42_wrongwire30": {
+            "case": "mixed_unknown42_wrongwire30",
+            "decode_case": "decode_safety_mixed_unknown42_wrongwire30",
+            "expected_status": 0,
+            "field_size": 56,
+            "genuine_unknown_count": 3,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 224,
+            "marker_count": 3,
+            "retain_case": "decode_safety_retain128_mixed_unknown42_wrongwire30",
+            "unknown_capacity": 4,
+            "wire_bytes": 36
+          },
+          "noncanonical0": {
+            "case": "noncanonical0",
+            "decode_case": "decode_safety_noncanonical0",
+            "expected_status": 0,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 0,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_noncanonical0",
+            "unknown_capacity": 0,
+            "wire_bytes": 19
+          },
+          "noncanonical1": {
+            "case": "noncanonical1",
+            "decode_case": "decode_safety_noncanonical1",
+            "expected_status": 1,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 0,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_noncanonical1",
+            "unknown_capacity": 0,
+            "wire_bytes": 19
+          },
+          "one0": {
+            "case": "one0",
+            "decode_case": "decode_safety_one0",
+            "expected_status": 0,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 0,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_one0",
+            "unknown_capacity": 0,
+            "wire_bytes": 17
+          },
+          "one1": {
+            "case": "one1",
+            "decode_case": "decode_safety_one1",
+            "expected_status": 1,
+            "field_size": 56,
+            "genuine_unknown_count": 0,
+            "kind": "safety_census",
+            "logical_retained_unknown_vector_bytes": 0,
+            "marker_count": 1,
+            "retain_case": "decode_safety_retain128_one1",
+            "unknown_capacity": 0,
+            "wire_bytes": 17
+          }
+        }
+      }
+    },
+    "sample_count": 350,
+    "service_latency_or_fastest_claim": false,
+    "status": "PASS_FIXED_LOCAL_SAFETY_ALLOCATION_COMPARISON",
+    "targeted_tests": {
+      "counts_by_suite": [
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 14
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 6
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 13
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 14
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 8
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 14
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 14
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 5
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 5
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 8
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 0
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 1
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 20
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 5
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 7
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 10
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 8
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 5
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 1,
+          "measured": 0,
+          "passed": 44
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 1
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 4
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 1
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 5
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 2
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 13
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 14
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 32
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 3
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 1
+        },
+        {
+          "failed": 0,
+          "filtered": 0,
+          "ignored": 0,
+          "measured": 0,
+          "passed": 7
+        }
+      ],
+      "ignored_sum_by_target": 1,
+      "limit": "Counts from one targeted all-targets command, not a deduplicated global test inventory.",
+      "passed_sum_by_target": 328,
+      "suites": 46
+    }
+  },
+  "raw_sample_rows": 350,
+  "scope": "LOCAL_OFFLINE_SYNTHETIC_DECODE_ALLOCATION_ONLY",
+  "validation": {
+    "credentials_loaded": false,
+    "exit": 0,
+    "historical_inputs_unchanged": true,
+    "job_empty": true,
+    "membership_verified": true,
+    "provider_calls": 0,
+    "source_manifest": {
+      "crates/rambler-engine/examples/backend_cpu_profile.rs": "bdaad791d7d91378ae7239e793e3c67b11f559fe2b975b76a9baead441e7da7a",
+      "crates/rambler-engine/examples/profile_support/mod.rs": "02a0f7797e613156bdf9d43e4f50adfe123525b0050e2eb9fe694dcec3eca3f3",
+      "crates/rambler-protocol/src/decode.rs": "f2bbf3e5cef20569a8b58d437aeffb480185da3e53e46a900e6d5e4b2df8541f",
+      "crates/rambler-protocol/src/lib.rs": "0709259da7b82e23aed402f1420f8503abd88cc824fc36f4cd0eaa2f80bbb0b0",
+      "crates/rambler-protocol/src/models.rs": "104ab6274155470ee6be77bbb0d084a3cd7b26b4e50c9d78b4d975d6359240a0",
+      "crates/rambler-protocol/src/request.rs": "22d10c05c8d5d609cf0210a055789cd69399f4dd30d2f64854ebfb127c648bcf",
+      "crates/rambler-protocol/src/wire.rs": "eec19faf1539459235aaaa05d4cc9346101ce8fa8ddbf838e63cc1ea89c521e5",
+      "crates/rambler-protocol/tests/safety_storage.rs": "013055321f4f8cea2356a2d229ffacd60eb60ccccb1d51bd8ed3aa3630fefa00"
+    },
+    "source_unchanged": true,
+    "status": "PASS_OFFLINE_STEP",
+    "step": "protocol-engine-tests"
+  }
+}

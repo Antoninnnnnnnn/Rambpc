@@ -12,3 +12,6 @@ tests/test_linux_session_pipe_receiver.py text eol=lf
 tools/credential_frame_source.py text eol=lf
 tests/test_credential_frame_source.py text eol=lf
 docs/research/credential-frame-source.md text eol=lf
+crates/rambler-protocol/src/decode.rs text eol=lf
+crates/rambler-protocol/tests/safety_storage.rs text eol=lf
+crates/rambler-engine/examples/backend_cpu_profile.rs text eol=lf

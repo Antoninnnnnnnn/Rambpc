@@ -39,6 +39,17 @@ impl<'a> Message<'a> {
         known: &[(u32, u8)],
         budget: &mut Budget<'_>,
     ) -> Result<Self, Error> {
+        Self::new_matching(
+            parts,
+            |field| known.contains(&(field.number, field.wire_type)),
+            budget,
+        )
+    }
+    fn new_matching(
+        parts: &[&'a [u8]],
+        is_known: impl Fn(&RefField<'a>) -> bool,
+        budget: &mut Budget<'_>,
+    ) -> Result<Self, Error> {
         let mut parts_iter = parts.iter();
         // Reuse the first parse allocation rather than copying its field vector.
         let mut fields = match parts_iter.next() {
@@ -52,7 +63,7 @@ impl<'a> Message<'a> {
         let raw = raw_parts(parts, budget.root)?;
         let unknown = fields
             .iter()
-            .filter(|f| !known.contains(&(f.number, f.wire_type)))
+            .filter(|field| !is_known(field))
             .map(|f| f.owned())
             .collect();
         Ok(Self {
@@ -201,7 +212,17 @@ fn voice_edit(parts: &[&[u8]], budget: &mut Budget<'_>) -> Result<VoiceEditResul
     Ok(out)
 }
 fn hypothesis(parts: &[&[u8]], budget: &mut Budget<'_>) -> Result<Hypothesis, Error> {
-    let mut m = Message::new(parts, &[(1, 2), (2, 5), (VOICE_EDITING_RESULT, 2)], budget)?;
+    // Classify verified values while fields are borrowed, before unknown fields
+    // acquire owned storage. Other values and wire types must remain opaque.
+    let m = Message::new_matching(
+        parts,
+        |field| {
+            [(1, 2), (2, 5), (VOICE_EDITING_RESULT, 2)].contains(&(field.number, field.wire_type))
+                || (field.number == HYPOTHESIS_SAFETY_STATUS
+                    && matches!(field.value, RefValue::Varint(0 | 1)))
+        },
+        budget,
+    )?;
     // Unlike open numeric enums, this safety marker only recognizes the two
     // verified wire values. Unknown occurrences remain opaque and never clear
     // an earlier recognized value (closed proto2 enum merge semantics).
@@ -210,10 +231,6 @@ fn hypothesis(parts: &[&[u8]], budget: &mut Budget<'_>) -> Result<Hypothesis, Er
             Some(value as i32)
         }
         _ => None,
-    });
-    m.unknown.retain(|field| {
-        field.number != HYPOTHESIS_SAFETY_STATUS
-            || !matches!(field.value, wire::Value::Varint(0 | 1))
     });
     Ok(Hypothesis {
         text: m.string(1)?,

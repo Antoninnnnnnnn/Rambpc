@@ -277,6 +277,203 @@ fn decode_sparse(iterations: usize, repeats: usize) {
     }
 }
 
+// Developer-only synthetic safety decode cases. Keep this identical in baseline
+// and candidate builds; fixtures and full manual model oracles precede all passes.
+fn decode_safety(iterations: usize, repeats: usize) {
+    fn push_varint(out: &mut Vec<u8>, mut value: u64) {
+        loop {
+            let byte = (value & 0x7f) as u8;
+            value >>= 7;
+            out.push(byte | if value == 0 { 0 } else { 0x80 });
+            if value == 0 {
+                break;
+            }
+        }
+    }
+    fn varint(number: u32, value: u64) -> Vec<u8> {
+        let mut out = Vec::new();
+        push_varint(&mut out, u64::from(number) << 3);
+        push_varint(&mut out, value);
+        out
+    }
+    fn blob(number: u32, body: &[u8]) -> Vec<u8> {
+        let mut out = Vec::new();
+        push_varint(&mut out, (u64::from(number) << 3) | 2);
+        push_varint(&mut out, body.len() as u64);
+        out.extend_from_slice(body);
+        out
+    }
+    struct Case {
+        name: &'static str,
+        raw: Vec<u8>,
+        expected: rambler_protocol::S3Response,
+        marker_count: usize,
+        decode_name: String,
+        retain_name: String,
+    }
+    fn fixture(
+        name: &'static str,
+        markers: &[u8],
+        marker_count: usize,
+        status: Option<i32>,
+        unknown_fields: Vec<rambler_protocol::wire::Field>,
+    ) -> Case {
+        let hypothesis = [blob(1, b"x"), markers.to_vec()].concat();
+        // Exact path: root RECOGNITION_RESPONSE / result 1 / container 3 /
+        // hypothesis 3. No state, event, engine, or caller policy is involved.
+        let container = blob(3, &hypothesis);
+        let recognition = blob(3, &container);
+        let result = blob(1, &recognition);
+        let raw = blob(rambler_protocol::RECOGNITION_RESPONSE, &result);
+        // Independent public-model construction, never a decoded/cloned oracle.
+        // Every wrapper's raw and the active recognition raw are explicit.
+        let expected = rambler_protocol::S3Response {
+            raw: raw.clone().into(),
+            result: Some(rambler_protocol::RecognitionResponse {
+                raw: result.into(),
+                active_field: Some(1),
+                active_raw: Some(recognition.clone().into()),
+                recognition: Some(rambler_protocol::RecognitionResult {
+                    raw: recognition.into(),
+                    hypothesis_result: Some(rambler_protocol::HypothesisResult {
+                        raw: container.into(),
+                        hypotheses: vec![rambler_protocol::Hypothesis {
+                            text: Some("x".to_owned()),
+                            safety_status: status,
+                            unknown_fields,
+                            raw: hypothesis.into(),
+                            ..Default::default()
+                        }],
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        Case {
+            name,
+            raw,
+            expected,
+            marker_count,
+            decode_name: format!("decode_safety_{name}"),
+            retain_name: format!("decode_safety_retain128_{name}"),
+        }
+    }
+
+    // These helpers deliberately do not use production wire encoders/parsers.
+    assert_eq!(varint(30, 0), [0xf0, 0x01, 0x00]);
+    assert_eq!(varint(30, 1), [0xf0, 0x01, 0x01]);
+    assert_eq!(
+        blob(rambler_protocol::RECOGNITION_RESPONSE, &[]),
+        [0xca, 0x8f, 0xe4, 0x04, 0x00]
+    );
+    let alternating = [varint(30, 0), varint(30, 1)].concat().repeat(8);
+    // Both the key and recognized value use overlong, valid varint encodings.
+    let noncanonical0 = [0xf0, 0x81, 0x00, 0x80, 0x00];
+    let noncanonical1 = [0xf0, 0x81, 0x00, 0x81, 0x00];
+    let mixed = [
+        varint(30, 0),
+        varint(30, 42),
+        varint(30, 1),
+        // A recognized-looking sequence inside wrong-wire bytes is not a marker.
+        blob(30, &[0xf0, 0x01, 0x01]),
+        varint(30, 0),
+        // An unknown enum after the last recognized marker must not clear it.
+        vec![0xf0, 0x01, 0xaa, 0x00],
+    ]
+    .concat();
+    let mixed_unknown = vec![
+        rambler_protocol::wire::Field {
+            number: 30,
+            wire_type: 0,
+            value: rambler_protocol::wire::Value::Varint(42),
+            raw: vec![0xf0, 0x01, 0x2a],
+        },
+        rambler_protocol::wire::Field {
+            number: 30,
+            wire_type: 2,
+            value: rambler_protocol::wire::Value::Bytes(vec![0xf0, 0x01, 0x01]),
+            raw: vec![0xf2, 0x01, 0x03, 0xf0, 0x01, 0x01],
+        },
+        rambler_protocol::wire::Field {
+            number: 30,
+            wire_type: 0,
+            value: rambler_protocol::wire::Value::Varint(42),
+            raw: vec![0xf0, 0x01, 0xaa, 0x00],
+        },
+    ];
+    let cases = [
+        fixture("absent", &[], 0, None, Vec::new()),
+        fixture("one0", &varint(30, 0), 1, Some(0), Vec::new()),
+        fixture("one1", &varint(30, 1), 1, Some(1), Vec::new()),
+        fixture("alternating16", &alternating, 16, Some(1), Vec::new()),
+        fixture("noncanonical0", &noncanonical0, 1, Some(0), Vec::new()),
+        fixture("noncanonical1", &noncanonical1, 1, Some(1), Vec::new()),
+        fixture(
+            "mixed_unknown42_wrongwire30",
+            &mixed,
+            3,
+            Some(0),
+            mixed_unknown,
+        ),
+    ];
+
+    // Validate ALL full models, then allocate ALL census JSON before any bench.
+    // Capacity is observed, not prescribed: the baseline may retain spare slots.
+    let mut census = Vec::with_capacity(cases.len());
+    for case in &cases {
+        let decoded = decode_response(&case.raw).unwrap();
+        assert_eq!(&decoded, &case.expected, "safety oracle {}", case.name);
+        let hypothesis = &decoded.hypotheses()[0];
+        let field_size = std::mem::size_of::<rambler_protocol::wire::Field>();
+        census.push(
+            serde_json::json!({"kind":"safety_census", "case":case.name,
+                "decode_case":case.decode_name, "retain_case":case.retain_name,
+                "wire_bytes":case.raw.len(), "marker_count":case.marker_count,
+                "expected_status":case.expected.hypotheses()[0].safety_status,
+                "genuine_unknown_count":case.expected.hypotheses()[0].unknown_fields.len(),
+                "unknown_capacity":hypothesis.unknown_fields.capacity(),
+                "field_size":field_size,
+                "logical_retained_unknown_vector_bytes":hypothesis.unknown_fields.capacity() * field_size})
+            .to_string(),
+        );
+    }
+    for line in &census {
+        println!("{line}");
+    }
+    for case in &cases {
+        bench(&case.decode_name, iterations, repeats, 1, || {
+            let response = decode_response(black_box(&case.raw)).unwrap();
+            black_box(&response);
+            response.raw.len()
+        });
+        // Same actual move-retain128 workload and LIVE/RETAINED sampling as below.
+        bench(
+            &case.retain_name,
+            (iterations / 128).max(1),
+            repeats,
+            128,
+            || {
+                let mut updates = Vec::new();
+                let mut bytes = 0;
+                for _ in 0..128 {
+                    let response = decode_response(black_box(&case.raw)).unwrap();
+                    bytes += response.raw.len();
+                    assert!(bytes <= 8 * 1024 * 1024);
+                    updates.push(response);
+                }
+                black_box(&updates);
+                if ENABLED.load(Relaxed) {
+                    RETAINED.fetch_max(LIVE.load(Relaxed), Relaxed);
+                }
+                bytes
+            },
+        );
+    }
+}
+
 // Runtime rejection keeps debug test builds possible; timing requires release.
 #[allow(clippy::assertions_on_constants)]
 fn main() {
@@ -284,6 +481,10 @@ fn main() {
     let iterations = profile_support::arg("--iterations", 20_000);
     let repeats = profile_support::arg("--repeats", 5);
     let decode_only = std::env::args().any(|arg| arg == "--decode-only");
+    if std::env::args().any(|arg| arg == "--decode-safety") {
+        decode_safety(iterations, repeats);
+        return;
+    }
     if std::env::args().any(|arg| arg == "--decode-sparse") {
         decode_sparse(iterations, repeats);
         return;
