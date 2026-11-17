@@ -32,6 +32,22 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Canal d’entrée public — 17 novembre
+
+Le nouvel émetteur Windows refuse les interpréteurs redirigés de venv et passe
+31 tests simulés/fixture (un test non applicable ignoré), puis une fixture native
+publique sélectionnée explicitement. Trame de 85 octets, EOF, appel unique du
+producteur, ownership et nettoyage des Jobs sont vérifiés dans ce cas.
+Les écritures natives bloquées et `CancelSynchronousIo` restent non qualifiés.
+[Preuve Windows](evidence/windows-owned-pipe-public-qa-20261117.json).
+
+Le récepteur Linux public passe séparément 31 tests avec ports simulés sous
+Windows. Il ne peut transmettre que sa constante publique, jamais un identifiant
+réel. Aucune invocation native de ce récepteur ni chaîne SSH n’est encore observée ;
+les scripts de préparation initiaux ont été refusés/incomplets avant exécution.
+[Preuve du récepteur](evidence/linux-public-pipe-receiver-qa-20261117.json).
+**Canal de secrets, accès réel Linux et backend complet toujours non qualifiés.**
+
 ## Admission Linux native publique — 17 novembre
 
 Sur un hôte x86_64 non root, l'exemple optionnel **Debug** et un superviseur

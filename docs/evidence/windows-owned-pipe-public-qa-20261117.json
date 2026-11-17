@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-17",
+  "status": "PASS_FAKE_AND_ONE_EXPLICIT_PUBLIC_NATIVE_FIXTURE",
+  "source_review_go": true,
+  "live_go": false,
+  "scope": "Public-only Windows owned pipe QA; not real channel qualification",
+  "interpreter": "Explicitly selected, verified base Python image",
+  "fake_and_fixture": {
+    "selected": 32,
+    "passed": 31,
+    "skipped": 1,
+    "skip_reason": "Non-Windows platform guard on Windows",
+    "failures": 0,
+    "errors": 0,
+    "outer_capture_exit": 0,
+    "outer_job_empty": true
+  },
+  "native": {
+    "test": "NativeChannelTests.test_original_public_python_fixture_exact_frame_and_eof",
+    "explicit_test_only_opt_in": true,
+    "selected": 1,
+    "passed": 1,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "outer_capture_exit": 0,
+    "outer_job_empty": true,
+    "asserted": ["85-byte frame", "producer called once", "Job verified and empty", "stdin and output EOF", "workers joined", "handles reaped", "complete protocol and zero child exit"],
+    "native_blocked_write_and_cancel_synchronous_io_proven": false
+  },
+  "source_pins_unchanged": true,
+  "sha256_before_and_after": {
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "target/release/rambler.exe": "3d1d2916e337419d4f2987084c2d7002cc02b59c2ad07b6e1e0fc91d7507cb8e",
+    "tests/test_windows_owned_pipe_job.py": "9653a38dcbc7824d4a178a0afe23e6347156353e1dfd3a47fc7326f6e189259c",
+    "tools/reference/owned_pipe_fixture.py": "31511f35400805c6a4a3b53ebe032c40f6f9371fcabf8608bb3d28d84d3cd149",
+    "tools/windows_owned_job.py": "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa",
+    "tools/windows_owned_pipe_job.py": "a9e6c5890e39461549d1abcf898f7d405c10ca2171715e3a26e52c469ae86ea5"
+  },
+  "credentials_loaded": false,
+  "ssh_roundtrips": 0,
+  "service_calls": 0,
+  "history": {
+    "initial_source_review": "NO_GO; interpreter redirector, error priority and automatic native discovery fixed before QA",
+    "initial_qa_handoff": "GO omitted and wrong test class selected zero tests; not a passing run or a new user-authorization issue"
+  },
+  "limitations": [
+    "Native blocked-write and CancelSynchronousIo behavior is covered only by fakes, not native qualification",
+    "No SSH, remote controller, service or real channel qualification",
+    "Quiet observation and release are not atomic with future target or remote output",
+    "Crash dumps, pagefile, allocator copies, remote buffering and privileged inspection remain outside the Job lifetime boundary"
+  ]
+}
