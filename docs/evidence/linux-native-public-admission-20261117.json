@@ -39,7 +39,10 @@
     "job_logs_unavailable": true,
     "root_cause_limit": "Time limit proven; reason Release compilation did not finish is not established",
     "one_exact_job_retry_requested": true,
-    "retry_result": "PENDING",
+    "retry_result": "SUCCESS_JOB133937306736; FINAL14OF14JOBS_SUCCESS",
+    "retry_requests": 1,
+    "successful_rust_jobs_reused_without_reexecution": 9,
+    "reuse_verified_by_identical_started_completed_timestamps_and_steps": true,
     "unrelated_successful_jobs_not_requested_to_rerun": true
   },
   "credentials_sent": false,
