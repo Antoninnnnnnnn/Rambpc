@@ -212,3 +212,92 @@ vers l'instance LatinIME active, `dG(oak)` sur thread UI ; STOP emploie le même
 `e(...)` de JADX est un artefact. Cela **ne qualifie pas** les branches non
 décompilées `ffh.m`/`klb.g`, l'onboarding/quota `ffh.z/y`, ni l'executor `kla.n`.
 Aucun flag ou gate n'est modifié. Toute proposition de parité doit garder ces limites.
+
+## Inventaire passif isolé des entrées Android — 16 novembre 2026
+
+[Projection publique de l'inventaire](../evidence/android-passive-input-inventory-20261116.json).
+Il s'agit d'une énumération unique sur Android API 34, pas d'une validation de
+routage, de dictée ou de référence appariée. Le fixture séparé
+`org.rambpc.audioinventoryprobe` lance une Activity sans affichage qui interroge
+`AudioManager.getDevices(GET_DEVICES_INPUTS)` et agrège uniquement type et
+`isSource`. Il écrit atomiquement un résultat privé, avec marqueurs de fraîcheur ;
+une ancienne sortie doit être rejetée si l'écriture échoue. Aucun nom de produit,
+adresse, ID ou texte d'exception n'est lu dans cet inventaire. La projection
+publique ne contient ni marqueurs privés, ni identifiants de l'appareil.
+
+Le build local initial de l'éditeur enrichi a réussi avec zéro permission, sans
+exécution sur appareil. Sa mise à jour a ensuite été refusée avec
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE` : ni désinstallation ni effacement de données.
+Pour le paquet isolé, les deux premiers builds locaux ont échoué avant signature
+sur l'analyse du namespace et du format des attributs aapt2 ; le parseur a été
+corrigé d'après un dump de manifeste public réel et des tests de mutation. Le
+troisième build a réussi avec 16 tests Python purs, zéro permission et une seule
+Activity. Les empreintes individuelles des sources utilisées et le SHA-256 de
+l'APK sont dans la projection ; elles ne signifient pas que ces sources non
+commitées sont déjà intégrées au dépôt.
+
+Une installation fraîche normale du paquet isolé a échoué avec
+`INSTALL_FAILED_USER_RESTRICTED`. Après la demande explicite de l'utilisateur
+« installe avec root », une installation root autorisée a réussi, limitée à cet
+APK, sans changement global ou de politique. Une seule Activity d'inventaire a
+ensuite été lancée ; la fraîcheur du résultat a été vérifiée. Le paquet éditeur
+original et l'IME sélectionné sont restés inchangés.
+
+Cinq entrées, toutes déclarées sources, ont été recensées : type 15 deux fois,
+types 16, 18 et 25 une fois chacun. La [référence officielle AudioDeviceInfo](https://developer.android.com/reference/android/media/AudioDeviceInfo)
+nomme ces constantes respectivement microphone intégré, tuner FM, téléphonie et
+remote submix. Aucun type USB 11, 12 ou 22 ni casque filaire type 3 n'apparaît
+dans cette observation. Ce sont des catégories statiques de l'API, **pas une
+preuve qu'un flux est routé ou reçu** ; cette observation n'établit ni une
+incapacité matérielle universelle ni l'impossibilité d'une injection logicielle.
+
+Aucun enregistrement, RPC backend ou véritable essai de référence appariée ;
+permission micro absente et `routing_proven=false`. Un prochain essai apparié
+nécessite une route d'entrée légitime et contrôlée, vérifiée de bout en bout :
+une simple liste, un fichier périmé ou du silence ne prouvent pas cette route.
+Aucun recours de repli à une modification root d'AudioPolicy ou du fournisseur,
+à des hooks, à une altération des états ou à une capture PCM n'est ici proposé.
+
+## Voix publique supervisée dans un éditeur séparé — 16 novembre 2026
+
+[Projection publique et empreintes de build](../evidence/android-supervised-public-voice-20261116.json).
+Cette observation ultérieure est distincte du plan d'injection instrumentée et de
+l'inventaire passif ci-dessus : les mentions historiques « aucun audio » et le
+blocage de ce plan restent valables pour leurs essais respectifs, sans décrire ces
+nouveaux essais manuels. Les échecs antérieurs, les contraintes de signature et
+`INSTALL_FAILED_USER_RESTRICTED` ne sont ni effacés ni rétroactivement résolus.
+
+L'utilisateur a choisi PixelBoard et son micro à étoile par l'interface normale,
+sans hook ni altération, puis a tenu, démarré et arrêté lui-même la voix avec le
+micro intégré ; aucun repli automatisé vers l'audio ambiant. L'éditeur ordinaire
+séparé appartient au laboratoire, ne demande aucune permission et ne force pas
+l'incognito. La suppression de son propre flag `NO_PERSONALIZED_LEARNING` a levé
+une ambiguïté de l'interface incognito ; elle n'est pas établie comme cause unique
+et ne promet rien sur l'apprentissage du fournisseur. Le fixture original et
+l'inventaire restent préservés. Le nouvel APK et ses sources de build sont épinglés
+par SHA-256 dans la projection, sans prétendre intégrer les sources non commitées.
+
+1. Après vérification d'une amorce initiale répétée, la phrase prévue « The draft
+   is ready. » donne `The draft is ready` : préfixe initial non conservé et
+   ponctuation absente. La cause n'est pas isolée ; ce n'est ni une preuve de
+   fidélité au contexte, ni un bug natif ou Android établi.
+2. Avec `Send me the report now.` entièrement sélectionné, « Rewrite politely. »
+   donne littéralement `Rewrite politely` : aucune reformulation polie dans cet
+   essai.
+3. Sur champ vide, l'utilisateur dit d'abord « Send » et ne perçoit aucun effet
+   visible ; il rapporte ensuite avoir essayé « salut, ça va » et « send the
+   message » et avoir vu cela fonctionner. Le seul snapshot final indique deux
+   callbacks SEND, deux actions d'éditeur au total, dernier action ID 4, longueur
+   de texte 28 unités UTF-16 et composition -1/-1. Le texte français obtenu est
+   retenu par la projection. Aucun snapshot intermédiaire ne permet d'attribuer
+   chaque callback à une phrase : ni échec du seul « Send », ni réussite générale
+   des commandes plus longues, ni causalité ne sont établis. SEND est consommé
+   localement et n'envoie rien.
+
+Ces observations ne constituent pas trois réussites sémantiques et ne comptent
+pas les appels ASR ou RPC distincts. Aucun trafic réseau ou filaire n'a été
+capturé : ni identité de route S3Bidi/ASR, ni parité Android complète, ni état
+terminal du backend ne sont prouvés. Le backend Rust natif reste Rambler, sans
+substitution ASR. Gboard et les restrictions initiales du micro ont été restaurés,
+la fenêtre de test propre placée en arrière-plan ; fixtures et captures sont
+conservés. La projection publique exclut les identifiants et captures privées.

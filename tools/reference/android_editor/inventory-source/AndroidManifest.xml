@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.rambpc.audioinventoryprobe" android:versionCode="1" android:versionName="1.0">
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+    <!-- Isolated passive fixture: no permissions or additional components. -->
+    <application android:label="Audio Inventory Probe" android:allowBackup="false"
+        android:debuggable="true" android:usesCleartextTraffic="false">
+        <activity android:name="org.rambpc.referenceprobe.AudioInputInventoryActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:noHistory="true" android:theme="@android:style/Theme.NoDisplay"
+            android:windowSoftInputMode="stateAlwaysHidden" />
+    </application>
+</manifest>

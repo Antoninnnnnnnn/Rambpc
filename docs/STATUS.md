@@ -32,6 +32,30 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Qualification native et référence vocale supervisée — 16 novembre
+
+Le snapshot `82e6394` passe sur un hôte Linux natif non privilégié : workspace
+**430/0/2**, construction du vrai CLI audio Release, quatre contrôles de ce
+binaire, SDK gardé 9, réutilisation 10 et smoke direct des racines publiques 1.
+Les groupes se recouvrent ; ne pas les sommer comme tests distincts. Source
+inchangée et nettoyage vérifiés ; aucun credential ou appel ASR réel.
+[Preuve et limites](research/rust-native-linux-workspace.md).
+
+Trois cas ont ensuite été observés dans un éditeur Android public distinct,
+avec phrases prononcées manuellement : dictée reconnue mais contexte initial non
+préservé, instruction de réécriture dictée littéralement, deux callbacks SEND au
+total après plusieurs essais du dernier cas. Leur attribution par énoncé n’est
+pas isolée et aucun message n’est envoyé par le fixture. Ni route S3Bidi ni parité
+wire ne sont déduites de cette interface. Le clavier et les restrictions micro
+initiaux sont restaurés. [Observations et réserves](evidence/android-supervised-public-voice-20261116.json).
+
+Le nouvel exemple expérimental d’admission Linux passe **17 tests Fake sous
+Windows** et Clippy ciblé ; sa couche native, le canal d’entrée des identifiants
+et le mode réel restent non qualifiés. Il n’est pas inclus dans le snapshot Linux
+ci-dessus. [Contrat et limites](research/linux-real-admission.md),
+[preuve Windows](evidence/linux-real-admission-windows-20261116.json).
+**Accès réel Linux toujours NO_GO ; backend toujours non terminé.**
+
 ## Linux natif — contrôle public des cores réussi
 
 Sur un nouvel hôte Linux x86_64, le témoin public produit un core borné et le bit

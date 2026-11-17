@@ -10,5 +10,9 @@
         <activity android:name=".ReferenceActivity" android:exported="true"
             android:excludeFromRecents="true" android:launchMode="singleTop"
             android:windowSoftInputMode="stateAlwaysHidden|adjustResize" />
+        <activity android:name=".AudioInputInventoryActivity" android:exported="true"
+            android:excludeFromRecents="true" android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:windowSoftInputMode="stateAlwaysHidden" />
     </application>
 </manifest>

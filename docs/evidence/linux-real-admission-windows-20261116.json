@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-16",
+  "scope": "Experimental linux_real_admission example: Windows Fake-only unit tests and targeted Clippy, not native Linux admission",
+  "result": "PASS_WINDOWS_FAKE_QA_ONLY",
+  "tests": {"passed": 17, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 0},
+  "targeted_clippy": "passed with -D warnings",
+  "owned_capture_jobs": 3,
+  "owned_jobs_empty": true,
+  "real_modes_or_live_calls_executed": false,
+  "historical_release_cli_lock_and_index_unchanged": true,
+  "source_hash_semantics": "Measured Windows working-file bytes; not an assertion of Git CRLF-normalized blob identity",
+  "source_sha256": {
+    "crates/rambler-cli/examples/linux_real_admission.rs": "2b4a0d8f14d5f2f6f4da7ca54dea3b456088a27a8e084900802cff159ef8a599",
+    "crates/rambler-cli/examples/support/linux_real_admission_tests.rs": "269fc87b38482f1185595180039768721dbdcd7c7838f145add245e241cdeb0f",
+    "crates/rambler-cli/Cargo.toml": "e56c4bde6fcc89634de1c19ebf9134962ad8352b6c6377ddee55927558395855",
+    ".github/workflows/rust.yml": "4f26756a9d71aeae9b2152d30797fe1e246ce0c701c0abff1768fe7216032ae5"
+  },
+  "limits": [
+    "Tests instantiate only fake admission; they never harden the test process or exercise Linux syscalls, descriptor/policy checks, real PCM, a credential channel or a service.",
+    "The exact invented public tuple is rejected in single-session mode before runtime or socket creation.",
+    "SESSION_HEALTHY denotes terminal/upload/cleanup health, not transcription correctness or a required final recognition result.",
+    "The earlier native workspace proof at 82e6394 excludes this new example.",
+    "Native compilation, kernel admission and external observation plus the Windows/SSH sender still need separate qualification.",
+    "A CI test step is added; no success of that future CI is claimed here. Linux live GO remains false."
+  ],
+  "live_go": false
+}

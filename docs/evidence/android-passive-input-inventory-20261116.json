@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "PASS_PASSIVE_AUDIO_INPUT_INVENTORY",
+  "scope": "Single isolated passive Android input enumeration; not a routing or paired-reference test",
+  "android_api": 34,
+  "package": "org.rambpc.audioinventoryprobe",
+  "build": {
+    "status": "PASS_ISOLATED_PASSIVE_APK_BUILD",
+    "apk_sha256": "7e06fe443d1c4dfd502d9e93ac53105afdb328a4525d91d7584cb10e9ebd5b93",
+    "apk_bytes": 12691,
+    "pure_python_tests_passed": 16,
+    "manifest_permission_count": 0,
+    "manifest_activity_count": 1,
+    "original_editor_outputs_unchanged": true,
+    "source_pins_base": "tools/reference/android_editor/",
+    "source_pins_sha256": {
+      "inventory-source/AndroidManifest.xml": "5dcc47ed2c430d77c8cec0e045f9f2a2f9e2d7cbb1fa16fb7d50fdd6de2d79de",
+      "scripts/AudioInputInventoryTest.java": "780c2f39242c051d77ae6613a2a7b6af922fe9255984826b8cc97fbe8bc0e93b",
+      "scripts/CaseCatalogTest.java": "180200b2527f837d4462c85410420cef4671ee980c4da21a94b1622eee5e581f",
+      "scripts/build.py": "e747920be15b5f68c87c871f1c13e0cb8213238590f0969e2c46a53a5518ba8f",
+      "scripts/build_inventory.py": "28371ee68389b653d99c497022c0c8ea4ea72ee1b538563e307598ef13c854e8",
+      "scripts/test_build_inventory.py": "99f9dff5d84f73a8eb47694102970ef52513ce0e7554c03d90b51982e7234bfc",
+      "source/AndroidManifest.xml": "7f80359a080611a2d4264fcc4ef978989842a162e9bfa187089463efa00a58f7",
+      "source/java/org/rambpc/referenceprobe/AudioInputInventory.java": "4068a8707a9e1b5c9ea92d1c3b19a79e3129466df42c52cdd5f69fea60a92a44",
+      "source/java/org/rambpc/referenceprobe/AudioInputInventoryActivity.java": "9e7929a5246ac283fffa48aaab1bde0765cb5a23763921a5f866949e1666fa36",
+      "source/java/org/rambpc/referenceprobe/CaseCatalog.java": "89ff9934c4880a054dc85f06e9131ecbe2b5dac879f3b8affddc3b6767c5d263",
+      "source/java/org/rambpc/referenceprobe/ReferenceActivity.java": "1f2b82460e12eebc1285d23479f7ad2bd82b0ed48f44397beab8b7cd2870cb18",
+      "source/res/layout/main.xml": "5bf4b10ff7198e2fff55c61de7ef93098b6878e08b6f2ee4dd53cb7f0a41b8f5"
+    }
+  },
+  "history": {
+    "original_editor_update": "INSTALL_FAILED_UPDATE_INCOMPATIBLE; no uninstall or data wipe",
+    "isolated_fresh_install": "INSTALL_FAILED_USER_RESTRICTED",
+    "local_isolated_builds_before_pass": "First two failed before signing on aapt2 namespace/attribute-format parsing; parser corrected against a public manifest dump and mutation tests",
+    "root_install_authorization": "User explicitly requested root installation after the restricted install failure",
+    "root_scope": "One successful installation of the isolated passive APK only; no global system or policy changes"
+  },
+  "observation": {
+    "fixture_install_attempts_under_root": 1,
+    "fixture_install_success": true,
+    "inventory_launches": 1,
+    "fresh_run_verified": true,
+    "device_count": 5,
+    "type_counts": [
+      {"type": 15, "is_source": true, "count": 2},
+      {"type": 16, "is_source": true, "count": 1},
+      {"type": 18, "is_source": true, "count": 1},
+      {"type": 25, "is_source": true, "count": 1}
+    ],
+    "usb_types_11_12_22_observed": false,
+    "wired_headset_type_3_observed": false,
+    "original_editor_package_preserved": true,
+    "selected_ime_unchanged": true,
+    "recording_started": false,
+    "backend_rpc_calls": 0,
+    "routing_proven": false,
+    "paired_reference_test": false
+  },
+  "type_reference": "https://developer.android.com/reference/android/media/AudioDeviceInfo",
+  "interpretation": "Type constants identify API categories, not an active route or proof of input delivery. A single enumeration cannot establish universal hardware inability or impossibility of software injection."
+}

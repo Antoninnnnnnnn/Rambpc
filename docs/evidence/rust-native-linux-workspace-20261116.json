@@ -1,0 +1,56 @@
+{
+  "schema": "rambler-native-linux-workspace-qualification-v1",
+  "date": "2026-11-16",
+  "result": "pass",
+  "basis": "Sanitized qualification report and execution notification; audit of recorded results, not a test rerun.",
+  "git_head": "82e63941b0ed9895dfdd92a24d0a9cc0cbd23f42",
+  "platform": "x86_64-unknown-linux-gnu",
+  "effective_uid_is_root": false,
+  "rustc_release": "1.99.0",
+  "cargo_release": "1.99.0",
+  "cmake_version": "3.31.10",
+  "cmake_portable_sha256": "576c050dab1e1418b6703b5cfb523330567683dad0c60a5ff9cc23128143812e",
+  "source": {
+    "archive_sha256": "ace671cc5cb827810f148d7358538db401a5795789757a5a58b431e53c4d96e2",
+    "manifest_sha256": "8bfb0c482338d9aba7ccc4ec595ecdd33e915675b80bdf0a3ee35d968941dcf8",
+    "pre_sha256": "99d2915a754c01ed2d0d4a23df49f831c2affc59da4519fde1991cc845bb5afa",
+    "post_sha256": "99d2915a754c01ed2d0d4a23df49f831c2affc59da4519fde1991cc845bb5afa",
+    "file_count": 120,
+    "bytes": 1443953,
+    "unchanged": true,
+    "uncommitted_linux_admission_example_included": false
+  },
+  "dependency_fetch": {"public_locked_attempts": 1, "subsequent_cargo_work_offline": true},
+  "workspace_all_features": {"passed": 430, "failed": 0, "ignored": 2, "filtered": 0, "libtest_groups": 70},
+  "release_audio_cli": {"built": true, "sha256": "f7a48b0980122f1e2d0e80d7d1780bc2067f28b7d97f244211b9f2342e544f20"},
+  "additional_checks": {
+    "counting": "Subgroups or replays; do not add to the workspace aggregate as distinct tests.",
+    "debug_harness_real_frozen_release_copy": {"finalization_passed": 1, "invalid_budget_passed": 3, "total_passed": 4},
+    "guarded_sdk_passed": 9,
+    "session_reuse_passed": 10,
+    "public_roots_direct_libtest": {"passed": 1, "filtered": 44, "artifact_sha256": "702212c2820d25ef07875187568dfdc4a30bab5dda0c644ea24a9adc3b367452"}
+  },
+  "execution": {
+    "elapsed_seconds": 293.647,
+    "elapsed_interpretation": "Qualification run wall time, not a performance or backend benchmark.",
+    "supervisor_sha256": "216abe7cb094942914cf25f9978541e8926b0dd766c6815d0d8dbd797387dfaa",
+    "helper_source_sha256": "eef6c910204ce6be2e8d5419e39127d08b8c05891062b0d1041f3e22b6c71c08",
+    "owned_helpers_reviewed": 16,
+    "cleanup": true,
+    "bridge_capture_ok": true,
+    "windows_job_empty": true,
+    "outer_bash_exit_status": 0,
+    "cancelled": false
+  },
+  "boundaries": {
+    "network_namespace_used": false,
+    "no_rpc_basis": "Reviewed public code, cleared environment, and loopback test configuration; not an OS egress block.",
+    "roots_smoke_proves_tls_handshake_or_service_authentication": false,
+    "credential_access": false,
+    "credentials_sent": false,
+    "live_service": false,
+    "live_go": false,
+    "actual_asr": false,
+    "supervision_distributed": false
+  }
+}

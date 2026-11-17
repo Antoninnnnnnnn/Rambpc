@@ -50,6 +50,8 @@ jobs:
         run: cargo test -p rambler-audio --example profile_pipeline --locked --offline
       - name: Test guarded SDK loopback example offline
         run: cargo test -p rambler-cli --features audio --example linux_guarded_loopback --locked --offline
+      - name: Test real admission example with pure fakes offline
+        run: cargo test -p rambler-cli --features audio --example linux_real_admission --locked --offline
       - name: Test bounded wire profiling invariants offline
         run: cargo test -p rambler-protocol --example profile_wire_encoding --locked --offline
       - name: Test static gRPC prefix profiling invariants offline

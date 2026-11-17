@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-16",
+  "scope": "Supervised public UI observations in a separate ordinary local editor; not wire or backend proof",
+  "setup": {
+    "keyboard": "PixelBoard, selected through normal UI using mic-with-star",
+    "interaction": "Human held, started and stopped voice input; no automated ambient fallback or hook/tampering",
+    "editor": "Separate owned ordinary editor with no manifest permissions and no forced incognito flag; SEND is consumed locally and sends nothing",
+    "incognito_qualification": "Removing the editor's NO_PERSONALIZED_LEARNING flag removed an incognito UI ambiguity; it is not proven to be the sole cause and does not promise provider learning behavior",
+    "earlier_editor_and_inventory_preserved": true
+  },
+  "build": {
+    "package": "org.rambpc.publicvoiceprobe",
+    "apk_bytes": 16852,
+    "apk_sha256": "998a6fc2773cabb55f601e1895269ee82bbae4f4156d8f7957ec2c887f0fe519",
+    "manifest_activity_count": 1,
+    "manifest_permission_count": 0,
+    "source_sha256": {
+      "public-editor-source/AndroidManifest.xml": "145bc99cf0f0fe250174dde4b9edef5aa166226fbc259d32c55b81384e348ba0",
+      "public-editor-source/java/org/rambpc/referenceprobe/PublicVoiceReferenceActivity.java": "dc342495e68e597d74d8950d98651165381b216909376748873f8d9bf3510676",
+      "scripts/build_public_editor.py": "ee79d560beb150691cdb5571b8334cdbf41d466b47ce26f611e8a71de47bb619",
+      "scripts/test_build_public_editor.py": "3014b35da08f0b80f681f5a0a18078c26237f72baa86578eaf7d3c1997eaec81",
+      "source/java/org/rambpc/referenceprobe/CaseCatalog.java": "89ff9934c4880a054dc85f06e9131ecbe2b5dac879f3b8affddc3b6767c5d263",
+      "source/res/layout/main.xml": "5bf4b10ff7198e2fff55c61de7ef93098b6878e08b6f2ee4dd53cb7f0a41b8f5"
+    },
+    "source_pin_note": "Pins describe build inputs, not a claim that uncommitted sources are integrated."
+  },
+  "cases": [
+    {
+      "case": 1,
+      "baseline_verified": true,
+      "baseline": "Initial repeated seed",
+      "declared_utterance": "The draft is ready.",
+      "observed_text": "The draft is ready",
+      "initial_prefix_preserved": false,
+      "editor_action_callbacks": 0,
+      "composing_utf16": [-1, -1],
+      "interpretation": "Prefix not preserved and punctuation absent; cause not isolated. This is not evidence of faithful context or of a native or Android bug."
+    },
+    {
+      "case": 2,
+      "baseline_verified": true,
+      "baseline": "Send me the report now.",
+      "baseline_selection": "entire text",
+      "declared_utterance": "Rewrite politely.",
+      "observed_text": "Rewrite politely",
+      "editor_action_callbacks": 0,
+      "composing_utf16": [-1, -1],
+      "interpretation": "Literal instruction text, not a polite rewrite, in this trial."
+    },
+    {
+      "case": 3,
+      "baseline_verified": true,
+      "user_report": "The user first said Send on the empty field and perceived no visible effect; subsequently the user reported trying salut, ça va and send the message and seeing it work.",
+      "final_snapshot": {
+        "send_callbacks": 2,
+        "editor_action_callbacks": 2,
+        "last_action_id": 4,
+        "text_length_utf16": 28,
+        "selection_utf16": [28, 28],
+        "composing_utf16": [-1, -1],
+        "actual_text": "withheld by output projection"
+      },
+      "interpretation": "No intermediate snapshot assigns either callback to an utterance. Neither a short-command failure nor reliable performance for longer commands is established."
+    }
+  ],
+  "restoration": {
+    "original_gboard_and_microphone_restrictions_restored": true,
+    "own_test_window_backgrounded": true,
+    "fixtures_and_captures_retained": true
+  },
+  "limits": [
+    "Selection/composition offsets are values in the latest callback snapshot, not a guarantee of live state when read; selection-only changes or finishComposingText after a text update may not trigger a new snapshot.",
+    "Observations are not three semantic passes, a causal diagnosis, or a count of distinct ASR or RPC calls.",
+    "No network or wire capture: no S3Bidi or ASR route identity, full Android parity, or backend terminal proof.",
+    "Native Rust backend remains Rambler; no alternate ASR substitution.",
+    "Prior failures, signature restrictions, and USER_RESTRICTED records remain valid historical observations."
+  ]
+}

@@ -23,6 +23,11 @@ JAVAC = shutil.which("javac")
 KEYTOOL = shutil.which("keytool")
 APK = BUILD / "reference-probe.apk"
 NS = "{http://schemas.android.com/apk/res/android}"
+JAVA_SOURCE_NAMES = (
+    "AudioInputInventory.java", "AudioInputInventoryActivity.java",
+    "CaseCatalog.java", "ReferenceActivity.java",
+)
+JAVA_SOURCES = [SOURCE / "java/org/rambpc/referenceprobe" / name for name in JAVA_SOURCE_NAMES]
 
 
 def run(args, capture=False):
@@ -40,17 +45,24 @@ def sha256(path):
 def check_manifest():
     manifest = ET.parse(SOURCE / "AndroidManifest.xml").getroot()
     assert manifest.get("package") == "org.rambpc.referenceprobe"
-    assert not manifest.findall("uses-permission")
+    assert not any(element.tag.startswith("uses-permission") for element in manifest.iter())
+    assert [element.tag for element in manifest] == ["uses-sdk", "application"]
     app = manifest.find("application")
     assert app.get(NS + "allowBackup") == "false"
     assert app.get(NS + "debuggable") == "true"
     assert app.get(NS + "usesCleartextTraffic") == "false"
-    assert len(list(app)) == 1 and list(app)[0].tag == "activity"
+    assert len(list(app)) == 2 and all(element.tag == "activity" for element in app)
+    activities = {element.get(NS + "name"): element for element in app}
+    assert set(activities) == {".ReferenceActivity", ".AudioInputInventoryActivity"}
     assert not app.findall(".//intent-filter")
-    assert not app.findall(".//provider")
-    assert not app.findall(".//service")
-    assert not app.findall(".//receiver")
-    assert list(app)[0].get(NS + "exported") == "true"
+    assert all(element.get(NS + "exported") == "true" for element in app)
+    assert all(not list(element) for element in app)
+    inventory = activities[".AudioInputInventoryActivity"]
+    assert inventory.get(NS + "theme") == "@android:style/Theme.NoDisplay"
+    assert inventory.get(NS + "windowSoftInputMode") == "stateAlwaysHidden"
+    assert inventory.get(NS + "noHistory") == "true"
+    assert inventory.get(NS + "excludeFromRecents") == "true"
+    assert set((SOURCE / "java").rglob("*.java")) == set(JAVA_SOURCES), "Unexpected Java source set"
 
 
 def main():
@@ -70,13 +82,15 @@ def main():
         generated.mkdir()
     run([JAVAC, "-encoding", "UTF-8", "-d", BUILD / "test-classes",
          SOURCE / "java/org/rambpc/referenceprobe/CaseCatalog.java",
-         ROOT / "scripts/CaseCatalogTest.java"])
+         SOURCE / "java/org/rambpc/referenceprobe/AudioInputInventory.java",
+         ROOT / "scripts/CaseCatalogTest.java", ROOT / "scripts/AudioInputInventoryTest.java"])
     run([JAVA, "-cp", BUILD / "test-classes", "CaseCatalogTest"])
+    run([JAVA, "-cp", BUILD / "test-classes", "AudioInputInventoryTest"])
     aapt = TOOLS / ("aapt2" + SUFFIX)
     run([aapt, "compile", "--dir", SOURCE / "res", "-o", BUILD / "resources.zip"])
     run([aapt, "link", "-o", BUILD / "resources.apk", "--manifest", SOURCE / "AndroidManifest.xml",
          "-I", ANDROID_JAR, "--java", BUILD / "generated", BUILD / "resources.zip"])
-    sources = sorted((SOURCE / "java").rglob("*.java")) + sorted((BUILD / "generated").rglob("*.java"))
+    sources = JAVA_SOURCES + [BUILD / "generated/org/rambpc/referenceprobe/R.java"]
     run([JAVAC, "-source", "8", "-target", "8", "-encoding", "UTF-8", "-classpath", ANDROID_JAR,
          "-d", BUILD / "classes", *sources])
     classes_jar = BUILD / "classes.jar"
@@ -120,7 +134,8 @@ def main():
                 "source_tree_hash_algorithm": "SHA256(sorted POSIX relative path + NUL + lowercase file SHA256 + LF)",
                 "build_tool_files_sha256": {str(path): sha256(path) for path in prerequisites},
                 "device_execution": False, "downloads": False,
-                "manifest_permission_count": 0, "catalog_host_test": "passed"}
+                "manifest_permission_count": 0, "catalog_host_test": "passed",
+                "audio_inventory_host_test": "passed"}
     (BUILD / "build-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: value for key, value in metadata.items() if key not in ["source_files_sha256", "build_tool_files_sha256"]}, indent=2))
     print(verification)

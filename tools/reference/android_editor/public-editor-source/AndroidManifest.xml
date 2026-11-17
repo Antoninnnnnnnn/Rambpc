@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.rambpc.publicvoiceprobe" android:versionCode="1" android:versionName="1.0">
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+    <!-- Intentionally no permissions, providers, receivers, services, or intent filters. -->
+    <application android:label="Public Voice Reference" android:allowBackup="false"
+        android:debuggable="true" android:usesCleartextTraffic="false">
+        <activity android:name="org.rambpc.referenceprobe.PublicVoiceReferenceActivity"
+            android:exported="true" android:excludeFromRecents="true" android:launchMode="singleTop" />
+    </application>
+</manifest>
