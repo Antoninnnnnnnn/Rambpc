@@ -772,6 +772,214 @@ async fn trailers_only_and_late_non_ok_status_are_authoritative() {
     }
 }
 
+#[tokio::test]
+async fn trailers_only_status_cannot_use_data_end_stream() {
+    // These are distinct h2 shapes, not different partitions of the same gRPC
+    // bytes: in particular, empty DATA is still a frame, not Trailers-Only.
+    const HEAD_ONLY: u8 = 0;
+    const HEAD_THEN_EMPTY_DATA: u8 = 1;
+    const DATA_THEN_TRAILERS: u8 = 2;
+    let peer = Peer::new(|request, mut reply| async move {
+        let request = drain(request).await;
+        let [0, 0, 0, 0, 2, shape, status] = request.as_ref() else {
+            panic!("unexpected synthetic request envelope");
+        };
+        let status = match status {
+            0 => "0",
+            14 => "14",
+            _ => panic!("unexpected synthetic status"),
+        };
+        let mut head = headers();
+        match *shape {
+            DATA_THEN_TRAILERS => {
+                let mut response = reply.send_response(head, false).unwrap();
+                response.send_data(Bytes::new(), false).unwrap();
+                response.send_data(frame(b""), false).unwrap();
+                response.send_data(Bytes::new(), false).unwrap();
+                response.send_trailers(trailers(status)).unwrap();
+            }
+            HEAD_ONLY | HEAD_THEN_EMPTY_DATA => {
+                head.headers_mut()
+                    .insert("grpc-status", status.parse().unwrap());
+                let mut response = reply.send_response(head, *shape == HEAD_ONLY).unwrap();
+                if *shape == HEAD_THEN_EMPTY_DATA {
+                    response.send_data(Bytes::new(), true).unwrap();
+                }
+            }
+            _ => panic!("unexpected synthetic response shape"),
+        }
+    })
+    .await;
+    let transport = peer.transport().await;
+    for shape in [HEAD_ONLY, HEAD_THEN_EMPTY_DATA, DATA_THEN_TRAILERS] {
+        for code in [Code::Ok, Code::Unavailable] {
+            let source =
+                StreamSource::new(stream::iter([Ok(Bytes::from(vec![shape, code as u8]))]));
+            let mut session = transport
+                .start(source, Metadata::default(), Duration::from_secs(2))
+                .unwrap();
+            if shape == DATA_THEN_TRAILERS {
+                assert_eq!(bounded(session.next()).await.unwrap(), Some(Bytes::new()));
+            }
+            let done = bounded(session.finish()).await;
+            if shape == HEAD_THEN_EMPTY_DATA {
+                assert!(
+                    matches!(done, Err(TransportError::Protocol)),
+                    "{code:?}: {done:?}"
+                );
+            } else if code == Code::Ok {
+                assert_eq!(done.unwrap().terminal_code, Some(code));
+            } else {
+                assert!(matches!(done, Err(TransportError::Grpc(got)) if got == code));
+            }
+            let completion = session.completion();
+            assert_eq!(
+                completion.terminal_code,
+                (shape != HEAD_THEN_EMPTY_DATA).then_some(code)
+            );
+            assert_eq!(
+                completion.responses_received,
+                u64::from(shape == DATA_THEN_TRAILERS)
+            );
+            assert!(completion.source_closed);
+        }
+    }
+    assert_eq!(peer.connections.load(Ordering::SeqCst), 1);
+    bounded(transport.close()).await.unwrap();
+    bounded(peer.close()).await;
+}
+
+struct InterruptedSource {
+    first: Option<Bytes>,
+    closes: Arc<AtomicUsize>,
+}
+impl RequestSource for InterruptedSource {
+    fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>> {
+        match self.first.take() {
+            Some(bytes) => Box::pin(std::future::ready(Ok(Some(bytes)))),
+            None => Box::pin(std::future::pending()),
+        }
+    }
+    fn close(&mut self) -> SourceFuture<'_, Result<(), SourceError>> {
+        self.closes.fetch_add(1, Ordering::SeqCst);
+        Box::pin(std::future::ready(Ok(())))
+    }
+}
+
+#[tokio::test]
+async fn reset_with_partial_envelope_does_not_complete_or_replay() {
+    const INTERRUPTED: &[u8] = b"interrupted";
+    const SAME_CODE: &[u8] = b"same-code";
+    const HEALTHY: &[u8] = b"healthy";
+    const END: &[u8] = b"\x08\x01"; // Complete synthetic S3 END, not a gRPC status.
+    let release = Arc::new(Notify::new());
+    let calls = Arc::new(AtomicUsize::new(0));
+    let peer = Peer::new({
+        let release = release.clone();
+        let calls = calls.clone();
+        move |mut request, mut reply| {
+            let release = release.clone();
+            let calls = calls.clone();
+            async move {
+                calls.fetch_add(1, Ordering::SeqCst);
+                if request.headers().contains_key("x-interrupted") {
+                    // Read one entire upload envelope, but do not await EOF:
+                    // this source blocks until the outcome stops it.
+                    let expected = frame(INTERRUPTED);
+                    let mut seen = Vec::new();
+                    let body = request.body_mut();
+                    while seen.len() < expected.len() {
+                        let chunk = body.data().await.unwrap().unwrap();
+                        seen.extend_from_slice(&chunk);
+                        body.flow_control().release_capacity(chunk.len()).unwrap();
+                    }
+                    assert_eq!(seen, expected);
+                    let mut response = reply.send_response(headers(), false).unwrap();
+                    // One DATA frame carries a complete message and only part
+                    // of the next payload, in the same receive buffer.
+                    let bytes = [frame(END), frame(b"next").slice(..7)].concat();
+                    response.send_data(bytes.into(), false).unwrap();
+                    release.notified().await;
+                    response.send_reset(h2::Reason::CANCEL);
+                } else {
+                    let upload = drain(request).await;
+                    let mut response = reply.send_response(headers(), false).unwrap();
+                    if upload == frame(SAME_CODE) {
+                        response.send_trailers(trailers("1")).unwrap();
+                    } else {
+                        assert_eq!(upload, frame(HEALTHY));
+                        response.send_data(upload, false).unwrap();
+                        response.send_trailers(trailers("0")).unwrap();
+                    }
+                }
+            }
+        }
+    })
+    .await;
+    let transport = peer.transport().await;
+    let deadline = Duration::from_secs(3);
+    let closes = Arc::new(AtomicUsize::new(0));
+    let mut interrupted = transport
+        .start(
+            InterruptedSource {
+                first: Some(Bytes::from_static(INTERRUPTED)),
+                closes: closes.clone(),
+            },
+            Metadata::new([("x-interrupted".into(), CredentialValue::Text("yes".into()))]).unwrap(),
+            deadline,
+        )
+        .unwrap();
+    assert_eq!(
+        bounded(interrupted.next()).await.unwrap(),
+        Some(Bytes::from_static(END))
+    );
+    // Drop a pending observation, not the session. The peer cannot send the
+    // reset yet, so neither draining nor receiving END signals completion.
+    assert!(futures_util::poll!(std::pin::pin!(interrupted.finish())).is_pending());
+    assert_eq!(closes.load(Ordering::SeqCst), 0);
+
+    let mut sibling = transport
+        .start(source(SAME_CODE), Metadata::default(), deadline)
+        .unwrap();
+    assert!(matches!(
+        bounded(sibling.finish()).await,
+        Err(TransportError::Grpc(Code::Cancelled))
+    ));
+    assert_eq!(sibling.completion().terminal_code, Some(Code::Cancelled));
+
+    release.notify_one();
+    assert!(matches!(
+        bounded(interrupted.next()).await,
+        Err(TransportError::Grpc(Code::Cancelled))
+    ));
+    assert_eq!(bounded(interrupted.next()).await.unwrap(), None);
+    assert!(matches!(
+        bounded(interrupted.finish()).await,
+        Err(TransportError::Grpc(Code::Cancelled))
+    ));
+    let done = interrupted.completion();
+    assert_eq!(done.responses_received, 1);
+    assert_eq!(done.requests_produced, 1);
+    assert_eq!(done.requests_polled, 1);
+    assert_eq!(done.terminal_code, None); // Reset is not the sibling's gRPC status.
+    assert!(!done.source_exhausted && !done.upload_eof_polled && done.source_closed);
+    assert_eq!(closes.load(Ordering::SeqCst), 1);
+
+    let mut healthy = transport
+        .start(source(HEALTHY), Metadata::default(), deadline)
+        .unwrap();
+    assert_eq!(
+        bounded(collect(&mut healthy)).await.unwrap(),
+        [Bytes::from_static(HEALTHY)]
+    );
+    assert_eq!(healthy.completion().terminal_code, Some(Code::Ok));
+    bounded(transport.close()).await.unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 3); // One call per explicit start.
+    assert_eq!(peer.connections.load(Ordering::SeqCst), 1);
+    assert_eq!(closes.load(Ordering::SeqCst), 1);
+    bounded(peer.close()).await;
+}
+
 // The oracle is the original message vector, not another gRPC decoder.
 fn generated_messages(mut seed: u64) -> Vec<Bytes> {
     (0..24)

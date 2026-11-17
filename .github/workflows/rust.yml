@@ -58,6 +58,23 @@ jobs:
         run: cargo test -p rambler-transport --example profile_grpc_prefix --locked --offline
       - name: Build release CLI with audio offline
         run: cargo build -p rambler-cli --bin rambler --features audio --release --locked --offline
+      - name: Test native qualification report parser
+        if: matrix.os == 'ubuntu-latest' && matrix.toolchain == 'stable'
+        run: python -I -B -m unittest discover -s tests -p test_compare_native_qualification.py
+      - name: Qualify native audio on owned localhost offline
+        if: matrix.os == 'ubuntu-latest' && matrix.toolchain == 'stable'
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          cargo build -p rambler-cli --features audio --example native_qualification --release --locked --offline
+          report="$(mktemp "$RUNNER_TEMP/native-qualification.XXXXXX")"
+          errors="$(mktemp "$RUNNER_TEMP/native-qualification-errors.XXXXXX")"
+          trap 'rm -f "$report" "$errors"' EXIT
+          if ! target/release/examples/native_qualification --repeats 1 > "$report" 2> "$errors"; then
+            echo 'Native qualification did not complete successfully.' >&2
+            exit 1
+          fi
+          python -I -B -c 'import sys; sys.path.insert(0, "tools"); from compare_native_qualification import read_report; report = read_report(sys.argv[1]); sys.exit(0 if report["repeats"] == 1 else 1)' "$report"
       - name: Test release CLI finalization timeout on loopback offline
         env:
           RAMBLER_TEST_CLI_EXECUTABLE: ${{ github.workspace }}/target/release/rambler${{ runner.os == 'Windows' && '.exe' || '' }}

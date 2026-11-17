@@ -1,6 +1,6 @@
 use crate::{
-    AudioSource, EditingContext, Engine, EngineError, EngineSession, S3Response, SessionMetrics,
-    SessionOptions,
+    AudioSource, EditingContext, Engine, EngineError, EngineSession, Presentation, S3Response,
+    SessionMetrics, SessionOptions,
 };
 use rambler_protocol::{HYPOTHESIS_SAFETY_STATUS, Hypothesis};
 
@@ -231,7 +231,7 @@ pub async fn collect_session(
     session: EngineSession,
     limits: CollectorLimits,
 ) -> Result<DictationResult, EngineError> {
-    finish_collection(session, limits, Retention::GlobalFinals)
+    finish_collection(session, limits, Retention::GlobalFinals, None)
         .await
         .map(|(result, _)| result)
 }
@@ -243,7 +243,7 @@ pub async fn collect_segment_session(
     session: EngineSession,
     limits: CollectorLimits,
 ) -> Result<SegmentResult, EngineError> {
-    let (result, ordinals) = finish_collection(session, limits, Retention::Segments).await?;
+    let (result, ordinals) = finish_collection(session, limits, Retention::Segments, None).await?;
     Ok(SegmentResult {
         updates: result
             .final_updates
@@ -264,12 +264,15 @@ enum Retention {
     GlobalFinals,
     Segments,
 }
+type Observer<'a> = &'a mut (dyn for<'event> FnMut(DictationObservation<'event>) + Send + 'a);
+
 async fn finish_collection(
     mut session: EngineSession,
     limits: CollectorLimits,
     retention: Retention,
+    observer: Option<Observer<'_>>,
 ) -> Result<(DictationResult, Vec<u64>), EngineError> {
-    let result = collect_inner(&mut session, limits, retention).await;
+    let result = collect_inner(&mut session, limits, retention, observer).await;
     let cleanup = session.close_unobserved().await;
     match result {
         Err(error) => Err(error),
@@ -289,13 +292,63 @@ pub fn collect_dictation(
     options: SessionOptions,
     limits: CollectorLimits,
 ) -> impl std::future::Future<Output = Result<DictationResult, EngineError>> + Send + 'static {
-    let (session, rejected_cleanup) = prepare_collection(engine, audio, options, limits);
-    async move {
-        if let Some(cleanup) = rejected_cleanup {
-            cleanup.await?;
-        }
-        collect_session(session?, limits).await
+    collect_prepared_dictation(
+        prepare_collection(engine, audio, options, limits),
+        limits,
+        None,
+    )
+}
+
+/// Borrowed, provisional presentation and progress from one decoded response.
+///
+/// Even a recognition-complete response or S3 END is not a committed result.
+/// This view does not check candidate safety, select text, or authorize editor
+/// or system effects. Audio and payload counts are not server acknowledgements.
+#[non_exhaustive]
+pub struct DictationObservation<'a> {
+    pub presentation: Presentation<'a>,
+    pub metrics: &'a SessionMetrics,
+}
+
+/// Collect bounded finals like [`collect_dictation`], with an ordered response observer.
+///
+/// Calls `observer` synchronously in the collecting task once per decoded response
+/// accepted by the collector, including non-retained responses and S3 END. There
+/// are no callbacks for the response that exceeds retention limits, engine EOF,
+/// terminal errors, or independent audio/timer ticks. The returned result, not
+/// the last callback, reports success. Discard previews on failure or cancellation.
+///
+/// Keep the observer quick and nonblocking: it runs before the next response is
+/// drained and cannot be preempted by session deadlines. The SDK does not log or
+/// queue the callback's observations. Do not log their raw or presented text.
+/// As with [`collect_dictation`], audio ownership transfers before the returned
+/// future is polled. Dropping it signals cancellation; explicitly close the
+/// engine to await outstanding cleanup at shutdown.
+pub fn collect_dictation_with_observer<'a>(
+    engine: &Engine,
+    audio: Box<dyn AudioSource>,
+    options: SessionOptions,
+    limits: CollectorLimits,
+    observer: &'a mut (dyn for<'event> FnMut(DictationObservation<'event>) + Send + 'a),
+) -> impl std::future::Future<Output = Result<DictationResult, EngineError>> + Send + 'a + use<'a> {
+    collect_prepared_dictation(
+        prepare_collection(engine, audio, options, limits),
+        limits,
+        Some(observer),
+    )
+}
+
+async fn collect_prepared_dictation(
+    (session, rejected_cleanup): PreparedCollection,
+    limits: CollectorLimits,
+    observer: Option<Observer<'_>>,
+) -> Result<DictationResult, EngineError> {
+    if let Some(cleanup) = rejected_cleanup {
+        cleanup.await?;
     }
+    finish_collection(session?, limits, Retention::GlobalFinals, observer)
+        .await
+        .map(|(result, _)| result)
 }
 /// Ownership is transferred synchronously, including when the returned future
 /// is never polled. Like dictation collection, failures do not trigger replay.
@@ -336,6 +389,7 @@ async fn collect_inner(
     session: &mut EngineSession,
     limits: CollectorLimits,
     retention: Retention,
+    mut observer: Option<Observer<'_>>,
 ) -> Result<(DictationResult, Vec<u64>), EngineError> {
     if limits.max_final_updates == 0 || limits.max_result_bytes == 0 {
         return Err(EngineError::InvalidConfig);
@@ -378,6 +432,14 @@ async fn collect_inner(
                 if updates.len() >= limits.max_final_updates || size > limits.max_result_bytes {
                     return Err(EngineError::ResultLimit);
                 }
+            }
+            if let Some(observer) = &mut observer {
+                observer(DictationObservation {
+                    presentation: Presentation::new(&response),
+                    metrics: &event.metrics,
+                });
+            }
+            if keep {
                 updates.push(response);
             }
         } else {

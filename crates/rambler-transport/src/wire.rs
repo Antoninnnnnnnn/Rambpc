@@ -247,11 +247,11 @@ async fn read(
     };
     let mut stream = response.into_body();
     let mut decoder = Deframer::new(limit);
-    let mut saw_data = false;
     while let Some(chunk) = stream.data().await {
         let chunk = chunk?;
-        saw_data |= !chunk.is_empty();
-        if initial_status.is_some() && saw_data {
+        // Trailers-Only ends with the initial HEADERS. Even zero-length DATA
+        // is another frame, not proof that those HEADERS ended the stream.
+        if initial_status.is_some() {
             return Err(TransportError::Protocol.into());
         }
         if framed {
