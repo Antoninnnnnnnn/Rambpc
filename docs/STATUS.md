@@ -70,11 +70,15 @@ de provenance sont distinguées des reçus machine.
 [Mesure et limites](research/rust-safety-field-allocation.md) ·
 [Preuve corrigée](evidence/rust-safety-field-allocation-windows-20261117.json).
 
-À ce checkpoint, la nouvelle CI de `c89f140` a **12 jobs réussis et deux jobs
-macOS ARM annulés avant toute étape**, faute de runner hébergé. Une relance ciblée
-ARM/1.88 est en file ; la demande simultanée ARM/stable a été refusée par GitHub
-pendant cette tentative active. Pas de CI globale verte revendiquée, ni de
-requalification du service ou d’une session REAL.
+La première CI de `c89f140` termine à **12 réussites et deux annulations macOS
+ARM avant toute étape projet**, faute de capacité hébergée. La relance ciblée
+ARM/1.88 réussit ; la demande ARM/stable simultanée, refusée par GitHub, est
+conservée. Une fois la tentative terminée, une seule relance ARM/stable réussit.
+La vue finale est **14/14 succès** : deux relances de jobs acceptées, pas de
+nouvelle relance des réussites. Les neuf succès Rust de la tentative précédente
+conservent débuts, fins et étapes malgré les IDs réémis ; les quatre records
+Python restent identiques. Cette CI porte sur `c89f140`, pas sur le prototype
+oneof non publié ; aucun service, credential ou session REAL requalifié.
 [Incident et reçus CI](evidence/rust-safety-field-allocation-ci-20261117.json).
 
 ## Appelant REAL — régressions simulées, 17 novembre

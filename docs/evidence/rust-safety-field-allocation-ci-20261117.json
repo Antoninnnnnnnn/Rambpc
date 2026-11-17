@@ -1,5 +1,38 @@
 {
+  "attempt_2": {
+    "eight_original_rust_successes_reused": true,
+    "first_accepted_retry_job": 134250619693,
+    "first_accepted_retry_result": "success",
+    "next_target": 134250621061,
+    "next_target_recorded_steps": [],
+    "provider_calls": 0,
+    "public_job_snapshot_sha256": "2af4811eb35e4a89949375b35f9fadadeb0e4b86be8cdc4f9f3b7fef752a52cc",
+    "python_four_job_records_unchanged": true,
+    "result": "13_SUCCESS_1_CACHED_CANCELLED_BEFORE_STABLE_RETRY",
+    "retry_requests_in_this_script": 0,
+    "reused_start_complete_and_steps_identical": true,
+    "run_attempt": 2,
+    "rust_ids_reissued_by_github": true,
+    "tested_head": "c89f140a70c8bca5cd32913430b9ccc89c22bdc9"
+  },
   "date": "2026-11-17",
+  "final": {
+    "accepted_job_only_retry_requests": 2,
+    "nine_attempt_2_rust_successes_reused": true,
+    "no_additional_retry_requested": true,
+    "provider_calls": 0,
+    "public_job_snapshot_sha256": "2317ac3e53cbf9db5b003d2f4769ab0001fcc6ef26aeb12f7f9d5a2c7ecd8f01",
+    "python_four_job_records_unchanged": true,
+    "python_success": 4,
+    "refused_concurrent_retry_requests": 1,
+    "result": "ALL_14_JOBS_SUCCESS_AFTER_TWO_JOB_ONLY_RETRIES",
+    "reused_start_complete_and_steps_identical": true,
+    "run_attempt": 3,
+    "rust_ids_reissued_by_github": true,
+    "rust_success": 10,
+    "stable_retry_job": 134262411007,
+    "tested_head": "c89f140a70c8bca5cd32913430b9ccc89c22bdc9"
+  },
   "first_attempt": {
     "python": {
       "conclusion": "success",
@@ -1949,9 +1982,9 @@
   "limits": [
     "Offline CI only; no service, credential or native REAL qualification.",
     "First-attempt cancellations had no recorded project steps; hosted-runner capacity annotations are preserved.",
-    "No final green CI claim at this checkpoint."
+    "Final green covers exact source c89f140, not the uncommitted oneof prototype or its performance."
   ],
-  "result": "12_SUCCESS_2_CANCELLED_HOSTED_RUNNER_CAPACITY_RETRY_PENDING",
+  "result": "ALL_14_JOBS_SUCCESS_AFTER_TWO_JOB_ONLY_RETRIES",
   "retry_requests": [
     {
       "name": "test (macos-latest, 1.88.0)",
@@ -1967,6 +2000,14 @@
       "original_job": 134194647686,
       "project_execution_from_refused_request_not_claimed": true,
       "request_result": "REFUSED_WHILE_ATTEMPT_2_ACTIVE"
+    },
+    {
+      "name": "test (macos-latest, stable)",
+      "project_result": "success",
+      "request_result": "ACCEPTED",
+      "result_job": 134262411007,
+      "run_attempt": 3,
+      "target_job_in_attempt_2": 134250621061
     }
   ],
   "tested_head": "c89f140a70c8bca5cd32913430b9ccc89c22bdc9"
