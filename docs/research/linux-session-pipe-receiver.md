@@ -1,4 +1,4 @@
-# Linux session pipe receiver — SOURCE ONLY, not live GO
+# Linux session pipe receiver — PUBLIC_GUARD only, not live GO
 
 ## Status and ownership
 
@@ -13,10 +13,17 @@ binary or an SDK session. A subsequent bounded fake-only suite passed **49 tests
 on Windows and 49 on Linux**, with source pins unchanged and owned Windows Jobs
 clean. Linux source transfer/test launch used SSH, but never invoked the
 controller's native entry point. [QA record and limits](../evidence/linux-session-pipe-fake-qa-20261117.json).
-Neither a native PUBLIC_GUARD nor REAL attempt has run. The existing public SSH
-success uses a different public-only receiver and remains separate evidence,
-not a secret channel or single-session qualification. Source/fake approval is
-not live GO; MAIN separately owns any later native attempt.
+A subsequent **one-case PUBLIC_GUARD** observation used a fresh case and consumed
+reservation: one invented 85-byte frame produced Native `--single-session-v1`
+`REJECT_CREDENTIALS` (151 bytes, EOF, exit 1), and upstream READY plus success
+(38 + 82 = 120 bytes, EOF, exit 0). Two external opens of the owned child's
+`environ` failed EACCES without reading content. Windows inner/outer owned Jobs,
+cleanup, pins, source/staging and postinspection passed. RPC ZERO is a pinned-source
+invariant, not independent network telemetry. [Sanitized observation](../evidence/linux-session-public-guard-20261117.json).
+No REAL attempt is qualified. The older public SSH success used a different
+public-only receiver and PUBLIC_FRAME mode; it is not this single-session guard
+or a secret channel. The 49-per-OS fake record remains separate historical evidence.
+Neither source/fake approval nor this public guard is live GO.
 
 The old receiver/helper, Windows Job/channel/fixtures, Rust source/snapshot,
 existing Debug binary and public PCM are immutable inputs; no historical campaign,
@@ -207,10 +214,10 @@ rpc UNKNOWN. IO_FAILURE and INTERNAL_FAILURE are conservatively UNKNOWN,
 not a zero-RPC assertion. The total exchange budget is 15s after gate release;
 parent alarm is 30s and owned-child drain has the unchanged 6s bound.
 
-A future PASS would qualify only the new single-session exec path, fork gate,
-ownership, two EACCES observations, channel and public-tuple rejection. It would
-not qualify REAL secrets, network/TLS/DNS, CPU headroom, provisioning or credential
-confidentiality. No such native PASS is claimed here.
+The observed PASS qualifies only this one public single-session exec path and
+its recorded gate, ownership, EACCES observations, channel and public-tuple
+rejection. It does not qualify REAL secrets, network/TLS/DNS, CPU headroom,
+provisioning or credential confidentiality.
 
 ## REAL — separate attempt, pending qualification
 
@@ -231,7 +238,10 @@ locally as PUBLIC_TUPLE, rpc ZERO, no native write. Canonical field framing make
 byte equality equivalent to equality of this particular tuple.
 
 Before fork REAL requires `F_GETPIPE_SZ` (1032) >=16384 on the native stdin pipe.
-The empty nonblocking pipe receives one write of the filled slice, then close
+A separate read-only empty-pipe query observed capacity 65536 bytes, with no
+credentials, frame, Native launch, service call or pipe/global setting change.
+It does not qualify the actual REAL pipe or secret path; REAL must check its own
+pipe. The empty nonblocking pipe receives one write of the filled slice, then close
 for EOF. A short write or error is FORWARD, with no continuation or resend.
 The filled bytearray is overwritten immediately after the attempt and again via
 the finally hook on every path, including read/validation failures. This is
@@ -361,8 +371,9 @@ found no production-source blocker but rejected two test defects: a missing fake
 cwd and a Windows-incompatible `signal.alarm` patch. Both test-only defects were
 fixed before the first suite launches; the production source stayed byte-identical.
 A narrow follow-up review verified those changes and the two 49/0/0/0 reports.
-The source-only NO_GO is preserved, not relabeled as a passing run. Native guard,
-secret-channel and real single-session qualification remain absent.
+The source-only NO_GO is preserved, not relabeled as a passing run. The later
+one-case Native guard observation is separate; secret-channel and real
+single-session qualification remain absent.
 
 Byte-pinned qualification sources have explicit LF checkout rules in
 `.gitattributes`; runtime byte/hash checks are not relaxed or normalized.
@@ -378,9 +389,9 @@ prevent completion of the cleanup/record protocol.
 
 The immutable Debug binary may exceed CPU 10s under TLS/Opus load: SIGXCPU means
 UNKNOWN, not a safe retry. sshd may close a session or deliver SIGHUP; runtime
-Drop can block on DNS until Native alarm(90). None has been natively qualified in
-single-session mode. A first Native PUBLIC_GUARD run would itself be separate
-MAIN-owned qualification, not a replay of the old public-frame campaign.
+Drop can block on DNS until Native alarm(90). These REAL conditions have not been
+natively qualified; the one PUBLIC_GUARD success is separate from the old
+public-frame campaign and does not qualify a REAL session.
 
 Durable credential provisioning, producer review/confidentiality, rotation,
 revocation, and COMPOSE/RAMBLE activation are unresolved. The Windows REAL

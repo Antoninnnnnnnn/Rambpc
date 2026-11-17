@@ -39,11 +39,21 @@ zéro échec/erreur/skip. Deux défauts de tests ont été corrigés avant exéc
 sans changer le code de production ; la revue ciblée suivante confirme le GO
 source avec QA simulée seulement. Les sources à empreinte fixe sont conservées
 en LF sur les checkouts, sans normaliser ni affaiblir les contrôles runtime.
-Aucun mode natif de ce contrôleur n’a encore tourné : le garde public devra
-prouver le refus du tuple inventé dans `--single-session-v1` avant toute tentative
-réelle, sans RPC. **Accès réel Linux et canal de secrets toujours NO_GO.**
+Ensuite, **un seul PUBLIC_GUARD natif** réussit avec cas neuf et réservation
+consommée : trame publique inventée de 85 octets, `--single-session-v1` et refus
+`REJECT_CREDENTIALS` (terminal 151 octets, EOF, exit 1), puis READY et succès
+amont (38 + 82 = 120 octets, EOF, exit 0). Deux ouvertures d'`environ` refusées
+EACCES, sans lecture ; Jobs Windows interne/externe, nettoyage, pins et
+postinspection vérifiés. RPC ZERO est un invariant de la source épinglée, pas
+une télémétrie réseau. Ce cas est distinct des 49 tests simulés par OS et de
+l'ancien aller-retour PUBLIC_FRAME. Une mesure séparée en lecture seule donne
+65536 octets pour un pipe vide, sans qualifier le pipe REAL effectif ni le
+chemin de secrets. **REAL, producteur/confidentialité des credentials, session
+réelle, provisionnement durable et backend complet restent non qualifiés ;
+live_go=false.**
 [Contrat](research/linux-session-pipe-receiver.md) ·
-[Preuve simulée](evidence/linux-session-pipe-fake-qa-20261117.json).
+[Preuve simulée historique](evidence/linux-session-pipe-fake-qa-20261117.json) ·
+[Observation publique](evidence/linux-session-public-guard-20261117.json).
 Le CI de `da591e9` passe **14/14 jobs au premier essai**, sans relance ni
 activation des modes natifs du contrôleur.
 
