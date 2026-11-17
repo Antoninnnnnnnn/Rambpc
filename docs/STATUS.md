@@ -59,7 +59,9 @@ ci-dessus. [Contrat et limites](research/linux-real-admission.md),
 Le premier CI du lot public `81f9a83` termine à **13 jobs réussis / 1 échec** :
 les huit matrices Rust, VS17 et Python passent, mais Clippy Linux refuse la
 signature FFI de `read`. Correction native ciblée vers `*mut c_void`, sans
-suppression du lint ; la validation CI fraîche reste à collecter.
+suppression du lint ; **le CI frais de `f27a01b` passe 14/14 jobs**, dont Clippy
+Linux, sans relance de workflow. Cela ne qualifie pas l’admission native ni le
+canal d’identifiants.
 [Échec conservé et delta source](evidence/linux-real-admission-ci-20261117.json).
 
 ## Linux natif — contrôle public des cores réussi

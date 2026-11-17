@@ -22,6 +22,18 @@
     "corrected_working_source_sha256": "fae7a6b088f3d1a7f6bd7b3f795ae99a3ec119ca6d029cb2ecf9fdf811c2c8c6",
     "fresh_ci_pass_observed_at_record_creation": false
   },
+  "fresh_ci_after_correction": {
+    "tested_head": "f27a01bbedf64363aa3e77b68b389652c90bc5e4",
+    "result": "ALL_14_JOBS_SUCCESSFUL",
+    "rust_run": 44036943707,
+    "python_run": 44036943719,
+    "rust_passed_jobs": 10,
+    "python_passed_jobs": 4,
+    "failed_or_cancelled_jobs": 0,
+    "linux_lint_job": 133881991115,
+    "workflow_reruns_requested": 0,
+    "qualification": "Compilation and offline tests only, not native admission or credential-channel execution"
+  },
   "limits": [
     "The first failed CI remains failed; no workflow retry was requested.",
     "Successful matrix jobs establish compilation and offline test execution, including the Fake-only example step, not execution of native admission.",
