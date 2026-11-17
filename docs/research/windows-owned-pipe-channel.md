@@ -137,7 +137,10 @@ retains it for cancellation, and closes it in its finalization. The controller
 never looks up a potentially recycled thread ID. Job termination closes owned
 readers, and the implementation repeatedly calls `CancelSynchronousIo` against
 the retained writer HANDLE for an in-flight blocked pipe write/syscall-entry race.
-Native effectiveness for that race remains unproven; tests of it use fakes only.
+Native effectiveness of `CancelSynchronousIo` remains unproven. Two separately
+opted-in native blocked-pipe cases subsequently passed deadline/cancellation and
+Job cleanup, but the writer unblocked without any observed call to this API;
+[observations and limits](windows-owned-pipe-native-cancellation.md).
 Cancellation and
 expiry are checked before writes and before callback invocation/publication.
 Data returned by a callback after cancellation/expiry is discarded, never sent.
@@ -208,8 +211,10 @@ exit and the complete protocol. Both outer capture Jobs were empty and their
 captures exited zero. The runner used an explicitly selected, verified base Python
 image. Source, helper, lockfile and old release CLI pins were unchanged before and
 after QA. There were no SSH roundtrips, service calls or credentials loaded; this
-is not live GO. No native blocked-write or `CancelSynchronousIo` qualification
-was performed: those paths have fake coverage only.
+is not live GO. At that checkpoint, blocked-write paths had fake coverage only.
+A later, separate [two-case native public qualification](windows-owned-pipe-native-cancellation.md)
+passed deadline and explicit cancellation; no `CancelSynchronousIo` invocation
+was observed, and no earlier positive fixture was replayed.
 
 33 unittest methods are authored: 29 fake channel methods, three pure fixture
 methods and one Windows-native public fixture method. Native integration requires
@@ -270,6 +275,6 @@ Selection alone without the opt-in still skips. That sole test launches only the
 original public Python fixture inside
 an owned Job; it asserts 85 exact bytes, EOF, exact protocol, Job membership/empty,
 zero exit, worker joins and handle reaping. It uses an explicit public environment.
-It is not a blocked-writer native qualification suite or SSH qualification. Review
-and separately qualify actual Windows blocking/cancellation semantics before any
-future sensitive caller; no such qualification is claimed by these sources.
+It is not a blocked-writer native qualification suite or SSH qualification.
+The separate bounded blocked-write observations are linked above; no confidential
+caller or SSH qualification follows from either local public suite.

@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-17",
+  "result": "PASS_TWO_EXPLICIT_PUBLIC_NATIVE_BLOCKED_PIPE_CASES",
+  "scope": "Bounded non-reading local public fixture, deadline/cancellation and owned Job cleanup; not a credential or SSH channel",
+  "channel_code_association": "e1ec3cd56a848338ab43502ce5a384ec3f54a887",
+  "counts": {"selected": 2, "run": 2, "failures": 0, "errors": 0, "skips": 0},
+  "outer_job_membership_verified": true,
+  "outer_capture_ok": true,
+  "outer_job_empty": true,
+  "source_pins_unchanged": true,
+  "source_sha256": {
+    "tools/reference/owned_pipe_blocked_public_fixture.py": "e0eb80b12f9071d06a3700bff9d2ccfdd8dfe7ac2d3620534d53290235f3e64e",
+    "tests/test_windows_owned_pipe_native_public.py": "1a417dfbd1c5155700860af00aea5ffc8f66e75090cf870845f184df96fb23f8",
+    "tools/windows_owned_pipe_job.py": "a9e6c5890e39461549d1abcf898f7d405c10ca2171715e3a26e52c469ae86ea5",
+    "tools/windows_owned_job.py": "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa"
+  },
+  "source_hash_semantics": "Measured on-disk source bytes, not necessarily CRLF-normalized Git blob identity",
+  "cases": [
+    {"case": "deadline", "outcome": "timeout", "capacity_established": true, "no_return_interval_observed": true, "attempted_frame_bytes": 12302, "known_completed_frame_bytes": 0, "real_cancel_writer_calls": 0, "cancel_synchronous_io_invoked": false},
+    {"case": "explicit_cancel", "outcome": "cancelled", "capacity_established": true, "no_return_interval_observed": true, "attempted_frame_bytes": 12302, "known_completed_frame_bytes": 0, "real_cancel_writer_calls": 0, "cancel_synchronous_io_invoked": false}
+  ],
+  "native_assertions_satisfied": [
+    "Explicit base-interpreter public API path, unchanged maximum input12302 and verified inner owned Job",
+    "One producer call and frame-write attempt per case, no success terminal or successful stdin EOF",
+    "Inner Job empty, workers joined, handles reaped and cleanup true on required failure outcome",
+    "Bounded observer interval and independently joined observer thread"
+  ],
+  "default_discovery": "Native class skips unless Windows and the separate explicit test-only opt-in is set",
+  "positive_fixture_replayed": false,
+  "test_retries": 0,
+  "report_parser_history": "Initial parser missed diagnostics embedded in unittest output; existing retained capture was postprocessed without rerunning tests",
+  "credentials_loaded": false,
+  "ssh_roundtrips": 0,
+  "rambler_calls": 0,
+  "live_go": false,
+  "limits": [
+    "Buffer query plus no-return interval establish a blocking opportunity/observation, not a universal kernel progress guarantee",
+    "Zero known-completed bytes does not prove zero bytes transferred in-flight, rollback, erasure or secrecy",
+    "No CancelSynchronousIo call was observed, so invocation/effectiveness of that API remains unqualified",
+    "No native arbitrary blocked callback kill, SSH roundtrip, remote admission or real credential channel is established",
+    "Bounded return assertions are not latency/performance benchmarks"
+  ]
+}

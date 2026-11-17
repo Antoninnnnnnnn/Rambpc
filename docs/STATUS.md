@@ -38,8 +38,11 @@ Le nouvel émetteur Windows refuse les interpréteurs redirigés de venv et pass
 31 tests simulés/fixture (un test non applicable ignoré), puis une fixture native
 publique sélectionnée explicitement. Trame de 85 octets, EOF, appel unique du
 producteur, ownership et nettoyage des Jobs sont vérifiés dans ce cas.
-Les écritures natives bloquées et `CancelSynchronousIo` restent non qualifiés.
-[Preuve Windows](evidence/windows-owned-pipe-public-qa-20261117.json).
+Deux cas natifs publics distincts passent ensuite l’écriture bloquée avec délai
+et l’annulation explicite, avec nettoyage des Jobs. Aucun appel à
+`CancelSynchronousIo` n’a été observé : son efficacité reste non qualifiée.
+[Preuve nominale Windows](evidence/windows-owned-pipe-public-qa-20261117.json) ·
+[Preuve délai/annulation](evidence/windows-owned-pipe-native-cancellation-20261117.json).
 
 Le récepteur Linux public passe séparément 31 tests avec ports simulés sous
 Windows. Il ne peut transmettre que sa constante publique, jamais un identifiant
