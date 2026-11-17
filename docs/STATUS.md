@@ -55,12 +55,16 @@ vraies fusions ne justifient pas de gain temporel général.
 Revue source puis revue numérique indépendantes sans blocage/discrépance dans
 leurs périmètres ; MAIN accepte le gain d’allocation local borné. Caches séparés
 neufs, sources/binaires épinglés, appartenance et vacuité des Jobs vérifiées.
-**CI distante de ce nouveau candidat encore en attente** ; les 14 jobs de
-`c89f140` ci-dessous ne le qualifient pas. Aucun nouveau service, credential,
-appareil, microphone ni rejeu des anciennes campagnes safety/Opus. Ni backend
-complet, latence WAN ou moteur universellement le plus rapide n’en sont déduits.
+La CI de `b49bc5c` termine à **14/14** après une seule relance ciblée : le
+job macOS ARM/Rust 1.88 avait été annulé avant toute étape, faute de runner.
+Les neuf succès Rust sont réutilisés et les quatre jobs Python restent inchangés.
+Les huit nouveaux tests Rust passent dans chacun des huit jobs natifs. Aucun
+nouveau service, credential, appareil, microphone ni rejeu des anciennes
+campagnes safety/Opus. Ni backend complet, latence WAN ou vitesse universelle
+n’en sont déduits.
 [Méthode et limites](research/rust-oneof-run-allocation.md) ·
-[Preuves et 500 lignes](evidence/rust-oneof-run-allocation-windows-20261117.json).
+[Preuves et 500 lignes](evidence/rust-oneof-run-allocation-windows-20261117.json) ·
+[Provenance CI](evidence/rust-oneof-run-allocation-ci-20261117.json).
 
 ## Modes avancés et accès natif — audits documentaires, 17 novembre
 

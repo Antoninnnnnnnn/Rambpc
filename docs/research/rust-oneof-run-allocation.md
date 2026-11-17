@@ -95,9 +95,10 @@ closure. Initial source-review issues (cache separation, exact baseline binding
 and an unnecessary closure drop) were addressed before any build or campaign.
 Independent numerical review found no discrepancy in raw rows, aggregates,
 ordering, normalization or receipt linkage. MAIN accepts this bounded local
-allocation reduction; remote CI for this new source is still pending. The public
-reports do not independently timestamp the analysis plan or prove the entire
-build environment, and source/fake/native scopes remain distinct.
+allocation reduction. The [separate source CI](../evidence/rust-oneof-run-allocation-ci-20261117.json)
+passes all 14 jobs for `b49bc5c` after one runner-capacity retry; it does not
+remeasure the performance campaign. The public reports do not independently
+timestamp the analysis plan or prove the entire build environment.
 
 No credentials, provider calls, device or microphone were used. Historical CLI,
 Cargo.lock, frozen Opus study and completed safety-marker campaign stay unchanged.
