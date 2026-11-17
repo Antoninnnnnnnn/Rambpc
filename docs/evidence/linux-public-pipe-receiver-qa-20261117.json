@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-17",
+  "result": "PASS_WINDOWS_FAKE_QA_ONLY",
+  "scope": "New Linux public-only pipe receiver; fake ports only, no Linux kernel or SSH execution",
+  "review": "Independent read-only source review: GO_SOURCE_ONLY, no blocking findings",
+  "source_sha256": {
+    "tools/reference/linux_public_pipe_receiver.py": "fd70a045c606ef3bf9f9a0b8352707499ef1943e2056a307feb5bab2f98c89c0",
+    "tests/test_linux_public_pipe_receiver.py": "ac81886e5a1535d3823e23c4a504b4e15561b093916f2f3ca174768a82ec4c05",
+    "tools/reference/linux_admission_public_supervisor.py": "bb711f7ce1ada062cee9ed47136ae0496c38d8095d8ced26229bb2f8328ec0d9",
+    "tools/windows_owned_job.py": "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa"
+  },
+  "source_hash_semantics": "Observed Windows working-file bytes, not necessarily CRLF-normalized Git blob hashes",
+  "tests": {"run": 31, "failures": 0, "errors": 0, "skipped": 0, "expected_failures": 0, "unexpected_successes": 0},
+  "suite_launches": 1,
+  "exit_code": 0,
+  "capture_ok": true,
+  "outer_owned_job_empty": true,
+  "source_pins_unchanged": true,
+  "base_interpreter_and_isolated_startup_verified": true,
+  "prior_halts_preserved": [
+    "First QA stage incorrectly demanded live GO despite source GO and ran zero tests",
+    "A subsequent controller stopped on a mistyped expected hash before creating any Job; actual source hash was correct, zero tests ran"
+  ],
+  "native_receiver_invocations": 0,
+  "native_rust_target_invocations": 0,
+  "ssh_roundtrips": 0,
+  "real_credentials_loaded": false,
+  "service_calls": 0,
+  "live_go": false,
+  "limits": [
+    "Tests import the receiver with fake kernel/helper/IO ports only; no actual signal/resource/dumpability changes, fork, PCM read or environ open",
+    "The receiver accepts only the exact invented 85-byte frame plus EOF and forwards its compiled-in public constant, not arbitrary input",
+    "Existing 11-case native admission qualification is separate and does not qualify this new bridge",
+    "No Windows sender integration, SSH input arrangement, native bridge cleanup or credential channel has been exercised here",
+    "No transcript/ASR/latency/production provisioning or universal isolation claim"
+  ]
+}
