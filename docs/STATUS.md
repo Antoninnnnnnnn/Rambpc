@@ -32,6 +32,18 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Audio PCM — invariance au découpage, 17 novembre
+
+Un test compare les paquets Opus produits par l’adaptateur à ceux du même codec
+alimenté directement en échantillons : six longueurs, trois découpages chacun
+(bloc entier, octet par octet et frontières de trames), avec blocs vides et
+fins non nulles. La lecture indépendante Ogg vérifie CRC, EOS et durée après
+rognage ; l’entrée est épuisée et sa fermeture n’est appelée qu’une fois.
+**19 tests ciblés passent sur Windows**, ainsi que Clippy strict et le formatage.
+Les échecs de préparation CMake/MSBuild et le premier lint sont conservés.
+Aucun changement de production, nouveau benchmark ou appel au service.
+[Preuve locale](evidence/rust-pcm-partition-invariance-windows-20261117.json).
+
 ## Oneof — allocations temporaires réduites, 17 novembre
 
 Le nouveau candidat garde les groupes singleton sur la pile et ne construit un

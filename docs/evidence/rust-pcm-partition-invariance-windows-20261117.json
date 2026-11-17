@@ -1,0 +1,127 @@
+{
+  "baseline_core_commit": "b49bc5c",
+  "limit": "No new native service, benchmark, microphone, Android behavior or quality qualification. The existing Opus campaign was not repeated.",
+  "pre_final_test_source_lint_failure": {
+    "fix": "Use fixed-size frame slices with explicit empty remainder.",
+    "kind": "clippy::chunks_exact_to_as_chunks",
+    "receipt": {
+      "credentials_loaded": false,
+      "real_audio": false,
+      "service_calls": 0,
+      "status": "FAILED_OR_INCOMPLETE",
+      "steps": [
+        {
+          "exit": 0,
+          "historical_pins_unchanged": true,
+          "job_empty": true,
+          "membership_verified": true,
+          "passed": true,
+          "step": "tests",
+          "test_sha256": "84d248ee01f769d2b96bc2eae6988765581475d2b59fe0ae52b9344219a2468d"
+        },
+        {
+          "exit": 101,
+          "historical_pins_unchanged": true,
+          "job_empty": true,
+          "membership_verified": true,
+          "passed": false,
+          "step": "lint",
+          "test_sha256": "84d248ee01f769d2b96bc2eae6988765581475d2b59fe0ae52b9344219a2468d"
+        }
+      ]
+    },
+    "tests_passed_before_lint": 19
+  },
+  "pre_test_toolchain_failures": [
+    {
+      "attempt": 1,
+      "cause": "CMake executable absent from the isolated environment",
+      "project_audio_tests_run": false,
+      "report_sha256": "613ee0814c11f4f59c1177c334132008c2d14b1ec10570fb00c1a4780c7bf821"
+    },
+    {
+      "attempt": 2,
+      "cause": "Visual Studio instance discovery failed",
+      "project_audio_tests_run": false,
+      "report_sha256": "51287d67ea20f532069a585ac59bde86142466a577582fdcdc508f6f28a0fe85"
+    },
+    {
+      "attempt": 3,
+      "cause": "MSBuild FileTracker failed resolving Windows application-data paths",
+      "project_audio_tests_run": false,
+      "report_sha256": "51287d67ea20f532069a585ac59bde86142466a577582fdcdc508f6f28a0fe85"
+    },
+    {
+      "attempt": 4,
+      "cause": "MSBuild FileTracker path failure persisted without SystemDrive",
+      "project_audio_tests_run": false,
+      "report_sha256": "51287d67ea20f532069a585ac59bde86142466a577582fdcdc508f6f28a0fe85"
+    }
+  ],
+  "production_changed": false,
+  "scope": "LOCAL_WINDOWS_SYNTHETIC_AUDIO_ONLY",
+  "target_counts": {
+    "encoding": 12,
+    "failed": 0,
+    "ignored": 0,
+    "partition_invariance": 1,
+    "pcm_input_encoding": 6
+  },
+  "test": {
+    "oracle": "Direct typed-sample Opus encoder and independent Ogg reader; identical complete Opus packets within a build, exact trim/granule, one Ogg EOS, downstream EOF and one upstream close. Not equality to original decoded PCM.",
+    "partitions": [
+      "whole",
+      "bytewise",
+      "frame seams"
+    ],
+    "sample_lengths": [
+      1,
+      216,
+      217,
+      319,
+      320,
+      321
+    ],
+    "synthetic_combinations": 18
+  },
+  "test_source": "crates/rambler-audio/tests/partition_invariance.rs",
+  "test_source_sha256": "28ab3985f156d427242faa3cd9ee2a9653cf10b8d2d343a7d4d455707dd41a45",
+  "validation": {
+    "credentials_loaded": false,
+    "real_audio": false,
+    "service_calls": 0,
+    "status": "PASS",
+    "steps": [
+      {
+        "exit": 0,
+        "historical_pins_unchanged": true,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "tests",
+        "test_sha256": "28ab3985f156d427242faa3cd9ee2a9653cf10b8d2d343a7d4d455707dd41a45"
+      },
+      {
+        "exit": 0,
+        "historical_pins_unchanged": true,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "lint",
+        "test_sha256": "28ab3985f156d427242faa3cd9ee2a9653cf10b8d2d343a7d4d455707dd41a45"
+      },
+      {
+        "exit": 0,
+        "historical_pins_unchanged": true,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "format-check",
+        "test_sha256": "28ab3985f156d427242faa3cd9ee2a9653cf10b8d2d343a7d4d455707dd41a45"
+      }
+    ]
+  },
+  "validation_driver_parse_error": {
+    "diagnostic": "Generated driver had an unterminated Python literal; no build or test was invoked."
+  }
+}

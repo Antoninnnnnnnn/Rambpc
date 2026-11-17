@@ -16,3 +16,4 @@ crates/rambler-protocol/src/decode.rs text eol=lf
 crates/rambler-protocol/tests/safety_storage.rs text eol=lf
 crates/rambler-engine/examples/backend_cpu_profile.rs text eol=lf
 crates/rambler-protocol/tests/oneof_runs.rs text eol=lf
+crates/rambler-audio/tests/partition_invariance.rs text eol=lf
