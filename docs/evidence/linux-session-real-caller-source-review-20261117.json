@@ -1,0 +1,43 @@
+{
+  "REAL_sessions": 0,
+  "additional_hardening_to_apply": [
+    "An exclusive remote bootstrap-start claim before receiver entry prevents reusing a retained worker before controller reservation consumption.",
+    "A failed fixed-result print must not bypass the worker hard-exit finally path."
+  ],
+  "date": "2026-11-17",
+  "limits": [
+    "Structured source GO is not runtime authorization or proof and did not close the additional verified defect.",
+    "No private runtime records, original credential contents, native engine, SSH/device or provider service were used for this review.",
+    "Existing public/invented-file/fake/CI campaigns remain separate and unchanged.",
+    "Authorized native configuration, provisioning/rotation/revocation, actual READY integration, confidentiality, ASR quality and full backend remain unqualified.",
+    "These MAIN-only workspace-specific source artifacts are not portable public launchers."
+  ],
+  "live_go": false,
+  "main_verdict": "NO_GO_R1_UNEXECUTED",
+  "main_verified_defect": {
+    "category": "cleanup-accounting",
+    "fix_requirement": "Unreturned capture cleanup uncertainty must remain sticky through every later capture.",
+    "lines": [
+      329,
+      333,
+      408,
+      412
+    ],
+    "scenario": "An execution capture raises before returning a cleanup record; a later successful mandatory read-only postinspection resets capture_pending and can falsely report outer_owned_jobs_clean=true. Overall session success is not established by that flag.",
+    "source": "prepare_linux_session_real_main_20261117.py"
+  },
+  "preparation_runs": 0,
+  "rambler_rpc_attempts": 0,
+  "real_credentials_read": false,
+  "revision_r2": "SOURCE_AUTHORING_IN_PROGRESS_NO_RESULT_CLAIM",
+  "scope": "MAIN_ONLY_REAL_CALLER_SOURCE_REVIEW_NO_EXECUTION",
+  "source_sha256": {
+    "prepare_linux_session_real_main_20261117.py": "6e1000a2f75e36627c0b8a0a55b289ee10e50260387f5ab8fb0e33f1347f992c",
+    "run_linux_session_real_main_20261117.py": "541f39b387c86fc18f0c78403d1199674b7eacb4b6e9a528d9961c68412bf731"
+  },
+  "structured_reviews": {
+    "correctness": "SOURCE_GO_NOT_LIVE",
+    "privacy": "CONDITIONAL_SOURCE_GO_NOT_LIVE",
+    "reported_blockers_in_those_reviews": 0
+  }
+}

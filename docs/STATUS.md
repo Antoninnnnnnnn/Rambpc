@@ -32,6 +32,21 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Appelant REAL — source R1 non exécutable, 17 novembre
+
+Deux revues indépendantes rendent un GO source conditionnel, pas un GO réel.
+Une vérification supplémentaire confirme toutefois un défaut de comptabilité :
+un appel de capture sans résultat peut perdre son état de nettoyage inconnu
+après une postinspection réussie et afficher à tort des Jobs externes propres.
+**Verdict MAIN : NO_GO R1, aucune exécution.** Une révision isolée est en cours,
+avec état inconnu persistant, marqueur de démarrage unique et sortie forcée même
+si l’affichage échoue ; ses tests futurs restent simulés, sans résultat anticipé.
+Aucune préparation REAL, lecture d’identifiants ou requête au service Rambler.
+L’autorisation native de la configuration reste un prérequis séparé, sans
+contournement ni déduction à partir d’un fichier local ou d’un ancien succès.
+[Preuve source et limites](evidence/linux-session-real-caller-source-review-20261117.json) ·
+[Provisionnement](research/authentication.md#complément-documentaire--17-novembre-2026).
+
 ## Producteur de trame — QA simulée, 17 novembre
 
 La bibliothèque développeur `credential_frame_source.py` passe **60 tests** sous
