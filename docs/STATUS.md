@@ -43,7 +43,8 @@ fictives : aucun fichier d’identifiants réel ni service n’a été utilisé.
 inchangés pendant l’essai, appartenance et vacuité du Job externe vérifiées.
 Les fichiers ont des règles LF explicites. **L’intégration READY/canal, les
 métadonnées réelles, la confidentialité, le producteur opérationnel et REAL
-restent non qualifiés** ; ni résultat Linux/CI de ce lot ni accès durable déduit.
+restent non qualifiés** ; le seul essai local ne prouve ni exécution Linux
+ni accès durable.
 [Contrat](research/credential-frame-source.md) ·
 [Preuve locale bornée](evidence/credential-frame-source-fake-qa-20261117.json).
 
@@ -55,9 +56,11 @@ canal READY. [Observation séparée](evidence/credential-frame-source-windows-pu
 
 Le CI de `45ff404` termine d’abord à **13 réussites et une annulation** : GitHub
 n’a pas attribué le runner macOS ARM, sans aucune étape projet enregistrée.
-L’annotation de capacité est conservée ; une seule relance du job annulé est
-alors demandée, sans relancer les treize succès. Résultat de cette relance et
-vérification de réutilisation encore en attente à ce checkpoint.
+L’annotation de capacité est conservée ; une seule relance du job annulé passe,
+portant la vue finale à **14/14 succès**. Les neuf succès Rust sont réutilisés
+avec débuts, fins et étapes identiques malgré de nouveaux IDs GitHub ; les
+quatre enregistrements Python restent inchangés. Aucune campagne native publique manuelle
+ni session de service Rambler n’est rejouée par cette CI offline.
 [Provenance CI](evidence/credential-frame-source-ci-20261117.json).
 
 ## Contrôleur de session gardé — 17 novembre
