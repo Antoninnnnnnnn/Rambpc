@@ -32,6 +32,24 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Sessions en streaming — qualification locale groupée
+
+**Deux nouveaux scénarios** passent sur Windows, avec Clippy strict et formatage
+pour les deux paquets, en une validation sans relance. Ils composent le vrai
+moteur et le transport vers un pair loopback, sans changer le code de production.
+
+- **PCM simultané** : le pair observe deux RPC actifs (même endpoint TCP)
+  et des paquets Opus distincts, puis une annulation. Le flux voisin conserve
+  ses propres paquets, durée après rognage, contexte et résultat final jusqu’à
+  un succès propre. Deux RPC observés, pas une mesure des connexions inutilisées.
+- **Aperçus partiels** : deux réponses distinctes de champ 4 passent par le
+  décodeur et la projection stable/révisable. Le banc remplace l’aperçu plutôt que
+  de le concaténer, puis vérifie une finale distincte, S3 END et EOF de succès.
+
+Ces scénarios synthétiques ne qualifient ni l’émission des partiels par le vrai
+service, ni la parité des modes avancés, ni sa latence. Pas de nouvelle mesure de
+performance. [Preuve locale](evidence/rust-streaming-integration-windows-20261117.json).
+
 ## Rendu strict — une seule vérification globale, 17 novembre
 
 `render(Strict)` réutilise le candidat déjà contrôlé, au lieu de rappeler

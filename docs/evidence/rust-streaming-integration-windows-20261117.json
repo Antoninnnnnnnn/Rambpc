@@ -1,0 +1,60 @@
+{
+  "base_commit": "d9e5bf45497fa46e021bf2b055326c0ae6b9ac98",
+  "focused_test_counts": {
+    "failed": 0,
+    "ignored": 0,
+    "passed": 2
+  },
+  "historical_cli_and_lock_unchanged": true,
+  "limits": [
+    "PCM cancellation checks the observed RPCs and their common remote socket, not idle physical connections, exact reset codes or universal No-Replay.",
+    "Preview replacement is an explicit test consumer action; this is not a new UI nor a guarantee of real provider partials.",
+    "No live service, real credentials, recorded PCM or benchmarks."
+  ],
+  "production_changed": false,
+  "retries": 0,
+  "scope": "Real local Engine and transport with invented inputs and an owned plaintext localhost peer, not provider behaviour.",
+  "shared_build_target": true,
+  "source_sha256": {
+    "crates/rambler-cli/tests/pcm_concurrent_isolation.rs": "8370d0819426ef662184d8ca433f78a3822088277d39789db67ad7a1ca13830c",
+    "crates/rambler-engine/tests/partial_stream_presentation.rs": "43b79eb0d291230370a14fad6ac543ca2a2ec2863309d8e4af0abc749ad37ea7"
+  },
+  "source_state_rest_verified": true,
+  "status": "PASS_GROUPED_WINDOWS_LOCAL_VALIDATION",
+  "steps": [
+    {
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "pcm-test"
+    },
+    {
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "presentation-test"
+    },
+    {
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "pcm-clippy"
+    },
+    {
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "presentation-clippy"
+    },
+    {
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "format"
+    }
+  ],
+  "test_cases": [
+    "cancelling_one_live_pcm_upload_preserves_the_other",
+    "ordered_wire_previews_replace_before_distinct_final_and_clean_eof"
+  ]
+}
