@@ -1,4 +1,4 @@
-# État du moteur — 2026-11-16
+# État du moteur — 2026-11-17
 
 ## Objectif global : backend non terminé
 
@@ -31,6 +31,21 @@ auth/TLS/attestation/sécurité. L’étude Opus conserve exactement ses quatre 
 Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mocks.
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
+
+## Producteur de trame — QA simulée, 17 novembre
+
+La bibliothèque développeur `credential_frame_source.py` passe **60 tests** sous
+Windows/Python 3.14, sans échec, erreur ni skip, après revue indépendante et
+suivi ciblé des flags d’ouverture. Import et construction sont inertes ; la
+sonde ne lit que les métadonnées. L’appel unique construit une trame bornée,
+avec erreurs fermées et effacement mutable au mieux. Les entrées sont toutes
+fictives : aucun fichier d’identifiants réel ni service n’a été utilisé. Pins
+inchangés pendant l’essai, appartenance et vacuité du Job externe vérifiées.
+Les fichiers ont des règles LF explicites. **L’intégration READY/canal, les
+métadonnées réelles, la confidentialité, le producteur opérationnel et REAL
+restent non qualifiés** ; ni résultat Linux/CI de ce lot ni accès durable déduit.
+[Contrat](research/credential-frame-source.md) ·
+[Preuve locale bornée](evidence/credential-frame-source-fake-qa-20261117.json).
 
 ## Contrôleur de session gardé — 17 novembre
 

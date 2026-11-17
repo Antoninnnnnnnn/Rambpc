@@ -9,3 +9,6 @@ tools/reference/owned_pipe_blocked_public_fixture.py text eol=lf
 crates/rambler-cli/examples/linux_real_admission.rs text eol=lf
 crates/rambler-cli/examples/support/linux_real_admission_tests.rs text eol=lf
 tests/test_linux_session_pipe_receiver.py text eol=lf
+tools/credential_frame_source.py text eol=lf
+tests/test_credential_frame_source.py text eol=lf
+docs/research/credential-frame-source.md text eol=lf
