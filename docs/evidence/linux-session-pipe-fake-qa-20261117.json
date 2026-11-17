@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-17",
+  "result": "PASS_49_FAKE_TESTS_EACH_WINDOWS_AND_LINUX",
+  "scope": "New session pipe controller, fake IO/kernel/helper ports only; not native PUBLIC_GUARD or REAL qualification",
+  "source_review": "Original review found no production blocker; two test-only defects were fixed and a narrow independent follow-up returned GO_SESSION_SOURCE_WITH_FAKE_QA_ONLY",
+  "source_sha256": {
+    "tools/reference/linux_session_pipe_receiver.py": "4d1a1387564e6efc044c6f850a62d6d28fd42d3d75401a261651ce265c367f20",
+    "tests/test_linux_session_pipe_receiver.py": "4646cd776130d417c94bdf5b11bef79883e699f882a0d334d5171ebec8233ce0",
+    "tools/reference/linux_public_pipe_receiver.py": "fd70a045c606ef3bf9f9a0b8352707499ef1943e2056a307feb5bab2f98c89c0",
+    "tools/reference/linux_admission_public_supervisor.py": "bb711f7ce1ada062cee9ed47136ae0496c38d8095d8ced26229bb2f8328ec0d9",
+    "tools/windows_owned_job.py": "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa",
+    "tools/windows_owned_pipe_job.py": "a9e6c5890e39461549d1abcf898f7d405c10ca2171715e3a26e52c469ae86ea5",
+    "crates/rambler-cli/examples/linux_real_admission.rs": "fae7a6b088f3d1a7f6bd7b3f795ae99a3ec119ca6d029cb2ecf9fdf811c2c8c6",
+    "crates/rambler-cli/examples/support/linux_real_admission_tests.rs": "269fc87b38482f1185595180039768721dbdcd7c7838f145add245e241cdeb0f"
+  },
+  "source_hash_semantics": "Measured working-file bytes; LF checkout rules keep these byte-pinned inputs stable, without weakening runtime checks",
+  "windows": {"tests": 49, "failures": 0, "errors": 0, "skipped": 0, "exit_code": 0, "outer_owned_job_empty": true, "pins_unchanged": true},
+  "linux": {"tests": 49, "failures": 0, "errors": 0, "skipped": 0, "exit_code": 0, "source_transfer_and_test_launch": "Public source data over owned SSH/SCP Jobs; not controller invocation or a Native session", "all_windows_jobs_clean": true, "pins_unchanged": true},
+  "prior_source_no_go_preserved": {
+    "original_test_sha256": "42f7c4ad6ed3faf913cbbfd184d3bbedf33c766168f2aa9f86ea5ecdd5fa5cbc",
+    "defects": ["FakePort lacked cwd needed by inherited terminal verification", "signal.alarm trap needed create=True on Windows"],
+    "test_only_fix": true,
+    "production_source_changed": false,
+    "tests_executed_before_fix": 0
+  },
+  "coverage_limits": [
+    "Fake ports model guard and REAL flows, field framing/limits/mandatory EOF, reservation consumption, two external checks, no fork after input, terminal categories, cleanup/pins and failure privacy",
+    "No test invokes actual hardening, signals, fork/exec, binary, PCM, procfs, native PUBLIC_GUARD, REAL, credentials or service",
+    "No native-controller reservation/root was provisioned by these tests; the remote fake-source workspace is distinct",
+    "One prior successful public SSH roundtrip uses a different receiver and public-frame Native mode, not this controller's single-session path",
+    "Native PUBLIC_GUARD must be qualified separately before any independently reviewed REAL attempt; durable provisioning and full backend remain unresolved",
+    "No ASR correctness, latency or universal secrecy/perfection claim"
+  ],
+  "native_controller_or_rust_launches": 0,
+  "credentials_loaded": false,
+  "rambler_calls": 0,
+  "live_go": false
+}

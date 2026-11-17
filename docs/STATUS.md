@@ -32,6 +32,19 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Contrôleur de session gardé — 17 novembre
+
+Le nouveau contrôleur passe **49 tests simulés sous Windows et 49 sous Linux**,
+zéro échec/erreur/skip. Deux défauts de tests ont été corrigés avant exécution,
+sans changer le code de production ; la revue ciblée suivante confirme le GO
+source avec QA simulée seulement. Les sources à empreinte fixe sont conservées
+en LF sur les checkouts, sans normaliser ni affaiblir les contrôles runtime.
+Aucun mode natif de ce contrôleur n’a encore tourné : le garde public devra
+prouver le refus du tuple inventé dans `--single-session-v1` avant toute tentative
+réelle, sans RPC. **Accès réel Linux et canal de secrets toujours NO_GO.**
+[Contrat](research/linux-session-pipe-receiver.md) ·
+[Preuve simulée](evidence/linux-session-pipe-fake-qa-20261117.json).
+
 ## Canal d’entrée public — 17 novembre
 
 Le nouvel émetteur Windows refuse les interpréteurs redirigés de venv et passe

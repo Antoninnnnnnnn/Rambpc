@@ -1,1 +1,11 @@
+# Keep byte-pinned developer qualification sources stable across checkouts.
 tools/windows_owned_job.py text eol=lf
+tools/windows_owned_pipe_job.py text eol=lf
+tools/reference/linux_admission_public_supervisor.py text eol=lf
+tools/reference/linux_public_pipe_receiver.py text eol=lf
+tools/reference/linux_session_pipe_receiver.py text eol=lf
+tools/reference/owned_pipe_fixture.py text eol=lf
+tools/reference/owned_pipe_blocked_public_fixture.py text eol=lf
+crates/rambler-cli/examples/linux_real_admission.rs text eol=lf
+crates/rambler-cli/examples/support/linux_real_admission_tests.rs text eol=lf
+tests/test_linux_session_pipe_receiver.py text eol=lf
