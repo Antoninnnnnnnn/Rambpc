@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-17",
+  "result": "ALL_14_CI_JOBS_SUCCESSFUL_FIRST_ATTEMPT",
+  "tested_head": "e1ec3cd56a848338ab43502ce5a384ec3f54a887",
+  "runs": {
+    "python": {"id": 44059803861, "event": "push", "successful_jobs": 4, "failed_or_cancelled_jobs": 0},
+    "rust": {"id": 44059803880, "event": "push", "successful_jobs": 10, "failed_or_cancelled_jobs": 0}
+  },
+  "workflow_reruns_requested": 0,
+  "scope": [
+    "Published Linux receiver and Windows owned pipe source/tests present at this HEAD",
+    "Offline Python suite on Ubuntu/Windows with Python3.11/3.14, including pure public-controller CI step",
+    "Existing Rust offline matrix on Linux/Windows/macOS ARM/Intel with Rust1.88/stable, lint and VS17"
+  ],
+  "native_ci_policy": "The Windows native public fixture requires a separate explicit test-only opt-in; the CI workflow does not set it",
+  "separate_observations": [
+    "31 Linux receiver fake tests passed locally on Windows",
+    "Windows fake/fixture selection passed31 with1platformskip; one explicitly selected native public fixture passed separately",
+    "Earlier native Linux public admission11-case campaign is separate and was not replayed by CI"
+  ],
+  "credentials_loaded": false,
+  "rambler_calls": 0,
+  "live_go": false,
+  "limits": [
+    "Green CI is compilation/offline testing, not an SSH roundtrip or a real credential channel",
+    "Native blocked-pipe cancellation and end-to-end public SSH qualification remain separate pending work",
+    "No claim of durable provider provisioning, COMPOSE/RAMBLE/HISTORY activation, full Android parity, optimum latency or universal perfection"
+  ]
+}

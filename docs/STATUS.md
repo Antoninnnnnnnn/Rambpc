@@ -48,6 +48,11 @@ les scripts de préparation initiaux ont été refusés/incomplets avant exécut
 [Preuve du récepteur](evidence/linux-public-pipe-receiver-qa-20261117.json).
 **Canal de secrets, accès réel Linux et backend complet toujours non qualifiés.**
 
+Le CI combiné des deux côtés à `e1ec3cd` passe **14/14 jobs au premier essai**,
+sans relance. Cela qualifie la compilation et les suites offline, pas un essai
+SSH, l’annulation native bloquée ni un canal avec identifiants.
+[Preuve CI distincte](evidence/public-channel-ci-20261117.json).
+
 ## Admission Linux native publique — 17 novembre
 
 Sur un hôte x86_64 non root, l'exemple optionnel **Debug** et un superviseur
