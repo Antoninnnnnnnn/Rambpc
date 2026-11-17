@@ -11,7 +11,7 @@ complet ni « parfait »**. Le jalon Opus et ses 14 jobs verts ne ferment pas le
 | Accès durable | Snapshots, remplacement par génération et refus serveur gérés côté client | Contrat légitime de provisionnement, validité/rotation et révocation côté fournisseur ; ne pas inventer un renouvellement OAuth |
 | COMPOSE / RAMBLE / RAMBLE_HISTORY | Valeurs décodées et conservées ; pas de sémantique serveur implémentée | Échanges autorisés démontrant leur activation et leur contrat ; un fallback ASR ne les remplace pas |
 | Parité Android | Traces statiques et plusieurs comportements natifs observés | Référence appariée service → client → éditeur, sans méthode de hooking/tampering refusée |
-| Linux réel avec identifiants | Compilation/SDK loopback et nouveau contrôle public positif/protégé des cores qualifiés dans leurs périmètres | Liaison de la protection au vrai moteur et canal de secrets non qualifiés ; accès réel Linux toujours NO_GO |
+| Linux réel avec identifiants | SDK loopback, contrôle public des cores et chemin public borné de l'exemple d'admission natif qualifiés séparément | Appelant Linux, canal de secrets et mode session réelle non qualifiés ; accès réel Linux toujours NO_GO |
 | Performance et fiabilité réelles | Gains locaux synthétiques bornés et invariants offline documentés | Pas de preuve de voix naturelle/WAN représentative ni de vitesse optimale universelle |
 
 Sources : [matrice fonctionnelle](research/rust-feature-parity.md),
@@ -32,6 +32,28 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Admission Linux native publique — 17 novembre
+
+Sur un hôte x86_64 non root, l'exemple optionnel **Debug** et un superviseur
+public passent 11/11 cas finis : noargs silencieux volontairement non durci,
+deux refus safety avant READY sans octet envoyé, une trame publique valide et
+sept malformées. Pour les huit cas avec trame, READY puis refus externe EACCES
+sur `environ` sont observés avant l'entrée publique, sans lecture de son contenu.
+Nettoyage des 11 cas, source et cache vérifiés. La construction comporte trois
+lancements directs et le binaire Fake Debug passe 17 tests Rust ; les 10 tests
+Python purs passent séparément sous Windows et Linux. Ne pas additionner ces
+comptes comme sessions. Les 122 fichiers source mesurés sont les octets du
+working tree Windows associé à `f27a01b` ; 22 diffèrent des blobs Git uniquement
+par normalisation CRLF. Ce ne sont ni un snapshot Git bit-exact ni le CLI Release.
+
+Zéro session réelle, credential ou service ; zéro service est un invariant du
+plan/source, pas une mesure indépendante d'isolation réseau. Aucun rerun G1 ou
+étude Opus ; les échecs R2/R3 et de préparation sont conservés dans la preuve.
+Appelant Linux, émetteur de secrets Windows, provisionnement et backend complet
+restent non qualifiés ; **live NO_GO**. Pas de conclusion sur latence, sémantique
+ASR ou sécurité universelle. [Contrat, reproduction et limites](research/linux-real-admission.md) ·
+[Preuve expurgée](evidence/linux-native-public-admission-20261117.json).
+
 ## Qualification native et référence vocale supervisée — 16 novembre
 
 Le snapshot `82e6394` passe sur un hôte Linux natif non privilégié : workspace
@@ -50,8 +72,8 @@ wire ne sont déduites de cette interface. Le clavier et les restrictions micro
 initiaux sont restaurés. [Observations et réserves](evidence/android-supervised-public-voice-20261116.json).
 
 Le nouvel exemple expérimental d’admission Linux passe **17 tests Fake sous
-Windows** et Clippy ciblé ; sa couche native, le canal d’entrée des identifiants
-et le mode réel restent non qualifiés. Il n’est pas inclus dans le snapshot Linux
+Windows** et Clippy ciblé ; à ce checkpoint, sa couche native, le canal d’entrée des identifiants
+et le mode réel restaient non qualifiés. Il n’est pas inclus dans le snapshot Linux
 ci-dessus. [Contrat et limites](research/linux-real-admission.md),
 [preuve Windows](evidence/linux-real-admission-windows-20261116.json).
 **Accès réel Linux toujours NO_GO ; backend toujours non terminé.**

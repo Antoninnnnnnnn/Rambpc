@@ -1,0 +1,105 @@
+{
+  "build": {
+    "description": "Cargo example build; Cargo Fake --no-run build; direct frozen Fake image",
+    "exit": 0,
+    "fake_counts": {
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "measured": 0,
+      "passed": 17,
+      "suites": 1
+    },
+    "native_example_main_launches": 0,
+    "owned_cleanup": true,
+    "owned_direct_launches": 3
+  },
+  "cache": {
+    "bytes": 45680640,
+    "crate_archives_verified_against_lock": 137,
+    "files": 272,
+    "manifest_sha256": "7cc77a852abf4c2611b179d0cab011da742939de7515992e3eefab3009603c0b",
+    "offline_build": true,
+    "original_cache_unchanged": true,
+    "registry_src_copied": false
+  },
+  "credentials_sent": false,
+  "date": "2026-11-17",
+  "historical_records_preserved": [
+    "Conflicting first scratch draft stopped/quarantined; never executed",
+    "R2 controller rejected for inherited ignoredSIGXFSZ; never executed natively",
+    "R3 pure run:10 assertions passed but exit1 due stale expected9; R4 fixes only count",
+    "First preparation failed before reservation due exact own marker mode0664; marker tightened0600 with bytes/inode/mtime unchanged, no global setting; new preparation separate",
+    "No G1 crash campaign or four-run Opus performance study rerun"
+  ],
+  "limits": [
+    "One standalone optional Debug example and fixed public PCM/frame on one native nonroot x86_64 host; not the general production engine or secret channel",
+    "Noargs case deliberately does not invoke Rust hardening;2safety negatives send no bytes;8framed cases requireREADY+external EACCES before public input",
+    "One valid public frame,7malformed frames,2FD negatives,1noarg; never a single-session path or arbitrary frame input",
+    "No network namespace/seccomp/cgroup sandbox; service_calls0 is a closed-plan/source invariant, not independent syscall/network telemetry",
+    "Same-UID/root/kernel/procfs,swap,sshd/launcher buffers,dynamic linker/toolchain/dependency trust and uninterruptible/SIGKILL cleanup limits remain",
+    "No ASR/upload/terminal service/transcription/latency/performance/durable-provisioning or Android parity claim",
+    "Windows stdin PIPE sender and live Linux caller remain unqualified; no real credentials loaded",
+    "Python and Rust Fake counts are distinct, not semantic sessions or independent end-to-end proofs"
+  ],
+  "live_go": false,
+  "observation": {
+    "all_windows_jobs_empty": true,
+    "automatic_replay": false,
+    "binary_bytes": {
+      "example": 70095512,
+      "fake-tests": 54007344
+    },
+    "binary_sha256": {
+      "example": "1d183b7adece6c2a05ab15a0d8bd5faeaab7bc855cbb89b1091ced81f3883991",
+      "fake-tests": "e5e798347b85715c8f39d9302a95d6994bd6b74500905b051d75b33fb33162cb"
+    },
+    "cleaned_cases": 11,
+    "environ_content_read": false,
+    "environ_open_eacces_before_frame": 8,
+    "native_target_launches": 11,
+    "owned_cleanup": true,
+    "source_unchanged": true,
+    "successful_cases": 11,
+    "terminal_counts": {
+      "BLOCKED_SAFETY": 2,
+      "PUBLIC_FRAME_CHECKED": 1,
+      "REJECT_FRAME": 7,
+      "silent_no_arg": 1
+    }
+  },
+  "public_pcm": {
+    "bytes": 117440,
+    "format": "raw s16le mono16000Hz",
+    "provenance": "LibriSpeech5142-33396-0002/OpenSLR12,CC BY4.0; Panayotov et al.,ICASSP2015; LibriVox audiobook readings",
+    "reference": "docs/evidence/rust-native-natural-public.json inputs[0]/sessions[0].pcm",
+    "samples": 58720,
+    "sha256": "cea1bc1614f738048b1a4f1bcad83f70aee42b9621b8b754f8aacbe1395b08c9"
+  },
+  "python_pure_tests": {
+    "errors": 0,
+    "failures": 0,
+    "linux_observed_sigxfsz_in_valid_signals": true,
+    "linux_observed_sigxfsz_initially_ignored": true,
+    "linux_passed": 10,
+    "windows_passed": 10
+  },
+  "result": "PASS_PUBLIC_NATIVE_ADMISSION_ONLY",
+  "scope": "Actual optional Linux x86_64 example plus owned public-only controller; not production authentication or a secret caller channel",
+  "service_calls": 0,
+  "single_session_entries": 0,
+  "source_archive_sha256": "b63819bc3babee5b276b213e05892d33e451824137b2f69f8960d9d59bbfa446",
+  "source_bytes": 1486804,
+  "source_files": 122,
+  "source_git_association": "f27a01bbedf64363aa3e77b68b389652c90bc5e4",
+  "source_hash_semantics": "Measured Windows working-file bytes;122files match current working tree;22 differ from f27a01b Git blobs only by line endings, including18Rust files. Not a bit-exact clean-Git snapshot claim.",
+  "source_manifest_sha256": "50a8a6f2a81b0e9e3abe60d88f9078ee1ab437a98741cc8d5468b126036ed284",
+  "source_sha256": {
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "crates/rambler-cli/Cargo.toml": "e56c4bde6fcc89634de1c19ebf9134962ad8352b6c6377ddee55927558395855",
+    "crates/rambler-cli/examples/linux_real_admission.rs": "fae7a6b088f3d1a7f6bd7b3f795ae99a3ec119ca6d029cb2ecf9fdf811c2c8c6",
+    "crates/rambler-cli/examples/support/linux_real_admission_tests.rs": "269fc87b38482f1185595180039768721dbdcd7c7838f145add245e241cdeb0f"
+  },
+  "source_tree_fingerprint": "1e0fe2437674b6992351bf7e322129ccb64c3a0d7b552cb2188f9a8dbd5bec39",
+  "supervisor_sha256": "bb711f7ce1ada062cee9ed47136ae0496c38d8095d8ced26229bb2f8328ec0d9"
+}
