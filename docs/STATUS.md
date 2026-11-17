@@ -32,6 +32,36 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Oneof — allocations temporaires réduites, 17 novembre
+
+Le nouveau candidat garde les groupes singleton sur la pile et ne construit un
+vecteur de morceaux que pour une vraie fusion. Champs inconnus, ordre, raw,
+présence, resets, validation des occurrences écrasées et budgets restent couverts
+par les oracles indépendants et les suites existantes inchangées. Les sept nouveaux
+tests d’intégration passent sur référence et candidat ; le candidat passe **336
+par cible/commande, 1 ignoré, 47 suites**, Clippy strict et formatage. Les suites
+se recouvrent : leurs comptes ne sont pas additionnés comme tests distincts.
+
+Deux contrôles d’oracle seuls précèdent **cinq paires alternées, dix processus de
+mesure et 500 lignes brutes**, sans relance. Réponse recognition simple : **7 → 5
+allocations** ; résultat d’édition imbriqué : **14 → 10** ; seize changements de
+membre typé : **37 → 20**. Les quatre compteurs d’allocation/réallocation/octets
+requis/rétention et les pics logiques n’augmentent dans aucun des 25 workloads
+mesurés. La rétention des modèles est inchangée ; ce n’est pas du RSS. Le filtre
+temporel conservateur fixé avant mesure ne signale aucun cas, sans exclure une
+régression plus petite, bruitée ou extérieure au banc. Les témoins vides et les
+vraies fusions ne justifient pas de gain temporel général.
+
+Revue source puis revue numérique indépendantes sans blocage/discrépance dans
+leurs périmètres ; MAIN accepte le gain d’allocation local borné. Caches séparés
+neufs, sources/binaires épinglés, appartenance et vacuité des Jobs vérifiées.
+**CI distante de ce nouveau candidat encore en attente** ; les 14 jobs de
+`c89f140` ci-dessous ne le qualifient pas. Aucun nouveau service, credential,
+appareil, microphone ni rejeu des anciennes campagnes safety/Opus. Ni backend
+complet, latence WAN ou moteur universellement le plus rapide n’en sont déduits.
+[Méthode et limites](research/rust-oneof-run-allocation.md) ·
+[Preuves et 500 lignes](evidence/rust-oneof-run-allocation-windows-20261117.json).
+
 ## Modes avancés et accès natif — audits documentaires, 17 novembre
 
 L’audit statique de la base `ee336cf` ne démontre pas de champ client confirmé

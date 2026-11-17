@@ -474,6 +474,416 @@ fn decode_safety(iterations: usize, repeats: usize) {
     }
 }
 
+// Identical source is intended to be copied to both revisions. All fixtures and
+// independent public-model expectations are constructed and checked before timing.
+fn decode_oneof(repeats: usize, check_only: bool) {
+    use rambler_protocol::{
+        EditingContext, Error, Hypothesis, HypothesisResult, RECOGNITION_RESPONSE,
+        RecognitionResponse, RecognitionResult, S3Response, SpeechEventResult,
+        VOICE_EDITING_RESULT, VoiceEditResult,
+        wire::{Field, Value},
+    };
+    fn vint(out: &mut Vec<u8>, mut n: u64) {
+        loop {
+            let b = (n & 127) as u8;
+            n >>= 7;
+            out.push(b | if n == 0 { 0 } else { 128 });
+            if n == 0 {
+                break;
+            }
+        }
+    }
+    fn v(n: u32, x: u64) -> Vec<u8> {
+        let mut r = Vec::new();
+        vint(&mut r, u64::from(n) << 3);
+        vint(&mut r, x);
+        r
+    }
+    fn b(n: u32, x: &[u8]) -> Vec<u8> {
+        let mut r = Vec::new();
+        vint(&mut r, (u64::from(n) << 3) | 2);
+        vint(&mut r, x.len() as u64);
+        r.extend_from_slice(x);
+        r
+    }
+    fn unknown_var(n: u32, x: u64) -> Field {
+        Field {
+            number: n,
+            wire_type: 0,
+            value: Value::Varint(x),
+            raw: v(n, x),
+        }
+    }
+    fn unknown_blob(n: u32, x: &[u8]) -> Field {
+        Field {
+            number: n,
+            wire_type: 2,
+            value: Value::Bytes(x.to_vec()),
+            raw: b(n, x),
+        }
+    }
+    fn root(body: Vec<u8>, mut result: RecognitionResponse) -> (Vec<u8>, S3Response) {
+        let raw = b(RECOGNITION_RESPONSE, &body);
+        result.raw = body.into();
+        (
+            raw.clone(),
+            S3Response {
+                raw: raw.into(),
+                result: Some(result),
+                ..Default::default()
+            },
+        )
+    }
+    fn recognition(parts: &[Vec<u8>], state: Option<i32>) -> RecognitionResponse {
+        let raw = parts.concat();
+        RecognitionResponse {
+            active_field: Some(1),
+            active_raw: Some(raw.clone().into()),
+            recognition: Some(RecognitionResult {
+                raw: raw.into(),
+                state,
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+    fn nested(edit: Vec<u8>, edit_model: VoiceEditResult) -> (Vec<u8>, S3Response) {
+        let hypothesis = b(VOICE_EDITING_RESULT, &edit);
+        let list = b(3, &hypothesis);
+        let rec = b(3, &list);
+        let mut result = recognition(std::slice::from_ref(&rec), None);
+        result.recognition.as_mut().unwrap().hypothesis_result = Some(HypothesisResult {
+            raw: list.into(),
+            hypotheses: vec![Hypothesis {
+                raw: hypothesis.into(),
+                voice_edit: Some(VoiceEditResult {
+                    raw: edit.into(),
+                    ..edit_model
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        });
+        root(b(1, &rec), result)
+    }
+    struct Case {
+        name: String,
+        raw: Vec<u8>,
+        expected: Result<S3Response, Error>,
+        iterations: usize,
+        retain: bool,
+    }
+    let mut cases = Vec::new();
+    let mut add = |name: &str, fixture: (Vec<u8>, S3Response), iterations, retain| {
+        cases.push(Case {
+            name: name.into(),
+            raw: fixture.0,
+            expected: Ok(fixture.1),
+            iterations,
+            retain,
+        });
+    };
+    add("empty", (vec![], S3Response::default()), 20_000, false);
+    add(
+        "status",
+        (
+            v(1, 0),
+            S3Response {
+                raw: v(1, 0).into(),
+                status: Some(0),
+                ..Default::default()
+            },
+        ),
+        20_000,
+        false,
+    );
+    let noise = [b(3, b"en"), v(1, 9)].concat();
+    add(
+        "language_wrongwire",
+        root(
+            noise,
+            RecognitionResponse {
+                language: Some("en".into()),
+                unknown_fields: vec![unknown_var(1, 9)],
+                ..Default::default()
+            },
+        ),
+        20_000,
+        false,
+    );
+    for (name, payload, state) in [
+        ("recognition", v(1, 1), Some(1)),
+        ("recognition_empty", vec![], None),
+    ] {
+        add(
+            name,
+            root(b(1, &payload), recognition(&[payload], state)),
+            20_000,
+            false,
+        );
+    }
+    for (name, payload, event) in [("speech", v(1, 3), Some(3)), ("speech_empty", vec![], None)] {
+        add(
+            name,
+            root(
+                b(2, &payload),
+                RecognitionResponse {
+                    active_field: Some(2),
+                    active_raw: Some(payload.clone().into()),
+                    speech: Some(SpeechEventResult {
+                        raw: payload.into(),
+                        event,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+            ),
+            20_000,
+            false,
+        );
+    }
+    let opaque = [0xff, 8];
+    add(
+        "opaque",
+        root(
+            b(5, &opaque),
+            RecognitionResponse {
+                active_field: Some(5),
+                active_raw: Some(opaque.to_vec().into()),
+                unknown_fields: vec![unknown_blob(5, &opaque)],
+                ..Default::default()
+            },
+        ),
+        20_000,
+        false,
+    );
+    for (field, size) in [(2, 128), (3, 4096)] {
+        let text = "x".repeat(size);
+        let edit = b(field, text.as_bytes());
+        let model = VoiceEditResult {
+            active_field: Some(field),
+            alternative_text: (field == 2).then(|| text.clone()),
+            edited_text: (field == 3).then(|| text.clone()),
+            ..Default::default()
+        };
+        add(
+            &format!("nested_{field}_{size}"),
+            nested(edit, model),
+            if size == 4096 { 256 } else { 20_000 },
+            field == 2,
+        );
+    }
+    let c1 = b(1, b"before");
+    let c2 = [b(2, b"selected"), b(3, b"after")].concat();
+    for count in [1, 2] {
+        let parts = if count == 1 {
+            vec![c1.clone()]
+        } else {
+            vec![c1.clone(), c2.clone()]
+        };
+        let edit: Vec<u8> = parts.iter().flat_map(|p| b(7, p)).collect();
+        let context = EditingContext {
+            before: "before".into(),
+            selected: if count == 2 { "selected" } else { "" }.into(),
+            after: if count == 2 { "after" } else { "" }.into(),
+            cursor_aware: true,
+            raw: parts.concat().into(),
+            ..Default::default()
+        };
+        add(
+            &format!("context_{count}"),
+            nested(
+                edit,
+                VoiceEditResult {
+                    active_field: Some(7),
+                    edited_context: Some(context),
+                    ..Default::default()
+                },
+            ),
+            20_000,
+            false,
+        );
+    }
+    add(
+        "repeated_string",
+        nested(
+            [b(3, b"first"), b(3, b"last")].concat(),
+            VoiceEditResult {
+                active_field: Some(3),
+                edited_text: Some("last".into()),
+                ..Default::default()
+            },
+        ),
+        20_000,
+        false,
+    );
+    for count in [2, 16] {
+        let parts: Vec<_> = (0..count).map(|_| v(1, 1)).collect();
+        let body = parts.iter().flat_map(|p| b(1, p)).collect();
+        add(
+            &format!("recognition_merge_{count}"),
+            root(body, recognition(&parts, Some(1))),
+            20_000,
+            count == 2,
+        );
+    }
+    let typed = [b(1, &v(1, 1)), b(2, &v(1, 3))].concat().repeat(8);
+    add(
+        "switch_typed16",
+        root(
+            typed,
+            RecognitionResponse {
+                active_field: Some(2),
+                active_raw: Some(v(1, 3).into()),
+                speech: Some(SpeechEventResult {
+                    event: Some(3),
+                    raw: v(1, 3).into(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        ),
+        20_000,
+        false,
+    );
+    let mixed = [b(1, &v(1, 1)), b(5, &opaque)].concat().repeat(8);
+    add(
+        "switch_opaque16",
+        root(
+            mixed,
+            RecognitionResponse {
+                active_field: Some(5),
+                active_raw: Some(opaque.to_vec().into()),
+                unknown_fields: vec![unknown_blob(5, &opaque); 8],
+                ..Default::default()
+            },
+        ),
+        20_000,
+        false,
+    );
+    for count in [0, 1, 2] {
+        let part = v(1, 1);
+        let mut body = if count > 0 { b(1, &part) } else { vec![] };
+        body.extend(v(99, 0).repeat(20_000));
+        if count == 2 {
+            body.extend(b(1, &part));
+        }
+        let mut expected = if count == 0 {
+            RecognitionResponse::default()
+        } else {
+            recognition(&vec![part; count], Some(1))
+        };
+        expected.unknown_fields = vec![unknown_var(99, 0); 20_000];
+        add(
+            &format!("sparse_result_{count}"),
+            root(body, expected),
+            256,
+            false,
+        );
+    }
+    for (name, body, error) in [
+        (
+            "error_runs16",
+            [
+                b(1, &[8]),
+                [b(2, &v(1, 3)), b(1, &v(1, 1))].concat().repeat(8),
+            ]
+            .concat(),
+            Error::Truncated,
+        ),
+        (
+            "error_suffix20000",
+            [b(1, &[8]), v(99, 0).repeat(20_000)].concat(),
+            Error::Truncated,
+        ),
+    ] {
+        cases.push(Case {
+            name: name.into(),
+            raw: b(RECOGNITION_RESPONSE, &body),
+            expected: Err(error),
+            iterations: 256,
+            retain: false,
+        });
+    }
+    let (raw, _) = nested(
+        [b(2, &[0xff]), b(3, b"valid")].concat(),
+        VoiceEditResult::default(),
+    );
+    cases.push(Case {
+        name: "error_utf8_overwritten".into(),
+        raw,
+        expected: Err(Error::Utf8),
+        iterations: 256,
+        retain: false,
+    });
+
+    // Equality excludes EditingContext.raw, so assert that byte sequence separately.
+    for case in &cases {
+        let actual = decode_response(&case.raw);
+        assert_eq!(actual, case.expected, "oneof oracle {}", case.name);
+        if let (Ok(actual), Ok(expected)) = (&actual, &case.expected) {
+            for (a, e) in actual.hypotheses().iter().zip(expected.hypotheses()) {
+                let context = |h: &Hypothesis| {
+                    h.voice_edit
+                        .as_ref()
+                        .and_then(|v| v.edited_context.as_ref())
+                        .map(|c| c.raw.clone())
+                };
+                assert_eq!(context(a), context(e), "context raw {}", case.name);
+            }
+        }
+    }
+    if check_only {
+        let mut inventory = Vec::new();
+        for case in &cases {
+            inventory.push(serde_json::json!({"case": format!("oneof_{}", case.name), "protobuf_bytes_per_unit": case.raw.len()}));
+            if case.retain {
+                inventory.push(serde_json::json!({"case": format!("oneof_retain128_{}", case.name), "protobuf_bytes_per_unit": case.raw.len()}));
+            }
+        }
+        println!(
+            "{}",
+            serde_json::json!({"schema": "oneof-oracles-only-v1", "cases": inventory, "benchmarks_executed": false})
+        );
+        return;
+    }
+    for case in &cases {
+        bench(
+            &format!("oneof_{}", case.name),
+            case.iterations,
+            repeats,
+            1,
+            || {
+                let decoded = decode_response(black_box(&case.raw));
+                black_box(&decoded);
+                case.raw.len()
+            },
+        );
+        if case.retain {
+            bench(
+                &format!("oneof_retain128_{}", case.name),
+                156,
+                repeats,
+                128,
+                || {
+                    let mut retained = Vec::new();
+                    let mut bytes = 0;
+                    for _ in 0..128 {
+                        let decoded = decode_response(black_box(&case.raw)).unwrap();
+                        bytes += decoded.raw.len();
+                        retained.push(decoded);
+                    }
+                    black_box(&retained);
+                    if ENABLED.load(Relaxed) {
+                        RETAINED.fetch_max(LIVE.load(Relaxed), Relaxed);
+                    }
+                    bytes
+                },
+            );
+        }
+    }
+}
+
 // Runtime rejection keeps debug test builds possible; timing requires release.
 #[allow(clippy::assertions_on_constants)]
 fn main() {
@@ -481,6 +891,10 @@ fn main() {
     let iterations = profile_support::arg("--iterations", 20_000);
     let repeats = profile_support::arg("--repeats", 5);
     let decode_only = std::env::args().any(|arg| arg == "--decode-only");
+    if std::env::args().any(|arg| arg == "--decode-oneof") {
+        decode_oneof(repeats, std::env::args().any(|arg| arg == "--check-only"));
+        return;
+    }
     if std::env::args().any(|arg| arg == "--decode-safety") {
         decode_safety(iterations, repeats);
         return;

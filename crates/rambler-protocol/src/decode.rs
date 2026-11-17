@@ -28,6 +28,19 @@ fn raw_parts(parts: &[&[u8]], root: &Bytes) -> Result<Bytes, Error> {
     Ok(raw.into())
 }
 
+enum Parts<'a> {
+    Single([&'a [u8]; 1]),
+    Multiple(Vec<&'a [u8]>),
+}
+impl<'a> Parts<'a> {
+    fn as_slice(&self) -> &[&'a [u8]] {
+        match self {
+            Self::Single(parts) => parts,
+            Self::Multiple(parts) => parts,
+        }
+    }
+}
+
 struct Message<'a> {
     fields: Vec<RefField<'a>>,
     raw: Bytes,
@@ -152,23 +165,30 @@ impl<'a> Message<'a> {
         }
         Ok(items)
     }
-    fn oneof(&self, numbers: &[u32]) -> Vec<(u32, Vec<&'a [u8]>)> {
-        let mut runs: Vec<(u32, Vec<&'a [u8]>)> = Vec::new();
-        for field in &self.fields {
-            if field.wire_type != 2 || !numbers.contains(&field.number) {
-                continue;
-            }
-            if let RefValue::Data(data) = field.value {
-                if let Some((number, values)) = runs.last_mut()
-                    && *number == field.number
-                {
-                    values.push(data);
-                    continue;
+    fn oneof<'m>(&'m self, numbers: &'m [u32]) -> impl Iterator<Item = (u32, Parts<'a>)> + 'm {
+        let mut selected = self
+            .fields
+            .iter()
+            .filter_map(move |field| match field.value {
+                RefValue::Data(data) if field.wire_type == 2 && numbers.contains(&field.number) => {
+                    Some((field.number, data))
                 }
-                runs.push((field.number, vec![data]));
+                _ => None,
+            })
+            .peekable();
+        // Noise and wrong-wire fields do not split a selected-member run. Only
+        // real same-member merges need heap storage for their occurrence parts.
+        std::iter::from_fn(move || {
+            let (number, first) = selected.next()?;
+            let Some((_, second)) = selected.next_if(|(next, _)| *next == number) else {
+                return Some((number, Parts::Single([first])));
+            };
+            let mut parts = vec![first, second];
+            while let Some((_, data)) = selected.next_if(|(next, _)| *next == number) {
+                parts.push(data);
             }
-        }
-        runs
+            Some((number, Parts::Multiple(parts)))
+        })
     }
 }
 fn text_last<'a>(values: impl IntoIterator<Item = &'a [u8]>) -> Result<Option<String>, Error> {
@@ -196,15 +216,16 @@ fn voice_edit(parts: &[&[u8]], budget: &mut Budget<'_>) -> Result<VoiceEditResul
         intent: m.integer(4),
         ..Default::default()
     };
-    for (number, values) in m.oneof(&[2, 3, 7]) {
+    for (number, parts) in m.oneof(&[2, 3, 7]) {
+        let values = parts.as_slice();
         out.active_field = Some(number);
         out.alternative_text = None;
         out.edited_text = None;
         out.edited_context = None;
         match number {
-            2 => out.alternative_text = text_last(values)?,
-            3 => out.edited_text = text_last(values)?,
-            _ => out.edited_context = Some(context(&values, budget)?),
+            2 => out.alternative_text = text_last(values.iter().copied())?,
+            3 => out.edited_text = text_last(values.iter().copied())?,
+            _ => out.edited_context = Some(context(values, budget)?),
         }
     }
     out.raw = m.raw;
@@ -308,24 +329,25 @@ fn response_result(parts: &[&[u8]], budget: &mut Budget<'_>) -> Result<Recogniti
         spoken_language: m.string(4)?,
         ..Default::default()
     };
-    for (number, values) in m.oneof(RESULT_ONEOF) {
+    for (number, parts) in m.oneof(RESULT_ONEOF) {
+        let values = parts.as_slice();
         out.active_field = Some(number);
         out.recognition = None;
         out.speech = None;
         out.active_raw = Some(match number {
             1 => {
-                let parsed = recognition(&values, budget)?;
+                let parsed = recognition(values, budget)?;
                 let raw = parsed.raw.clone();
                 out.recognition = Some(parsed);
                 raw
             }
             2 => {
-                let parsed = speech(&values, budget)?;
+                let parsed = speech(values, budget)?;
                 let raw = parsed.raw.clone();
                 out.speech = Some(parsed);
                 raw
             }
-            _ => raw_parts(&values, budget.root)?, // Opaque oneofs still clear the preceding member.
+            _ => raw_parts(values, budget.root)?, // Opaque oneofs still clear the preceding member.
         });
     }
     out.raw = m.raw;
@@ -355,4 +377,125 @@ pub fn decode_response(payload: &[u8]) -> Result<S3Response, Error> {
         unknown_fields: m.unknown,
         raw: m.raw,
     })
+}
+
+#[cfg(test)]
+mod oneof_run_tests {
+    use super::*;
+
+    fn data(number: u32, wire_type: u8, value: &'static [u8]) -> RefField<'static> {
+        RefField {
+            number,
+            wire_type,
+            value: RefValue::Data(value),
+            raw: &[],
+        }
+    }
+    fn scalar(number: u32) -> RefField<'static> {
+        RefField {
+            number,
+            wire_type: 0,
+            value: RefValue::Varint(9),
+            raw: &[],
+        }
+    }
+
+    #[test]
+    fn selected_runs_match_explicit_tables_and_borrow_original_parts() {
+        const A: &[u8] = b"a";
+        const B: &[u8] = b"b";
+        const C: &[u8] = b"c";
+        const D: &[u8] = b"d";
+        struct Case {
+            members: &'static [u32],
+            fields: Vec<RefField<'static>>,
+            runs: Vec<(u32, Vec<&'static [u8]>)>,
+        }
+        let cases = [
+            Case {
+                members: RESULT_ONEOF,
+                fields: vec![],
+                runs: vec![],
+            },
+            Case {
+                members: RESULT_ONEOF,
+                fields: vec![data(3, 2, A), data(14, 2, B), scalar(2)],
+                runs: vec![],
+            },
+            Case {
+                members: RESULT_ONEOF,
+                fields: vec![data(1, 2, A)],
+                runs: vec![(1, vec![A])],
+            },
+            Case {
+                members: RESULT_ONEOF,
+                fields: vec![
+                    data(1, 2, A),
+                    data(3, 2, C),
+                    data(14, 2, D),
+                    scalar(2),
+                    data(1, 1, &[0xff; 8]),
+                    data(2, 5, &[0xff; 4]),
+                    data(1, 2, B),
+                ],
+                runs: vec![(1, vec![A, B])],
+            },
+            Case {
+                members: RESULT_ONEOF,
+                fields: vec![data(1, 2, A), data(2, 2, B), data(1, 2, C), data(1, 2, D)],
+                runs: vec![(1, vec![A]), (2, vec![B]), (1, vec![C, D])],
+            },
+            Case {
+                members: RESULT_ONEOF,
+                fields: vec![data(1, 2, A), data(5, 2, B), data(1, 2, C)],
+                runs: vec![(1, vec![A]), (5, vec![B]), (1, vec![C])],
+            },
+            Case {
+                members: RESULT_ONEOF,
+                fields: vec![data(5, 2, A), data(4, 2, D), data(5, 2, B), data(6, 2, C)],
+                runs: vec![(5, vec![A, B]), (6, vec![C])],
+            },
+            Case {
+                members: &[2, 3, 7],
+                fields: vec![
+                    data(7, 2, A),
+                    data(1, 2, C),
+                    scalar(4),
+                    scalar(3),
+                    data(7, 2, B),
+                ],
+                runs: vec![(7, vec![A, B])],
+            },
+            Case {
+                members: &[2, 3, 7],
+                fields: vec![data(7, 2, A), data(3, 2, B), data(7, 2, C), data(7, 2, D)],
+                runs: vec![(7, vec![A]), (3, vec![B]), (7, vec![C, D])],
+            },
+        ];
+        for (index, case) in cases.into_iter().enumerate() {
+            let message = Message {
+                fields: case.fields,
+                raw: Bytes::new(),
+                unknown: Vec::new(),
+            };
+            let mut runs = message.oneof(case.members);
+            for (number, expected_parts) in case.runs {
+                let (actual_number, parts) = runs.next().expect("missing selected run");
+                assert_eq!(actual_number, number, "case {index}");
+                assert_eq!(parts.as_slice(), expected_parts.as_slice(), "case {index}");
+                assert_eq!(
+                    matches!(&parts, Parts::Single(_)),
+                    expected_parts.len() == 1
+                );
+                for (actual, expected) in parts.as_slice().iter().zip(expected_parts) {
+                    assert_eq!(actual.as_ptr(), expected.as_ptr(), "case {index}");
+                }
+            }
+            assert!(runs.next().is_none(), "extra selected run in case {index}");
+            assert!(
+                runs.next().is_none(),
+                "non-exhausted iterator in case {index}"
+            );
+        }
+    }
 }
