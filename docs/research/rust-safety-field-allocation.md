@@ -69,11 +69,20 @@ and several retain cases overlap or are noisy; all ranges and samples are kept.
 ## Provenance and limits
 
 [Structured evidence and raw samples](../evidence/rust-safety-field-allocation-windows-20261117.json)
-record exact sources/binaries, every sample, build/test outcomes and cleanup.
-The first unformatted baseline was build-only and never timed; both measured
-binaries used the same final formatted harness. Two CMD setup failures are
-preserved; the normalized Windows executable-path setup passed without global
-configuration changes. Historical release CLI, Cargo.lock, old native/public
+record selected source hashes, binary hashes, all 350 raw rows, build/test
+outcomes, the baseline negative-test receipt, Clippy and per-process Job receipts.
+The first published artifact in `c89f140` mistakenly omitted the raw rows while
+retaining their count and aggregates; this correction restores the original data
+without a new measurement. Source manifests are not a complete build-input or
+toolchain closure. The baseline negative tests preceded formatting; their exact
+source hashes are separate from the two measured binaries, which share the final
+formatted harness.
+
+MAIN reported the independent source/data reviews, strict Clippy flags, formatting
+check and two CMD setup failures followed by a successful Windows-normalized
+executable path. The evidence labels these observations separately: it does not
+embed an independent review receipt, separate local formatting-check receipt or
+setup-failure receipts. Historical release CLI, Cargo.lock, old native/public
 campaigns and the exact Opus study remain unchanged.
 
 No credentials, real provider calls, microphone or Android runtime were involved.

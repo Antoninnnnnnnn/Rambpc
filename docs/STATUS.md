@@ -32,6 +32,32 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Décodage safety — gain local mesuré, 17 novembre
+
+La source `c89f140` évite de matérialiser comme inconnus les marqueurs exacts
+`hypothesis.field30=0/1`, sans changer parsing, budgets, statut final, octets bruts
+ni champs réellement inconnus. Un marqueur passe de **13 à 11 allocations** ;
+seize marqueurs alternés de **28 à 11**. Cinq paires de processus alternées,
+**350 lignes brutes**, sans relance, confirment ces compteurs sur sept fixtures
+synthétiques. Les deux nouveaux tests reproduisent d’abord la rétention inutile
+sur le décodeur inchangé ; le candidat passe **328 tests par cible/commande,
+1 ignoré**, puis Clippy strict et formatage locaux. Pas de gain WAN, ASR,
+end-to-end, RSS ou optimum universel déduit.
+
+La première publication omettait par erreur les lignes brutes tout en conservant
+leur compte et les agrégats ; l’artefact corrigé les rétablit sans nouvelle mesure,
+avec les reçus publics de tests, Clippy et Jobs. Les observations MAIN et limites
+de provenance sont distinguées des reçus machine.
+[Mesure et limites](research/rust-safety-field-allocation.md) ·
+[Preuve corrigée](evidence/rust-safety-field-allocation-windows-20261117.json).
+
+À ce checkpoint, la nouvelle CI de `c89f140` a **12 jobs réussis et deux jobs
+macOS ARM annulés avant toute étape**, faute de runner hébergé. Une relance ciblée
+ARM/1.88 est en file ; la demande simultanée ARM/stable a été refusée par GitHub
+pendant cette tentative active. Pas de CI globale verte revendiquée, ni de
+requalification du service ou d’une session REAL.
+[Incident et reçus CI](evidence/rust-safety-field-allocation-ci-20261117.json).
+
 ## Appelant REAL — régressions simulées, 17 novembre
 
 R1 reste figée **MAIN_NO_GO, sans invocation du lanceur**, malgré les deux GO

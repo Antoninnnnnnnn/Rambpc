@@ -1,0 +1,1973 @@
+{
+  "date": "2026-11-17",
+  "first_attempt": {
+    "python": {
+      "conclusion": "success",
+      "jobs": [
+        {
+          "completed_at": "2026-11-17T16:36:31Z",
+          "conclusion": "success",
+          "id": 134194647111,
+          "name": "tests (windows-latest, 3.14)",
+          "started_at": "2026-11-17T16:34:45Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:48Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:54Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:48Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:54Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:54Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:09Z",
+              "conclusion": "success",
+              "name": "Install tested dependency versions",
+              "number": 4,
+              "started_at": "2026-11-17T16:34:54Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:18Z",
+              "conclusion": "success",
+              "name": "Install optional native audio on current Python",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:09Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:21Z",
+              "conclusion": "success",
+              "name": "Run offline tests only",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:18Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:22Z",
+              "conclusion": "success",
+              "name": "Test public Linux admission controller with pure fakes",
+              "number": 7,
+              "started_at": "2026-11-17T16:36:21Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:22Z",
+              "conclusion": "success",
+              "name": "Exercise CLI help",
+              "number": 8,
+              "started_at": "2026-11-17T16:36:22Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:27Z",
+              "conclusion": "success",
+              "name": "Build wheel",
+              "number": 9,
+              "started_at": "2026-11-17T16:36:22Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:27Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 17,
+              "started_at": "2026-11-17T16:36:27Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:30Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 18,
+              "started_at": "2026-11-17T16:36:27Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:30Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 19,
+              "started_at": "2026-11-17T16:36:30Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:35:45Z",
+          "conclusion": "success",
+          "id": 134194647572,
+          "name": "tests (ubuntu-latest, 3.11)",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:45Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:47Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:47Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:47Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:55Z",
+              "conclusion": "success",
+              "name": "Install tested dependency versions",
+              "number": 4,
+              "started_at": "2026-11-17T16:34:47Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:55Z",
+              "conclusion": "skipped",
+              "name": "Install optional native audio on current Python",
+              "number": 5,
+              "started_at": "2026-11-17T16:34:55Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:40Z",
+              "conclusion": "success",
+              "name": "Run offline tests only",
+              "number": 6,
+              "started_at": "2026-11-17T16:34:55Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:40Z",
+              "conclusion": "success",
+              "name": "Test public Linux admission controller with pure fakes",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:40Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:40Z",
+              "conclusion": "success",
+              "name": "Exercise CLI help",
+              "number": 8,
+              "started_at": "2026-11-17T16:35:40Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:42Z",
+              "conclusion": "success",
+              "name": "Build wheel",
+              "number": 9,
+              "started_at": "2026-11-17T16:35:40Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:42Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 17,
+              "started_at": "2026-11-17T16:35:42Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:42Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 18,
+              "started_at": "2026-11-17T16:35:42Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:42Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 19,
+              "started_at": "2026-11-17T16:35:42Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:35:47Z",
+          "conclusion": "success",
+          "id": 134194647699,
+          "name": "tests (windows-latest, 3.11)",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:45Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:50Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:50Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:50Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:03Z",
+              "conclusion": "success",
+              "name": "Install tested dependency versions",
+              "number": 4,
+              "started_at": "2026-11-17T16:34:50Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:03Z",
+              "conclusion": "skipped",
+              "name": "Install optional native audio on current Python",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:03Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:41Z",
+              "conclusion": "success",
+              "name": "Run offline tests only",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:03Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:41Z",
+              "conclusion": "success",
+              "name": "Test public Linux admission controller with pure fakes",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:41Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:41Z",
+              "conclusion": "success",
+              "name": "Exercise CLI help",
+              "number": 8,
+              "started_at": "2026-11-17T16:35:41Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:45Z",
+              "conclusion": "success",
+              "name": "Build wheel",
+              "number": 9,
+              "started_at": "2026-11-17T16:35:41Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:45Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 17,
+              "started_at": "2026-11-17T16:35:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:46Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 18,
+              "started_at": "2026-11-17T16:35:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:46Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 19,
+              "started_at": "2026-11-17T16:35:46Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:35:50Z",
+          "conclusion": "success",
+          "id": 134194647851,
+          "name": "tests (ubuntu-latest, 3.14)",
+          "started_at": "2026-11-17T16:34:45Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:49Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:49Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:07Z",
+              "conclusion": "success",
+              "name": "Install tested dependency versions",
+              "number": 4,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:10Z",
+              "conclusion": "success",
+              "name": "Install optional native audio on current Python",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:07Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:44Z",
+              "conclusion": "success",
+              "name": "Run offline tests only",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:44Z",
+              "conclusion": "success",
+              "name": "Test public Linux admission controller with pure fakes",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:45Z",
+              "conclusion": "success",
+              "name": "Exercise CLI help",
+              "number": 8,
+              "started_at": "2026-11-17T16:35:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:47Z",
+              "conclusion": "success",
+              "name": "Build wheel",
+              "number": 9,
+              "started_at": "2026-11-17T16:35:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:47Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 17,
+              "started_at": "2026-11-17T16:35:47Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:47Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 18,
+              "started_at": "2026-11-17T16:35:47Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:47Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 19,
+              "started_at": "2026-11-17T16:35:47Z",
+              "status": "completed"
+            }
+          ]
+        }
+      ],
+      "run_attempt": 1,
+      "run_id": 44127348452,
+      "status": "completed",
+      "tested_head": "c89f140a70c8bca5cd32913430b9ccc89c22bdc9"
+    },
+    "rust": {
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "completed_at": "2026-11-17T16:35:24Z",
+          "conclusion": "success",
+          "id": 134194647036,
+          "name": "lint",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:45Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:47Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:55Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@stable",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:47Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Run cargo fmt --all -- --check",
+              "number": 4,
+              "started_at": "2026-11-17T16:34:55Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:57Z",
+              "conclusion": "success",
+              "name": "Run cargo fetch --locked",
+              "number": 5,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:22Z",
+              "conclusion": "success",
+              "name": "Run cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
+              "number": 6,
+              "started_at": "2026-11-17T16:34:57Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:22Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 12,
+              "started_at": "2026-11-17T16:35:22Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:22Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 13,
+              "started_at": "2026-11-17T16:35:22Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:38:55Z",
+          "conclusion": "success",
+          "id": 134194647209,
+          "name": "test (ubuntu-latest, 1.88.0)",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:47Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:48Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:47Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@master",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:48Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Check native tools",
+              "number": 5,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:57Z",
+              "conclusion": "success",
+              "name": "Test audio dependency boundary checker",
+              "number": 6,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:57Z",
+              "conclusion": "success",
+              "name": "Test native public-root smoke checker",
+              "number": 7,
+              "started_at": "2026-11-17T16:34:57Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:58Z",
+              "conclusion": "success",
+              "name": "Fetch locked dependencies",
+              "number": 8,
+              "started_at": "2026-11-17T16:34:57Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:58Z",
+              "conclusion": "success",
+              "name": "Check production audio dependency boundary offline",
+              "number": 9,
+              "started_at": "2026-11-17T16:34:58Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:41Z",
+              "conclusion": "success",
+              "name": "Test workspace with audio offline",
+              "number": 10,
+              "started_at": "2026-11-17T16:34:58Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:41Z",
+              "conclusion": "success",
+              "name": "Smoke native public-root TLS configuration offline",
+              "number": 11,
+              "started_at": "2026-11-17T16:36:41Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:56Z",
+              "conclusion": "success",
+              "name": "Test CLI session reuse example offline",
+              "number": 12,
+              "started_at": "2026-11-17T16:36:41Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:07Z",
+              "conclusion": "success",
+              "name": "Test synthetic audio profiling invariants offline",
+              "number": 13,
+              "started_at": "2026-11-17T16:36:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:10Z",
+              "conclusion": "success",
+              "name": "Test guarded SDK loopback example offline",
+              "number": 14,
+              "started_at": "2026-11-17T16:37:07Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:11Z",
+              "conclusion": "success",
+              "name": "Test real admission example with pure fakes offline",
+              "number": 15,
+              "started_at": "2026-11-17T16:37:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:16Z",
+              "conclusion": "success",
+              "name": "Test bounded wire profiling invariants offline",
+              "number": 16,
+              "started_at": "2026-11-17T16:37:11Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:26Z",
+              "conclusion": "success",
+              "name": "Test static gRPC prefix profiling invariants offline",
+              "number": 17,
+              "started_at": "2026-11-17T16:37:16Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:19Z",
+              "conclusion": "success",
+              "name": "Build release CLI with audio offline",
+              "number": 18,
+              "started_at": "2026-11-17T16:37:26Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:23Z",
+              "conclusion": "success",
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "number": 19,
+              "started_at": "2026-11-17T16:38:19Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:24Z",
+              "conclusion": "success",
+              "name": "Test release CLI budget rejection before I/O offline",
+              "number": 20,
+              "started_at": "2026-11-17T16:38:23Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:43Z",
+              "conclusion": "success",
+              "name": "Run release synthetic PCM channel example offline",
+              "number": 21,
+              "started_at": "2026-11-17T16:38:24Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:52Z",
+              "conclusion": "success",
+              "name": "Test CLI without audio offline",
+              "number": 22,
+              "started_at": "2026-11-17T16:38:43Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:52Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 43,
+              "started_at": "2026-11-17T16:38:52Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:52Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 44,
+              "started_at": "2026-11-17T16:38:52Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:52Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 45,
+              "started_at": "2026-11-17T16:38:52Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "annotations": [
+            {
+              "annotation_level": "failure",
+              "end_line": 1,
+              "message": "The job was not acquired by Runner of type hosted even after multiple attempts",
+              "path": ".github",
+              "start_line": 1
+            },
+            {
+              "annotation_level": "notice",
+              "end_line": 1,
+              "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+              "path": ".github",
+              "start_line": 1
+            },
+            {
+              "annotation_level": "notice",
+              "end_line": 1,
+              "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+              "path": ".github",
+              "start_line": 1
+            },
+            {
+              "annotation_level": "notice",
+              "end_line": 1,
+              "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+              "path": ".github",
+              "start_line": 1
+            }
+          ],
+          "completed_at": "2026-11-17T16:49:43Z",
+          "conclusion": "cancelled",
+          "id": 134194647273,
+          "name": "test (macos-latest, 1.88.0)",
+          "started_at": "2026-11-17T16:34:42Z",
+          "status": "completed",
+          "steps": []
+        },
+        {
+          "completed_at": "2026-11-17T16:42:33Z",
+          "conclusion": "success",
+          "id": 134194647401,
+          "name": "test (windows-latest, 1.88.0)",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:46Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:51Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:03Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@master",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:51Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:04Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "started_at": "2026-11-17T16:35:03Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:05Z",
+              "conclusion": "success",
+              "name": "Check native tools",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:04Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:07Z",
+              "conclusion": "success",
+              "name": "Test audio dependency boundary checker",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:05Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:08Z",
+              "conclusion": "success",
+              "name": "Test native public-root smoke checker",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:07Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:22Z",
+              "conclusion": "success",
+              "name": "Fetch locked dependencies",
+              "number": 8,
+              "started_at": "2026-11-17T16:35:08Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:23Z",
+              "conclusion": "success",
+              "name": "Check production audio dependency boundary offline",
+              "number": 9,
+              "started_at": "2026-11-17T16:35:22Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:31Z",
+              "conclusion": "success",
+              "name": "Test workspace with audio offline",
+              "number": 10,
+              "started_at": "2026-11-17T16:35:23Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:32Z",
+              "conclusion": "success",
+              "name": "Smoke native public-root TLS configuration offline",
+              "number": 11,
+              "started_at": "2026-11-17T16:38:31Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:55Z",
+              "conclusion": "success",
+              "name": "Test CLI session reuse example offline",
+              "number": 12,
+              "started_at": "2026-11-17T16:38:32Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:14Z",
+              "conclusion": "success",
+              "name": "Test synthetic audio profiling invariants offline",
+              "number": 13,
+              "started_at": "2026-11-17T16:38:55Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:18Z",
+              "conclusion": "success",
+              "name": "Test guarded SDK loopback example offline",
+              "number": 14,
+              "started_at": "2026-11-17T16:39:14Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:20Z",
+              "conclusion": "success",
+              "name": "Test real admission example with pure fakes offline",
+              "number": 15,
+              "started_at": "2026-11-17T16:39:18Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:27Z",
+              "conclusion": "success",
+              "name": "Test bounded wire profiling invariants offline",
+              "number": 16,
+              "started_at": "2026-11-17T16:39:20Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:42Z",
+              "conclusion": "success",
+              "name": "Test static gRPC prefix profiling invariants offline",
+              "number": 17,
+              "started_at": "2026-11-17T16:39:27Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:22Z",
+              "conclusion": "success",
+              "name": "Build release CLI with audio offline",
+              "number": 18,
+              "started_at": "2026-11-17T16:39:42Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:29Z",
+              "conclusion": "success",
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "number": 19,
+              "started_at": "2026-11-17T16:41:22Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:31Z",
+              "conclusion": "success",
+              "name": "Test release CLI budget rejection before I/O offline",
+              "number": 20,
+              "started_at": "2026-11-17T16:41:29Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:06Z",
+              "conclusion": "success",
+              "name": "Run release synthetic PCM channel example offline",
+              "number": 21,
+              "started_at": "2026-11-17T16:41:31Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:29Z",
+              "conclusion": "success",
+              "name": "Test CLI without audio offline",
+              "number": 22,
+              "started_at": "2026-11-17T16:42:06Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:29Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 43,
+              "started_at": "2026-11-17T16:42:29Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:32Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 44,
+              "started_at": "2026-11-17T16:42:29Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:32Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 45,
+              "started_at": "2026-11-17T16:42:32Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:43:53Z",
+          "conclusion": "success",
+          "id": 134194647453,
+          "name": "test (windows-latest, stable)",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:46Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:58Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:30Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@master",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:58Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:30Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "started_at": "2026-11-17T16:35:30Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:37Z",
+              "conclusion": "success",
+              "name": "Check native tools",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:30Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:46Z",
+              "conclusion": "success",
+              "name": "Test audio dependency boundary checker",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:37Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:46Z",
+              "conclusion": "success",
+              "name": "Test native public-root smoke checker",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:01Z",
+              "conclusion": "success",
+              "name": "Fetch locked dependencies",
+              "number": 8,
+              "started_at": "2026-11-17T16:35:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:02Z",
+              "conclusion": "success",
+              "name": "Check production audio dependency boundary offline",
+              "number": 9,
+              "started_at": "2026-11-17T16:36:01Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:20Z",
+              "conclusion": "success",
+              "name": "Test workspace with audio offline",
+              "number": 10,
+              "started_at": "2026-11-17T16:36:02Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:21Z",
+              "conclusion": "success",
+              "name": "Smoke native public-root TLS configuration offline",
+              "number": 11,
+              "started_at": "2026-11-17T16:39:20Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:46Z",
+              "conclusion": "success",
+              "name": "Test CLI session reuse example offline",
+              "number": 12,
+              "started_at": "2026-11-17T16:39:21Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:40:05Z",
+              "conclusion": "success",
+              "name": "Test synthetic audio profiling invariants offline",
+              "number": 13,
+              "started_at": "2026-11-17T16:39:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:40:10Z",
+              "conclusion": "success",
+              "name": "Test guarded SDK loopback example offline",
+              "number": 14,
+              "started_at": "2026-11-17T16:40:05Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:40:12Z",
+              "conclusion": "success",
+              "name": "Test real admission example with pure fakes offline",
+              "number": 15,
+              "started_at": "2026-11-17T16:40:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:40:19Z",
+              "conclusion": "success",
+              "name": "Test bounded wire profiling invariants offline",
+              "number": 16,
+              "started_at": "2026-11-17T16:40:12Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:40:35Z",
+              "conclusion": "success",
+              "name": "Test static gRPC prefix profiling invariants offline",
+              "number": 17,
+              "started_at": "2026-11-17T16:40:19Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:20Z",
+              "conclusion": "success",
+              "name": "Build release CLI with audio offline",
+              "number": 18,
+              "started_at": "2026-11-17T16:40:35Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:32Z",
+              "conclusion": "success",
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "number": 19,
+              "started_at": "2026-11-17T16:42:20Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:34Z",
+              "conclusion": "success",
+              "name": "Test release CLI budget rejection before I/O offline",
+              "number": 20,
+              "started_at": "2026-11-17T16:42:32Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:43:17Z",
+              "conclusion": "success",
+              "name": "Run release synthetic PCM channel example offline",
+              "number": 21,
+              "started_at": "2026-11-17T16:42:34Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:43:44Z",
+              "conclusion": "success",
+              "name": "Test CLI without audio offline",
+              "number": 22,
+              "started_at": "2026-11-17T16:43:17Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:43:44Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 43,
+              "started_at": "2026-11-17T16:43:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:43:52Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 44,
+              "started_at": "2026-11-17T16:43:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:43:52Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 45,
+              "started_at": "2026-11-17T16:43:52Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:36:48Z",
+          "conclusion": "success",
+          "id": 134194647489,
+          "name": "vs17-opus",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:46Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:50Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:10Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@stable",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:50Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:10Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "started_at": "2026-11-17T16:35:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:12Z",
+              "conclusion": "success",
+              "name": "Test VS17 qualification validators on synthetic data",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:31Z",
+              "conclusion": "success",
+              "name": "Fetch locked dependencies",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:12Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:45Z",
+              "conclusion": "success",
+              "name": "Isolate and verify the functional VS17 Release branch",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:31Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:45Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 13,
+              "started_at": "2026-11-17T16:36:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:47Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 14,
+              "started_at": "2026-11-17T16:36:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:47Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 15,
+              "started_at": "2026-11-17T16:36:47Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:37:54Z",
+          "conclusion": "success",
+          "id": 134194647505,
+          "name": "test (ubuntu-latest, stable)",
+          "started_at": "2026-11-17T16:34:44Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:46Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:45Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:47Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@master",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:47Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Check native tools",
+              "number": 5,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Test audio dependency boundary checker",
+              "number": 6,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:56Z",
+              "conclusion": "success",
+              "name": "Test native public-root smoke checker",
+              "number": 7,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:58Z",
+              "conclusion": "success",
+              "name": "Fetch locked dependencies",
+              "number": 8,
+              "started_at": "2026-11-17T16:34:56Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:58Z",
+              "conclusion": "success",
+              "name": "Check production audio dependency boundary offline",
+              "number": 9,
+              "started_at": "2026-11-17T16:34:58Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:11Z",
+              "conclusion": "success",
+              "name": "Test workspace with audio offline",
+              "number": 10,
+              "started_at": "2026-11-17T16:34:58Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:11Z",
+              "conclusion": "success",
+              "name": "Smoke native public-root TLS configuration offline",
+              "number": 11,
+              "started_at": "2026-11-17T16:36:11Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:22Z",
+              "conclusion": "success",
+              "name": "Test CLI session reuse example offline",
+              "number": 12,
+              "started_at": "2026-11-17T16:36:11Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:31Z",
+              "conclusion": "success",
+              "name": "Test synthetic audio profiling invariants offline",
+              "number": 13,
+              "started_at": "2026-11-17T16:36:22Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:32Z",
+              "conclusion": "success",
+              "name": "Test guarded SDK loopback example offline",
+              "number": 14,
+              "started_at": "2026-11-17T16:36:31Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:33Z",
+              "conclusion": "success",
+              "name": "Test real admission example with pure fakes offline",
+              "number": 15,
+              "started_at": "2026-11-17T16:36:32Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:36Z",
+              "conclusion": "success",
+              "name": "Test bounded wire profiling invariants offline",
+              "number": 16,
+              "started_at": "2026-11-17T16:36:33Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:36:44Z",
+              "conclusion": "success",
+              "name": "Test static gRPC prefix profiling invariants offline",
+              "number": 17,
+              "started_at": "2026-11-17T16:36:36Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:28Z",
+              "conclusion": "success",
+              "name": "Build release CLI with audio offline",
+              "number": 18,
+              "started_at": "2026-11-17T16:36:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:30Z",
+              "conclusion": "success",
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "number": 19,
+              "started_at": "2026-11-17T16:37:28Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:31Z",
+              "conclusion": "success",
+              "name": "Test release CLI budget rejection before I/O offline",
+              "number": 20,
+              "started_at": "2026-11-17T16:37:30Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:46Z",
+              "conclusion": "success",
+              "name": "Run release synthetic PCM channel example offline",
+              "number": 21,
+              "started_at": "2026-11-17T16:37:31Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:52Z",
+              "conclusion": "success",
+              "name": "Test CLI without audio offline",
+              "number": 22,
+              "started_at": "2026-11-17T16:37:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:52Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 43,
+              "started_at": "2026-11-17T16:37:52Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:52Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 44,
+              "started_at": "2026-11-17T16:37:52Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:37:52Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 45,
+              "started_at": "2026-11-17T16:37:52Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:45:48Z",
+          "conclusion": "success",
+          "id": 134194647588,
+          "name": "test (macos-26-intel, stable)",
+          "started_at": "2026-11-17T16:34:49Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:55Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:51Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:01Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:55Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:17Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@master",
+              "number": 3,
+              "started_at": "2026-11-17T16:35:01Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:17Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "started_at": "2026-11-17T16:35:17Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:17Z",
+              "conclusion": "success",
+              "name": "Check native tools",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:17Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:18Z",
+              "conclusion": "success",
+              "name": "Test audio dependency boundary checker",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:17Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:18Z",
+              "conclusion": "success",
+              "name": "Test native public-root smoke checker",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:18Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:22Z",
+              "conclusion": "success",
+              "name": "Fetch locked dependencies",
+              "number": 8,
+              "started_at": "2026-11-17T16:35:18Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:23Z",
+              "conclusion": "success",
+              "name": "Check production audio dependency boundary offline",
+              "number": 9,
+              "started_at": "2026-11-17T16:35:22Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:40:18Z",
+              "conclusion": "success",
+              "name": "Test workspace with audio offline",
+              "number": 10,
+              "started_at": "2026-11-17T16:35:23Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:40:20Z",
+              "conclusion": "success",
+              "name": "Smoke native public-root TLS configuration offline",
+              "number": 11,
+              "started_at": "2026-11-17T16:40:18Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:10Z",
+              "conclusion": "success",
+              "name": "Test CLI session reuse example offline",
+              "number": 12,
+              "started_at": "2026-11-17T16:40:20Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:44Z",
+              "conclusion": "success",
+              "name": "Test synthetic audio profiling invariants offline",
+              "number": 13,
+              "started_at": "2026-11-17T16:41:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:49Z",
+              "conclusion": "success",
+              "name": "Test guarded SDK loopback example offline",
+              "number": 14,
+              "started_at": "2026-11-17T16:41:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:50Z",
+              "conclusion": "success",
+              "name": "Test real admission example with pure fakes offline",
+              "number": 15,
+              "started_at": "2026-11-17T16:41:49Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:01Z",
+              "conclusion": "success",
+              "name": "Test bounded wire profiling invariants offline",
+              "number": 16,
+              "started_at": "2026-11-17T16:41:50Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:31Z",
+              "conclusion": "success",
+              "name": "Test static gRPC prefix profiling invariants offline",
+              "number": 17,
+              "started_at": "2026-11-17T16:42:01Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:44:36Z",
+              "conclusion": "success",
+              "name": "Build release CLI with audio offline",
+              "number": 18,
+              "started_at": "2026-11-17T16:42:31Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:44:41Z",
+              "conclusion": "success",
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "number": 19,
+              "started_at": "2026-11-17T16:44:36Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:44:42Z",
+              "conclusion": "success",
+              "name": "Test release CLI budget rejection before I/O offline",
+              "number": 20,
+              "started_at": "2026-11-17T16:44:41Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:45:29Z",
+              "conclusion": "success",
+              "name": "Run release synthetic PCM channel example offline",
+              "number": 21,
+              "started_at": "2026-11-17T16:44:42Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:45:44Z",
+              "conclusion": "success",
+              "name": "Test CLI without audio offline",
+              "number": 22,
+              "started_at": "2026-11-17T16:45:29Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:45:44Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 43,
+              "started_at": "2026-11-17T16:45:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:45:45Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 44,
+              "started_at": "2026-11-17T16:45:44Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:45:46Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 45,
+              "started_at": "2026-11-17T16:45:45Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "completed_at": "2026-11-17T16:42:57Z",
+          "conclusion": "success",
+          "id": 134194647685,
+          "name": "test (macos-26-intel, 1.88.0)",
+          "started_at": "2026-11-17T16:34:45Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completed_at": "2026-11-17T16:34:48Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-11-17T16:34:46Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:34:50Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "started_at": "2026-11-17T16:34:48Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:04Z",
+              "conclusion": "success",
+              "name": "Run dtolnay/rust-toolchain@master",
+              "number": 3,
+              "started_at": "2026-11-17T16:34:50Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:04Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 4,
+              "started_at": "2026-11-17T16:35:04Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:05Z",
+              "conclusion": "success",
+              "name": "Check native tools",
+              "number": 5,
+              "started_at": "2026-11-17T16:35:04Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:05Z",
+              "conclusion": "success",
+              "name": "Test audio dependency boundary checker",
+              "number": 6,
+              "started_at": "2026-11-17T16:35:05Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:05Z",
+              "conclusion": "success",
+              "name": "Test native public-root smoke checker",
+              "number": 7,
+              "started_at": "2026-11-17T16:35:05Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:10Z",
+              "conclusion": "success",
+              "name": "Fetch locked dependencies",
+              "number": 8,
+              "started_at": "2026-11-17T16:35:05Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:35:10Z",
+              "conclusion": "success",
+              "name": "Check production audio dependency boundary offline",
+              "number": 9,
+              "started_at": "2026-11-17T16:35:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:27Z",
+              "conclusion": "success",
+              "name": "Test workspace with audio offline",
+              "number": 10,
+              "started_at": "2026-11-17T16:35:10Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:28Z",
+              "conclusion": "success",
+              "name": "Smoke native public-root TLS configuration offline",
+              "number": 11,
+              "started_at": "2026-11-17T16:38:27Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:38:57Z",
+              "conclusion": "success",
+              "name": "Test CLI session reuse example offline",
+              "number": 12,
+              "started_at": "2026-11-17T16:38:28Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:17Z",
+              "conclusion": "success",
+              "name": "Test synthetic audio profiling invariants offline",
+              "number": 13,
+              "started_at": "2026-11-17T16:38:57Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:20Z",
+              "conclusion": "success",
+              "name": "Test guarded SDK loopback example offline",
+              "number": 14,
+              "started_at": "2026-11-17T16:39:17Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:21Z",
+              "conclusion": "success",
+              "name": "Test real admission example with pure fakes offline",
+              "number": 15,
+              "started_at": "2026-11-17T16:39:20Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:31Z",
+              "conclusion": "success",
+              "name": "Test bounded wire profiling invariants offline",
+              "number": 16,
+              "started_at": "2026-11-17T16:39:21Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:39:49Z",
+              "conclusion": "success",
+              "name": "Test static gRPC prefix profiling invariants offline",
+              "number": 17,
+              "started_at": "2026-11-17T16:39:31Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:24Z",
+              "conclusion": "success",
+              "name": "Build release CLI with audio offline",
+              "number": 18,
+              "started_at": "2026-11-17T16:39:49Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:28Z",
+              "conclusion": "success",
+              "name": "Test release CLI finalization timeout on loopback offline",
+              "number": 19,
+              "started_at": "2026-11-17T16:41:24Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:41:29Z",
+              "conclusion": "success",
+              "name": "Test release CLI budget rejection before I/O offline",
+              "number": 20,
+              "started_at": "2026-11-17T16:41:28Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:35Z",
+              "conclusion": "success",
+              "name": "Run release synthetic PCM channel example offline",
+              "number": 21,
+              "started_at": "2026-11-17T16:41:29Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:52Z",
+              "conclusion": "success",
+              "name": "Test CLI without audio offline",
+              "number": 22,
+              "started_at": "2026-11-17T16:42:35Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:53Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 43,
+              "started_at": "2026-11-17T16:42:52Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:54Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 44,
+              "started_at": "2026-11-17T16:42:53Z",
+              "status": "completed"
+            },
+            {
+              "completed_at": "2026-11-17T16:42:55Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 45,
+              "started_at": "2026-11-17T16:42:54Z",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "annotations": [
+            {
+              "annotation_level": "failure",
+              "end_line": 1,
+              "message": "The job was not acquired by Runner of type hosted even after multiple attempts",
+              "path": ".github",
+              "start_line": 1
+            },
+            {
+              "annotation_level": "notice",
+              "end_line": 1,
+              "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+              "path": ".github",
+              "start_line": 1
+            },
+            {
+              "annotation_level": "notice",
+              "end_line": 1,
+              "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+              "path": ".github",
+              "start_line": 1
+            },
+            {
+              "annotation_level": "notice",
+              "end_line": 1,
+              "message": "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.",
+              "path": ".github",
+              "start_line": 1
+            }
+          ],
+          "completed_at": "2026-11-17T16:49:43Z",
+          "conclusion": "cancelled",
+          "id": 134194647686,
+          "name": "test (macos-latest, stable)",
+          "started_at": "2026-11-17T16:34:42Z",
+          "status": "completed",
+          "steps": []
+        }
+      ],
+      "run_attempt": 1,
+      "run_id": 44127348465,
+      "status": "completed",
+      "tested_head": "c89f140a70c8bca5cd32913430b9ccc89c22bdc9"
+    }
+  },
+  "limits": [
+    "Offline CI only; no service, credential or native REAL qualification.",
+    "First-attempt cancellations had no recorded project steps; hosted-runner capacity annotations are preserved.",
+    "No final green CI claim at this checkpoint."
+  ],
+  "result": "12_SUCCESS_2_CANCELLED_HOSTED_RUNNER_CAPACITY_RETRY_PENDING",
+  "retry_requests": [
+    {
+      "name": "test (macos-latest, 1.88.0)",
+      "observed_state": "queued",
+      "original_job": 134194647273,
+      "request_result": "ACCEPTED",
+      "run_attempt": 2
+    },
+    {
+      "cli_exit": 1,
+      "message": "job 134194647686 cannot be rerun",
+      "name": "test (macos-latest, stable)",
+      "original_job": 134194647686,
+      "project_execution_from_refused_request_not_claimed": true,
+      "request_result": "REFUSED_WHILE_ATTEMPT_2_ACTIVE"
+    }
+  ],
+  "tested_head": "c89f140a70c8bca5cd32913430b9ccc89c22bdc9"
+}
