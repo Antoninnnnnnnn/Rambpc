@@ -31,6 +31,17 @@
     "Native PUBLIC_GUARD must be qualified separately before any independently reviewed REAL attempt; durable provisioning and full backend remain unresolved",
     "No ASR correctness, latency or universal secrecy/perfection claim"
   ],
+  "ci": {
+    "tested_head": "da591e97f98e6a199e2151e851f0ebc3a6cbcfe6",
+    "result": "ALL_14_JOBS_SUCCESSFUL_FIRST_ATTEMPT",
+    "python_run": 44077501068,
+    "rust_run": 44077501078,
+    "python_successful_jobs": 4,
+    "rust_successful_jobs": 10,
+    "failed_or_cancelled_jobs": 0,
+    "workflow_reruns_requested": 0,
+    "limit": "Offline suites, source pin checkout rules and compilation only; neither controller Native mode nor credentials are activated by CI"
+  },
   "native_controller_or_rust_launches": 0,
   "credentials_loaded": false,
   "rambler_calls": 0,

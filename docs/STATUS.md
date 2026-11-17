@@ -44,6 +44,8 @@ prouver le refus du tuple inventé dans `--single-session-v1` avant toute tentat
 réelle, sans RPC. **Accès réel Linux et canal de secrets toujours NO_GO.**
 [Contrat](research/linux-session-pipe-receiver.md) ·
 [Preuve simulée](evidence/linux-session-pipe-fake-qa-20261117.json).
+Le CI de `da591e9` passe **14/14 jobs au premier essai**, sans relance ni
+activation des modes natifs du contrôleur.
 
 ## Canal d’entrée public — 17 novembre
 
