@@ -27,6 +27,28 @@ et un résultat distant n'est pas nécessairement le texte appliqué par Android
 - **Statique/offline** : schéma, branche client, test synthétique. Pas une activation
   de fonction serveur ni une comparaison appariée avec un appareil.
 
+## Acceptation actuelle et reste à faire
+
+- **Acquis, sans parité globale prétendue** : sessions Rust natives historiques sur
+  le service Rambler, sans relais Android ; contrats clients établis et protections
+  conservatrices documentés ci-dessous. L'[audit avancé](rust-advanced-mode-contract-audit.md)
+  ne trouve aucun défaut de fidélité avancée déjà confirmé et corrigeable offline.
+- **Accès indispensable** : obtenir auprès du fournisseur ou d'un canal autorisé un
+  contrat/justificatif non secret couvrant le service exact, le client natif et son
+  droit d'usage, ainsi que l'émission, le renouvellement et la révocation légitimes.
+  La [recherche publique bornée](native-access-public-research.md) n'a pas trouvé
+  cette voie ; les succès historiques ne prouvent pas les droits ni l'accès durable
+  ([authentification](authentication.md)). Ne pas substituer un autre service.
+- **Modes avancés** : une référence Android autorisée, de version correspondante,
+  doit relier requête émise, réponse brute, contexte tardif, VoiceAction avant/après
+  filtre et résultat éditeur ; détails et discriminants dans l'[audit](rust-advanced-mode-contract-audit.md#precise-discriminators-needed-before-another-client-change).
+  Implémenter seulement les contrats observés, sans affaiblir les refus safety ni
+  inventer activation ou sémantique pour les intentions 4/5/6.
+- **Qualité et latence** : mesurer des entrées vocales naturelles représentatives et
+  la latence client/session, avec protocole et référence comparables ; les profils
+  synthétiques offline ne prouvent ni qualité naturelle ni performance WAN
+  ([état](../STATUS.md)). Aucun nouveau benchmark ni appel fournisseur n'est revendiqué ici.
+
 ## Intentions et politiques de résultat
 
 Enum : `aamp.java:5`; VoiceEditingResult : `aamq.java:20`.
@@ -146,14 +168,15 @@ aucune qualification d'un futur commit documentaire n'en découle.
   Au plus trois cas courts discriminants (répétition près d'un texte similaire,
   réécriture connue, SEND) seraient préférables à de nouveaux essais COMPOSE aveugles.
   La [préparation de référence Android](android-reference-validation.md) est maintenant
-  exécutée sur appareil autorisé (éditeur inerte/diagnostics SDK), mais **aucune
-  phrase n'a encore été injectée et aucune dictée appariée n'est qualifiée** dans
-  les preuves publiées. Le préflight initial reste inconclusif ; un second
-  préflight et un contrôle constructeur/lecture minimal reproduisent un SIGSEGV
-  ART avant armement, avec restauration réussie. Le hook de lecture seul tient20s,
-  mais aucune construction contrôlée compatible n'est qualifiée. `connectOnly`
-  n'est pas une entrée audio externe : il termine sans audio. Les appels de
-  réutilisation native distincts ne comparent pas la chaîne Android/IME.
+  exécutée sur appareil autorisé (éditeur inerte/diagnostics SDK). Trois
+  [observations UI supervisées ultérieures](../evidence/android-supervised-public-voice-20261116.json)
+  ne sont ni trois succès sémantiques, ni une comparaison avec même PCM ou wire
+  apparié ; route et backend restent non prouvés. Le préflight initial reste
+  inconclusif ; un second préflight et un contrôle constructeur/lecture minimal
+  reproduisent un SIGSEGV ART avant armement, avec restauration réussie. Le hook de
+  lecture seul tient20s, mais aucune construction contrôlée compatible n'est
+  qualifiée. `connectOnly` termine sans audio. Les appels natifs distincts ne
+  comparent pas la chaîne Android/IME.
 
 Les traces absentes de l'incident long historique ne peuvent pas être recréées
 par une série de succès. Sa cause reste indéterminée ; les nouveaux compteurs

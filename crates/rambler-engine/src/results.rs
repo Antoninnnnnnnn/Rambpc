@@ -137,7 +137,7 @@ impl DictationResult {
             });
         }
         if policy == RenderPolicy::Strict {
-            let text = self.text()?;
+            let text = Self::project_strict_text(hypothesis)?;
             return Ok(RenderedText {
                 text,
                 provenance: match edit.map(|edit| edit.active_field) {
@@ -190,6 +190,11 @@ impl DictationResult {
     }
     pub fn text(&self) -> Result<String, EngineError> {
         let hypothesis = self.single_hypothesis()?;
+        Self::project_strict_text(hypothesis)
+    }
+
+    // Call only after checking global safety and uniqueness with single_hypothesis.
+    fn project_strict_text(hypothesis: &Hypothesis) -> Result<String, EngineError> {
         let Some(edit) = &hypothesis.voice_edit else {
             return hypothesis.text.clone().ok_or(EngineError::AmbiguousResult);
         };

@@ -32,6 +32,29 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Rendu strict — une seule vérification globale, 17 novembre
+
+`render(Strict)` réutilise le candidat déjà contrôlé, au lieu de rappeler
+`text()` et de parcourir une seconde fois les hypothèses. L’API `text()`
+conserve son propre contrôle ; les refus de sécurité et d’ambiguïté précèdent
+toujours la projection. Le test distingue un texte ASR vide d’un texte absent.
+**23 tests ciblés**, formatage et Clippy strict passent sur Windows. Il s’agit
+d’un parcours supprimé, pas d’un gain de latence chronométré.
+[Preuve locale](evidence/rust-strict-render-single-pass-windows-20261117.json).
+
+## Pipeline natif local — référence `a89abd2`, 17 novembre
+
+Une exécution Release de `engine_loopback_profile --chunks 16384 --repeats 1`
+passe les quatre scénarios, dont deux avec ralentissements injectés. Par
+scénario : **16 384 blocs de 640 octets** vérifiés par le pair local, contexte
+et fin ordonnés, **128 finales** et fermeture unique de la source. Les scénarios
+d’observation comparent toutes les réponses brutes et vérifient l’EOF unique ;
+les scénarios de collecte comparent les finales retenues. C’est une seule
+mesure par scénario, incluant le travail du pair synthétique et le nettoyage,
+pas une comparaison de vitesse. Les blocs sont opaques : le test ne mesure ni
+le codec, ni la dictée, ni la latence de Rambler. Aucun ancien banc rejoué.
+[Quatre mesures et limites](evidence/rust-engine-loopback-current-windows-20261117.json).
+
 ## Audio PCM — invariance au découpage, 17 novembre
 
 Un test compare les paquets Opus produits par l’adaptateur à ceux du même codec

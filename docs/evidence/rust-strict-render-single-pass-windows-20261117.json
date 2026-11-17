@@ -1,0 +1,49 @@
+{
+  "automatic_retry": false,
+  "base_commit": "a89abd266d6cc8150b6abe2b2f2ce4ebf7315a94",
+  "historical_campaigns_replayed": false,
+  "performance_measurement": false,
+  "qualification": "Only the duplicate immutable safety/uniqueness traversal was removed. Text and all render policies still validate. Windows focused tests, not service parity or a speed claim.",
+  "real_provider_calls": 0,
+  "scope": "OFFLINE_STRICT_RENDER_TESTS_AND_LINT",
+  "source_commit": null,
+  "source_files_sha256": {
+    "crates/rambler-engine/src/results.rs": "9defd881c8b8fb50721a9fdb2eeb9971ab42ab55c0972831c41d05f987b5fd22",
+    "crates/rambler-engine/tests/explicit_results.rs": "44e33178f6f5906a4f071ebade95c9210553a4c9851fa294aad16ba45d68033c"
+  },
+  "source_sha256": "9defd881c8b8fb50721a9fdb2eeb9971ab42ab55c0972831c41d05f987b5fd22",
+  "status": "PASS_TARGETED_ENGINE_VALIDATION",
+  "steps": [
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "format"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "tests"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "lint"
+    }
+  ],
+  "test_sha256": "44e33178f6f5906a4f071ebade95c9210553a4c9851fa294aad16ba45d68033c",
+  "tests_by_target": {
+    "explicit_results": 9,
+    "response_candidate_safety": 2,
+    "results": 8,
+    "safety": 4
+  },
+  "tests_failed": 0,
+  "tests_ignored": 0,
+  "tests_passed": 23
+}

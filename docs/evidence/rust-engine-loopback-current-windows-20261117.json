@@ -1,0 +1,131 @@
+{
+  "automatic_retry": false,
+  "binary_sha256": "c3cdc632b5f5d41b50ae3f995ab1032ec3a239820e1920ed43c82c16c4cd3632",
+  "command_arguments": [
+    "--chunks",
+    "16384",
+    "--repeats",
+    "1"
+  ],
+  "historical_campaigns_replayed": false,
+  "limits": [
+    "Opaque audio-size fixtures, not a codec or ASR test.",
+    "One sample per case; not an A/B, speedup, production latency or RSS claim.",
+    "Each case uses a new local engine and connection."
+  ],
+  "raw_jsonl_sha256": "f4b9cf1a58c7d3c1eeff0c2b193e03d9bab429ea1524fe7a102d6d11e791958e",
+  "real_provider_calls": 0,
+  "repeats": 1,
+  "rows": [
+    {
+      "audio_bytes": 10485760,
+      "case": "collect_active",
+      "chunk_bytes": 640,
+      "chunks": 16384,
+      "cleanup_joined": true,
+      "consumer_stalls": 0,
+      "final_updates": 128,
+      "reader_stalls": 0,
+      "repeat": 0,
+      "request_protobuf_bytes": 10764640,
+      "requests": 16387,
+      "response_protobuf_bytes": 8617986,
+      "responses": 16385,
+      "source_close_calls": 1,
+      "stall_requested_ms": 1,
+      "unique_engine_eof": true,
+      "upload_eof_verified": true,
+      "wall_ns": 2518191000
+    },
+    {
+      "audio_bytes": 10485760,
+      "case": "observe_active",
+      "chunk_bytes": 640,
+      "chunks": 16384,
+      "cleanup_joined": true,
+      "consumer_stalls": 0,
+      "final_updates": 128,
+      "reader_stalls": 0,
+      "repeat": 0,
+      "request_protobuf_bytes": 10763999,
+      "requests": 16387,
+      "response_protobuf_bytes": 8617986,
+      "responses": 16385,
+      "source_close_calls": 1,
+      "stall_requested_ms": 1,
+      "unique_engine_eof": true,
+      "upload_eof_verified": true,
+      "wall_ns": 1984350300
+    },
+    {
+      "audio_bytes": 10485760,
+      "case": "collect_reader_stall",
+      "chunk_bytes": 640,
+      "chunks": 16384,
+      "cleanup_joined": true,
+      "consumer_stalls": 0,
+      "final_updates": 128,
+      "reader_stalls": 256,
+      "repeat": 0,
+      "request_protobuf_bytes": 10764557,
+      "requests": 16387,
+      "response_protobuf_bytes": 8617986,
+      "responses": 16385,
+      "source_close_calls": 1,
+      "stall_requested_ms": 1,
+      "unique_engine_eof": true,
+      "upload_eof_verified": true,
+      "wall_ns": 2524166700
+    },
+    {
+      "audio_bytes": 10485760,
+      "case": "observe_consumer_stall",
+      "chunk_bytes": 640,
+      "chunks": 16384,
+      "cleanup_joined": true,
+      "consumer_stalls": 256,
+      "final_updates": 128,
+      "reader_stalls": 0,
+      "repeat": 0,
+      "request_protobuf_bytes": 10764816,
+      "requests": 16387,
+      "response_protobuf_bytes": 8617986,
+      "responses": 16385,
+      "source_close_calls": 1,
+      "stall_requested_ms": 1,
+      "unique_engine_eof": true,
+      "upload_eof_verified": true,
+      "wall_ns": 4042348900
+    }
+  ],
+  "scope": "OWNED_SYNTHETIC_IPV4_LOOPBACK_ONLY",
+  "source_commit": "a89abd266d6cc8150b6abe2b2f2ce4ebf7315a94",
+  "source_files_sha256": {
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "crates/rambler-engine/examples/engine_loopback_profile.rs": "724475af067541d82c716683241706d79dab9c9822bd38ef132b707cfbd72e80",
+    "crates/rambler-engine/examples/profile_support/mod.rs": "02a0f7797e613156bdf9d43e4f50adfe123525b0050e2eb9fe694dcec3eca3f3",
+    "crates/rambler-engine/tests/common/mod.rs": "61d1ea65176b650bc330367f8ee87ac67900b590fcd0f887402855844b50b9db"
+  },
+  "status": "PASS_FOUR_CASES_ONE_PROCESS",
+  "steps": [
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "build"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "passed": true,
+      "step": "profile_once"
+    }
+  ],
+  "validation_notes": [
+    "Both observer cases explicitly assert all raw responses in order and exactly one engine EOF. The two collector cases assert retained final bytes and order, context, safety, and closure through the collector contract. The literal unique_engine_eof JSON field is not a separate detector.",
+    "Wall includes synthetic peer verification, injected delays, collection/observation and joins; excludes fixture preparation and initial connection.",
+    "Zero provider calls is a source/plan invariant: owned IPv4 localhost endpoint only, no new network-isolation telemetry."
+  ]
+}

@@ -48,6 +48,27 @@ fn result(asr: Option<&str>, edit: Option<Vec<u8>>) -> DictationResult {
 }
 
 #[test]
+fn strict_text_distinguishes_empty_asr_from_absent_asr() {
+    let empty = result(Some(""), None);
+    assert_eq!(empty.text().unwrap(), "");
+    assert_eq!(
+        empty.render(RenderPolicy::Strict).unwrap(),
+        RenderedText {
+            text: String::new(),
+            provenance: TextProvenance::HypothesisText,
+            intent: None,
+            fallback_reason: Some(FallbackReason::VoiceEditAbsent),
+        }
+    );
+    let absent = result(None, None);
+    assert!(matches!(absent.text(), Err(EngineError::AmbiguousResult)));
+    assert!(matches!(
+        absent.render(RenderPolicy::Strict),
+        Err(EngineError::AmbiguousResult)
+    ));
+}
+
+#[test]
 fn client_accepts_both_intents_and_members_without_changing_strict_contracts() {
     for intent in [2, 3] {
         for field in [3, 7] {
