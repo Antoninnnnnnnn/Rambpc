@@ -9,6 +9,35 @@ compte, OAuth, Zwieback, téléphone ni relais Android. Voir
 natif. Cela valide ce profil et ces credentials/configurations à la date du test,
 pas toute restriction future ni les autres branches d'authentification.
 
+## Complément documentaire — 17 novembre 2026
+
+Les pages Google Cloud sur les [clés API](https://docs.cloud.google.com/docs/authentication/api-keys)
+et leurs [restrictions](https://docs.cloud.google.com/api-keys/docs/add-restrictions-api-keys)
+ont été consultées sans appel au service. Une clé **standard** rattache une requête
+à un projet pour la facturation et les quotas ; elle n'identifie pas un principal
+utilisateur. Les clés liées à un compte de service sont une catégorie distincte,
+pas un mécanisme démontré pour S3/Rambler. Les restrictions Android désignent les
+applications autorisées par package et empreinte de signature ; les restrictions
+d'API limitent les services utilisables.
+
+Ces pages ne documentent ni un accès tiers au service interne Rambler, ni un droit
+de réutiliser dans un client natif une clé embarquée dans une autre application.
+Elles ne démontrent pas non plus qu'une configuration particulière est interdite :
+**l'autorisation de cette configuration reste à établir séparément**. Posséder un
+fichier de configuration, observer des headers ou obtenir une réponse du serveur
+ne constitue pas à lui seul un contrat de provisionnement, de réutilisation native
+ou de renouvellement. Aucune extraction de nouveaux credentials tiers, usurpation
+d'identité applicative pour franchir une restriction ou variante d'authentification
+au hasard n'est une voie de provisionnement acceptable.
+
+La qualification technique du producteur, du garde public ou des lanceurs ne
+fournit donc pas cette autorisation. Un nouvel essai réel nécessite une
+configuration dont l'utilisation native est légitimement autorisée, sans
+contournement ; sa provenance doit pouvoir être établie sans publier ses valeurs.
+La présence des trois champs dans un fichier local ne suffit pas à fermer ce gate.
+Aucun flux OAuth, identifiant GMS fabriqué, remplacement par une API publique ou
+renouvellement automatique de clé n'est déduit de ces sources générales.
+
 ## Conclusions déterminantes
 
 1. **L'accès anonyme n'est pas suffisant pour caractériser l'authentification.** Un appel gRPC sans metadata, avec un message vide et half-close, a reçu `PERMISSION_DENIED` (« Permission denied on the service. ») en environ 80 ms. Cela établit seulement le refus de cet appel incomplet, pas qu'un compte Google est obligatoire ni qu'une requête conforme serait refusée (`docs/evidence/anonymous-empty-rpc.json`).
