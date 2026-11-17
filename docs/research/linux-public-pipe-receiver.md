@@ -1,17 +1,25 @@
-# Linux public pipe receiver — source-only contract
+# Linux public pipe receiver — public-only contract
 
-**No native/SSH qualification.** The source passed independent review and
-**31 fake-only tests on Windows** in a bounded owned Job on 2026-11-17. No native
-receiver invocation, SSH roundtrip, build, service/device operation or campaign
-replay was performed for this bridge. The existing native qualification is a
-separate historical observation, not proof of this bridge. Main owns any later
-joint Windows/Linux review and explicit public-only roundtrip. No automatic
-replay is permitted. [Observed QA and limits](../evidence/linux-public-pipe-receiver-qa-20261117.json).
+**One bounded public SSH roundtrip passed** on 2026-11-17: an owned Windows
+pipe sent one invented 85-byte frame via strict existing-host-key SSH to this
+receiver and the existing qualified Debug Rust public-frame mode. Two external
+`environ` opens returned EACCES without content reads; stdin EOF, the 177-byte
+READY plus terminal output, output EOF, exit 0, inner and outer Job cleanup,
+full postinspection and unchanged source/pins/staging were observed. This was
+one new case, distinct from the historical 11-case campaign, which was not
+replayed; no fresh build, retry or reconnect occurred.
+[Sanitized roundtrip evidence](../evidence/public-owned-pipe-ssh-20261117.json).
+
+The earlier independent review and **31 fake-only Windows tests** remain a
+separate historical checkpoint, not the basis for an SSH claim.
+[Observed pure QA](../evidence/linux-public-pipe-receiver-qa-20261117.json).
+This proof does not qualify a credential channel, real SDK session, provisioning
+or full backend; live GO remains false.
 
 ## Scope and exclusions
 
 `tools/reference/linux_public_pipe_receiver.py` is a narrow developer bridge for
-a future owned-stdin Windows sender. It accepts exactly one invented public RLA1
+an owned-stdin Windows sender. It accepts exactly one invented public RLA1
 message and EOF, forwards the **compiled-in public constant**, and closes the
 native input. It has no arbitrary-frame API, live/single-session mode, endpoint,
 network, ASR, credential input, callback, RPC or session reuse. It never enters the
@@ -19,16 +27,16 @@ Rust single-session path. A real-credential caller would require a separate desi
 `healthy=false`, zero sessions and zero service calls are invariant, including on
 success. They are not independent network/syscall telemetry or production claims.
 
-Only these new files belong to this change:
+The original source delivery owned these new files:
 
 - `tools/reference/linux_public_pipe_receiver.py`
 - `tests/test_linux_public_pipe_receiver.py`
 - this document
 
-The qualified helper is immutable. Its CLI, build/observe functions, historical
-reservations, results and counters are never invoked, read, adopted or modified.
-The module's fresh in-memory initialization is not a historical campaign update.
-No Windows helper, fixture, documentation, CI or STATUS file belongs to this work.
+The qualified helper remains immutable. Its CLI, build/observe functions and
+historical reservations, results and counters are not adopted or modified by this
+bridge. The module's fresh in-memory initialization is not a historical campaign
+update. The later bounded public roundtrip is documented separately above.
 
 ## Trusted startup and input layout
 
@@ -297,10 +305,21 @@ ran no tests; a later controller stopped on a mistyped hash before launching a
 Job. Both records remain failures/halts, not test passes.
 
 To reproduce only the fake tests: `python -I -S -B tests/test_linux_public_pipe_receiver.py`.
-They import the receiver but never invoke its native entry point. No Linux host
-execution of this bridge, upstream sender, SSH channel or credential path is
-qualified by these Windows fake tests. Those remain separate future public-only
-checks after both ends are reviewed; earlier campaigns must not be replayed.
+They import the receiver but never invoke its native entry point. These Windows
+fake tests did not themselves qualify Linux, SSH or a credential path. The later
+single public-only roundtrip is separate and does not qualify credentials.
+
+The initial transport scaffolds remain NO_GO and unexecuted. R2 was NO_GO before
+execution for a Windows slash-path mismatch and reservation order; normalized
+validation passed eight local pure checks. The first R2 preparation then stopped
+before OUT, any Job or SSH because Windows APIs represented ctime differently,
+despite all five source pins and common identity/birthtime matching. The corrected
+predicate retains cross-API dev/ino/size/mtime/mode/nlink/birthtime checks and
+checks ctime stability separately within each API; ten pure checks passed, with
+no Linux checks weakened. MAIN preparation R3 and runner R4 subsequently passed.
+Their private local-metadata orchestrators are not portable public launchers or
+bit-exact reproduction artifacts. Contributors can study the published helpers,
+protocol and neutral prerequisites/root layout above, subject to separate review.
 
 ## Remaining trust and failure limits
 

@@ -1,0 +1,83 @@
+{
+  "date": "2026-11-17",
+  "result": "PASS_ONE_PUBLIC_WINDOWS_SSH_LINUX_RUST_ROUNDTRIP",
+  "scope": "One invented public frame through the owned Windows pipe, strict existing-host-key SSH, public Linux receiver and existing qualified Debug Rust public-frame mode; not a credential channel or SDK session.",
+  "source_git_association": "bd2da6cbb323f83c3e956552ef4e3e4967ac7170",
+  "source_hash_semantics": "Measured working-file bytes, not necessarily CRLF-normalized Git blob identities.",
+  "source_sha256": {
+    "tools/reference/linux_admission_public_supervisor.py": "bb711f7ce1ada062cee9ed47136ae0496c38d8095d8ced26229bb2f8328ec0d9",
+    "tools/reference/linux_public_pipe_receiver.py": "fd70a045c606ef3bf9f9a0b8352707499ef1943e2056a307feb5bab2f98c89c0",
+    "tools/reference/owned_pipe_fixture.py": "31511f35400805c6a4a3b53ebe032c40f6f9371fcabf8608bb3d28d84d3cd149",
+    "tools/windows_owned_job.py": "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa",
+    "tools/windows_owned_pipe_job.py": "a9e6c5890e39461549d1abcf898f7d405c10ca2171715e3a26e52c469ae86ea5"
+  },
+  "main_orchestrator_sha256": {
+    "preparation_r3": "def9aa829c93e9ad92ff45e682108eb88d34e6ccb0e9e050f694d63741d0c6f7",
+    "runner_r4": "5274df14a7be4f37904518576a0b90e5b5623ac9af05ddc3df7c2984d775d485"
+  },
+  "orchestrator_portability": "Private MAIN orchestrators depend on local metadata and are not portable public launchers or bit-exact reproduction artifacts. Published helpers, receiver protocol and neutral prerequisite/root layout are documented separately.",
+  "prepared_inputs": {
+    "existing_qualified_debug_binary_sha256": "1d183b7adece6c2a05ab15a0d8bd5faeaab7bc855cbb89b1091ced81f3883991",
+    "public_pcm_sha256": "cea1bc1614f738048b1a4f1bcad83f70aee42b9621b8b754f8aacbe1395b08c9",
+    "manifest_sha256": "50a8a6f2a81b0e9e3abe60d88f9078ee1ab437a98741cc8d5468b126036ed284",
+    "source_tree_sha256": "1e0fe2437674b6992351bf7e322129ccb64c3a0d7b552cb2188f9a8dbd5bec39",
+    "source_files": 122,
+    "fresh_build": false,
+    "existing_campaign_replayed": false
+  },
+  "observation": {
+    "main_preparation_r3_passed": true,
+    "main_runner_r4_passed": true,
+    "initial_case_count": 0,
+    "final_case_count": 1,
+    "new_native_cases": 1,
+    "external_environ_open_eacces": 2,
+    "environ_content_read": false,
+    "public_frames_forwarded": 1,
+    "input_bytes": 85,
+    "ready_bytes": 24,
+    "terminal_bytes": 153,
+    "output_bytes": 177,
+    "stdin_eof": true,
+    "output_eof": true,
+    "exit_zero": true,
+    "producer_calls": 1,
+    "windows_job_verified_and_empty": true,
+    "windows_workers_joined_and_handles_reaped": true,
+    "inner_and_outer_jobs_clean": true,
+    "full_postinspection_ok": true,
+    "source_pins_and_staging_unchanged": true,
+    "automatic_retry": false,
+    "automatic_reconnect": false
+  },
+  "linux_postinspection_result": {
+    "schema": "linux-public-pipe-receiver-result-v1",
+    "public_only": true,
+    "ok": true,
+    "cleanup": true,
+    "source_unchanged": true,
+    "pins_unchanged": true,
+    "external_checks": 2,
+    "public_frames_forwarded": 1,
+    "sessions": 0,
+    "healthy": false,
+    "service_calls": 0,
+    "error": null
+  },
+  "history": [
+    "Initial transport scaffolds were nonoperational and never executed; NO_GO is preserved.",
+    "Operational R2 was NO_GO before execution for a literal Windows slash-path mismatch and reservation order; normalized shared validation passed eight local pure checks.",
+    "First R2 local preparation stopped before OUT, any Job or SSH because cross-API Windows ctime representations differed; all five source pins matched and common identity and birthtime matched.",
+    "Corrected Windows predicates retain cross-API dev, ino, size, mtime, mode, nlink and birthtime checks, and check ctime stability independently within each named and handle API; ten pure checks passed. No Linux checks were weakened.",
+    "The earlier 11-case native admission campaign, its reservations and results were not replayed or overwritten; this one new case is distinct."
+  ],
+  "limitations": [
+    "Zero sessions, healthy=false and zero service calls are closed-plan/source invariants, not independent network or syscall telemetry.",
+    "The receiver only forwards its compiled-in invented public tuple and cannot send real credentials or enter single-session mode.",
+    "No provider credentials loaded, no Rambler calls, no raw input or remote payload recorded; private host, account, paths and case identifiers omitted.",
+    "Local postinspection alone does not establish delivery without the matched terminal, EOF, exit zero and owned cleanup.",
+    "Trusted CPython, stdlib, OpenSSH, server login startup, procfs, no concurrent same-UID mutation and root/kernel/swap/launcher-buffer assumptions remain. Job ownership contains lifetime, not secrecy.",
+    "Real credential channel, SDK session, provisioning and full backend remain unqualified; live GO is false. No latency, semantic or universal perfection claim."
+  ],
+  "live_go": false
+}

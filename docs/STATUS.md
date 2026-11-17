@@ -47,11 +47,21 @@ Le CI offline de `04203b5` passe ensuite **14/14 jobs au premier essai**, sans
 relance ni activation des deux tests natifs opt-in.
 
 Le récepteur Linux public passe séparément 31 tests avec ports simulés sous
-Windows. Il ne peut transmettre que sa constante publique, jamais un identifiant
-réel. Aucune invocation native de ce récepteur ni chaîne SSH n’est encore observée ;
-les scripts de préparation initiaux ont été refusés/incomplets avant exécution.
-[Preuve du récepteur](evidence/linux-public-pipe-receiver-qa-20261117.json).
-**Canal de secrets, accès réel Linux et backend complet toujours non qualifiés.**
+Windows. Une observation ultérieure distincte réussit **un seul cas public** :
+Windows → SSH à clé d'hôte existante → récepteur Linux → mode Rust PUBLIC_FRAME,
+avec 85 octets, deux refus EACCES sans lecture d'environ, EOF, sortie fermée de
+177 octets et exit 0. Les Jobs interne et externe, la postinspection complète,
+les pins et le staging sont vérifiés ; aucune relance ni reconnexion automatique.
+Le binaire Debug qualifié est une copie existante, pas un nouveau build. Ce cas
+ne rejoue pas la campagne native historique de 11 cas. Zéro session, healthy=false
+et zéro service sont des invariants du plan/source, pas une télémétrie réseau.
+Les orchestrateurs MAIN privés ne sont pas des lanceurs publics portables : voir
+les helpers publiés, le protocole et les prérequis neutres du récepteur.
+[Preuve pure historique](evidence/linux-public-pipe-receiver-qa-20261117.json) ·
+[Preuve SSH publique bornée](evidence/public-owned-pipe-ssh-20261117.json) ·
+[Contrat et limites](research/linux-public-pipe-receiver.md).
+**Canal de secrets, session SDK réelle, provisionnement et backend complet restent
+non qualifiés ; live GO=false.**
 
 Le CI combiné des deux côtés à `e1ec3cd` passe **14/14 jobs au premier essai**,
 sans relance. Cela qualifie la compilation et les suites offline, pas un essai

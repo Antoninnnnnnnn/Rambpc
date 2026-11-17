@@ -14,16 +14,22 @@ No earlier explicit-base public Job evidence is retroactively classified as
 venv-qualified or invalidated by these changes.
 
 The existing native public Linux result (11 cases, eight pre-input EACCES checks)
-is separate evidence; it does not qualify this Windows caller. READY is only an
-exact protocol marker, **not external Linux protection proof**. Before any future
-real channel, MAIN must independently pin and qualify the remote controller and
-its pre-input protection checks, interpreter/tools, SSH configuration, host key,
-and the complete invocation. None of that is implemented here.
+remains separate evidence. A later, distinct **one-case public-only** Windows →
+SSH → Linux receiver → Rust public-frame roundtrip passed: one 85-byte frame,
+two external EACCES checks, EOF, 177 bytes of closed output, exit 0, inner and
+outer Job cleanup and full postinspection with pins/staging unchanged. It used an
+existing qualified Debug binary, not a fresh build, with no retry or reconnect.
+[Sanitized evidence](../evidence/public-owned-pipe-ssh-20261117.json).
+READY alone is still not external Linux protection proof, and this observation
+qualifies neither a confidential caller nor a real SDK session. The private MAIN
+orchestrators use local metadata and are not portable public launchers or
+bit-exact reproduction artifacts; contributors can consult the published helpers
+and [receiver protocol and neutral prerequisites](linux-public-pipe-receiver.md).
 
-Owned additions are `tools/windows_owned_pipe_job.py`,
+The original source delivery owned `tools/windows_owned_pipe_job.py`,
 `tests/test_windows_owned_pipe_job.py`, `tools/reference/owned_pipe_fixture.py`,
-and this document. No CI, STATUS, Linux documentation, historical evidence,
-Cargo.lock, oldReleaseCLI or original helper changes are required.
+and this document. The original helper remains unchanged; subsequent evidence
+and status updates are separate.
 
 ## Exact developer API
 
@@ -210,8 +216,8 @@ empty Job, both EOFs, worker joins and handle reaping; `ok` requires zero child
 exit and the complete protocol. Both outer capture Jobs were empty and their
 captures exited zero. The runner used an explicitly selected, verified base Python
 image. Source, helper, lockfile and old release CLI pins were unchanged before and
-after QA. There were no SSH roundtrips, service calls or credentials loaded; this
-is not live GO. At that checkpoint, blocked-write paths had fake coverage only.
+after QA. At that QA checkpoint there were no SSH roundtrips, service calls or credentials
+loaded; this is not live GO. At that checkpoint, blocked-write paths had fake coverage only.
 A later, separate [two-case native public qualification](windows-owned-pipe-native-cancellation.md)
 passed deadline and explicit cancellation; no `CancelSynchronousIo` invocation
 was observed, and no earlier positive fixture was replayed.
@@ -276,5 +282,6 @@ original public Python fixture inside
 an owned Job; it asserts 85 exact bytes, EOF, exact protocol, Job membership/empty,
 zero exit, worker joins and handle reaping. It uses an explicit public environment.
 It is not a blocked-writer native qualification suite or SSH qualification.
-The separate bounded blocked-write observations are linked above; no confidential
-caller or SSH qualification follows from either local public suite.
+The separate bounded blocked-write observations and the subsequent one-case public
+SSH roundtrip are linked above; no confidential caller or real session qualification
+follows from them.
