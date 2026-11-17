@@ -43,6 +43,8 @@ et l’annulation explicite, avec nettoyage des Jobs. Aucun appel à
 `CancelSynchronousIo` n’a été observé : son efficacité reste non qualifiée.
 [Preuve nominale Windows](evidence/windows-owned-pipe-public-qa-20261117.json) ·
 [Preuve délai/annulation](evidence/windows-owned-pipe-native-cancellation-20261117.json).
+Le CI offline de `04203b5` passe ensuite **14/14 jobs au premier essai**, sans
+relance ni activation des deux tests natifs opt-in.
 
 Le récepteur Linux public passe séparément 31 tests avec ports simulés sous
 Windows. Il ne peut transmettre que sa constante publique, jamais un identifiant

@@ -29,6 +29,18 @@
   "positive_fixture_replayed": false,
   "test_retries": 0,
   "report_parser_history": "Initial parser missed diagnostics embedded in unittest output; existing retained capture was postprocessed without rerunning tests",
+  "ci": {
+    "tested_head": "04203b5d4c523d438aca3e614019253306ed4e3e",
+    "result": "ALL_14_JOBS_SUCCESSFUL_FIRST_ATTEMPT",
+    "rust_run": 44063555916,
+    "python_run": 44063555970,
+    "rust_successful_jobs": 10,
+    "python_successful_jobs": 4,
+    "failed_or_cancelled_jobs": 0,
+    "workflow_reruns_requested": 0,
+    "native_opt_in_not_set_by_ci": true,
+    "limit": "Offline CI and default discovery only; the two actual native observations above are separate, not rerun by CI"
+  },
   "credentials_loaded": false,
   "ssh_roundtrips": 0,
   "rambler_calls": 0,
