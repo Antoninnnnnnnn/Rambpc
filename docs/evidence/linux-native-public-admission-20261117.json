@@ -23,6 +23,25 @@
     "original_cache_unchanged": true,
     "registry_src_copied": false
   },
+  "ci_first_attempt": {
+    "head": "aa9dfc9549d162f23efebf0568561deb799878c3",
+    "rust_run": 44048261762,
+    "python_run": 44048261755,
+    "successful_jobs": 13,
+    "cancelled_jobs": 1,
+    "cancelled_job": 133919267163,
+    "cancelled_configuration": "macos-26-intel / Rust1.88.0",
+    "annotation": "The job has exceeded the maximum execution time of 30m0s",
+    "last_observed_in_progress_step": "Build release CLI with audio offline",
+    "workspace_and_admission_fake_tests_passed_before_timeout": true,
+    "later_release_checks_started": false,
+    "step_metadata_not_finalized_on_cancellation": true,
+    "job_logs_unavailable": true,
+    "root_cause_limit": "Time limit proven; reason Release compilation did not finish is not established",
+    "one_exact_job_retry_requested": true,
+    "retry_result": "PENDING",
+    "unrelated_successful_jobs_not_requested_to_rerun": true
+  },
   "credentials_sent": false,
   "date": "2026-11-17",
   "historical_records_preserved": [
