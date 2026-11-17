@@ -32,19 +32,28 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
-## Appelant REAL — source R1 non exécutable, 17 novembre
+## Appelant REAL — régressions simulées, 17 novembre
 
-Deux revues indépendantes rendent un GO source conditionnel, pas un GO réel.
-Une vérification supplémentaire confirme toutefois un défaut de comptabilité :
-un appel de capture sans résultat peut perdre son état de nettoyage inconnu
-après une postinspection réussie et afficher à tort des Jobs externes propres.
-**Verdict MAIN : NO_GO R1, aucune exécution.** Une révision isolée est en cours,
-avec état inconnu persistant, marqueur de démarrage unique et sortie forcée même
-si l’affichage échoue ; ses tests futurs restent simulés, sans résultat anticipé.
-Aucune préparation REAL, lecture d’identifiants ou requête au service Rambler.
-L’autorisation native de la configuration reste un prérequis séparé, sans
-contournement ni déduction à partir d’un fichier local ou d’un ancien succès.
-[Preuve source et limites](evidence/linux-session-real-caller-source-review-20261117.json) ·
+R1 reste figée **MAIN_NO_GO, sans invocation du lanceur**, malgré les deux GO
+source conditionnels : son faux indicateur de nettoyage est conservé comme preuve.
+R2 passe ensuite **24 tests simulés**, puis R3 **27 tests simulés**, chacun dans
+un essai distinct sous Windows, sans échec/erreur/skip ; appartenance et vacuité
+des Jobs, pins inchangés vérifiés. Ce sont des suites qui se recouvrent, pas
+51 tests distincts. Les méthodes R1/R2 servent seulement au diagnostic sous fakes.
+R3 conserve la dette de nettoyage jusqu’à l’enregistrement du résultat, y compris
+si celui-ci échoue ; le marqueur de démarrage unique et la sortie forcée couvrent
+également les échecs d’affichage et de construction du résultat fermé.
+
+**GO limité aux régressions simulées, jamais au réel.** Aucune préparation REAL,
+lecture d’identifiants, invocation du moteur natif ou requête au service Rambler
+n’a eu lieu dans ces essais. Les comportements réels du système distant, READY,
+le canal de secrets et la session restent non qualifiés. Le provisionnement et
+l’autorisation native de la configuration restent des prérequis distincts,
+sans déduction à partir de headers embarqués, d’un fichier local ou d’un ancien
+succès. Les orchestrateurs MAIN restent propres à cet espace, pas des lanceurs
+publics portables ; aucune perfection ni parité complète n’est déduite.
+[NO_GO R1 conservé](evidence/linux-session-real-caller-source-review-20261117.json) ·
+[Preuves R2/R3 bornées](evidence/linux-session-real-caller-fake-qa-20261117.json) ·
 [Provisionnement](research/authentication.md#complément-documentaire--17-novembre-2026).
 
 ## Producteur de trame — QA simulée, 17 novembre

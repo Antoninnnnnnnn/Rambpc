@@ -1,0 +1,93 @@
+{
+  "count_semantics": "Separate overlapping regression suites across two revisions; do not sum as unique tests. Original R1/R2 methods are diagnostic data/fake functions, never full launcher invocations.",
+  "date": "2026-11-17",
+  "limits": [
+    "Only named authored source files read as data; selected actual FunctionDef ASTs run with injected fake globals. No full launcher, worker or bootstrap body is imported/executed.",
+    "Tests cover R1 lost capture debt and R2 lost append record counterexamples versus fixed source, plus normal/error/preflight, marker owner/mode/duplicates/burn and exit-failure cases.",
+    "Fake marker/fsync/no-follow checks do not establish actual remote filesystem behavior, READY/channel integration or runtime protection.",
+    "Outer Windows Job membership and emptiness were verified; Jobs are lifetime containment, not secure erasure or secrecy.",
+    "Current R3 Source GO/fake PASS does not grant authority for preparation, configuration, SSH or any provider contact.",
+    "Legitimate native configuration provenance and provisioning/rotation/revocation remain separately unestablished. Embedded app metadata, local file presence or server acceptance do not establish a provider grant.",
+    "Same-user/root/kernel/SSH trust, immutable buffers, dumps/pagefile/hibernation and actual source/transport confidentiality remain residuals.",
+    "No ASR accuracy, actual session health, performance or complete-backend/perfection claim.",
+    "Workspace-specific MAIN-only orchestrators and their regression files are not portable public launchers; their exact source pins are recorded without private paths."
+  ],
+  "live_go": false,
+  "observations": {
+    "r2": {
+      "REAL_preparation_runs": 0,
+      "helper_sha256": "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa",
+      "live_go": false,
+      "native_engine_runs": 0,
+      "outer_job_empty": true,
+      "outer_job_membership_verified": true,
+      "rambler_rpc_attempts": 0,
+      "real_credentials_read": false,
+      "source_pins_unchanged": true,
+      "source_sha256": {
+        "prepare_linux_session_real_main_20261117.py": "6e1000a2f75e36627c0b8a0a55b289ee10e50260387f5ab8fb0e33f1347f992c",
+        "prepare_linux_session_real_main_20261117_r2.py": "a8adcf86de1dbdff16442d9268f1f3658674be2b7504570bab09c7ca1269b22f",
+        "run_linux_session_real_main_20261117.py": "541f39b387c86fc18f0c78403d1199674b7eacb4b6e9a528d9961c68412bf731",
+        "run_linux_session_real_main_20261117_r2.py": "b82b67073619b6ab9ad53c93ba1442f7fee848cf877ec58d21ff6d04db226ff8",
+        "test_linux_session_real_caller_r2_20261117.py": "34321968f3b8fc15307cb43640b2d6a1307cdc525a07721dca14a879d4006892"
+      },
+      "status": "PASS_24_INVENTED_FAKE_REGRESSIONS_WINDOWS_ONLY",
+      "tests": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "pins_unchanged": true,
+        "skipped": 0,
+        "tests_run": 24,
+        "tests_selected": 24,
+        "unexpected_successes": 0
+      }
+    },
+    "r3": {
+      "REAL_preparation_runs": 0,
+      "helper_sha256": "3ac53d5e3f202512b18cb3e4bafdc27c8b87add5c4d9afb70a3dd07462fd76aa",
+      "live_go": false,
+      "native_engine_runs": 0,
+      "outer_job_empty": true,
+      "outer_job_membership_verified": true,
+      "rambler_rpc_attempts": 0,
+      "real_credentials_read": false,
+      "source_pins_unchanged": true,
+      "source_sha256": {
+        "prepare_linux_session_real_main_20261117.py": "6e1000a2f75e36627c0b8a0a55b289ee10e50260387f5ab8fb0e33f1347f992c",
+        "prepare_linux_session_real_main_20261117_r2.py": "a8adcf86de1dbdff16442d9268f1f3658674be2b7504570bab09c7ca1269b22f",
+        "prepare_linux_session_real_main_20261117_r3.py": "8ecd02a5597b732e1cfce2826b0fc6f9504f0e4307a2dd80922a078377db6eb2",
+        "run_linux_session_real_main_20261117.py": "541f39b387c86fc18f0c78403d1199674b7eacb4b6e9a528d9961c68412bf731",
+        "run_linux_session_real_main_20261117_r3.py": "f9d8e6d0d4e54b5d30e9983b9cb22328ddcff74679f77d107ee7d1d2684a7d1a",
+        "test_linux_session_real_caller_r3_20261117.py": "6b22101d7693c81c2f42f2133981a2fe0aa9d45b0852d7b3e33fa2df7f2bb315"
+      },
+      "status": "PASS_27_INVENTED_FAKE_REGRESSIONS_WINDOWS_ONLY",
+      "tests": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "pins_unchanged": true,
+        "skipped": 0,
+        "tests_run": 27,
+        "tests_selected": 27,
+        "unexpected_successes": 0
+      }
+    }
+  },
+  "r1_verdict_preserved": "MAIN_NO_GO_R1_UNEXECUTED",
+  "r2_scope": "Sticky unreturned capture debt, exclusive bootstrap-start claim and finally hard-exit on print failure tested with fakes.",
+  "r3_delta": "Append returned cleanup record before restoring pending state; error-record construction inside a finally hard-exit helper; real canonical helper and additional fake coverage.",
+  "result": "PASS_SEPARATE_R2_24_AND_R3_27_WINDOWS_FAKE_REGRESSIONS",
+  "runs_per_revision": 1,
+  "runtime_counts": {
+    "REAL_preparation_runs": 0,
+    "native_engine_runs": 0,
+    "rambler_rpc_attempts": 0,
+    "real_credentials_read": false
+  },
+  "scope": "EXTRACTED_ACTUAL_SOURCE_UNDER_FAKES_ONLY_NOT_LIVE_GO",
+  "source_review": {
+    "r2": "GO_FOR_24_FAKE_REGRESSIONS_ONLY",
+    "r3": "GO_FOR_27_FAKE_REGRESSIONS_ONLY"
+  }
+}
