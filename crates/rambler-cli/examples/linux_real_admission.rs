@@ -425,6 +425,7 @@ fn requested(
 mod native {
     use super::*;
     use std::{
+        ffi::c_void,
         fs::{self, File},
         io::Read,
         os::{
@@ -452,7 +453,7 @@ mod native {
         fn fcntl(fd: c_int, cmd: c_int, ...) -> c_int;
         fn signal(sig: c_int, handler: usize) -> usize;
         fn alarm(seconds: c_uint) -> c_uint;
-        fn read(fd: c_int, bytes: *mut u8, count: usize) -> isize;
+        fn read(fd: c_int, bytes: *mut c_void, count: usize) -> isize;
         fn close(fd: c_int) -> c_int;
     }
     fn pr(op: c_int, value: c_ulong) -> c_int {
@@ -582,7 +583,7 @@ mod native {
         }
         fn read(&mut self, bytes: &mut [u8]) -> Result<usize, ()> {
             // SAFETY: exact writable slice, fd0 only, no buffered read-ahead.
-            let count = unsafe { read(0, bytes.as_mut_ptr(), bytes.len()) };
+            let count = unsafe { read(0, bytes.as_mut_ptr().cast(), bytes.len()) };
             if count < 0 {
                 Err(())
             } else {

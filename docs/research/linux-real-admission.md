@@ -39,4 +39,8 @@ The workflow's broader lint command is:
 cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings
 ```
 
-The [Windows evidence](../evidence/linux-real-admission-windows-20261116.json) records 17 passing Fake-only tests and targeted Clippy with warnings denied. The tests do not instantiate native admission, real PCM, a credential channel or a service. The workflow includes the test step, but its future CI success is not claimed. The earlier native Linux workspace proof excludes this example; native compilation, kernel admission, external observation and the credential sender remain unqualified. No real mode or live call was executed in that evidence, and live GO remains false.
+The [Windows evidence](../evidence/linux-real-admission-windows-20261116.json) records 17 passing Fake-only tests and targeted Clippy with warnings denied. The tests do not instantiate native admission, real PCM, a credential channel or a service. That record predates CI and pins the measured Windows working bytes; the earlier native Linux workspace proof excludes this example.
+
+On 2026-11-17, the first push CI at `81f9a83` passed all eight OS/toolchain Rust test jobs, VS17, and all four Python jobs, but failed Linux Clippy: the imported `read` signature used `*mut u8` instead of the runtime's `*mut c_void`. The native-only declaration and call-site cast were corrected without suppressing the warning. [Failure provenance and source delta](../evidence/linux-real-admission-ci-20261117.json) preserve the failed run; a passing fresh CI for the correction is not claimed by that initial record. Compilation/offline tests are not native admission execution.
+
+Kernel admission, external observation and the credential sender remain unqualified. No real mode or live call was executed in these records, and live GO remains false.

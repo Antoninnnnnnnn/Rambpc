@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-17",
+  "scope": "First push CI for the public reference/admission continuation and subsequent native-only FFI correction",
+  "tested_head": "81f9a83abcfb6464d83f99274b55a270eb237dd1",
+  "first_ci_result": "FAILED_LINUX_LINT_WITH_13_OTHER_JOBS_SUCCESSFUL",
+  "runs": {
+    "rust": {"id": 44035033409, "passed_jobs": 9, "failed_jobs": 1, "all_8_os_toolchain_test_jobs_passed": true, "vs17_opus_passed": true, "lint_passed": false},
+    "python": {"id": 44035033362, "passed_jobs": 4, "failed_jobs": 0}
+  },
+  "failure": {
+    "job_id": 133875753686,
+    "category": "suspicious_runtime_symbol_definitions",
+    "file": "crates/rambler-cli/examples/linux_real_admission.rs",
+    "original_line": 455,
+    "diagnosis": "Imported Linux read symbol used *mut u8 rather than the standard runtime's *mut std::ffi::c_void signature",
+    "original_log_sha256": "53199854b4c8ee3974a378244c2b1960af99380d213979f8df721da53acbd556"
+  },
+  "correction": {
+    "native_only": true,
+    "change": "Use c_void in the read declaration and cast the writable byte-slice pointer at the call; no warning suppression or changed admission/frame policy",
+    "measured_windows_source_sha256": "2b4a0d8f14d5f2f6f4da7ca54dea3b456088a27a8e084900802cff159ef8a599",
+    "corrected_working_source_sha256": "fae7a6b088f3d1a7f6bd7b3f795ae99a3ec119ca6d029cb2ecf9fdf811c2c8c6",
+    "fresh_ci_pass_observed_at_record_creation": false
+  },
+  "limits": [
+    "The first failed CI remains failed; no workflow retry was requested.",
+    "Successful matrix jobs establish compilation and offline test execution, including the Fake-only example step, not execution of native admission.",
+    "Windows evidence pins the pre-correction working bytes; this record distinguishes the later native-only source change. Git CRLF-normalized blobs need not have the same byte SHA.",
+    "No kernel/FD/external-observation or credential-sender qualification, real mode, credentials or Rambler call is established by CI. Live GO remains false."
+  ],
+  "live_go": false
+}

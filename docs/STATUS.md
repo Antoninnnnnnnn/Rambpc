@@ -56,6 +56,12 @@ ci-dessus. [Contrat et limites](research/linux-real-admission.md),
 [preuve Windows](evidence/linux-real-admission-windows-20261116.json).
 **Accès réel Linux toujours NO_GO ; backend toujours non terminé.**
 
+Le premier CI du lot public `81f9a83` termine à **13 jobs réussis / 1 échec** :
+les huit matrices Rust, VS17 et Python passent, mais Clippy Linux refuse la
+signature FFI de `read`. Correction native ciblée vers `*mut c_void`, sans
+suppression du lint ; la validation CI fraîche reste à collecter.
+[Échec conservé et delta source](evidence/linux-real-admission-ci-20261117.json).
+
 ## Linux natif — contrôle public des cores réussi
 
 Sur un nouvel hôte Linux x86_64, le témoin public produit un core borné et le bit
