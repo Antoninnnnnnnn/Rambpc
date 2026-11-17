@@ -20,6 +20,10 @@ required-features = ["audio"]
 name = "linux_real_admission"
 required-features = ["audio"]
 
+[[example]]
+name = "native_qualification"
+required-features = ["audio"]
+
 [features]
 default = []
 audio = ["dep:rambler-audio"]

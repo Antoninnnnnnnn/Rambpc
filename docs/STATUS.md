@@ -32,6 +32,21 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
+## Kit de qualification native — quatre parcours intégrés
+
+`native_qualification` combine le codec PCM/Opus, le moteur, le transport et
+les politiques de résultat sur un pair localhost possédé et une connexion
+réutilisée. Quatre parcours Release passent : littéral, réécriture intent 3,
+sélection Unicode intent 2 et aperçus de champ 4 avant l’EOF audio. L’exécutable
+émet un rapport JSON uniquement après validation du flux et fermeture propre.
+Le comparateur refuse les différences de données ou de résultats avant toute
+comparaison temporelle. **5 tests Rust, 5 tests Python, Clippy et formatage**
+passent localement ; le rapport Release est accepté en auto-comparaison comme
+contrôle de compatibilité, pas comme mesure d’un gain. Aucun endpoint externe
+ni entrée privée ; ce banc ne qualifie pas le comportement du vrai service.
+[Guide](research/native-qualification-kit.md) ·
+[Preuve locale](evidence/rust-native-qualification-kit-windows-20261117.json).
+
 ## Sessions en streaming — qualification locale groupée
 
 **Deux nouveaux scénarios** passent sur Windows, avec Clippy strict et formatage

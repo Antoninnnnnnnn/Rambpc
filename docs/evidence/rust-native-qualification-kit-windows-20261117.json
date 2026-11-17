@@ -1,0 +1,153 @@
+{
+  "base_commit": "49b4f5cece2a179c1662bc35963a2a3a2541f785",
+  "comparison": "Self-comparison only, zero deltas by construction; not a measured speed gain.",
+  "credentials_loaded": false,
+  "failures_preserved": [
+    {
+      "attempt": "R1",
+      "compile_errors": [
+        "Ambiguous tonic Status type (E0282/E0283)",
+        "Local Vec binding shadows fixture function (E0618)"
+      ],
+      "stage": "rust-tests"
+    },
+    {
+      "attempt": "R2",
+      "diagnostic": "two unnecessary_to_owned findings, fixed with owned lazy reply ranges",
+      "rust_tests_before_lint": 5,
+      "stage": "strict Clippy"
+    },
+    {
+      "attempt": "before R3",
+      "cargo_and_smoke_executed": false,
+      "diagnostic": "check expected old shape of finish call",
+      "stage": "source preflight"
+    }
+  ],
+  "historical_inputs_unchanged": true,
+  "limit": "Only fixed synthetic local sessions. No real service, latency comparison, parity or universal performance claim.",
+  "provider_calls": 0,
+  "python_tests": {
+    "failed": 0,
+    "passed": 5
+  },
+  "release_binary_sha256": "58de37439113784fa580bfe4ab1986943bd365fd89622a6570074a8ee42a8745",
+  "rust_tests": {
+    "failed": 0,
+    "passed": 5
+  },
+  "smoke_report": {
+    "repeats": 1,
+    "rows": [
+      {
+        "case": "literal",
+        "first_response_us": 1404,
+        "ogg_bytes": 157,
+        "pcm_samples": 17,
+        "pcm_sha256": "9099995d8aaf3bb5952443c0d15a4b9db998dade543bce97a669f5421479375d",
+        "rendered_sha256": "83235396617f205764a8d9eb5020e6d0d74da8a8ba57dcda06ac35226a975424",
+        "repeat": 0,
+        "request_count": 6,
+        "response_count": 2,
+        "session_us": 1438,
+        "wire_responses_sha256": "4918cc53d145a79f2a27281fbb4d61abbe81203b4d708c2e4b7aedc829266de5"
+      },
+      {
+        "case": "rewrite",
+        "first_response_us": 479,
+        "ogg_bytes": 165,
+        "pcm_samples": 33,
+        "pcm_sha256": "085d52609cd911adfd36aed7e5f58fc45d931726547cd102022edb865518953c",
+        "rendered_sha256": "28dd7b43c34d88409049442ee7ed5b66333dc0ad19e10c6121fb496f2919a16f",
+        "repeat": 0,
+        "request_count": 6,
+        "response_count": 2,
+        "session_us": 492,
+        "wire_responses_sha256": "487205d7a9af4a4c44a6418808d0be19f28ec8556dc40a3f2ceae6ba385e80e2"
+      },
+      {
+        "case": "selection",
+        "first_response_us": 444,
+        "ogg_bytes": 168,
+        "pcm_samples": 49,
+        "pcm_sha256": "7383a7dd740148ef18a2aa45f2a2c8616242faf5278b358b635e73c26427d4a8",
+        "rendered_sha256": "19a96eef44d572bc783a223649e3f4d841866689c8c064544f5b0fd864ea2864",
+        "repeat": 0,
+        "request_count": 6,
+        "response_count": 2,
+        "session_us": 456,
+        "wire_responses_sha256": "1ccae878bec83111ffa3f37b0346bdc62b1f5d53aea4dd62fb421c6bf094da85"
+      },
+      {
+        "case": "preview",
+        "first_response_us": 472,
+        "ogg_bytes": 338,
+        "pcm_samples": 641,
+        "pcm_sha256": "67a3ea163e84b515f32730d141e0ec6df94ae3cb5d317b233190a24729fe02af",
+        "rendered_sha256": "2f34dade683109589fa329ae6311c7745e95bdf45181134f24f33318739821cc",
+        "repeat": 0,
+        "request_count": 8,
+        "response_count": 4,
+        "session_us": 1724,
+        "wire_responses_sha256": "638f946a289443ff670f5924422a8d07df5e737950244d25560b0a67aa1dded2"
+      }
+    ],
+    "schema": "rambler-native-qualification-v1",
+    "scope": "synthetic-localhost-only"
+  },
+  "smoke_report_sha256": "155c37c6b1e9b42833c107e7948e3f6b769c786dbc89a9cd7c02e30db8829c0e",
+  "source_files_sha256": {
+    "crates/rambler-cli/Cargo.toml": "d4a2557e961d77841dc8fba049f44aebcd9b69ca1edd3bb46dc3ec633f3ddb0d",
+    "crates/rambler-cli/examples/native_qualification.rs": "2854614f85f1d73f1f8f63d1388e257877252008b5d1281b15d1694f6461a634",
+    "crates/rambler-cli/examples/qualification_runner/peer.rs": "bf6faa57bbd1823f9057aa97d11726a8a8ac42653423fec15b613980bfebf0f6",
+    "crates/rambler-cli/examples/qualification_support/fixtures.rs": "220c4ff1dce1cde3cf2ae53d78849a8ba1f7b8e1d217a66a6d3a7d078a33e965",
+    "docs/research/native-qualification-kit.md": "b87cda53ff195d7d1256bcd5b342e181363c4ac1b97f93493a5576484a406865",
+    "tests/test_compare_native_qualification.py": "5f562b9fdfc5e670b4d7c511c43543779dee7842b0bc2012e646dc8cfa73251e",
+    "tools/compare_native_qualification.py": "8303e9c61c99c3aea0e7460f30da87f046ae36e097855059b159340f52a397e6"
+  },
+  "status": "PASS_GROUPED_NATIVE_KIT_SMOKE_WINDOWS",
+  "steps": [
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "step": "lint"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "step": "rust-tests"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "step": "format"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "step": "release-build"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "step": "python-tests"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "step": "native-smoke"
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "step": "comparison-smoke"
+    }
+  ]
+}
