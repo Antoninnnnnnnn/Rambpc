@@ -1,0 +1,49 @@
+# Interactive PCM dictation and end-of-capture timing
+
+`rambler_audio::InteractivePcmProfile` is the opt-in companion to `collect_long_pcm_dictation` and `collect_long_pcm_dictation_with_observer`. Use it for context-free dictation whose PCM arrives as the person speaks. It is not a change to `SessionOptions::default()`, editor commands, or the ordinary one-session CLI.
+
+```rust,ignore
+let profile = rambler_audio::InteractivePcmProfile::default();
+// `source` is host-owned PCM16LE mono at 16 kHz (e.g. PcmInput driven
+// concurrently by PcmSender); `engine` is the host's connected engine.
+let result = rambler_audio::collect_long_pcm_dictation(
+    &engine, source, profile.session, CollectorLimits::default(), profile.segmentation,
+).await;
+match result {
+    Ok(complete) => { /* render `complete.segments` or use `complete.text()` */ }
+    Err(failure) => { /* keep `failure.completed`; report `failure.cause` */ }
+}
+```
+
+- **Speech and pauses.** The default segment accepts at most 120 seconds of 16 kHz samples or 120 seconds on the local segment clock, whichever ends intake first. During the last five seconds of either budget, a quiet 100 ms block can cut it earlier. This is a PCM energy heuristic, not speech endpoint detection. Every admitted sample belongs to exactly one segment; a cut does not end the capture or insert a new empty RPC at source EOF. An optional `Pcm48kTo16k` adapter must precede this collector for 48 kHz mono. Sample ranges refer to the PCM after that adapter.
+- **Budgets.** The overall default is 135 s **per RPC**: segment budget + 10 s for setup/drain + 5 s for finalization. The separate 5 s starts at clean encoded-source EOF and successful source cleanup, and includes request END, terminal gRPC status and engine EOF commitment. It is not a promise of five seconds from mic stop. The earlier overall deadline still wins if it is reached first. Cleanup is awaited even past a deadline. `InteractivePcmProfile::new` derives the overall budget for other segment and finalization values; any explicit `SessionOptions` overrides retain their normal meaning. The standard 2 s context timeout is unchanged, but this segmented route rejects non-`None` context.
+- **Rollover and stopping.** Source capture can continue through successive segments on the same engine; no single RPC needs to span a five-minute capture. The next RPC waits for the current one to finish successfully. Hand PCM off from the capture callback to a bounded queue; plan for backpressure during rollover and decide how to stop/report overflow rather than dropping samples. The host must bound the whole capture and any idle wait before the next segment's first sample. At a voluntary stop the producer should enqueue its final samples and call `PcmSender::finish` (or return normal EOF from its own source), not drop the sender. Cancellation is an abort, not a way to flush the capture.
+- **Results.** Only transport/protocol-validated segments enter the result. A later failure returns the earlier clean segments, not a complete joined transcript or an automatic replay. A clean segment is not necessarily renderable: its text must still pass safety and projection policy. Concatenation does not reconcile grammar or context across segment boundaries.
+
+## CLI
+
+Build the CLI with the `audio` feature. `rambler dictate-wav INPUT.wav --interactive` uses paced 16 kHz mono PCM WAV and the profile above. `--segment-seconds` sets the cap (6–280; five-second pause search stays fixed); `--finalize-timeout` and `--timeout` are optional explicit seconds per RPC. Without an explicit `--timeout`, the derived default uses the effective finalization budget. `--interactive` is separate from `--realtime`, which retains the single-session 30 s default, and is not compatible with editor context or an explicit `--page-duration-ms`.
+
+Interactive stdout is one JSON object. It contains `completed_segments` in capture order, with half-open `[start, end]` `sample_range` pairs in 16 kHz input samples. A successful `result` has `text` joined with ASCII spaces. A projection ambiguity yields `ambiguous` and a null joined `text`; a later session error (e.g. `finalize_timeout`) emits no joined text and retains only the earlier committed segments. Exit status is 1 for these non-success cases. Ctrl-C aborts the active collection (exit 130); it does not behave like natural file EOF, and dropping an unfinished collection does not return its progress. Legacy CLI output is unchanged.
+
+## Independent SDK timing seam
+
+The audio host owns the sample clock. For a single app-owned `EngineSession`, take `let diagnostics = session.diagnostics()` before passing it to `collect_session`. Timestamp the actual last captured sample (not stop-click, enqueue, encoder EOF, or elapsed file duration) on the same process monotonic clock as `std::time::Instant`. On successful collection, calculate:
+
+```rust,ignore
+let sample_to_validated_eof = diagnostics.validated_eof_at()
+    .and_then(|eof| eof.checked_duration_since(last_sample_at));
+```
+
+`validated_eof_at()` is recorded at the engine's commitment after normal upload completion, S3 END, gRPC OK, cleanup and event queue reservation. It is absent on failure or before commitment. It deliberately does not authorize rendering or measure delivery to the editor. This seam does not modify the producer, consume replay audio, or invent a microphone time. The long collector currently reports completed sample ranges, not a per-segment absolute EOF instant. Do not substitute another segment's clock or derive capture timing by subtracting a nominal audio duration.
+
+For measurement, bracket `Engine::connect_ready` with the same host clock and label cold versus reused connections. Record first/last sample at the source and first UI-eligible preview under the app's preview policy; `first_response_seconds` can be just control traffic. Session diagnostics already distinguish upload END, half-close, response times and final commitment. Keep text/audio outside metrics, and report failed sessions separately from latency observations.
+
+Local qualification is synthetic: the accelerated cadence tests feed actual 29/30/31/120/300-second PCM amounts with pauses and a tail witness, decode the resulting Ogg/Opus independently, and exercise the 120-second cut ±1 sample. A separately gated loopback delays gRPC completion after S3 END, covering a released gate, a finalization expiry and an earlier overall deadline. The executable acceptance test uses paced WAV and confirms that a later timeout does not erase an earlier segment. This does not qualify five minutes at wall cadence on the remote service, any microphone, or any mobile network.
+
+Windows x64/MSVC, Rust 1.99.1: `cargo fmt --all --check` and `cargo clippy --locked --offline --workspace --all-features --all-targets -- -D warnings` passed. The focused Cargo run below passed 33 tests across the CLI parser, legacy finalization, PCM rollover and engine diagnostics. Validation used offline build tools, an isolated target, fresh scratch directories and only loopback traffic.
+
+```sh
+cargo test --locked --offline --all-features -p rambler-cli -p rambler-engine \
+  --bin rambler --test long_pcm_dictation --test finalization_cli --test diagnostics
+```

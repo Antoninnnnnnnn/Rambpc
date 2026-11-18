@@ -604,3 +604,267 @@ async fn rejects_invalid_policy_and_context_and_does_not_open_empty_sessions() {
         peer.server.close().await;
     }).await;
 }
+
+fn interactive_fixture(samples: usize, tail_samples: usize) -> Vec<u8> {
+    let tone: Vec<_> = (0..160)
+        .map(|i| (f64::sin(std::f64::consts::TAU * f64::from(i) * 3.0 / 160.0) * 1200.0) as i16)
+        .collect();
+    (0..samples)
+        .flat_map(|i| {
+            let sample = if i >= samples - tail_samples {
+                10 * tone[i % 160]
+            } else if (10 * 16_000..19 * 16_000).contains(&i) {
+                0
+            } else {
+                tone[i % 160]
+            };
+            sample.to_le_bytes()
+        })
+        .collect()
+}
+
+fn decoded_pcm(ogg: &[u8]) -> Vec<i16> {
+    let packets = packets(ogg);
+    let skip = u16::from_le_bytes(packets[0][10..12].try_into().unwrap()) as usize;
+    let end = pages(ogg).last().unwrap().granule as usize;
+    let mut decoder = opus::Decoder::new(48000, opus::Channels::Mono).unwrap();
+    let mut decoded = Vec::new();
+    let mut frame = [0_i16; 960];
+    for packet in &packets[2..] {
+        let count = decoder.decode(packet, &mut frame, false).unwrap();
+        decoded.extend_from_slice(&frame[..count]);
+    }
+    decoded[skip..end].to_vec()
+}
+
+fn mean_square(pcm: &[i16]) -> f64 {
+    pcm.iter().map(|&v| f64::from(v).powi(2)).sum::<f64>() / pcm.len() as f64
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn accelerated_interactive_cadence_preserves_pause_tail_and_boundaries() {
+    use rambler_audio::InteractivePcmProfile;
+    use rambler_engine::StreamAudio;
+    use tokio::time::{Instant, sleep_until, timeout};
+
+    timeout(Duration::from_secs(90), async {
+        let profile = InteractivePcmProfile::default();
+        assert_eq!(
+            profile.segmentation.segment_budget,
+            Duration::from_secs(120)
+        );
+        assert_eq!(profile.segmentation.pause_search, Duration::from_secs(5));
+        assert_eq!(profile.session.timeout, Duration::from_secs(135));
+        assert_eq!(
+            profile.session.finalize_timeout,
+            Some(Duration::from_secs(5))
+        );
+        assert_eq!(profile.session.context_timeout, Duration::from_secs(2));
+        const RATE: usize = 16_000;
+        const BATCH: usize = RATE * 2;
+        for (samples, expected_lengths) in [
+            (29 * RATE, &[29 * RATE][..]),
+            (30 * RATE, &[30 * RATE]),
+            (31 * RATE, &[31 * RATE]),
+            (120 * RATE - 1, &[120 * RATE - 1]),
+            (120 * RATE, &[120 * RATE]),
+            (120 * RATE + 1, &[120 * RATE, 1]),
+            (300 * RATE, &[120 * RATE, 120 * RATE, 60 * RATE]),
+        ] {
+            let peer = Peer::new(None, None).await;
+            let engine = Engine::connect_ready(
+                rambler_transport::TransportConfig::loopback(peer.server.address).unwrap(),
+            )
+            .await
+            .unwrap();
+            let audio = Bytes::from(interactive_fixture(samples, 3200));
+            let first_release = Instant::now();
+            // One second of real-sized PCM per 6 ms, plus a distinct no-data
+            // pause at the same position as the encoded mid-capture silence.
+            let release_offset = |position: usize| {
+                Duration::from_millis(
+                    ((position / BATCH) * 6 + usize::from(position >= 10 * BATCH) * 120) as u64,
+                )
+            };
+            let source = StreamAudio::new(stream::unfold(
+                (audio, 0),
+                move |(audio, offset)| async move {
+                    if offset == audio.len() {
+                        return None;
+                    }
+                    sleep_until(first_release + release_offset(offset)).await;
+                    let end = (offset + BATCH).min(audio.len());
+                    Some((Ok(audio.slice(offset..end)), (audio, end)))
+                },
+            ));
+            let mut ranges = Vec::new();
+            let mut observer = |event: LongDictationObservation<'_>| {
+                if let LongDictationObservation::SegmentCompleted { sample_range, .. } = event {
+                    ranges.push(sample_range);
+                }
+            };
+            let result = collect_long_pcm_dictation_with_observer(
+                &engine,
+                source,
+                profile.session.clone(),
+                LIMITS,
+                profile.segmentation,
+                &mut observer,
+            )
+            .await
+            .unwrap();
+            assert!(first_release.elapsed() >= release_offset(samples * 2 - 1));
+            let mut expected_start = 0;
+            for (range, &length) in ranges.iter().zip(expected_lengths) {
+                let end = expected_start + length as u64;
+                assert_eq!(*range, expected_start..end);
+                expected_start = end;
+            }
+            assert_eq!(ranges.len(), expected_lengths.len());
+            assert_eq!(result.segments.len(), expected_lengths.len());
+            assert_eq!(peer.calls.load(Ordering::SeqCst), expected_lengths.len());
+            assert_eq!(peer.server.accepted_connections(), 1);
+            let uploads = peer.uploads.lock().unwrap().clone();
+            for (ogg, &length) in uploads.iter().zip(expected_lengths) {
+                assert_duration(ogg, length);
+            }
+            let first = decoded_pcm(&uploads[0]);
+            assert!(mean_square(&first[14 * 48_000..15 * 48_000]) < 100.0);
+            // At cap + one sample the witness mostly belongs to the preceding
+            // segment; assert the one-sample tail separately by EOS granule.
+            let witness = if uploads.len() == 1 || expected_lengths.last() == Some(&1) {
+                &first
+            } else {
+                &decoded_pcm(uploads.last().unwrap())
+            };
+            let end = witness.len();
+            assert!(mean_square(&witness[end - 7000..end - 1000]) > 4_000.0f64.powi(2));
+            assert!(
+                result
+                    .text()
+                    .unwrap()
+                    .ends_with(&format!("segment {}", uploads.len() - 1))
+            );
+            engine.close().await.unwrap();
+            peer.server.close().await;
+        }
+    })
+    .await
+    .unwrap();
+}
+
+#[test]
+fn interactive_budget_requires_whole_samples_and_checks_arithmetic() {
+    use rambler_audio::InteractivePcmProfile;
+    let options = LongDictationOptions {
+        segment_budget: Duration::from_nanos(62_500),
+        pause_search: Duration::ZERO,
+    };
+    let finalize = Duration::from_millis(125);
+    let profile = InteractivePcmProfile::new(options, finalize).unwrap();
+    assert_eq!(
+        profile.session.timeout,
+        Duration::from_secs(10) + options.segment_budget + finalize,
+    );
+    for (options, finalize) in [
+        (
+            LongDictationOptions {
+                segment_budget: Duration::from_nanos(62_499),
+                ..options
+            },
+            finalize,
+        ),
+        (options, Duration::ZERO),
+        (options, Duration::MAX),
+    ] {
+        assert!(matches!(
+            InteractivePcmProfile::new(options, finalize),
+            Err(EngineError::InvalidConfig)
+        ));
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn interactive_cli_retains_completed_wav_segment_on_late_finalize_timeout() {
+    use std::process::Stdio;
+    use tokio::{io::AsyncReadExt, process::Command};
+    tokio::time::timeout(Duration::from_secs(25), async {
+        let held = Arc::new(Notify::new());
+        let peer = Peer::new(None, Some((2, held))).await;
+        let fixture = tempfile::tempdir().unwrap();
+        let path = fixture.path().join("synthetic-interactive.wav");
+        let mut expected_total_requests = 0;
+        for (samples, healthy) in [(3_307, true), (7 * 16_000 + 7, false)] {
+            let pcm = interactive_fixture(samples, 3200);
+            std::fs::write(&path, audio_common::wav(&pcm)).unwrap();
+            let mut command = Command::new(env!("CARGO_BIN_EXE_rambler"));
+            command.env_clear();
+            if let Some(root) = std::env::var_os("SystemRoot") {
+                command.env("SystemRoot", &root);
+                #[cfg(windows)]
+                {
+                    let root = std::path::PathBuf::from(root);
+                    command.env(
+                        "PATH",
+                        std::env::join_paths([root.join("System32"), root]).unwrap(),
+                    );
+                }
+            }
+            let mut child = command
+                .current_dir(fixture.path())
+                .args([
+                    "dictate-wav",
+                    "--interactive",
+                    "--segment-seconds",
+                    "6",
+                    "--timeout",
+                    "12",
+                    "--finalize-timeout",
+                    "1",
+                    "--loopback",
+                ])
+                .arg(peer.server.address.to_string())
+                .arg(&path)
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null())
+                .kill_on_drop(true)
+                .spawn()
+                .unwrap();
+            let mut stdout = Vec::new();
+            let mut limited = child.stdout.take().unwrap().take(16 * 1024);
+            let (status, _) =
+                tokio::try_join!(child.wait(), limited.read_to_end(&mut stdout)).unwrap();
+            let json: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+            let completed = json["completed_segments"].as_array().unwrap();
+            assert_eq!(completed.len(), 1);
+            assert_eq!(completed[0]["type"], "result");
+            let range = completed[0]["sample_range"].as_array().unwrap();
+            assert_eq!(range[0], 0);
+            let first_end = range[1].as_u64().unwrap() as usize;
+            if healthy {
+                expected_total_requests += 1;
+                assert_eq!(status.code(), Some(0));
+                assert_eq!(json["type"], "result");
+                assert_eq!(json["text"], "segment 0");
+                assert_eq!(first_end, samples);
+            } else {
+                expected_total_requests += 2;
+                assert_eq!(status.code(), Some(1));
+                assert_eq!(json["type"], "error");
+                assert_eq!(json["category"], "finalize_timeout");
+                assert!(json.get("text").is_none());
+                assert_eq!(completed[0]["text"], "segment 1");
+                assert!((5 * 16_000..=6 * 16_000).contains(&first_end));
+                let uploads = peer.uploads.lock().unwrap();
+                assert_duration(&uploads[1], first_end);
+                assert_duration(&uploads[2], samples - first_end);
+                assert!(!String::from_utf8_lossy(&stdout).contains("segment 2"));
+            }
+            assert_eq!(peer.calls.load(Ordering::SeqCst), expected_total_requests);
+        }
+        peer.server.close().await;
+    })
+    .await
+    .unwrap();
+}

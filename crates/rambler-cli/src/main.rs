@@ -35,8 +35,14 @@ enum Command {
         #[command(flatten)]
         common: CommonArgs,
         /// Pace the file at its audio duration rather than sending as fast as possible.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "interactive")]
         realtime: bool,
+        /// Pace context-free PCM and roll over into independent sessions (default 120 s each).
+        #[arg(long, conflicts_with_all = ["before", "selected", "after", "cursor_aware", "page_duration_ms"])]
+        interactive: bool,
+        /// Maximum audio/elapsed seconds per interactive segment (6–280; default 120).
+        #[arg(long, requires = "interactive", value_parser = clap::value_parser!(u64).range(6..=280))]
+        segment_seconds: Option<u64>,
         /// Ogg page duration in milliseconds, a multiple of 20 from 20 to 1000.
         #[arg(long, default_value_t = 20)]
         page_duration_ms: u32,
@@ -58,9 +64,10 @@ struct CommonArgs {
     /// Final text projection (default: strict). Explicit selection reports text provenance.
     #[arg(long, value_enum)]
     result_policy: Option<ResultPolicy>,
-    #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..))]
-    timeout: u64,
-    /// Seconds to wait after audio EOF and cleanup (try 5; omitted means no separate budget).
+    /// Overall seconds per RPC (default 30; interactive: segment + 10 + finalization).
+    #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
+    timeout: Option<u64>,
+    /// Seconds after audio EOF and cleanup (default: off; interactive: 5).
     /// The overall --timeout still applies.
     #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
     finalize_timeout: Option<u64>,
@@ -115,6 +122,10 @@ enum InputKind {
         realtime: bool,
         page_duration_ms: u32,
     },
+    #[cfg(feature = "audio")]
+    InteractiveWav {
+        segment_seconds: Option<u64>,
+    },
 }
 
 #[derive(Default)]
@@ -156,6 +167,20 @@ async fn open_audio(
             Box::new(OggAudio::open(path).await.map_err(|_| "audio")?),
             PcmObservation::default(),
         )),
+        #[cfg(feature = "audio")]
+        InputKind::InteractiveWav { .. } => {
+            use rambler_audio::{WavAudio, WavConfig};
+            let pcm = WavAudio::open(
+                path,
+                WavConfig {
+                    chunk_ms: 20,
+                    realtime: true,
+                },
+            )
+            .await
+            .map_err(|_| "audio")?;
+            Ok((Box::new(pcm), PcmObservation::default()))
+        }
         #[cfg(feature = "audio")]
         InputKind::Wav {
             realtime,
@@ -366,14 +391,14 @@ async fn admit_credentials(
     }
 }
 
-async fn supervise<T, E, C, Close, Signal>(
+async fn supervise<T, E, CloseError, C, Close, Signal>(
     collection: C,
     close: impl FnOnce() -> Close,
     signal: Signal,
-) -> (Option<Result<T, E>>, Result<(), E>, Option<bool>)
+) -> (Option<Result<T, E>>, Result<(), CloseError>, Option<bool>)
 where
     C: std::future::Future<Output = Result<T, E>>,
-    Close: std::future::Future<Output = Result<(), E>>,
+    Close: std::future::Future<Output = Result<(), CloseError>>,
     Signal: std::future::Future<Output = bool>,
 {
     tokio::pin!(signal);
@@ -400,6 +425,126 @@ where
     (result, cleanup, interrupted)
 }
 
+#[cfg(feature = "audio")]
+fn interactive_profile(
+    segment_seconds: Option<u64>,
+    timeout: Option<u64>,
+    finalize_timeout: Option<u64>,
+) -> Result<rambler_audio::InteractivePcmProfile, EngineError> {
+    use rambler_audio::InteractivePcmProfile;
+    let mut profile = InteractivePcmProfile::default();
+    // Clap limits the override to 6..=280, compatible with the 5 s pause search.
+    if let Some(seconds) = segment_seconds {
+        profile.segmentation.segment_budget = Duration::from_secs(seconds);
+    }
+    let finalize = finalize_timeout.map_or(
+        rambler_engine::RECOMMENDED_FINALIZE_TIMEOUT,
+        Duration::from_secs,
+    );
+    if let Some(seconds) = timeout {
+        // Preserve explicit deadlines without requiring a representable derived sum.
+        profile.session.timeout = Duration::from_secs(seconds);
+        profile.session.finalize_timeout = Some(finalize);
+        return Ok(profile);
+    }
+    InteractivePcmProfile::new(profile.segmentation, finalize)
+}
+
+#[cfg(feature = "audio")]
+async fn run_interactive(
+    engine: &Engine,
+    pcm: Box<dyn AudioSource>,
+    session: SessionOptions,
+    segmentation: rambler_audio::LongDictationOptions,
+    policy: Option<ResultPolicy>,
+) -> (Value, i32) {
+    use rambler_audio::{LongDictationObservation, collect_long_pcm_dictation_with_observer};
+    let mut ranges = Vec::new();
+    let mut observe = |event: LongDictationObservation<'_>| {
+        if let LongDictationObservation::SegmentCompleted { sample_range, .. } = event {
+            ranges.push(sample_range);
+        }
+    };
+    let collection = collect_long_pcm_dictation_with_observer(
+        engine,
+        pcm,
+        session,
+        CollectorLimits::default(),
+        segmentation,
+        &mut observe,
+    );
+    let (result, cleanup, interrupted) = supervise(collection, || engine.close(), async {
+        tokio::signal::ctrl_c().await.is_ok()
+    })
+    .await;
+    let (completed, failure) = match result {
+        Some(Ok(completed)) => (completed, None),
+        Some(Err(error)) => (error.completed, Some(error.cause)),
+        None => (Default::default(), None),
+    };
+    let mut text = String::new();
+    let mut ambiguous = false;
+    let mut projection_failure = None;
+    let segments: Vec<_> = completed
+        .segments
+        .iter()
+        .zip(ranges)
+        .enumerate()
+        .map(|(index, (segment, range))| {
+            let mut value = match output(segment, policy) {
+                Ok((value, needs_review)) => {
+                    ambiguous |= needs_review;
+                    if let Some(part) = value["text"].as_str() {
+                        if index != 0 {
+                            text.push(' ');
+                        }
+                        text.push_str(part);
+                    }
+                    value
+                }
+                Err(error) => {
+                    let value = failure_output(&error, None, None);
+                    projection_failure.get_or_insert(error);
+                    value
+                }
+            };
+            value["sample_range"] = json!([range.start, range.end]);
+            value
+        })
+        .collect();
+    let (mut value, code) = match (interrupted, failure, cleanup, projection_failure) {
+        (Some(signal_ok), _, cleanup, _) => {
+            let (close_category, close_code) = cleanup
+                .as_ref()
+                .err()
+                .map(error_category)
+                .map_or((None, None), |(c, g)| (Some(c), g));
+            (
+                json!({"type":"error", "category":if signal_ok { "cancelled" } else { "signal" },
+                "grpc_code":null, "close_error_category":close_category,
+                "close_grpc_code":close_code, "timeline":null}),
+                if signal_ok { 130 } else { 1 },
+            )
+        }
+        (None, Some(error), cleanup, _) => {
+            (failure_output(&error, cleanup.as_ref().err(), None), 1)
+        }
+        (None, None, Err(error), _) => {
+            let (c, g) = error_category(&error);
+            (
+                json!({"type":"error", "category":"cleanup", "grpc_code":null,
+                "close_error_category":c, "close_grpc_code":g, "timeline":null}),
+                1,
+            )
+        }
+        (None, None, Ok(()), Some(error)) => (failure_output(&error, None, None), 1),
+        (None, None, Ok(()), None) if ambiguous => (json!({"type":"ambiguous", "text":null}), 1),
+        (None, None, Ok(()), None) => (json!({"type":"result", "text":text}), 0),
+    };
+    value["completed_segments"] = json!(segments);
+    (value, code)
+}
+
 #[tokio::main]
 async fn main() {
     let cli = match Cli::try_parse() {
@@ -420,12 +565,18 @@ async fn main() {
         Command::DictateWav {
             common,
             realtime,
+            interactive,
+            segment_seconds,
             page_duration_ms,
         } => (
             common,
-            InputKind::Wav {
-                realtime,
-                page_duration_ms,
+            if interactive {
+                InputKind::InteractiveWav { segment_seconds }
+            } else {
+                InputKind::Wav {
+                    realtime,
+                    page_duration_ms,
+                }
             },
         ),
     };
@@ -449,6 +600,22 @@ async fn main() {
         trigger_application_id,
         loopback,
     } = common;
+    #[cfg(feature = "audio")]
+    let profile = match input_kind {
+        InputKind::InteractiveWav { segment_seconds } => {
+            match interactive_profile(segment_seconds, timeout, finalize_timeout) {
+                Ok(profile) => Some(profile),
+                Err(_) => {
+                    print_error("configuration", None);
+                    std::process::exit(2);
+                }
+            }
+        }
+        _ => None,
+    };
+    let defaults = SessionOptions::default();
+    #[cfg(feature = "audio")]
+    let defaults = profile.as_ref().map_or(&defaults, |p| &p.session);
     let transport =
         match loopback.map_or_else(|| Ok(TransportConfig::default()), TransportConfig::loopback) {
             Ok(v) => v,
@@ -507,11 +674,23 @@ async fn main() {
             ..Default::default()
         },
         context,
-        timeout: Duration::from_secs(timeout),
-        finalize_timeout: finalize_timeout.map(Duration::from_secs),
+        timeout: timeout.map_or(defaults.timeout, Duration::from_secs),
+        finalize_timeout: finalize_timeout
+            .map(Duration::from_secs)
+            .or(defaults.finalize_timeout),
         context_timeout: Duration::from_secs(context_timeout),
         credentials,
     };
+    #[cfg(feature = "audio")]
+    if let Some(profile) = profile {
+        let (value, code) =
+            run_interactive(&engine, audio, options, profile.segmentation, result_policy).await;
+        println!("{value}");
+        if code != 0 {
+            std::process::exit(code);
+        }
+        return;
+    }
     let session = engine.start(audio, options);
     let diagnostics = session.as_ref().ok().map(|session| session.diagnostics());
     let collection = async move { collect_session(session?, CollectorLimits::default()).await };

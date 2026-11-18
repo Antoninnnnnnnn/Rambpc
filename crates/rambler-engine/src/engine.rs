@@ -29,6 +29,14 @@ pub trait AudioSource: Send + 'static {
     fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>>;
     fn close(&mut self) -> SourceFuture<'_, Result<(), SourceError>>;
 }
+impl<S: AudioSource + ?Sized> AudioSource for Box<S> {
+    fn next(&mut self) -> SourceFuture<'_, Result<Option<Bytes>, SourceError>> {
+        self.as_mut().next()
+    }
+    fn close(&mut self) -> SourceFuture<'_, Result<(), SourceError>> {
+        self.as_mut().close()
+    }
+}
 /// Adapter only for sources with synchronous Drop cleanup. Resource-bearing
 /// asynchronous sources must implement AudioSource::close themselves.
 pub struct StreamAudio<S>(Pin<Box<S>>);
@@ -215,14 +223,29 @@ pub struct SessionDiagnostic {
 /// Diagnostic attached to [`EngineError::IncompleteSession`].
 pub type IncompleteSessionDiagnostic = SessionDiagnostic;
 
+#[derive(Default)]
+struct DiagnosticState {
+    snapshot: Option<Arc<SessionDiagnostic>>,
+    validated_eof_at: Option<std::time::Instant>,
+}
+
 #[derive(Clone)]
-pub struct SessionDiagnostics(Arc<Mutex<Option<Arc<SessionDiagnostic>>>>);
+pub struct SessionDiagnostics(Arc<Mutex<DiagnosticState>>);
 impl SessionDiagnostics {
     /// The joined terminal observation, if published. Await terminal `next`,
     /// session `close`, or engine `close` before reading after cancellation.
     /// The handle does not keep the session alive or acknowledge its errors.
     pub fn final_snapshot(&self) -> Option<Arc<SessionDiagnostic>> {
-        self.0.lock().unwrap().clone()
+        self.0.lock().unwrap().snapshot.clone()
+    }
+
+    /// Local monotonic instant at successful engine EOF commitment. `None`
+    /// before commitment or after any failed or cancelled session. This is not
+    /// the first server response, a renderable text decision, or UI delivery.
+    /// Compare with the host's last-sample timestamp on the same monotonic
+    /// clock using `checked_duration_since`; the SDK cannot infer capture time.
+    pub fn validated_eof_at(&self) -> Option<std::time::Instant> {
+        self.0.lock().unwrap().validated_eof_at
     }
 }
 
@@ -755,7 +778,7 @@ impl Engine {
         let transport = self.transport.clone();
         let cancel = control.cancel.clone();
         let (events_tx, events) = mpsc::channel(1);
-        let diagnostic = SessionDiagnostics(Arc::new(Mutex::new(None)));
+        let diagnostic = SessionDiagnostics(Arc::new(Mutex::new(DiagnosticState::default())));
         let final_diagnostic = diagnostic.clone();
         let final_control = control.clone();
         let id = SESSION_ID.fetch_add(1, Ordering::Relaxed);
@@ -798,8 +821,8 @@ impl Engine {
             // Cancellation or rejection before transport start still has a
             // session and final source-cleanup observations, but no wire events.
             let mut diagnostic = final_diagnostic.0.lock().unwrap();
-            if diagnostic.is_none() {
-                *diagnostic = Some(Arc::new(SessionDiagnostic {
+            if diagnostic.snapshot.is_none() {
+                diagnostic.snapshot = Some(Arc::new(SessionDiagnostic {
                     saw_s3_end: false,
                     completion: Completion::default(),
                     metrics: DiagnosticMetrics {
@@ -1117,9 +1140,16 @@ async fn supervise(
                     deadline,
                     finalize,
                     || {
+                        // Keep this on the host capture clock, even when tests
+                        // advance Tokio's separate virtual clock.
+                        let validated_eof_at = std::time::Instant::now();
                         let metrics =
                             snapshot(received, bytes, first, Some(start.elapsed().as_secs_f64()));
-                        *final_diagnostic.0.lock().unwrap() = Some(diagnostic(&metrics));
+                        {
+                            let mut state = final_diagnostic.0.lock().unwrap();
+                            state.snapshot = Some(diagnostic(&metrics));
+                            state.validated_eof_at = Some(validated_eof_at);
+                        }
                         // No await or fallible result after this commitment. In
                         // particular a consumer cancelling upon EOF cannot revoke it.
                         permit.send(EngineEvent {
@@ -1137,7 +1167,7 @@ async fn supervise(
             EngineError::IncompleteSession(diagnostic) => diagnostic.clone(),
             _ => diagnostic(&snapshot(received, bytes, first, None)),
         };
-        *final_diagnostic.0.lock().unwrap() = Some(diagnostic);
+        final_diagnostic.0.lock().unwrap().snapshot = Some(diagnostic);
     }
     result
 }
@@ -1472,7 +1502,7 @@ mod finalization_tests {
             events,
             captured: Arc::new(Mutex::new(None)),
             audio_progress: Arc::new(Mutex::new(EncodedAudioProgress::default())),
-            diagnostic: SessionDiagnostics(Arc::new(Mutex::new(None))),
+            diagnostic: SessionDiagnostics(Arc::new(Mutex::new(DiagnosticState::default()))),
             terminal_delivered: false,
         };
         // This is a deterministic helper/control injection, not an end-to-end

@@ -5,7 +5,8 @@ use crate::{
 use bytes::Bytes;
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationObservation, DictationResult, Engine,
-    EngineError, SessionOptions, SourceError, collect_dictation, collect_dictation_with_observer,
+    EngineError, RECOMMENDED_FINALIZE_TIMEOUT, SessionOptions, SourceError, collect_dictation,
+    collect_dictation_with_observer,
 };
 use std::{fmt, future::Future, ops::Range, time::Duration};
 use tokio::time::{Instant, sleep_until};
@@ -35,6 +36,62 @@ impl Default for LongDictationOptions {
             segment_budget: Duration::from_secs(240),
             pause_search: Duration::from_secs(5),
         }
+    }
+}
+
+/// Opt-in budgets for interactive, context-free PCM dictation via
+/// [`collect_long_pcm_dictation`] or [`collect_long_pcm_dictation_with_observer`].
+/// The current defaults are a 120 s segment, 5 s pause search, 5 s separate
+/// finalization budget, and a 135 s overall deadline **per RPC**. There is no
+/// fixed duration limit for a whole capture: the host owns stopping its source.
+///
+/// Edit `session` to configure the protocol, credentials, or explicit deadlines.
+/// The collector does not reinterpret those deadlines or extend them on rollover.
+#[derive(Clone)]
+pub struct InteractivePcmProfile {
+    pub segmentation: LongDictationOptions,
+    pub session: SessionOptions,
+}
+impl Default for InteractivePcmProfile {
+    fn default() -> Self {
+        Self::new(
+            LongDictationOptions {
+                segment_budget: Duration::from_secs(120),
+                ..LongDictationOptions::default()
+            },
+            RECOMMENDED_FINALIZE_TIMEOUT,
+        )
+        .expect("valid built-in interactive profile")
+    }
+}
+impl InteractivePcmProfile {
+    /// Derive the per-RPC overall deadline as segment budget + 10 s for
+    /// setup/drain + the separate finalization budget. The latter starts at
+    /// clean encoded-source EOF and cleanup, not at the last microphone sample.
+    /// The overall deadline may expire first. Explicit overrides on `session`
+    /// keep their usual semantics; change segmentation via this constructor to
+    /// derive a matching deadline rather than mutating the segment config alone.
+    pub fn new(
+        segmentation: LongDictationOptions,
+        finalize_timeout: Duration,
+    ) -> Result<Self, EngineError> {
+        Policy::new(segmentation)?;
+        if finalize_timeout.is_zero() {
+            return Err(EngineError::InvalidConfig);
+        }
+        let timeout = segmentation
+            .segment_budget
+            .checked_add(Duration::from_secs(10))
+            .and_then(|duration| duration.checked_add(finalize_timeout))
+            .ok_or(EngineError::InvalidConfig)?;
+        Ok(Self {
+            segmentation,
+            session: SessionOptions {
+                timeout,
+                finalize_timeout: Some(finalize_timeout),
+                ..SessionOptions::default()
+            },
+        })
     }
 }
 
@@ -116,11 +173,11 @@ type Observer<'a> = &'a mut (dyn for<'event> FnMut(LongDictationObservation<'eve
 ///
 /// Each writer finishes normally at a cut, and its collector must complete before
 /// the next session starts. Pass `SessionOptions` unchanged per segment, except
-/// that a non-`None` context is rejected. For paced long dictation, raise the
-/// ordinary 30 s [`SessionOptions::timeout`] to leave room for audio and
-/// finalization (for example, 270 s with a 240 s segment budget), and consider
-/// setting [`SessionOptions::finalize_timeout`]. The segment budget ends audio
-/// intake, not finalization; a slow peer can still fail. Collector retention
+/// that a non-`None` context is rejected. Use [`InteractivePcmProfile`] for
+/// ready-to-use capture and finalization budgets, or raise the ordinary 30 s
+/// [`SessionOptions::timeout`] yourself to leave room for audio and finalization
+/// (for example, 270 s with a 240 s segment budget). The segment budget ends
+/// audio intake, not finalization; a slow peer can still fail. Collector retention
 /// limits apply per segment, not to the accumulated result. No session deadline
 /// runs while waiting for the first sample of a segment; bound overall capture
 /// and between-segment idle waits at the application level.

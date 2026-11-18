@@ -550,3 +550,114 @@ fn safe_metrics_conversion_does_not_retain_the_session_identifier() {
     assert!(!formatted.contains("session_id"));
     assert!(!formatted.contains(&u64::MAX.to_string()));
 }
+
+#[tokio::test]
+async fn validated_eof_timestamp_uses_host_clock_and_requires_grpc_completion() {
+    use std::time::Instant;
+    use tokio::sync::Notify;
+    bounded(async {
+        let release = Arc::new(Notify::new());
+        let server = TestServer::new({
+            let release = release.clone();
+            move |request| {
+                let release = release.clone();
+                async move {
+                    let requests = drain(request.into_inner()).await;
+                    assert_eq!(
+                        requests.last().unwrap().as_ref(),
+                        rambler_protocol::end_request()
+                    );
+                    let terminal = stream::once(async move {
+                        release.notified().await;
+                        None
+                    })
+                    .filter_map(std::future::ready);
+                    Ok(replies(
+                        stream::iter([
+                            Ok(Bytes::from_static(b"\x08\x00")), // control, not usable text
+                            Ok(Bytes::from_static(b"\x08\x01")), // S3 END, not validated EOF
+                        ])
+                        .chain(terminal),
+                    ))
+                }
+            }
+        })
+        .await;
+        let engine = Engine::connect_ready(
+            rambler_transport::TransportConfig::loopback(server.address).unwrap(),
+        )
+        .await
+        .unwrap();
+        enum Terminal {
+            Healthy,
+            FinalizationTimeout,
+            OverallTimeout,
+        }
+        for (hard_ms, finalize_ms, expected) in [
+            (3_000, 2_000, Terminal::Healthy),
+            (3_000, 300, Terminal::FinalizationTimeout),
+            (500, 2_000, Terminal::OverallTimeout),
+        ] {
+            let last_sample = Arc::new(Mutex::new(None));
+            let audio =
+                StreamAudio::new(stream::iter([Ok(Bytes::from_static(b"audio"))]).inspect({
+                    let last_sample = last_sample.clone();
+                    move |_| *last_sample.lock().unwrap() = Some(Instant::now())
+                }));
+            let mut session = engine
+                .start(
+                    Box::new(audio),
+                    SessionOptions {
+                        timeout: Duration::from_millis(hard_ms),
+                        finalize_timeout: Some(Duration::from_millis(finalize_ms)),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            let diagnostics = session.diagnostics();
+            assert_eq!(diagnostics.validated_eof_at(), None);
+            let control = session.next().await.unwrap().unwrap();
+            assert_eq!(control.response.unwrap().status, Some(0));
+            let final_response = session.next().await.unwrap().unwrap();
+            assert_eq!(final_response.response.unwrap().status, Some(1));
+            assert_eq!(diagnostics.validated_eof_at(), None);
+            let sampled_at = last_sample.lock().unwrap().unwrap();
+            if matches!(expected, Terminal::Healthy) {
+                let release_at = Instant::now();
+                release.notify_one();
+                let eof = session.next().await.unwrap().unwrap();
+                let observed_at = Instant::now();
+                assert!(eof.response.is_none());
+                let committed = diagnostics.validated_eof_at().unwrap();
+                assert!(
+                    sampled_at <= release_at && release_at <= committed && committed <= observed_at
+                );
+                let elapsed = committed.checked_duration_since(sampled_at).unwrap();
+                assert!(elapsed <= observed_at.duration_since(sampled_at));
+                assert_eq!(
+                    diagnostics.final_snapshot().unwrap().metrics.eof_seconds,
+                    eof.metrics.eof_seconds
+                );
+                assert!(session.next().await.unwrap().is_none());
+            } else {
+                let failure = session.next().await.unwrap_err();
+                assert!(matches!(
+                    (expected, failure),
+                    (Terminal::FinalizationTimeout, EngineError::FinalizeTimeout)
+                        | (
+                            Terminal::OverallTimeout,
+                            EngineError::Transport(TransportError::Timeout)
+                        )
+                ));
+                assert_eq!(diagnostics.validated_eof_at(), None);
+                assert_eq!(
+                    diagnostics.final_snapshot().unwrap().metrics.eof_seconds,
+                    None
+                );
+            }
+        }
+        engine.close().await.unwrap();
+        server.close().await;
+    })
+    .await;
+}

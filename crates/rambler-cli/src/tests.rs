@@ -322,7 +322,7 @@ async fn interrupt_during_cleanup_discards_completed_result_and_awaits_cleanup()
             sender.send(()).unwrap();
             tokio::task::yield_now().await;
             flag.store(true, Ordering::SeqCst);
-            Ok(())
+            Ok::<(), ()>(())
         },
         async {
             receiver.await.unwrap();
@@ -357,7 +357,7 @@ fn finalize_timeout_cli_defaults_validation_and_category() {
         };
         let defaults = common(parse(&[]).unwrap());
         assert_eq!(defaults.finalize_timeout, None);
-        assert_eq!(defaults.timeout, 30);
+        assert_eq!(defaults.timeout, None); // omission uses SessionOptions' legacy 30 s
         assert_eq!(defaults.context_timeout, 2);
         for (value, expected) in [("1", 1), ("7", 7), ("18446744073709551615", u64::MAX)] {
             let budgets = common(
@@ -371,7 +371,7 @@ fn finalize_timeout_cli_defaults_validation_and_category() {
                 ])
                 .unwrap(),
             );
-            assert_eq!(budgets.timeout, expected);
+            assert_eq!(budgets.timeout, Some(expected));
             assert_eq!(budgets.context_timeout, expected);
             assert_eq!(budgets.finalize_timeout, Some(expected));
         }
@@ -387,4 +387,47 @@ fn finalize_timeout_cli_defaults_validation_and_category() {
     assert_eq!(value["category"], "finalize_timeout");
     assert!(value["grpc_code"].is_null());
     assert!(!value.to_string().contains("deadline"));
+}
+
+#[cfg(feature = "audio")]
+#[test]
+fn interactive_wav_budgets_are_opt_in_and_explicit_deadlines_win() {
+    use super::Cli;
+    use clap::Parser;
+    use std::time::Duration;
+    let parse = |extra: &[&str]| {
+        let mut args = vec!["rambler", "dictate-wav", "synthetic.wav"];
+        args.extend_from_slice(extra);
+        Cli::try_parse_from(args)
+    };
+    assert!(parse(&["--interactive"]).is_ok());
+    for flags in [
+        &["--realtime"][..],
+        &["--before", "synthetic text"],
+        &["--cursor-aware"],
+        &["--page-duration-ms", "20"],
+        &["--segment-seconds", "5"],
+        &["--segment-seconds", "281"],
+    ] {
+        let mut interactive = vec!["--interactive"];
+        interactive.extend_from_slice(flags);
+        assert!(
+            parse(&interactive).is_err(),
+            "unexpectedly accepted {flags:?}"
+        );
+    }
+    assert!(parse(&["--segment-seconds", "6"]).is_err());
+    let profile = super::interactive_profile(Some(6), None, Some(9)).unwrap();
+    assert_eq!(profile.session.timeout, Duration::from_secs(25));
+    assert_eq!(
+        profile.session.finalize_timeout,
+        Some(Duration::from_secs(9))
+    );
+    let profile = super::interactive_profile(Some(6), Some(3), Some(u64::MAX)).unwrap();
+    assert_eq!(profile.session.timeout, Duration::from_secs(3));
+    assert_eq!(
+        profile.session.finalize_timeout,
+        Some(Duration::from_secs(u64::MAX))
+    );
+    assert!(super::interactive_profile(None, None, Some(u64::MAX)).is_err());
 }
