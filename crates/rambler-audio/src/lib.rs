@@ -9,7 +9,8 @@
 //! PCM dictation, [`start_pcm_dictation`] and [`start_pcm_dictation_with_observer`]
 //! pair a bounded producer with an engine completion future. For explicitly
 //! caller-supplied 48 kHz mono PCM16LE, opt in to [`Pcm48kTo16k`] before the
-//! unchanged 16 kHz encoder.
+//! unchanged 16 kHz encoder. For long captures, [`collect_long_pcm_dictation`]
+//! opts in to consecutive pause-aware sessions on one engine.
 //!
 //! Normal EOF closes upstream BEFORE emitting a successful Ogg EOS. All tail
 //! samples and encoder lookahead are flushed; EOS granules trim padding exactly.
@@ -32,6 +33,7 @@ mod dictation;
 mod encode;
 mod input;
 mod lifecycle;
+mod long_dictation;
 mod ogg;
 mod progress;
 mod wav;
@@ -39,6 +41,10 @@ pub use decimate::Pcm48kTo16k;
 pub use dictation::{start_pcm_dictation, start_pcm_dictation_with_observer};
 pub use encode::{EncoderConfig, Pcm16Opus};
 pub use input::{PcmInput, PcmInputError, PcmPermit, PcmSendError, PcmSender, pcm_channel};
+pub use long_dictation::{
+    LongDictationError, LongDictationObservation, LongDictationOptions, LongDictationResult,
+    MAX_LONG_SEGMENT_BUDGET, collect_long_pcm_dictation, collect_long_pcm_dictation_with_observer,
+};
 pub use progress::{PcmProgress, PcmProgressHandle};
 pub use wav::{PcmFormat, WavAudio, WavConfig};
 
