@@ -260,7 +260,7 @@ et langues secondaires sont dans `ProtocolConfig`. Pour le résultat final, la f
 - État et journal : [STATUS](docs/STATUS.md) · priorités : [ROADMAP](docs/ROADMAP.md) · décisions : [DECISIONS](docs/DECISIONS.md)
 - Rust : [moteur et CLI](docs/rust.md) · [guide d'intégration SDK](docs/research/sdk-integration-guide.md) · [parité](docs/research/rust-feature-parity.md)
 - Protocole et accès : [protocole](docs/research/protocol.md) · [authentification](docs/research/authentication.md) · [raffinement et résultat](docs/refinement.md)
-- Preuves et mesures : [preuves réelles](docs/evidence/) · [performance](docs/performance.md) · [plan de validation](docs/validation-plan.md)
+- Preuves et mesures : [preuves réelles](docs/evidence/) · [performance](docs/performance.md) · [critères de validation actuels](docs/ROADMAP.md)
 - [Contribuer](CONTRIBUTING.md)
 
 Ne pas committer de clés, tokens, audio personnel, captures brutes, APK ou sources
