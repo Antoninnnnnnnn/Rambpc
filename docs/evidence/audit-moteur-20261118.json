@@ -1,0 +1,226 @@
+{
+  "date": "2026-11-18",
+  "commit": "9a29ab868a60664c81b1358da883b692dff536e7",
+  "scope": "SDK et CLI du dépôt. Exécution Windows et binaire natif Android par ADB, hors APK.",
+  "rustc": "1.99.1",
+  "cargo_lock_sha256": "d9bc3691bab9a436e77ed7fca9ecf1564dc47bd8acb23f160ec16551cf6905a7",
+  "android": {
+    "model": "Xiaomi 11 Lite 5G NE",
+    "android": 14,
+    "device_api": 34,
+    "abi": "arm64-v8a",
+    "kernel_page_bytes": 4096,
+    "ndk": "27.1.12297006",
+    "ndk_target_api": 28,
+    "build": "release",
+    "rust_target": "aarch64-linux-android"
+  },
+  "binary_sha256": {
+    "windows_cli": "5a9266801e885d3767448c6ef224ab8687b3da8bdd9907395afa054b54a7ae58",
+    "windows_qualification": "275a4b641d7e6005c0b2e62f0096ad3a51b62c1ff3a56691aed5a90a14fcded9",
+    "android_qualification": "23fd7ad5e45e89b4987bb3500e456ca8743ced3ca760771fdec5712d2e8ccb89",
+    "android_codec_profile": "6fd5691b856da7a329fc4472a5514c48392228dbc8bf2c382b6f13b2f7f7687b",
+    "android_public_h2_probe": "25466032d26a27ecc67414fe9347ef3a559b39351e85cfb10f760e9078ddcdc5"
+  },
+  "tests": {
+    "windows_rust_all_targets_all_features": {
+      "passed": 558,
+      "failed": 0,
+      "ignored": 3
+    },
+    "windows_rust_doctests": {
+      "passed": 6,
+      "failed": 0
+    },
+    "windows_native_public_roots_explicit": "passed",
+    "windows_rustfmt": "passed",
+    "windows_clippy_all_targets_all_features_deny_warnings": "passed",
+    "windows_python": {
+      "version": "3.14.5",
+      "first_run": {
+        "status": "interrompu",
+        "wall_s_approx": 761,
+        "active_test": "tests/test_transport.py::test_close_waits_for_async_producer_cleanup_and_cancels_server"
+      },
+      "transport_file_isolated": {
+        "passed": 51,
+        "wall_s": 1.11
+      },
+      "second_full_run": {
+        "passed": 923,
+        "skipped": 4,
+        "subtests_passed": 968,
+        "wall_s": 53.63
+      }
+    },
+    "android_transport_unit": {
+      "passed": 47,
+      "ignored": 1
+    },
+    "android_native_public_roots_explicit": {
+      "status": "failed",
+      "error": "Connect"
+    },
+    "android_pcm_48k": {
+      "passed": 7
+    },
+    "android_partition_invariance": {
+      "passed": 1
+    },
+    "ci_rust": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44350663932",
+    "ci_python": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44350663821"
+  },
+  "public_google_transport": {
+    "authority": "www.google.com:443",
+    "sessions_per_configuration": 1,
+    "rambler_rpcs": 0,
+    "application_credentials_sent": false,
+    "procedure": "Compter les certificats avec rustls_native_certs::load_native_certs, puis appeler GrpcTransport::connect(TransportConfig::tls(...)), et close en cas de succès.",
+    "windows_default": {
+      "roots": 75,
+      "loader_errors": 0,
+      "h2": true,
+      "clean_close": true,
+      "connect_ms": 67
+    },
+    "android_default": {
+      "roots": 0,
+      "loader_errors": 0,
+      "h2": false,
+      "error": "Connect",
+      "connect_ms": 61
+    },
+    "android_process_only_os_root_directory": {
+      "directory": "/apex/com.android.conscrypt/cacerts",
+      "roots": 120,
+      "loader_errors": 0,
+      "h2": true,
+      "clean_close": true,
+      "connect_ms": 60
+    }
+  },
+  "local_synthetic_pcm16_sessions": {
+    "fixtures": "crates/rambler-cli/examples/native_qualification.rs",
+    "repeats_per_case": 10,
+    "windows_passed": 40,
+    "android_passed": 40,
+    "matching_pcm_hash_response_fixture_hash_rendered_hash_and_request_response_counts": 40,
+    "cases": {
+      "literal": {
+        "pcm_samples": 17,
+        "win_ogg_bytes": [
+          157
+        ],
+        "android_ogg_bytes": [
+          157
+        ]
+      },
+      "rewrite": {
+        "pcm_samples": 33,
+        "win_ogg_bytes": [
+          165
+        ],
+        "android_ogg_bytes": [
+          164
+        ]
+      },
+      "selection": {
+        "pcm_samples": 49,
+        "win_ogg_bytes": [
+          168
+        ],
+        "android_ogg_bytes": [
+          168
+        ]
+      },
+      "preview": {
+        "pcm_samples": 641,
+        "win_ogg_bytes": [
+          338
+        ],
+        "android_ogg_bytes": [
+          341
+        ]
+      }
+    },
+    "audio_lengths_and_finals": "PCM synthétique et réponses préétablies. Le pair local ne reconnaît aucune parole."
+  },
+  "android_pcm16_opus_ogg_benchmark": {
+    "executable": "profile_pipeline",
+    "args": [
+      "--codec-attribution",
+      "--repeats",
+      "7",
+      "--iterations",
+      "3",
+      "--samples",
+      "80017"
+    ],
+    "libopus": "1.6.1",
+    "rate_hz": 16000,
+    "audio_seconds": 5.0010625,
+    "stage": "total_observer_off",
+    "metric": "Durée murale par itération en ms, mesurée dans le processus. Un passage de chauffe exclu par signal.",
+    "per_repetition_means_ms": {
+      "harmonic": [
+        21.993,
+        21.9311,
+        22.025,
+        21.9775,
+        21.9514,
+        22.0186,
+        21.9738
+      ],
+      "noise": [
+        48.3454,
+        48.32,
+        48.3679,
+        48.3521,
+        48.363,
+        48.3119,
+        48.3278
+      ],
+      "silence": [
+        35.4587,
+        35.4455,
+        35.4125,
+        35.4165,
+        35.489,
+        35.4372,
+        35.4095
+      ]
+    },
+    "medians_ms": {
+      "harmonic": 21.98,
+      "noise": 48.35,
+      "silence": 35.44
+    }
+  },
+  "paced_windows_cli": {
+    "duration_s": 31,
+    "audio": "silence PCM16 mono 16 kHz",
+    "peer": "gRPC localhost, attend la fin du flux avant de renvoyer un résultat de test fixe",
+    "same_input_two_processes": true,
+    "default": {
+      "exit": 1,
+      "category": "timeout",
+      "process_wall_s": 30.287
+    },
+    "timeout_40_s": {
+      "exit": 0,
+      "category": "result",
+      "process_wall_s": 31.032
+    }
+  },
+  "dependency_advisories": {
+    "service": "https://osv.dev/",
+    "query": "https://api.osv.dev/v1/querybatch",
+    "additional_python_versions": {
+      "grpcio": "1.85.1",
+      "av": "19.0.2"
+    },
+    "crates_io_lock_entries": 138,
+    "python_runtime_entries": 2,
+    "known_matches": []
+  }
+}

@@ -22,6 +22,21 @@ def _validate_timeout(timeout: float) -> None:
         raise ValueError("timeout must be finite and positive")
 
 
+def _observe_owned_task(task: asyncio.Task[None]) -> None:
+    if not task.cancelled():
+        # A waiter may have been cancelled. Observe without logging; a later
+        # join still raises the original task result.
+        task.exception()
+
+
+async def _join_owned_task(task: asyncio.Task[None]) -> None:
+    # Waiting neither cancels the inner task nor logs its exception when the
+    # waiter is cancelled (unlike asyncio.shield in Python 3.14).
+    if not task.done():
+        await asyncio.wait((task,))
+    task.result()
+
+
 class _Session:
     """Own RPC tasks independently of a consumer paused at an async-generator yield."""
 
@@ -79,7 +94,8 @@ class _Session:
                     self.call.cancel()
                     raise
             self._request_cleanup = asyncio.create_task(cleanup())
-        await asyncio.shield(self._request_cleanup)
+            self._request_cleanup.add_done_callback(_observe_owned_task)
+        await _join_owned_task(self._request_cleanup)
 
     def _stop_writer(self) -> None:
         if not self._stopping_writer:
@@ -107,7 +123,8 @@ class _Session:
             if self.reader is not None:
                 self.reader.cancel()
             self._cleanup = asyncio.create_task(self._finish_cleanup())
-        await asyncio.shield(self._cleanup)
+            self._cleanup.add_done_callback(_observe_owned_task)
+        await _join_owned_task(self._cleanup)
 
     async def _finish_cleanup(self) -> None:
         await asyncio.gather(
@@ -172,6 +189,7 @@ class GrpcTransport:
         self.secure = secure
         self.max_message_bytes = max_message_bytes
         self._channel: grpc.aio.Channel | None = None
+        self._closing: asyncio.Task[None] | None = None
         self._lifecycle_lock = asyncio.Lock()
         self._sessions: set[_Session] = set()
 
@@ -185,11 +203,13 @@ class GrpcTransport:
     async def open(self, timeout: float = 10) -> None:
         """Wait for readiness; failed/cancelled opens release their channel.
 
-        Idempotent while open; a closed transport may be opened again. Readiness
-        does not establish authentication or support for the configured method.
+        Idempotent while open. Before reopening, join any pending close even if
+        its previous waiter was cancelled. Readiness does not establish
+        authentication or support for the configured method.
         """
         _validate_timeout(timeout)
         async with self._lifecycle_lock:
+            await self._await_pending_close()
             if self._channel is not None:
                 return
             options = (
@@ -210,28 +230,72 @@ class GrpcTransport:
                 raise
             self._channel = channel
 
+    def _discard_successful_close(self, session: _Session, cleanup: asyncio.Task[None]) -> None:
+        if cleanup.cancelled() or cleanup.exception() is None:
+            self._sessions.discard(session)
+
     async def _close_session(self, session: _Session) -> None:
         try:
             await session.close()
-        finally:
+        except asyncio.CancelledError:
+            # A cancelled stream waiter must not detach active cleanup. Reap a
+            # later success; retain a failure for the transport to observe.
+            if (cleanup := session._cleanup) is not None:
+                cleanup.add_done_callback(
+                    lambda closed: self._discard_successful_close(session, closed)
+                )
+            raise
+        except BaseException:
+            self._sessions.discard(session)
+            raise
+        else:
             self._sessions.discard(session)
 
+    async def _await_pending_close(self) -> None:
+        """Join under the lifecycle lock without cancelling owned cleanup."""
+        closing = self._closing
+        if closing is None:
+            return
+        try:
+            await _join_owned_task(closing)
+        except asyncio.CancelledError:
+            if closing.cancelled():
+                self._closing = None
+            raise
+        except BaseException:
+            self._closing = None
+            raise
+        else:
+            self._closing = None
+
+    async def _finish_close(
+        self, channel: grpc.aio.Channel, sessions: tuple[_Session, ...]
+    ) -> None:
+        try:
+            results = await asyncio.gather(
+                *(self._close_session(session) for session in sessions),
+                return_exceptions=True,
+            )
+            for result in results:
+                if isinstance(result, BaseException):
+                    raise result
+        finally:
+            await channel.close()
+
     async def close(self) -> None:
-        """Cancel all RPCs and await their reader/writer/supervisor cleanup."""
+        """Cancel all RPCs and await their cleanup even after an interrupted wait.
+
+        A cancelled caller stops waiting, but the transport retains ownership of
+        the close. A later close or open waits for that same cleanup.
+        """
         async with self._lifecycle_lock:
             channel, self._channel = self._channel, None
-            if channel is None:
-                return
-            try:
-                results = await asyncio.gather(
-                    *(self._close_session(session) for session in tuple(self._sessions)),
-                    return_exceptions=True,
+            if channel is not None:
+                self._closing = asyncio.create_task(
+                    self._finish_close(channel, tuple(self._sessions))
                 )
-                for result in results:
-                    if isinstance(result, BaseException):
-                        raise result
-            finally:
-                await channel.close()
+                self._closing.add_done_callback(_observe_owned_task)
+            await self._await_pending_close()
 
     async def stream(
         self,

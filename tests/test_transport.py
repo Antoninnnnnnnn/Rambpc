@@ -814,6 +814,113 @@ async def test_transport_close_waits_for_every_cleanup_even_when_one_fails(serve
             await transport.close()
 
 
+@pytest.mark.parametrize("join_by", ["close", "open"])
+async def test_interrupted_transport_close_remains_joinable(serve, monkeypatch, join_by):
+    source = SlowCloseRequests(block=True)
+    async with serve(echo) as target:
+        transport = GrpcTransport(target, secure=False)
+        await transport.open()
+        stream = transport.stream(source)
+        first_close = second_close = None
+        try:
+            assert await asyncio.wait_for(anext(stream), 3) == b"request"
+            await event_set(source.next_started)
+            session = next(iter(transport._sessions))
+            first_close = asyncio.create_task(transport.close())
+            await event_set(source.cleanup_started)
+            first_close.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(first_close, 3)
+
+            joined = asyncio.Event()
+            create_channel = grpc.aio.insecure_channel
+
+            def check_reopen(*args, **kwargs):
+                assert source.cleanup_finished, "opened a new channel during cleanup"
+                return create_channel(*args, **kwargs)
+
+            monkeypatch.setattr(grpc.aio, "insecure_channel", check_reopen)
+
+            async def join_cleanup():
+                joined.set()
+                await getattr(transport, join_by)()
+
+            second_close = asyncio.create_task(join_cleanup())
+            await event_set(joined)
+            assert not second_close.done(), "returned before the owned cleanup"
+            source.release_cleanup.set()
+            await asyncio.wait_for(second_close, 3)
+            assert source.cleanup_finished and source.cleanup_count == 1
+            assert not source.cleanup_cancelled
+            assert session.writer.done() and session.monitor.done()
+            assert_clean(transport)
+
+            await transport.open()
+            assert await asyncio.wait_for(
+                collect(transport.stream(messages(b"new session"))), 3
+            ) == [b"new session"]
+        finally:
+            source.release_cleanup.set()
+            await asyncio.gather(
+                *(task for task in (first_close, second_close) if task is not None),
+                return_exceptions=True,
+            )
+            await stream.aclose()
+            await transport.close()
+
+
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+async def test_interrupted_stream_close_stays_owned_by_transport(serve, caplog, cleanup_fails):
+    failure = LookupError("fixture cleanup failed") if cleanup_fails else None
+    source = SlowCloseRequests(block=True, cleanup_error=failure)
+    async with serve(echo) as target:
+        transport = GrpcTransport(target, secure=False)
+        await transport.open()
+        stream = transport.stream(source)
+        stream_close = transport_close = None
+        try:
+            assert await asyncio.wait_for(anext(stream), 3) == b"request"
+            await event_set(source.next_started)
+            session = next(iter(transport._sessions))
+            stream_close = asyncio.create_task(stream.aclose())
+            await event_set(source.cleanup_started)
+            stream_close.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(stream_close, 3)
+            assert session in transport._sessions
+
+            joining = asyncio.Event()
+
+            async def join_cleanup():
+                joining.set()
+                await transport.close()
+
+            transport_close = asyncio.create_task(join_cleanup())
+            await event_set(joining)
+            assert not transport_close.done()
+            source.release_cleanup.set()
+            if failure is None:
+                await asyncio.wait_for(transport_close, 3)
+            else:
+                with pytest.raises(LookupError) as caught:
+                    await asyncio.wait_for(transport_close, 3)
+                assert caught.value is failure
+            assert source.cleanup_finished and source.cleanup_count == 1
+            assert not source.cleanup_cancelled
+            assert session.writer.done() and session.monitor.done()
+            assert_clean(transport)
+            assert not any(record.name == "asyncio" and record.exc_info is not None
+                           for record in caplog.records)
+        finally:
+            source.release_cleanup.set()
+            await asyncio.gather(
+                *(task for task in (stream_close, transport_close) if task is not None),
+                return_exceptions=True,
+            )
+            await stream.aclose()
+            await transport.close()
+
+
 async def test_unavailable_is_not_retried(serve):
     invocations = 0
 

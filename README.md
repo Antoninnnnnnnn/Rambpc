@@ -139,12 +139,12 @@ Le service attend trois métadonnées applicatives, fournies par l'environnement
 **Aucune valeur n'est embarquée dans ce dépôt.** Les noms « Android » désignent les
 headers du protocole observé, pas une dépendance d'exécution.
 
-Pour Git Bash, remplir un fichier `.env` (ignoré par git, modèle `.env.example`),
-puis charger ses variables avant la commande (voir l'exemple ci-dessus). Les tests
-réels ont utilisé les métadonnées statiques du client analysé, sans compte Google,
-OAuth ni Zwieback ; aucun renouvellement de ces valeurs n'a été observé. Leur
-provisionnement reste local, et leur révocation ne peut pas être résolue par un
-retry. Voir [authentification et limites](docs/research/authentication.md).
+Pour Git Bash, remplir un fichier `.env` (ignoré par git, modèle `.env.example`)
+avec des métadonnées dont l'usage est autorisé pour votre application, puis le
+charger avant la commande (voir l'exemple ci-dessus). Les essais historiques
+avec un autre profil ne démontrent pas un droit d'accès, un approvisionnement
+ou un renouvellement pour une application distribuée. Une révocation ne se
+résout pas par un retry. Voir [authentification et limites](docs/research/authentication.md).
 
 ## Ce qui a été observé sur le service réel
 
@@ -158,13 +158,14 @@ Petits corpus synthétiques et naturels ; ces résultats ne mesurent pas la qual
 | 12 nov. | Sélection `ten`, contexte différé avant/sélection/après | Sélection remplacée par `eleven`, retour structuré en trois parties |
 | 12 nov. | Dictée française | `Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.` |
 | 13 nov. | Réécriture « Send me the report now. » | « Could you please send me the report at your earliest convenience? » |
-| 13 nov. | Dix extraits naturels (7 EN, 3 FR), 72,825 s au total | Écarts WER normalisés de 3/109 mots (EN) et 3/79 (FR), dont formatage et un temps verbal |
+| 13 nov. | [Référence Python : dix extraits lus](docs/evidence/natural-expansion-quality.json), 7 EN et 3 FR | Écarts de 3/109 mots (EN) et 3/79 (FR) après normalisation. Aucun résultat Rust déduit de ce chiffre. |
+| 18 nov. | [Moteur Rust : trois extraits lus](docs/evidence/rust-native-natural-public.json), 18,885 s au total | Trois dictées terminées. Échantillon distinct, non représentatif de la parole spontanée. |
 | 18 nov. | Dictée de deux phrases et « Change blue to green » (voix synthétique) | Exacts : `The kite is blue. Marker stays.` puis `The kite is green. Marker stays.` |
 | 18 nov. | Une phrase dans 13 langues (DE, ES, IT, PT, RU, AR, HI, TA, JA, KO, ZH, NL, PL) | [13 résultats finaux](docs/evidence/rust-native-multilingual-real-20261118.json) ; hindi et tamoul renvoyés en alphabet latin |
 | 18 nov. | Sélection « Send me the report now. » + « Make this more polite. » | Réécriture polie (intention 3, champ 7) acceptée avec `--result-policy s3-client-compatible` ; PixelBoard 1.3.5 ne l'a pas produite sur le téléphone de test (Xiaomi, pas un Pixel) |
 
-Les flux ont consommé l'intégralité des octets audio avec vérification SHA-256. Preuves
-expurgées : [docs/evidence/](docs/evidence/), notamment
+Certains essais ont vérifié les octets audio par SHA-256 ; le périmètre et les
+incidents figurent dans leurs rapports. Preuves expurgées : [docs/evidence/](docs/evidence/), notamment
 [premier appel Rust](docs/evidence/rust-first-slice-public.json),
 [PCM](docs/evidence/rust-pcm-functional-public.json),
 [voix naturelles](docs/evidence/rust-native-natural-public.json) et
