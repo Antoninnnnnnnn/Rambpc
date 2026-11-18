@@ -1,12 +1,15 @@
-//! Test-only bridge from two fixed SDK fixtures to the offline Python checker.
+//! Test-only bridge from fixed SDK fixtures to the offline Python checker.
+
+#[path = "compatible_edit_acceptance.rs"]
+mod compatible;
 
 use super::{
     Check, Failed, Peer, SESSION_DEADLINE, audio_common, check, fixtures, prepare_cases, with_peer,
 };
 use rambler_audio::Pcm16Opus;
 use rambler_engine::{
-    CollectorLimits, ContextInput, Engine, EngineError, SessionOptions, collect_dictation,
-    replacement_proposal,
+    CollectorLimits, ContextInput, DictationResult, Engine, EngineError, SessionOptions,
+    collect_dictation, replacement_proposal,
 };
 use serde_json::{Value, json};
 use std::{fs, path::Path};
@@ -40,7 +43,7 @@ fn declaration(selection_end: usize) -> Value {
     })
 }
 
-async fn collect_row(engine: &Engine, peer: &Peer, ordinal: usize) -> Check<Value> {
+async fn collect_result(engine: &Engine, peer: &Peer, ordinal: usize) -> Check<DictationResult> {
     let step = &peer.invocations[ordinal];
     let fixture = &peer.cases[step.case_index].fixture;
     let pcm = audio_common::Source::new([fixture.pcm.clone()]);
@@ -62,11 +65,18 @@ async fn collect_row(engine: &Engine, peer: &Peer, ordinal: usize) -> Check<Valu
     // context, END and half-close. Also check the collector's retained context
     // and response, independently of the proposal fields under comparison.
     peer.confirm(ordinal)?;
-    let hypothesis = result.single_hypothesis().map_err(|_| Failed)?;
     check(
         result.context.as_ref() == Some(&fixture.context)
+            && result.final_updates.len() == 1
             && result.final_updates[0].raw == fixture.replies[0],
     )?;
+    Ok(result)
+}
+
+async fn collect_row(engine: &Engine, peer: &Peer, ordinal: usize) -> Check<Value> {
+    let fixture = &peer.cases[peer.invocations[ordinal].case_index].fixture;
+    let result = collect_result(engine, peer, ordinal).await?;
+    let hypothesis = result.single_hypothesis().map_err(|_| Failed)?;
     let intent = match hypothesis.voice_edit.as_ref() {
         Some(edit) => Some(edit.intent.ok_or(Failed)?),
         None => None,
@@ -104,7 +114,13 @@ fn write_fixture(path: &Path, value: &Value) {
     assert!(fs::write(path, bytes).is_ok(), "write synthetic artifact");
 }
 
-async fn verify_checker(declaration: &Path, observations: &Path, negative: bool) {
+async fn verify_checker(
+    declaration: &Path,
+    observations: &Path,
+    options: &[&str],
+    exit_code: i32,
+    wanted: Value,
+) {
     let checker =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/check_edit_acceptance.py");
     let output = timeout(
@@ -112,6 +128,7 @@ async fn verify_checker(declaration: &Path, observations: &Path, negative: bool)
         Command::new("python")
             .args(["-I", "-S", "-B"])
             .arg(checker)
+            .args(options)
             .arg(declaration)
             .arg(observations)
             .kill_on_drop(true)
@@ -121,18 +138,12 @@ async fn verify_checker(declaration: &Path, observations: &Path, negative: bool)
     .ok()
     .and_then(Result::ok)
     .expect("run the Python checker with a trusted python on PATH");
-    let wanted = json!({
-        "schema": "rambpc-edit-acceptance-result-v1", "scope": "offline-strict-proposal-only",
-        "verdict": if negative { "mismatch" } else { "conforming" },
-        "counts": {"expected": 2, "conforming_no_edit": 1, "conforming_edit": usize::from(!negative),
-                   "mismatch": usize::from(negative), "missing": 0, "unqualified": 0, "unexpected": 0},
-    });
     let actual = serde_json::from_slice::<Value>(&output.stdout).ok();
     assert!(
-        output.status.code() == Some(i32::from(negative))
+        output.status.code() == Some(exit_code)
             && output.stderr.is_empty()
             && actual.as_ref() == Some(&wanted),
-        "unexpected checker exit or aggregate for negative={negative}"
+        "unexpected checker exit or aggregate for expected exit {exit_code}"
     );
     // Print only the already-verified aggregate, never Python's captured output
     // or either synthetic input document (including on failure).
@@ -177,7 +188,14 @@ async fn strict_edit_acceptance_uses_native_proposals() {
         &json!({"schema": "rambpc-edit-observations-v1", "artifact_id": "native-sdk-observation",
                 "provenance": provenance(), "cases": rows}),
     );
-    verify_checker(&expected, &observed, false).await;
-    verify_checker(&negative, &observed, true).await;
+    for (path, negative) in [(&expected, false), (&negative, true)] {
+        let wanted = json!({
+            "schema": "rambpc-edit-acceptance-result-v1", "scope": "offline-strict-proposal-only",
+            "verdict": if negative { "mismatch" } else { "conforming" },
+            "counts": {"expected": 2, "conforming_no_edit": 1, "conforming_edit": usize::from(!negative),
+                       "mismatch": usize::from(negative), "missing": 0, "unqualified": 0, "unexpected": 0},
+        });
+        verify_checker(path, &observed, &[], i32::from(negative), wanted).await;
+    }
     assert!(temp.close().is_ok(), "remove synthetic artifacts");
 }

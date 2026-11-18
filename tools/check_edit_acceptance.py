@@ -15,6 +15,10 @@ MAX_CASES = 100
 MAX_WINDOW_UNITS = 65536
 IDENTIFIER = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}')
 SUPPORTED_INTENTS = (None, 2, 3)
+STRICT = 'strict'
+COMPATIBLE = 's3-client-compatible'
+SCOPES = {STRICT: 'offline-strict-proposal-only',
+          COMPATIBLE: 'offline-s3-client-compatible-proposal-only'}
 EXIT_CODES = {'conforming': 0, 'mismatch': 1, 'inconclusive': 2, 'invalid': 3}
 
 
@@ -57,13 +61,18 @@ def _choice(value, *choices):
     return value
 
 
-def _outcome(value):
+def _outcome(value, policy):
     if type(value) is not dict:
         raise InvalidInput()
     if _choice(value.get('kind'), 'no_edit', 'edit') == 'no_edit':
         _keys(value, 'kind')
         return
-    _keys(value, 'kind', 'window', 'selection_utf16')
+    fields = ('kind', 'window', 'selection_utf16')
+    if policy == COMPATIBLE:
+        fields += ('provenance',)
+    _keys(value, *fields)
+    if policy == COMPATIBLE:
+        _choice(value['provenance'], 'hypothesis_text', 'voice_edit_text', 'voice_edit_context')
     text = value['window']
     if type(text) is not str or len(text) > MAX_WINDOW_UNITS:
         raise InvalidInput()
@@ -84,14 +93,32 @@ def _outcome(value):
         raise InvalidInput()
 
 
-def _validate(document, schema):
+def _expected_outcome(intent, outcome, policy):
+    if intent not in SUPPORTED_INTENTS:
+        raise InvalidInput()
+    if outcome['kind'] == 'no_edit':
+        return
+    if policy == STRICT:
+        if intent != 2:
+            raise InvalidInput()
+        return
+    # Only member 7 establishes the scope of a compatible rewrite. Member
+    # 3 can establish an intent-2 window, but never a returned selection.
+    source = outcome['provenance']
+    structured = outcome['selection_utf16'] is not None
+    if not ((intent in (2, 3) and source == 'voice_edit_context' and structured)
+            or (intent == 2 and source == 'voice_edit_text' and not structured)):
+        raise InvalidInput()
+
+
+def _validate(document, schema, policy):
     expectations = schema == EXPECTATIONS
     _keys(document, 'schema', 'artifact_id', 'provenance', 'cases')
     _choice(document['schema'], schema)
     _identifier(document['artifact_id'])
     provenance = document['provenance']
     _keys(provenance, 'corpus_id', 'run_id', 'candidate_id', 'policy')
-    _choice(provenance['policy'], 'strict')
+    _choice(provenance['policy'], policy)
     for key in ('corpus_id', 'run_id', 'candidate_id'):
         _identifier(provenance[key])
 
@@ -119,10 +146,9 @@ def _validate(document, schema):
         intent = row['intent']
         if intent is not None and (type(intent) is not int or not -(2**31) <= intent < 2**31):
             raise InvalidInput()
-        _outcome(row['outcome'])
-        if expectations and (intent not in SUPPORTED_INTENTS or
-                             (row['outcome']['kind'] == 'edit' and intent != 2)):
-            raise InvalidInput()
+        _outcome(row['outcome'], policy)
+        if expectations:
+            _expected_outcome(intent, row['outcome'], policy)
     return cases
 
 
@@ -130,7 +156,7 @@ def _file_state(info):
     return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns
 
 
-def _read(path, schema):
+def _read(path, schema, policy):
     # Best-effort checks for a local regular file, not protection against a hostile writer.
     initial = path.lstat()
     if not stat.S_ISREG(initial.st_mode) or initial.st_size > MAX_BYTES:
@@ -148,14 +174,16 @@ def _read(path, schema):
     document = json.loads(raw.decode('utf-8'), object_pairs_hook=_pairs,
                           parse_int=_parse_int, parse_float=_reject_number,
                           parse_constant=_reject_number)
-    return document, _validate(document, schema)
+    return document, _validate(document, schema, policy)
 
 
-def _compare(expectations, observations):
+def _compare(expectations, observations, policy):
     declaration, expected = expectations
     evidence, observed = observations
     counts = dict.fromkeys(('conforming_no_edit', 'conforming_edit', 'mismatch',
                             'missing', 'unqualified', 'unexpected'), 0)
+    if policy == COMPATIBLE:
+        counts['conforming_rewrite'] = 0
     if (declaration['provenance'] != evidence['provenance']
             or declaration['artifact_id'] == evidence['artifact_id']):
         counts['unqualified'] = len(expected)
@@ -170,6 +198,8 @@ def _compare(expectations, observations):
                 counts['unqualified'] += 1
             elif actual['intent'] != wanted['intent'] or actual['outcome'] != wanted['outcome']:
                 counts['mismatch'] += 1
+            elif wanted['outcome']['kind'] == 'edit' and wanted['intent'] == 3:
+                counts['conforming_rewrite'] += 1  # only possible in compatible mode
             else:
                 counts['conforming_' + wanted['outcome']['kind']] += 1
     if counts['mismatch']:
@@ -184,21 +214,29 @@ def _compare(expectations, observations):
 def main(argv=None):
     args = sys.argv[1:] if argv is None else argv
     if args == ['--help']:
-        print('Usage: check_edit_acceptance.py EXPECTATIONS_JSON OBSERVATIONS_JSON')
+        print('Usage: check_edit_acceptance.py [--policy s3-client-compatible] '
+              'EXPECTATIONS_JSON OBSERVATIONS_JSON')
         return 0
+    policy = STRICT
+    if args[:1] == ['--policy']:
+        if args[1:2] == [COMPATIBLE]:
+            policy = COMPATIBLE
+            args = args[2:]
+        else:
+            args = []
     if len(args) != 2:
         verdict, details = 'invalid', {'reason': 'invalid_arguments'}
     else:
         role = 'expectations'
         try:
-            expectations = _read(Path(args[0]), EXPECTATIONS)
+            expectations = _read(Path(args[0]), EXPECTATIONS, policy)
             role = 'observations'
-            observations = _read(Path(args[1]), OBSERVATIONS)
+            observations = _read(Path(args[1]), OBSERVATIONS, policy)
         except (OSError, ValueError, RecursionError, OverflowError):
             verdict, details = 'invalid', {'reason': 'invalid_' + role}
         else:
-            verdict, details = _compare(expectations, observations)
-    print(json.dumps({'schema': RESULT, 'scope': 'offline-strict-proposal-only',
+            verdict, details = _compare(expectations, observations, policy)
+    print(json.dumps({'schema': RESULT, 'scope': SCOPES[policy],
                       'verdict': verdict, **details}, separators=(',', ':')))
     return EXIT_CODES[verdict]
 

@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 TOOL = Path(__file__).resolve().parents[1] / 'tools' / 'check_edit_acceptance.py'
+COMPAT = 's3-client-compatible'
 
 
 def expectations():
@@ -51,6 +52,27 @@ def observations():
     }
 
 
+def compatible_pair():
+    expected, observed = expectations(), observations()
+    expected['provenance']['policy'] = observed['provenance']['policy'] = COMPAT
+    expected['cases'][0]['outcome']['provenance'] = 'voice_edit_context'
+    observed['cases'][1]['outcome']['provenance'] = 'voice_edit_context'
+    expected['cases'][3]['outcome']['provenance'] = 'voice_edit_text'
+    observed['cases'][0]['outcome']['provenance'] = 'voice_edit_text'
+    # Full window, including unchanged sides; transformed selection has a
+    # decomposed accent, a flag and a joined emoji. Oracle and observation
+    # are deliberately not assigned from a common outcome object.
+    expected['cases'][1]['outcome'] = {
+        'kind': 'edit', 'window': 'L | é🇫🇷👩‍💻 | R', 'selection_utf16': [4, 15],
+        'provenance': 'voice_edit_context',
+    }
+    observed['cases'][2]['outcome'] = {
+        'kind': 'edit', 'window': 'L | é🇫🇷👩‍💻 | R', 'selection_utf16': [4, 15],
+        'provenance': 'voice_edit_context',
+    }
+    return expected, observed
+
+
 class EditAcceptanceTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
@@ -58,7 +80,7 @@ class EditAcceptanceTests(unittest.TestCase):
         self.expected_path = Path(temporary.name) / 'expect-filename-sentinel.json'
         self.observed_path = Path(temporary.name) / 'observe-filename-sentinel.json'
 
-    def cli(self, *args):
+    def cli(self, *args, compatible=False):
         run = subprocess.run([sys.executable, '-I', '-S', '-B', str(TOOL), *args],
                              capture_output=True, text=True, encoding='utf-8', timeout=10)
         self.assertEqual(run.stderr, '')
@@ -67,23 +89,27 @@ class EditAcceptanceTests(unittest.TestCase):
         self.assertEqual(run.stdout.count('\n'), 1)
         result = json.loads(run.stdout)
         self.assertEqual(result['schema'], 'rambpc-edit-acceptance-result-v1')
-        self.assertEqual(result['scope'], 'offline-strict-proposal-only')
+        policy = COMPAT if compatible else 'strict'
+        self.assertEqual(result['scope'], f'offline-{policy}-proposal-only')
         return run.returncode, result
 
-    def check_pair(self, expected, observed):
+    def check_pair(self, expected, observed, *, compatible=False):
         for path, value in ((self.expected_path, expected), (self.observed_path, observed)):
             raw = value if type(value) is bytes else json.dumps(value).encode('utf-8')
             path.write_bytes(raw)
-        return self.cli(self.expected_path, self.observed_path)
+        args = ('--policy', COMPAT) if compatible else ()
+        return self.cli(*args, self.expected_path, self.observed_path, compatible=compatible)
 
-    def assert_verdict(self, actual, verdict, **counts):
+    def assert_verdict(self, actual, verdict, *, compatible=False, **counts):
         code, result = actual
         self.assertEqual(result['verdict'], verdict)
         self.assertEqual(code, {'conforming': 0, 'mismatch': 1, 'inconclusive': 2}[verdict])
         self.assertEqual(set(result), {'schema', 'scope', 'verdict', 'counts'})
-        self.assertEqual(result['counts'], dict(expected=4, conforming_no_edit=0,
-                                               conforming_edit=0, mismatch=0, missing=0,
-                                               unqualified=0, unexpected=0) | counts)
+        defaults = dict(expected=4, conforming_no_edit=0, conforming_edit=0,
+                        mismatch=0, missing=0, unqualified=0, unexpected=0)
+        if compatible:
+            defaults['conforming_rewrite'] = 0
+        self.assertEqual(result['counts'], defaults | counts)
 
     def assert_invalid(self, actual, reason):
         code, result = actual
@@ -222,6 +248,83 @@ class EditAcceptanceTests(unittest.TestCase):
         observed = observations()
         observed['cases'] = [dict(observed['cases'][0], case_id=f'case-{i}') for i in range(101)]
         self.assert_invalid(self.check_pair(expectations(), observed), 'invalid_observations')
+
+    def test_explicit_compatible_policy_is_separate_from_strict(self):
+        expected, observed = compatible_pair()
+        self.assert_verdict(self.check_pair(expected, observed, compatible=True), 'conforming',
+                            compatible=True, conforming_edit=2, conforming_no_edit=1,
+                            conforming_rewrite=1)
+        self.assert_invalid(self.check_pair(expected, observed), 'invalid_expectations')
+        self.assert_invalid(self.check_pair(expected, observations(), compatible=True),
+                            'invalid_observations')
+        self.assert_invalid(self.check_pair(expectations(), observed, compatible=True),
+                            'invalid_expectations')
+        self.assert_invalid(self.cli('--policy', 'asr-only'), 'invalid_arguments')
+
+    def test_compatible_rewrite_compares_full_window_selection_and_provenance(self):
+        for key, value in (
+            ('window', 'é🇫🇷👩‍💻'),  # only selection, not replacement window
+            ('window', 'L | é🇫🇷👩‍💻 | R'),  # no Unicode normalization
+            ('window', 'L | é🇫🇷👩‍💻 | S'),  # restored edit, corrupted trailing sentinel
+            ('selection_utf16', [4, 10]),  # wrong scalar-aligned endpoint
+            ('selection_utf16', [5, 15]),  # scalar boundary inside a combining cluster
+            ('selection_utf16', None),
+            ('provenance', 'hypothesis_text'),  # same bytes but literal ASR
+            ('provenance', 'voice_edit_text'),  # member 3 does not establish rewrite scope
+        ):
+            with self.subTest(key=key, value=value):
+                expected, observed = compatible_pair()
+                observed['cases'][2]['outcome'][key] = value
+                if value == 'é🇫🇷👩‍💻':
+                    observed['cases'][2]['outcome']['selection_utf16'] = [0, 11]
+                self.assert_verdict(self.check_pair(expected, observed, compatible=True),
+                                    'mismatch', compatible=True, mismatch=1,
+                                    conforming_edit=2, conforming_no_edit=1)
+        expected, observed = compatible_pair()
+        observed['cases'][2]['intent'] = 2  # same structured outcome, different intent
+        self.assert_verdict(self.check_pair(expected, observed, compatible=True), 'mismatch',
+                            compatible=True, mismatch=1, conforming_edit=2, conforming_no_edit=1)
+        observed['cases'][2]['outcome']['selection_utf16'] = [4, 11]  # inside 👩 surrogate pair
+        self.assert_invalid(self.check_pair(expected, observed, compatible=True),
+                            'invalid_observations')
+
+    def test_compatible_declaration_cannot_expect_asr_or_unscoped_rewrite(self):
+        for intent, source, selection in ((3, 'voice_edit_text', None),
+                                           (3, 'voice_edit_context', None),
+                                           (3, 'hypothesis_text', [4, 15]),
+                                           (None, 'voice_edit_context', [4, 15]),
+                                           (2, 'voice_edit_text', [4, 15])):
+            with self.subTest(intent=intent, source=source, selection=selection):
+                expected, observed = compatible_pair()
+                expected['cases'][1]['intent'] = intent
+                expected['cases'][1]['outcome'].update(provenance=source, selection_utf16=selection)
+                self.assert_invalid(self.check_pair(expected, observed, compatible=True),
+                                    'invalid_expectations')
+        expected, observed = compatible_pair()
+        for bad in ('unknown', None):
+            observed['cases'][2]['outcome']['provenance'] = bad
+            self.assert_invalid(self.check_pair(expected, observed, compatible=True),
+                                'invalid_observations')
+        del observed['cases'][2]['outcome']['provenance']
+        self.assert_invalid(self.check_pair(expected, observed, compatible=True),
+                            'invalid_observations')
+
+    def test_compatible_incomplete_or_unlinked_observations_cannot_pass(self):
+        expected, observed = compatible_pair()
+        observed['provenance']['run_id'] = 'other-run'
+        self.assert_verdict(self.check_pair(expected, observed, compatible=True), 'inconclusive',
+                            compatible=True, unqualified=4)
+        expected, observed = compatible_pair()
+        observed['artifact_id'] = expected['artifact_id']
+        self.assert_verdict(self.check_pair(expected, observed, compatible=True), 'inconclusive',
+                            compatible=True, unqualified=4)
+        expected, observed = compatible_pair()
+        observed['cases'][0]['intent'] = 5  # unknown meaning; cannot qualify
+        observed['cases'][1]['input_id'] = 'other-input'
+        observed['cases'][2] = {'case_id': 'rewrite', 'input_id': 'toy-02', 'status': 'unqualified'}
+        observed['cases'].pop()
+        self.assert_verdict(self.check_pair(expected, observed, compatible=True), 'inconclusive',
+                            compatible=True, missing=1, unqualified=3)
 
     def test_only_fixed_fields_and_counts_are_emitted_even_with_private_like_values(self):
         expected, observed = expectations(), observations()
