@@ -16,9 +16,12 @@ tests et le test Ogg macOS supposait une réception que rien ne synchronisait.
 Le [lot Ogg/édition et les corrections de
 qualification](evidence/rust-ogg-edit-wave-windows-20261118.json) passent
 465 tests Rust, 42 tests Python, le formatage et Clippy strict hors ligne
-sur Windows (2 tests ignorés, 1 test TLS filtré). Les corrections restent à
-confirmer dans la CI multiplateforme. Le jalon `4cf9c4d` avait passé les 14
-jobs, dont le kit natif sur Ubuntu stable. Aucun appel au vrai service.
+sur Windows (2 tests ignorés, 1 test TLS filtré). Sur `40da48e`, les
+[10 jobs Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44262188795)
+et les [4 jobs Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44262188873)
+sont passés au premier essai, dont VS2022 et macOS ARM/Rust 1.88. Le
+[contrôle d’édition synthétique](evidence/rust-native-edit-acceptance-seam-windows-20261118.json)
+relie en plus le SDK Rust au vérificateur hors ligne. Aucun appel au vrai service.
 
 | Thème | État | Critère de livraison |
 |---|---|---|

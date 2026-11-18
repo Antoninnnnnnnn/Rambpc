@@ -1,0 +1,94 @@
+{
+  "base": "40da48ebb16e9919554eeccac160b8662f4a9bc0",
+  "checker_exit_codes": [
+    0,
+    1
+  ],
+  "limits": [
+    "Explicit opt-in test; normal native qualification report v1 is unchanged.",
+    "No real quality, speed, editor mutation, advanced intent or actual service qualification."
+  ],
+  "predeclared_before_peer": true,
+  "provider_calls": 0,
+  "repository_blob_sha256_when_line_endings_differ": {
+    "docs/research/edit-acceptance-contract.md": "6a2e71dab33c54c4bf32d114a0a05220e984004ea14b94be21cb76a6b14c257d"
+  },
+  "results": [
+    {
+      "counts": {
+        "conforming_edit": 1,
+        "conforming_no_edit": 1,
+        "expected": 2,
+        "mismatch": 0,
+        "missing": 0,
+        "unexpected": 0,
+        "unqualified": 0
+      },
+      "schema": "rambpc-edit-acceptance-result-v1",
+      "scope": "offline-strict-proposal-only",
+      "verdict": "conforming"
+    },
+    {
+      "counts": {
+        "conforming_edit": 0,
+        "conforming_no_edit": 1,
+        "expected": 2,
+        "mismatch": 1,
+        "missing": 0,
+        "unexpected": 0,
+        "unqualified": 0
+      },
+      "schema": "rambpc-edit-acceptance-result-v1",
+      "scope": "offline-strict-proposal-only",
+      "verdict": "mismatch"
+    }
+  ],
+  "same_observation_compared_twice": true,
+  "schema": "rambler-native-edit-acceptance-seam-v1",
+  "scope": "Windows x64, owned localhost with fixed synthetic PCM and fixed S3 replies",
+  "status": "PASS_SYNTHETIC_POSITIVE_NEGATIVE_CONTROL",
+  "steps": [
+    {
+      "exit": 0,
+      "job_empty": true,
+      "step": "fmt-check",
+      "verified_join": true
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "step": "compile",
+      "verified_join": true
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "step": "clippy",
+      "verified_join": true
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "step": "unit",
+      "verified_join": true
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "step": "checker-unit",
+      "verified_join": true
+    },
+    {
+      "exit": 0,
+      "job_empty": true,
+      "step": "e2e",
+      "verified_join": true
+    }
+  ],
+  "synthetic_temporary_files_removed": true,
+  "validated_file_sha256": {
+    "crates/rambler-cli/examples/native_qualification.rs": "2dc20daefeaa711ad70cd5584f2c0fa036381adc2ec0eec1136dfc1507783d4a",
+    "crates/rambler-cli/examples/qualification_runner/edit_acceptance.rs": "70b737bb2fa5620142f9198d42b4250c66700df94f5e250ba405b156859275b7",
+    "docs/research/edit-acceptance-contract.md": "c63b980d6a98c7498db802dbb399a6927c569204f4d31cafaf34add0d732891b"
+  }
+}

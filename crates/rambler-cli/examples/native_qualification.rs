@@ -6,6 +6,9 @@
 mod audio_common;
 #[path = "../../rambler-engine/tests/common/mod.rs"]
 mod common;
+#[cfg(test)]
+#[path = "qualification_runner/edit_acceptance.rs"]
+mod edit_acceptance;
 #[path = "qualification_support/fixtures.rs"]
 mod fixtures;
 #[path = "qualification_runner/peer.rs"]
@@ -145,10 +148,8 @@ struct Invocation {
     initial: Vec<u8>,
 }
 
-async fn prepare(repeats: usize) -> Check<Peer> {
-    let fixtures = fixtures::cases();
-    check(fixtures.iter().map(|case| case.id).eq(CASE_IDS))?;
-    let mut cases = Vec::with_capacity(CASE_IDS.len());
+async fn prepare_cases(fixtures: Vec<Case>, repeats: usize) -> Check<Peer> {
+    let mut cases = Vec::with_capacity(fixtures.len());
     for fixture in fixtures {
         cases.push(PreparedCase::new(fixture).await?);
     }
@@ -395,12 +396,8 @@ async fn qualify_rows(engine: &Engine, peer: &Peer) -> Check<Vec<Value>> {
     Ok(rows)
 }
 
-async fn qualify(repeats: usize) -> Check<Value> {
-    let peer = Arc::new(
-        timeout(SESSION_DEADLINE, prepare(repeats))
-            .await
-            .map_err(|_| Failed)??,
-    );
+async fn with_peer<T>(peer: Peer, run: impl AsyncFnOnce(&Engine, &Peer) -> Check<T>) -> Check<T> {
+    let peer = Arc::new(peer);
     let server = timeout(
         SESSION_DEADLINE,
         TestServer::new({
@@ -421,7 +418,7 @@ async fn qualify(repeats: usize) -> Check<Value> {
         return Err(Failed);
     };
     let engine = Engine::new(transport.clone());
-    let rows = qualify_rows(&engine, &peer).await;
+    let result = run(&engine, &peer).await;
     // Attempt all cleanup even when a case rejected or hit its deadline.
     let engine_closed = timeout(SESSION_DEADLINE, engine.close()).await;
     let transport_closed = timeout(SESSION_DEADLINE, transport.close()).await;
@@ -431,8 +428,18 @@ async fn qualify(repeats: usize) -> Check<Value> {
             && matches!(transport_closed, Ok(Ok(())))
             && server_closed.is_ok(),
     )?;
-    let rows = rows?;
+    let result = result?;
     peer.verify_closed()?;
+    Ok(result)
+}
+
+async fn qualify(repeats: usize) -> Check<Value> {
+    let fixtures = fixtures::cases();
+    check(fixtures.iter().map(|case| case.id).eq(CASE_IDS))?;
+    let peer = timeout(SESSION_DEADLINE, prepare_cases(fixtures, repeats))
+        .await
+        .map_err(|_| Failed)??;
+    let rows = with_peer(peer, qualify_rows).await?;
     Ok(json!({
         "schema": "rambler-native-qualification-v1",
         "scope": "synthetic-localhost-only",

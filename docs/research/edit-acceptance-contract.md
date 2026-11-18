@@ -58,7 +58,7 @@ Invented observation document (illustrates one complete and one unqualified obse
 python -I -S -B tools/check_edit_acceptance.py EXPECTATIONS_JSON OBSERVATIONS_JSON
 ```
 
-The checker reads only the named input documents, never writes them, and has no producer or integration with the app, service, capture pipeline, or corpus validator. It compares only after **both** documents pass syntax and schema checks. The result is one compact JSON record (`rambpc-edit-acceptance-result-v1`, scope `offline-strict-proposal-only`), with these verdicts:
+The checker reads only the named input documents, never writes them, and has no integration with the app, service, capture pipeline, or corpus validator. It compares only after **both** documents pass syntax and schema checks. The result is one compact JSON record (`rambpc-edit-acceptance-result-v1`, scope `offline-strict-proposal-only`), with these verdicts:
 
 | Exit | Verdict | Meaning |
 | --- | --- | --- |
@@ -68,6 +68,19 @@ The checker reads only the named input documents, never writes them, and has no 
 | 3 | `invalid` | Bad argument count, unreadable input, or syntax/schema failure. Emits a fixed role-level reason instead of counts; no partial comparisons. |
 
 `expected` is the sum of `conforming_no_edit`, `conforming_edit`, `mismatch`, `missing`, and `unqualified`. With matched global provenance, `missing` counts absent declared rows, `unqualified` counts rows with wrong input IDs, explicit unqualified status or unsupported intent, and `unexpected` counts undeclared rows separately. `unexpected` is not assessed when the global pairing is unqualified.
+
+## Reproduce with the synthetic native SDK fixtures
+
+From the repository root, with the Rust/audio dependencies already cached, a trusted Python 3 as `python` on `PATH`, and IPv4 loopback available:
+
+```sh
+cargo test --offline --locked -j 2 -p rambler-cli --features audio --example native_qualification -- \
+  --ignored --exact edit_acceptance::strict_edit_acceptance_uses_native_proposals --show-output
+```
+
+The opt-in test writes both declarations before starting the owned localhost peer. The peer verifies the fixed synthetic PCM session's upload and sends fixed S3 replies. The Rust collector then yields the final and captured context; the observation uses the raw intent and the strict `replacement_proposal` result, with no rendered-text fallback. The test checks intent 2/member 7's exact replacement window and UTF-16 range `[13,22]`, and a genuine intent 3/member 3 final whose strict proposal is rejected. The same observation must produce exit `0` (`conforming`, one edit and one no-edit), then exit `1` (`mismatch`, one mismatch and one conforming no-edit) against a declaration with the valid but wrong endpoint `23`.
+
+The test takes no corpus, endpoint, or output path. It uses a fresh local temporary directory for the synthetic JSON and deletes it on normal completion; `--show-output` reveals only verified aggregates. The normal native qualification report v1 is unchanged. This tests the Rust-to-Python contract, not real service behavior or editing quality.
 
 ## Privacy and what still needs review
 
