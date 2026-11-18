@@ -65,12 +65,37 @@ For Release, preserve its artifacts separately and separately inspect
 the corresponding Release clean without dry-run. Never blindly clean target,
 delete a CLI executable, or infer a Release rebuild from a dev clean.
 
+### Local Windows compiler identification failures
+
+If a fresh VS17 configure reports `No CMAKE_C_COMPILER could be found`, check
+`CMakeFiles/CMakeConfigureLog.yaml` under the `-B` directory printed by the
+build script before cleaning. The message can occur even when MSVC is present.
+
+A local C-only diagnostic used the CMake 3.31.10 wheel below, VS 2022
+Community / MSVC 14.44.35207, and SDK 10.0.26100.0. It configured with
+`-G "Visual Studio 17 2022"`, `-A x64`, and `-T host=x64`. At a 201-character
+build directory, MSBuild invoked `cl.exe` but FileTracker failed with `FTK1011`
+writing `CompilerIdC` tracking logs. Changing only the physical `-B` directory
+to 139 characters let CMake identify MSVC 19.44.35227.0 and build a Release
+static library. These are observed lengths, not a universal path limit or a
+fresh Cargo/Opus build result.
+
+If your log shows that FileTracker failure, keep Cargo's working directory at
+the repository root and choose a fresh, physically shallow absolute
+`CARGO_TARGET_DIR` for local development. Leave room for the nested Cargo and
+CMake directories. An 8.3 spelling of a deep directory is not a reliable
+substitute for a physically shallow one.
+
+### Hosted VS17 qualification
+
 The separate `vs17-opus` functional job pins `windows-2022` and stable Rust,
 keeps the ordinary eight native matrix jobs and their PATH unchanged, and runs
-only the eight Release `profile_pipeline` unit tests, not the example main or
-the release CLI. A child-only PATH excludes Ninja without altering installed
-files. The actual cache, VS instance, x64 host tools and 152 compiler records
-must pass runtime checks. Native output is located through Cargo's documented
+only the nine Release `profile_pipeline` unit tests, not the example main or
+the release CLI. It uses the runner's installed CMake and a fresh target in the
+checkout, not the local wheel or a developer's target directory. A child-only
+PATH excludes Ninja without altering installed files. The actual cache, VS
+instance, x64 host tools and 152 compiler records must pass runtime checks.
+Native output is located through Cargo's documented
 `build-script-executed` JSON `out_dir`, not a private Cargo directory layout.
 Built/installed archive SHA-256 identity is local to that checkout, not a
 cross-machine checksum or performance comparison. Logs are retained only in

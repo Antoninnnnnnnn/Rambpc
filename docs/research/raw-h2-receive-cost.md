@@ -6,6 +6,45 @@ A cold nonempty message establishes the reusable buffer (same costs as before). 
 
 Full DATA credit is still released before any decode error or response-queue wait. The decoder emits one message at a time, so a valid prefix is sent before an invalid suffix is inspected. Compression, size and truncated-EOF errors keep their meanings. Post-drain pending input is at most the message limit plus four bytes; a fragment append can temporarily add one DATA frame, as before. No response queue sizes, limits, or trailer handling change.
 
+## Matched native session timing — Windows, 2026-11-18
+
+The [native qualification kit](native-qualification-kit.md) compared the exact
+`3421da0` workspace with one receive-only baseline: `wire.rs` at `4cf9c4d`
+(the new private deframer is unused in that variant). Both Release builds used
+the same toolchain, lock, fixtures and harness. Before timing, the strict
+comparator matched both runs on PCM, ordered responses, rendered output,
+counts and Ogg length. The harness itself also checked exact Opus packets
+and Ogg framing. Random Ogg serials were not compared as full stream bytes.
+
+Each version ran six repeats per process, alternating candidate and baseline
+processes for four blocks. The same strict fidelity comparison passed for each
+block. Deltas are candidate minus baseline, in microseconds; negative is faster.
+
+| Case | First response, median [min, max] | Session, median [min, max] |
+|---|---:|---:|
+| Literal | −10.5 [−793, +114] | −11 [−812, +116] |
+| Rewrite | −25.5 [−430, +276] | −29 [−449, +278] |
+| Selection | −25 [−1060, +111] | −26.5 [−1085, +112] |
+| Preview | +1.5 [−698, +262] | **+0.5 [−1028, +384]** |
+
+The predeclared primary metric, preview through SDK EOF (before rendering),
+was faster in 12 paired observations and slower in 12. Block medians were
+−40, +73, +76 and −880 µs; excluding the first repeat from each block did not
+change the overall median. Negative medians on secondary cases did not repeat
+consistently across blocks. There are 24 observations per case and variant,
+not 24 independent process launches. **No repeatable end-to-end gain resolved,
+and no proof of equivalence.** The earlier allocation counts remain a separate
+result. This fixture does not measure real DATA alignment, retention rates,
+service latency, or production speed.
+
+Two earlier builds stopped before timing because CMake did not identify the C
+compiler; even a short spelling of the deep directory did not help. A separate
+minimal C project reproduced a FileTracker error at a deep path, not a proven
+root cause for those earlier Cargo failures. Both actual variants then built
+with physically shallow targets ([build guidance](../../crates/rambler-audio/BUILDING.md#local-windows-compiler-identification-failures)).
+Their disposable caches were cleaned. The [evidence](../evidence/rust-deframer-native-loopback-windows-20261118.json)
+retains all 192 timed rows, the gate, full dispersion, and both failed statuses.
+
 ## Reproduce
 
 Run from the repository root using the cached stable toolchain. On Windows, use a dedicated Cargo target directory and the pinned `tools/windows_owned_job.py` job helper with the approved build-only environment if a bounded capture is needed.
