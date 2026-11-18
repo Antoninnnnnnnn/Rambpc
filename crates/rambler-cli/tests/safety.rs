@@ -92,8 +92,12 @@ fn safety_status(status: u64) -> Vec<u8> {
     v(HYPOTHESIS_SAFETY_STATUS, status).unwrap()
 }
 
-fn assert_safety_error(exit: i32, value: Value, category: &str) {
+fn assert_safety_error(exit: i32, mut value: Value, category: &str) {
     assert_eq!(exit, 1);
+    let timeline = value.as_object_mut().unwrap().remove("timeline").unwrap();
+    assert!(timeline["half_close_sent_seconds"].is_number());
+    assert_eq!(timeline["saw_s3_end"], true);
+    assert!(!timeline.to_string().contains("CONTROLLED"));
     // No text (recognition or edit), provenance, context, or raw candidates.
     assert_eq!(
         value,

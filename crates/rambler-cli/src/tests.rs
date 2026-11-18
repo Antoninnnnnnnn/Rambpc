@@ -156,7 +156,7 @@ async fn loopback_admission_skips_lookup_and_normal_admission_reuses_snapshot() 
 #[test]
 fn absent_pcm_observation_preserves_terminal_json_exactly() {
     let observation = super::PcmObservation::default();
-    let value = failure_output(&EngineError::FinalizeTimeout, None);
+    let value = failure_output(&EngineError::FinalizeTimeout, None, None);
     assert_eq!(observation.append_to(value.clone()), value);
 }
 
@@ -178,7 +178,7 @@ async fn pcm_terminal_observation_is_exact_and_does_not_claim_eof_after_close() 
     let observation = super::PcmObservation {
         handle: Some(handle),
     };
-    let value = observation.append_to(failure_output(&EngineError::FinalizeTimeout, None));
+    let value = observation.append_to(failure_output(&EngineError::FinalizeTimeout, None, None));
     assert_eq!(
         value["pcm"],
         serde_json::json!({
@@ -256,9 +256,10 @@ fn incomplete_output_contains_only_explicit_completion_diagnostics() {
             elapsed_seconds: 2.0,
             first_response_seconds: Some(0.1),
             eof_seconds: None,
+            timeline: Default::default(),
         },
     }));
-    let value = failure_output(&error, None);
+    let value = failure_output(&error, None, None);
     assert_eq!(value["category"], "incomplete");
     assert_eq!(value["incomplete"]["saw_s3_end"], true);
     assert_eq!(value["incomplete"]["completion"]["source_exhausted"], false);
@@ -268,12 +269,12 @@ fn incomplete_output_contains_only_explicit_completion_diagnostics() {
     assert_eq!(value["incomplete"]["metrics"]["audio"]["eof"], false);
     let serialized = value.to_string();
     for forbidden in ["session_id", "raw", "text", "metadata"] {
-        assert!(!serialized.contains(forbidden));
+        assert!(!serialized.contains(&format!("\"{forbidden}\":")));
     }
     let sensitive = EngineError::Audio(SourceError::new(std::io::Error::other(
         "PRIVATE-AUDIO-DETAIL",
     )));
-    let value = failure_output(&sensitive, Some(&sensitive));
+    let value = failure_output(&sensitive, Some(&sensitive), None);
     assert_eq!(value["category"], "audio");
     assert!(!value.to_string().contains("PRIVATE-AUDIO-DETAIL"));
     assert!(value.get("incomplete").is_none());
@@ -382,7 +383,7 @@ fn finalize_timeout_cli_defaults_validation_and_category() {
             }
         }
     }
-    let value = failure_output(&EngineError::FinalizeTimeout, None);
+    let value = failure_output(&EngineError::FinalizeTimeout, None, None);
     assert_eq!(value["category"], "finalize_timeout");
     assert!(value["grpc_code"].is_null());
     assert!(!value.to_string().contains("deadline"));

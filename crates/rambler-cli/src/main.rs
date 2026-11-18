@@ -5,7 +5,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext,
     EncodedAudioProgress, Engine, EngineError, OggAudio, ProtocolConfig, RenderPolicy,
-    SessionOptions, TextProvenance, collect_dictation,
+    SessionDiagnostic, SessionOptions, TextProvenance, collect_session,
 };
 use rambler_transport::{
     EnvironmentCredentials, Metadata, MetadataProvider, TransportConfig, TransportError,
@@ -60,7 +60,8 @@ struct CommonArgs {
     result_policy: Option<ResultPolicy>,
     #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..))]
     timeout: u64,
-    /// Post-audio finalization budget in seconds, bounded by the overall timeout.
+    /// Seconds to wait after audio EOF and cleanup (try 5; omitted means no separate budget).
+    /// The overall --timeout still applies.
     #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
     finalize_timeout: Option<u64>,
     #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u64).range(1..))]
@@ -259,10 +260,47 @@ fn output(
 fn print_error(category: &str, code: Option<String>) {
     println!(
         "{}",
-        json!({"type":"error", "category":category, "grpc_code":code})
+        json!({"type":"error", "category":category, "grpc_code":code, "timeline":null})
     );
 }
-fn failure_output(error: &EngineError, cleanup: Option<&EngineError>) -> Value {
+
+fn with_timeline(mut value: Value, diagnostic: Option<&SessionDiagnostic>) -> Value {
+    value["timeline"] = diagnostic.map_or(Value::Null, |diagnostic| {
+        let metrics = &diagnostic.metrics;
+        let timeline = &metrics.timeline;
+        json!({
+            "elapsed_seconds": metrics.elapsed_seconds,
+            "first_response_seconds": metrics.first_response_seconds,
+            "last_audio_sent_seconds": timeline.last_audio_sent_seconds,
+            "context_sent_seconds": timeline.context_sent_seconds,
+            "end_sent_seconds": timeline.end_sent_seconds,
+            "half_close_sent_seconds": timeline.half_close_sent_seconds,
+            "last_response_seconds": timeline.last_response_seconds,
+            "last_response_s3_status": timeline.last_response_s3_status,
+            "last_partial_response_seconds": timeline.last_partial_response_seconds,
+            "recognition_finals_received": timeline.recognition_finals_received,
+            "requests_produced": metrics.requests_produced,
+            "requests_submitted": timeline.requests_submitted,
+            "request_protobuf_bytes": metrics.request_protobuf_bytes,
+            "request_protobuf_bytes_submitted": timeline.request_protobuf_bytes_submitted,
+            "responses_received": metrics.responses_received,
+            "responses_deframed": diagnostic.completion.responses_received,
+            "response_protobuf_bytes": metrics.response_protobuf_bytes,
+            "audio_source_eof": metrics.audio.eof,
+            "audio_cleanup_succeeded": metrics.audio.cleanup_succeeded,
+            "request_source_exhausted": diagnostic.completion.source_exhausted,
+            "saw_s3_end": diagnostic.saw_s3_end,
+            "terminal_grpc_code": diagnostic.completion.terminal_code.map(|code| format!("{code:?}")),
+        })
+    });
+    value
+}
+
+fn failure_output(
+    error: &EngineError,
+    cleanup: Option<&EngineError>,
+    diagnostic: Option<&SessionDiagnostic>,
+) -> Value {
     let (category, code) = error_category(error);
     let (close_category, close_code) = cleanup
         .map(error_category)
@@ -294,15 +332,16 @@ fn failure_output(error: &EngineError, cleanup: Option<&EngineError>) -> Value {
                 "eof_seconds": metrics.eof_seconds,
             }
         });
+        return with_timeline(value, Some(diagnostic));
     }
-    value
+    with_timeline(value, diagnostic)
 }
 
-/// Preserve the pre-session error shape and await cleanup without polling audio.
+/// Add no invented measurements when the session never started; still await cleanup.
 async fn pre_session_failure_output(audio: &mut dyn AudioSource, error: &EngineError) -> Value {
     let cleanup_failed = audio.close().await.is_err();
     let (category, code) = error_category(error);
-    let mut value = json!({"type":"error", "category":category, "grpc_code":code});
+    let mut value = json!({"type":"error", "category":category, "grpc_code":code, "timeline":null});
     if cleanup_failed {
         value["close_error_category"] = json!("cleanup");
     }
@@ -468,11 +507,15 @@ async fn main() {
         context_timeout: Duration::from_secs(context_timeout),
         credentials,
     };
-    let collection = collect_dictation(&engine, audio, options, CollectorLimits::default());
+    let session = engine.start(audio, options);
+    let diagnostics = session.as_ref().ok().map(|session| session.diagnostics());
+    let collection = async move { collect_session(session?, CollectorLimits::default()).await };
     let (result, cleanup, interrupted) = supervise(collection, || engine.close(), async {
         tokio::signal::ctrl_c().await.is_ok()
     })
     .await;
+    let diagnostic = diagnostics.and_then(|handle| handle.final_snapshot());
+    let diagnostic = diagnostic.as_deref();
     if let Some(signal_ok) = interrupted {
         let (close_category, close_code) = cleanup
             .as_ref()
@@ -481,7 +524,7 @@ async fn main() {
             .map_or((None, None), |(c, g)| (Some(c), g));
         println!(
             "{}",
-            pcm.append_to(json!({"type":"error", "category": if signal_ok { "cancelled" } else { "signal" }, "grpc_code":null, "close_error_category":close_category, "close_grpc_code":close_code}))
+            pcm.append_to(with_timeline(json!({"type":"error", "category": if signal_ok { "cancelled" } else { "signal" }, "grpc_code":null, "close_error_category":close_category, "close_grpc_code":close_code}), diagnostic))
         );
         std::process::exit(if signal_ok { 130 } else { 1 });
     }
@@ -490,7 +533,7 @@ async fn main() {
         (Err(e), cleanup) => {
             println!(
                 "{}",
-                pcm.append_to(failure_output(&e, cleanup.as_ref().err()))
+                pcm.append_to(failure_output(&e, cleanup.as_ref().err(), diagnostic))
             );
             std::process::exit(1);
         }
@@ -498,7 +541,7 @@ async fn main() {
             let (c, g) = error_category(&e);
             println!(
                 "{}",
-                pcm.append_to(json!({"type":"error", "category":"cleanup", "grpc_code":null, "close_error_category":c, "close_grpc_code":g}))
+                pcm.append_to(with_timeline(json!({"type":"error", "category":"cleanup", "grpc_code":null, "close_error_category":c, "close_grpc_code":g}), diagnostic))
             );
             std::process::exit(1);
         }
@@ -506,7 +549,10 @@ async fn main() {
             let (value, ambiguous) = match output(&r, result_policy) {
                 Ok(output) => output,
                 Err(error) => {
-                    println!("{}", pcm.append_to(failure_output(&error, None)));
+                    println!(
+                        "{}",
+                        pcm.append_to(failure_output(&error, None, diagnostic))
+                    );
                     std::process::exit(1);
                 }
             };

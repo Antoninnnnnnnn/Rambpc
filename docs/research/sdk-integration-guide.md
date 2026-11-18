@@ -20,6 +20,12 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 - `Engine::connect(transport_config).await` owns the transport. To share an existing `GrpcTransport`, use `Engine::new(transport.clone())` and close that transport separately after its last owner is done. Use only your application's authorized transport and per-session `SessionOptions::credentials` (`Arc<dyn MetadataProvider>`). `TransportConfig::tls` takes a `Host[:port]` authority, not a URL. For a fixture that you control, `TransportConfig::loopback` accepts an explicit numeric loopback address. The SDK does not provision service access.
 - Set your locale in `SessionOptions::config.language`. Keep the audio configuration at Ogg/Opus, 16 kHz input, and one channel, as in `ProtocolConfig::default()`. Start each utterance with its own audio source, options, and any per-session context provider.
 
+### Warm the connection before recording
+
+`Engine::connect` is eager: it resolves the endpoint, establishes TCP and verified TLS (except for explicit loopback), and initializes the HTTP/2 client, without starting an RPC. For a confirmed warm start, use `Engine::connect_ready(transport_config).await` during app startup. It also waits for one HTTP/2 PING acknowledgement within the same connection timeout, without an RPC or credential lookup. When sharing a transport, use `GrpcTransport::connect_ready` before `Engine::new`.
+
+Keep the returned engine and use it for the first and later dictations; don't reconnect on every utterance. The probe adds one round trip to warm-up, not to session startup. It is not periodic keepalive, auth validation, or a guarantee that the peer will still be reachable or accept an RPC later. A dead or closed connection never reconnects automatically; explicitly create a replacement for new sessions.
+
 ## 2. Feed ordered caller audio
 
 For a local Ogg/Opus file, give `Box::new(rambler_engine::OggAudio::open(path).await?)` to either collector. This is the same bounded, byte-preserving source used by `rambler dictate`; it needs no native Opus dependency. It preflights the first page and validates the remaining pages as they are read, without real-time pacing. A late framing or read error fails the session rather than pretending the input ended normally. See [`OggAudio`'s file policy](../../crates/rambler-engine/src/ogg.rs).
@@ -52,9 +58,29 @@ On the healthy path the engine sends initialization, then encoded audio, then op
 
 `CollectorLimits` defaults to 128 final updates and 8 MiB of original protobuf bytes across those finals. Each recognition-complete response counts, including duplicates and empty markers; partials do not enter `DictationResult::final_updates`. This is a retention bound, not an exact heap limit. The result preserves wire order without merging. If a consumer intentionally needs the other hypothesis containers as well, `collect_segments` has separate retention semantics and does not assemble text.
 
-Set `SessionOptions::timeout` (default 30 s) for the overall session and `context_timeout` (default 2 s) for a late provider. Optionally set `finalize_timeout` for the period from normal audio EOF **and successful cleanup** through late context, upload END, and successful EOF publication. It cannot extend the overall timeout, stop the audio phase, or preempt a blocking observer. Source cleanup is awaited and can outlast session budgets; it must cooperate. Size limits, timeouts, upload failures, late gRPC status, and S3 errors are failures, not partial success or permission to replay audio.
+Set `SessionOptions::timeout` (default 30 s) for the overall session and `context_timeout` (default 2 s) for a late provider. Source cleanup is awaited and can outlast session budgets; it must cooperate. Size limits, timeouts, upload failures, late gRPC status, and S3 errors are failures, not partial success.
 
 Admission takes ownership even if the future is never polled; a rejected source still gets cleanup. Dropping the collector signals cancellation of its session but cannot await cleanup. For a shared engine, keep it alive for other sessions; do not close it merely to dismiss one preview. At shutdown, stop producers, drop/cancel outstanding collecting futures, then await `Engine::close()` (permanently closes the engine). Check its distinct cleanup/background errors even if you already handled a collection failure. If the transport was supplied to `Engine::new`, close it separately after all its users are done. Do not discard the runtime first.
+
+### Fail fast after audio ends (opt in)
+
+Pass `SessionOptions::default().with_recommended_finalize_timeout()` to either PCM helper or engine collector (or set `finalize_timeout: Some(RECOMMENDED_FINALIZE_TIMEOUT)` on custom options). Healthy native sessions in the measured campaign finished 0.27–0.49 s after audio end; **5 s** gives room for variance and late context without waiting out the full RPC deadline on stalls. This is a starting point for interactive apps, not a service guarantee. Library and CLI defaults remain unchanged: no separate post-audio budget.
+
+The budget starts at normal audio EOF **and successful cleanup** and covers late context, upload END, gRPC completion, and successful EOF publication. It cannot extend the overall timeout, stop the audio phase, or preempt a blocking observer. If it expires first, collection fails with `EngineError::FinalizeTimeout`; discard previews and don't treat prior candidates as success. In either CLI mode, pass whole seconds explicitly, e.g. `rambler dictate --finalize-timeout 5 input.ogg` or `rambler dictate-wav --finalize-timeout 5 input.wav` (with authorized configuration).
+
+### Offer one explicit user retry (opt in)
+
+Before collection, call `RetryAudio::capture(encoded_source, RetryAudioLimits { max_bytes, max_chunks })`; pass the returned wrapped source to the collector and keep the separate handle. For PCM, compose `pcm_channel` with `Pcm16Opus` as in `minimal_app`, and wrap the encoder's output, not its PCM input. The first upload behaves normally even if either retention cap is exceeded; on overflow the SDK discards the capture and never exposes a truncated retry. Normal source EOF and successful cleanup are required, including when the first RPC fails.
+
+After a **failed collection** and only on the user's request, consume the handle with `retained.into_source()`. If it returns audio, pass it to a new collector with fresh options and current editor context (or confirm the original context is still valid). The encoded audio bytes and chunk boundaries are identical; timing, context, metadata and the RPC itself are new. Use a replacement engine explicitly if the old connection died. No started RPC is resumed or automatically replayed. A failed collection does not prove the server processed no audio.
+
+Only the retained encoded audio is copied, in process memory; the SDK neither persists nor securely erases it. The caps count encoded bytes and nonempty chunks, not allocator overhead. Drop the handle on success, cancellation or dismissal and bound how long your app offers the retry. The handle is single-use; if consumed, the retry source owns the bytes until consumed or dropped.
+
+### Retain safe terminal diagnostics
+
+To diagnose failures without logging payloads, start a session with `let session = engine.start(audio, options)?;`, clone its `let diagnostics = session.diagnostics();`, then await `collect_session(session, limits)`. The retained `diagnostics.final_snapshot()` works even when the collector returns an error or after the engine has finished cleanup following a dropped collector. With a manually driven session, await terminal `next()` or `close()` first. Reading the snapshot neither acknowledges errors nor keeps the RPC alive.
+
+The CLI emits the same structural counters and offsets under `timeline` on error; it is `null` before a session starts. All times are relative to engine session start. The upload dates mark complete protobuf messages and HTTP/2 `END_STREAM` accepted by **local h2**, not peer receipt. Compare produced and submitted protobuf counts to distinguish a backed-up upload from a loss of responses after END. The first and last response times reflect local gRPC deframing for messages handed to the engine; `responses_deframed` can be greater than `responses_received` if cancellation prevents draining the queue. The last response's numeric S3 status (if present) is distinct from the gRPC terminal code and from recognition finality. `last_partial_response_seconds` records the last response carrying decoded partial hypotheses, not heartbeats. `recognition_finals_received` counts recognition-state-1 responses; the separate `saw_s3_end` flag records global S3 completion. A partial after local END, without either completion marker, is distinguishable from silence. The timeline contains no audio, text, context content, headers, credentials, or session ID and does not authorize replay.
 
 ## 5. Render or propose only after `Ok`
 
@@ -93,6 +119,8 @@ cargo +stable test --locked --offline -p rambler-cli --features audio --example 
 cargo +stable run --locked --offline -p rambler-cli --features audio --example minimal_app -- --authority YOUR_HOST:443 input.wav
 ```
 
+The app warms the connection and opts into the recommended 5 s finalization budget. To demonstrate a user-triggered retry, add `--offer-retry`: the example retains up to 1 MiB and 4096 nonempty encoded chunks in memory and, on collection failure with complete retained audio, asks once at a terminal. Only typing `y` starts a new session. Without the flag it never retains retry audio.
+
 The app resolves credentials only through `EnvironmentCredentials` from `RAMBLER_API_KEY`, `RAMBLER_ANDROID_PACKAGE`, and `RAMBLER_ANDROID_CERT`; it has no default service and does not read a `.env` file. The sample WAV reader buffers a small local file to support both input rates; for streaming a 16 kHz file, see [`WavAudio`](../../crates/rambler-audio/src/wav.rs).
 
 For microphone integration, replace the WAV producer with your host's capture backend. Feed ordered mono PCM16LE at a known 16 or 48 kHz into the same bounded channel from an async producer, not a capture callback. Use a bounded handoff, cancel capture when collection ends, and call `finish()` only on intentional EOF. No microphone dependency or capture is included.
@@ -103,6 +131,7 @@ From the workspace root, the public-API tests and examples below need no microph
 
 ```sh
 cargo +stable test --locked --offline -p rambler-engine --test observed_dictation
+cargo +stable test --locked --offline -p rambler-engine --test app_reliability
 cargo +stable test --locked --offline -p rambler-engine --test splice
 cargo +stable test --locked --offline -p rambler-engine --doc
 cargo +stable test --locked --offline -p rambler-cli --features audio --test pcm_sdk

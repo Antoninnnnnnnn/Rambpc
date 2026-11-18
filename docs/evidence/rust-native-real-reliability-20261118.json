@@ -1,0 +1,80 @@
+{
+  "schema": "rambler-native-real-reliability-20261118-v1",
+  "binary_sha256": "86610a8a508e700377500289be363522dfa2fd13760a33fe8c38c6ee88eb031d",
+  "source": "01631f3f32f74d74e6a68917fb20c92fa1cb1678",
+  "endurance": {
+    "batch20": {
+      "ok": 19,
+      "exact": 19,
+      "errors": [
+        {
+          "n": 4,
+          "lang": "fr",
+          "grpc": "DeadlineExceeded"
+        }
+      ],
+      "timeout_s": 30
+    },
+    "probe30": {
+      "ok": 30,
+      "exact": 30,
+      "timeout_s": 90,
+      "after_end_median_s": 0.373,
+      "after_end_max_s": 0.494
+    },
+    "batch100": {
+      "ok": 100,
+      "exact": 100,
+      "timeout_s": 90,
+      "after_end_median_s": 0.3505,
+      "after_end_p95_s": 0.447,
+      "after_end_max_s": 1.143
+    },
+    "total": "149/150 exact; one remote DeadlineExceeded at the advertised 30 s budget after full upload; cause not established"
+  },
+  "python_vs_rust_real": {
+    "pairs": 6,
+    "all_exact": true,
+    "median_process_wall_after_audio_end_s": {
+      "rust": 0.502,
+      "python": 0.909
+    },
+    "note": "includes process start, TLS and finalization; same clip, alternating order"
+  },
+  "pcm_48k_real": "minimal_app: same phrase at 48 kHz and 16 kHz produced identical final text",
+  "natural_dictation": {
+    "audio_s": 177.6,
+    "words": 520,
+    "word_edits": 6,
+    "nature": "formatting (twenty-fourth to 24th, ten to 10:00) and removed connectives (and, and finally)",
+    "after_end_s": 2.533
+  },
+  "long_sessions": [
+    {
+      "audio_s": 46.8,
+      "result": "12/12 distinct sentences exact as numbered list",
+      "after_end_s": 0.63
+    },
+    {
+      "audio_s": 122.6,
+      "result": "repeated sentence de-duplicated by service",
+      "after_end_s": 0.433
+    },
+    {
+      "audio_s": 320.1,
+      "result": "FAILED at ~300 s wall, remote gRPC Internal, no text"
+    },
+    {
+      "audio_s": 675.0,
+      "result": "FAILED at ~300 s wall, remote gRPC Internal, no text"
+    }
+  ],
+  "findings": [
+    "Service appears to enforce a ~300 s stream limit; sessions beyond it lose all text. Apps must segment long dictation.",
+    "Default 30 s session budget includes speech; apps must raise it for dictation longer than ~25 s."
+  ],
+  "limits": [
+    "Synthetic TTS voices, one machine and network.",
+    "No credentials or raw responses published."
+  ]
+}

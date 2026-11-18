@@ -214,6 +214,23 @@ async fn s3_end_without_grpc_trailers_exits_with_finalize_timeout() {
         assert!(value["grpc_code"].is_null());
         assert!(value["close_error_category"].is_null());
         assert!(value["close_grpc_code"].is_null());
+        let timeline = &value["timeline"];
+        let audio = timeline["last_audio_sent_seconds"].as_f64().unwrap();
+        let end = timeline["end_sent_seconds"].as_f64().unwrap();
+        let half_close = timeline["half_close_sent_seconds"].as_f64().unwrap();
+        let first = timeline["first_response_seconds"].as_f64().unwrap();
+        assert!(audio <= end && end <= half_close && half_close <= first);
+        assert_eq!(timeline["last_response_seconds"], first);
+        assert_eq!(timeline["last_response_s3_status"], 1);
+        assert_eq!(timeline["responses_received"], 1);
+        assert_eq!(timeline["response_protobuf_bytes"], 2);
+        assert!(timeline["request_protobuf_bytes"].as_u64().unwrap() > 4);
+        assert_eq!(
+            timeline["request_protobuf_bytes"],
+            timeline["request_protobuf_bytes_submitted"]
+        );
+        assert!(timeline["context_sent_seconds"].is_null());
+        assert!(timeline["terminal_grpc_code"].is_null());
         server.close().await;
     })
     .await

@@ -7,7 +7,8 @@ use rambler_protocol::{
     end_request, initial_request,
     wire::{Field, Value, bytes_field as b, parse_fields, string_field as s, varint_field as v},
 };
-use std::io::Cursor;
+use std::{io::Cursor, sync::Mutex};
+use tonic::Status;
 
 const SAMPLES: usize = 4099; // Multiple writes, with a one-sample tail at 48 kHz.
 
@@ -47,7 +48,7 @@ fn final_response(rewrite: bool) -> Bytes {
     recognition(1, b(3, &b(3, &hypothesis).unwrap()).unwrap())
 }
 
-fn verify_upload(messages: &[Bytes], pcm16_samples: usize) {
+fn verify_upload(messages: &[Bytes], pcm16_samples: usize) -> Vec<Bytes> {
     assert!(messages.len() >= 4);
     assert_eq!(
         messages[0],
@@ -60,6 +61,7 @@ fn verify_upload(messages: &[Bytes], pcm16_samples: usize) {
     assert_eq!(end.as_ref(), end_request().as_slice());
 
     let mut ogg = Vec::new();
+    let mut chunks = Vec::new();
     for message in &messages[1..messages.len() - 2] {
         let fields = parse_fields(message).unwrap();
         let [
@@ -87,6 +89,7 @@ fn verify_upload(messages: &[Bytes], pcm16_samples: usize) {
             panic!("expected an Ogg audio chunk");
         };
         ogg.extend_from_slice(chunk);
+        chunks.push(Bytes::copy_from_slice(chunk));
     }
     let mut ogg = ogg::reading::PacketReader::new(Cursor::new(ogg));
     let head = ogg.read_packet().unwrap().unwrap();
@@ -109,6 +112,7 @@ fn verify_upload(messages: &[Bytes], pcm16_samples: usize) {
     }
     // The Ogg/Opus timebase is always 48 kHz, independent of input PCM rate.
     assert_eq!(end_granule.unwrap() - pre_skip, pcm16_samples as u64 * 3);
+    chunks
 }
 
 #[tokio::test]
@@ -133,13 +137,14 @@ async fn wav_to_strict_text_and_compatible_review_on_owned_loopback() {
         let (window, revision) = demo_window();
         let mut current_preview = None;
         let mut previous_previews = Vec::new();
-        let result = bounded(collect_wav(
+        let engine = bounded(Engine::connect_ready(
             TransportConfig::loopback(server.address).unwrap(),
-            None,
-            wav,
-            &window,
-            |next| previous_previews.push(std::mem::replace(&mut current_preview, next)),
         ))
+        .await
+        .unwrap();
+        let result = bounded(collect_wav(&engine, None, wav, &window, None, |next| {
+            previous_previews.push(std::mem::replace(&mut current_preview, next))
+        }))
         .await
         .unwrap();
         assert_eq!(current_preview, None);
@@ -163,8 +168,64 @@ async fn wav_to_strict_text_and_compatible_review_on_owned_loopback() {
             assert_eq!(result.text().unwrap(), "The kite stays aloft.");
             assert!(matches!(review, Err(EngineError::UnsupportedEdit)));
         }
+        bounded(engine.close()).await.unwrap();
         bounded(server.close()).await;
         dir.close().unwrap();
+    }
+}
+
+#[tokio::test]
+async fn wav_retry_requires_approval_and_reuses_encoded_pages() {
+    for allow in [false, true] {
+        let uploads = Arc::new(Mutex::new(Vec::new()));
+        let server = TestServer::new({
+            let uploads = uploads.clone();
+            move |request| {
+                let uploads = uploads.clone();
+                async move {
+                    let chunks = verify_upload(&drain(request.into_inner()).await, SAMPLES);
+                    let mut uploads = uploads.lock().unwrap();
+                    uploads.push(chunks);
+                    if uploads.len() == 1 {
+                        Err(Status::unavailable("synthetic failure"))
+                    } else {
+                        Ok(replies(stream::iter([
+                            Ok(final_response(false)),
+                            Ok(Bytes::from_static(b"\x08\x01")),
+                        ])))
+                    }
+                }
+            }
+        })
+        .await;
+        let engine = bounded(Engine::connect_ready(
+            TransportConfig::loopback(server.address).unwrap(),
+        ))
+        .await
+        .unwrap();
+        let bytes = sample_wav(16_000);
+        let approve: fn() -> bool = if allow { || true } else { || false };
+        let result = bounded(collect_wav(
+            &engine,
+            None,
+            Wav::parse(&bytes).unwrap(),
+            &demo_window().0,
+            Some(approve),
+            |_| {},
+        ))
+        .await;
+        if allow {
+            assert_eq!(result.unwrap().text().unwrap(), "The kite stays aloft.");
+            let uploads = uploads.lock().unwrap();
+            assert_eq!(uploads.len(), 2);
+            assert_eq!(uploads[0], uploads[1]);
+        } else {
+            assert!(result.is_err());
+            assert_eq!(uploads.lock().unwrap().len(), 1);
+        }
+        assert_eq!(server.accepted_connections(), 1);
+        bounded(engine.close()).await.unwrap();
+        bounded(server.close()).await;
     }
 }
 

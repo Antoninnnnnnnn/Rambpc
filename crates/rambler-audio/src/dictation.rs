@@ -21,7 +21,9 @@ use std::future::Future;
 ///
 /// Dropping the completion future cancels this session and cleanup closes the
 /// input, waking blocked reservations. Keep the runtime alive and await
-/// [`Engine::close`] at shutdown to join outstanding cleanup. If the producer
+/// [`Engine::close`] at shutdown to join outstanding cleanup. Use
+/// [`SessionOptions::with_recommended_finalize_timeout`] to opt in to the
+/// interactive post-audio budget; the default has no separate budget. If the producer
 /// also waits on an external input, arrange to stop that wait when collection
 /// ends or is cancelled; closing the PCM input cannot wake an external wait.
 ///
@@ -40,7 +42,8 @@ use std::future::Future;
 ///
 /// async fn dictate(engine: &Engine, pcm: &[u8]) -> Result<String, EngineError> {
 ///     let (mut writer, completed) = start_pcm_dictation(
-///         engine, SessionOptions::default(), CollectorLimits::default(),
+///         engine, SessionOptions::default().with_recommended_finalize_timeout(),
+///         CollectorLimits::default(),
 ///     );
 ///     let feed = async move {
 ///         for fragment in pcm.chunks(641) {

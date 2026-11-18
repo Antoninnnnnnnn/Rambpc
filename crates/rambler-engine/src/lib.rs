@@ -1,6 +1,7 @@
 //! Native S3 session assembly and conservative, bounded completed results.
 //!
-//! No audio replay, Python process, editor mutation, microphone, or encoder.
+//! No automatic audio replay, Python process, editor mutation, microphone, or
+//! encoder. [`RetryAudio`] is bounded, opt-in retention for an explicit new RPC.
 //! Sources/providers must cooperate with cancellation. `next` may be dropped;
 //! asynchronous audio cleanup is moved into a stable task and awaited exactly once.
 //! Call `Engine::close` / `EngineSession::close` explicitly and keep the Tokio
@@ -117,6 +118,7 @@ mod engine;
 mod ogg;
 mod presentation;
 mod results;
+mod retry_audio;
 mod splice;
 pub use engine::*;
 pub use ogg::OggAudio;
@@ -124,6 +126,7 @@ pub use presentation::*;
 pub use rambler_protocol::{EditingContext, ProtocolConfig, S3Response};
 pub use rambler_transport::{MetadataProvider, SourceError, SourceFuture};
 pub use results::*;
+pub use retry_audio::{RetryAudio, RetryAudioLimits, RetryAudioUnavailable};
 pub use splice::ScalarSplice;
 
 use std::{fmt, sync::Arc};

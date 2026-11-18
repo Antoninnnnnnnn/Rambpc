@@ -213,7 +213,10 @@ fn build_tls_config(
     Ok(tls)
 }
 
-pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, TransportError> {
+pub(crate) async fn connect(
+    config: &TransportConfig,
+    wait_for_peer: bool,
+) -> Result<Connected, TransportError> {
     let authority: http::uri::Authority = config
         .target
         .parse()
@@ -254,7 +257,7 @@ pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, Trans
         }
         Box::new(stream)
     };
-    let (sender, connection) = h2::client::Builder::new()
+    let (sender, mut connection) = h2::client::Builder::new()
         // Separate bounded native connection credit from capacity-one app queues.
         // One paused stream keeps its 65,535-byte limit without exhausting the
         // entire connection, but 1MiB does not promise arbitrary sibling isolation.
@@ -263,16 +266,31 @@ pub(crate) async fn connect(config: &TransportConfig) -> Result<Connected, Trans
         .handshake::<_, Envelope>(io)
         .await
         .map_err(|_| TransportError::Connect)?;
+    // Client handshake only initializes the local end; it doesn't await peer
+    // SETTINGS. A PONG confirms the peer is processing h2, without an RPC.
+    let mut ping = if wait_for_peer {
+        Some(connection.ping_pong().ok_or(TransportError::Connect)?)
+    } else {
+        None
+    };
     let stop = CancellationToken::new();
     let stopped = stop.clone();
     let handle = tokio::spawn(drive(connection, stopped));
-    Ok(Connected {
+    let connected = Connected {
         sender,
         driver: Driver {
             stop,
             handle: Mutex::new(Some(handle)),
         },
-    })
+    };
+    // Own the driver across the await: cancelling/timing out connect drops it
+    // and aborts the task rather than leaving a detached connection behind.
+    if let Some(ping) = &mut ping {
+        ping.ping(h2::Ping::opaque())
+            .await
+            .map_err(|_| TransportError::Connect)?;
+    }
+    Ok(connected)
 }
 
 #[cfg(test)]

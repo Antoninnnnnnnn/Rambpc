@@ -16,11 +16,17 @@ use rambler_audio::{Pcm16Opus, Pcm48kTo16k, pcm_channel};
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationObservation, DictationResult,
     EditingContext, Engine, EngineError, MetadataProvider, PartialTranscript, PresentationContent,
-    RecognitionCompletion, RenderPolicy, Revision, SessionOptions, collect_dictation_with_observer,
-    replacement_proposal_with_policy,
+    RecognitionCompletion, RenderPolicy, RetryAudio, RetryAudioLimits, Revision, SessionOptions,
+    collect_dictation_with_observer, replacement_proposal_with_policy,
 };
 use rambler_transport::{EnvironmentCredentials, TransportConfig};
-use std::{error::Error, ops::Range, path::PathBuf, sync::Arc};
+use std::{
+    error::Error,
+    io::{self, IsTerminal, Write},
+    ops::Range,
+    path::PathBuf,
+    sync::Arc,
+};
 use wav::{Rate, Wav};
 
 type AppResult<T> = Result<T, Box<dyn Error>>;
@@ -31,6 +37,9 @@ struct Args {
     /// Authorized TLS Host[:port]; no service endpoint is built in.
     #[arg(long)]
     authority: String,
+    /// Keep bounded encoded audio in memory and ask before one retry on failure.
+    #[arg(long)]
+    offer_retry: bool,
     /// RIFF/WAVE PCM16LE, mono, 16 or 48 kHz.
     wav: PathBuf,
 }
@@ -49,24 +58,12 @@ fn demo_window() -> (EditingContext, Revision) {
     )
 }
 
-async fn collect_wav(
-    transport: TransportConfig,
-    credentials: Option<Arc<dyn MetadataProvider>>,
-    wav: Wav<'_>,
-    captured_window: &EditingContext,
-    mut replace_preview: impl FnMut(Option<String>) + Send,
-) -> AppResult<DictationResult> {
-    let engine = Engine::connect(transport).await?;
-    let (mut writer, pcm) = pcm_channel();
-    let audio: Box<dyn AudioSource> = match wav.rate {
-        Rate::Khz16 => Box::new(Pcm16Opus::new(pcm, Default::default())),
-        Rate::Khz48 => Box::new(Pcm16Opus::new(Pcm48kTo16k::new(pcm), Default::default())),
-    };
-    let options = SessionOptions {
-        credentials,
-        context: ContextInput::Static(captured_window.clone()),
-        ..Default::default() // The wire format stays 16 kHz mono Ogg/Opus for both inputs.
-    };
+async fn collect_audio(
+    engine: &Engine,
+    audio: Box<dyn AudioSource>,
+    options: SessionOptions,
+    replace_preview: &mut (impl FnMut(Option<String>) + Send),
+) -> Result<DictationResult, EngineError> {
     let mut observe = |observation: DictationObservation<'_>| {
         if let PresentationContent::Recognition {
             completion: RecognitionCompletion::Other,
@@ -80,12 +77,52 @@ async fn collect_wav(
         }
     };
     let completed = collect_dictation_with_observer(
-        &engine,
+        engine,
         audio,
         options,
         CollectorLimits::default(),
         &mut observe,
-    );
+    )
+    .await;
+    replace_preview(None);
+    completed
+}
+
+async fn collect_wav(
+    engine: &Engine,
+    credentials: Option<Arc<dyn MetadataProvider>>,
+    wav: Wav<'_>,
+    captured_window: &EditingContext,
+    retry_approval: Option<fn() -> bool>,
+    mut replace_preview: impl FnMut(Option<String>) + Send,
+) -> AppResult<DictationResult> {
+    let (mut writer, pcm) = pcm_channel();
+    let audio: Box<dyn AudioSource> = match wav.rate {
+        Rate::Khz16 => Box::new(Pcm16Opus::new(pcm, Default::default())),
+        Rate::Khz48 => Box::new(Pcm16Opus::new(Pcm48kTo16k::new(pcm), Default::default())),
+    };
+    let (retained, audio) = if retry_approval.is_some() {
+        let (retained, audio) = RetryAudio::capture(
+            audio,
+            RetryAudioLimits {
+                max_bytes: 1024 * 1024,
+                max_chunks: 4096,
+            },
+        );
+        (Some(retained), audio)
+    } else {
+        (None, audio)
+    };
+    let options = || {
+        SessionOptions {
+            credentials: credentials.clone(),
+            // This demo window is immutable; a real app must check or recapture it.
+            context: ContextInput::Static(captured_window.clone()),
+            ..Default::default() // Both inputs become 16 kHz mono Ogg/Opus on the wire.
+        }
+        .with_recommended_finalize_timeout()
+    };
+    let completed = collect_audio(engine, audio, options(), &mut replace_preview);
     let produced = async move {
         for chunk in wav.pcm.chunks(4096) {
             let permit = writer.reserve().await?;
@@ -98,15 +135,22 @@ async fn collect_wav(
     // The in-memory producer never waits outside the channel. A live capture
     // producer must also be cancelled when collection ends (see the guide).
     let (completed, produced) = tokio::join!(completed, produced);
-    replace_preview(None);
-    let closed = engine.close().await;
-    if completed.is_err()
-        && let Err(error) = &closed
-    {
-        eprintln!("Engine shutdown also failed: {error}");
-    }
+    let completed = match (completed, retained, retry_approval) {
+        (Err(error), Some(retained), Some(approve)) => match retained.into_source() {
+            Ok(audio) => {
+                eprintln!("First collection failed: {error}");
+                if tokio::task::spawn_blocking(approve).await.unwrap_or(false) {
+                    // Only this approval opens a new RPC. Never restart the old one.
+                    collect_audio(engine, audio, options(), &mut replace_preview).await
+                } else {
+                    Err(error)
+                }
+            }
+            Err(_) => Err(error), // Incomplete input or retention cap: no retry.
+        },
+        (result, _, _) => result,
+    };
     let result = completed?; // Prefer the session failure to a consequent Closed writer.
-    closed?;
     produced?;
     Ok(result)
 }
@@ -137,6 +181,19 @@ fn propose_for_review(
     })
 }
 
+fn confirm_retry() -> bool {
+    let stdin = io::stdin();
+    let mut stderr = io::stderr();
+    if !stdin.is_terminal() || !stderr.is_terminal() {
+        return false;
+    }
+    let mut answer = String::new();
+    write!(stderr, "Retry the same audio in a new session? [y/N] ").is_ok()
+        && stderr.flush().is_ok()
+        && stdin.read_line(&mut answer).is_ok()
+        && answer.trim().eq_ignore_ascii_case("y")
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> AppResult<()> {
     let args = Args::parse();
@@ -144,12 +201,28 @@ async fn main() -> AppResult<()> {
     let wav = Wav::parse(&wav_bytes)?;
     let transport = TransportConfig::tls(&args.authority)?;
     let credentials = Arc::new(EnvironmentCredentials.required_snapshot()?);
+    // Warm up once, outside the collection flow. A UI can do this at startup
+    // and keep this engine alive across many utterances.
+    let engine = Engine::connect_ready(transport).await?;
     let (window, revision) = demo_window(); // Capture window and revision together.
     let mut preview = None;
-    let completed = collect_wav(transport, Some(credentials), wav, &window, |next| {
-        preview = next; // In a UI, publish to one replace-latest preview slot, not a log.
-    })
-    .await?;
+    let completed = collect_wav(
+        &engine,
+        Some(credentials),
+        wav,
+        &window,
+        args.offer_retry.then_some(confirm_retry),
+        |next| preview = next, // Publish to one replace-latest UI slot, not a log.
+    )
+    .await;
+    let closed = engine.close().await;
+    if completed.is_err()
+        && let Err(error) = &closed
+    {
+        eprintln!("Engine shutdown also failed: {error}");
+    }
+    let completed = completed?;
+    closed?;
     debug_assert!(preview.is_none());
 
     // Strict display and compatible edit review are independent decisions. A

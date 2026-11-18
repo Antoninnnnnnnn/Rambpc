@@ -338,6 +338,39 @@ pub struct Completion {
     pub source_closed: bool,
     pub terminal_code: Option<Code>,
 }
+/// Request DATA accepted by the local h2 writer, not sent on the socket or
+/// acknowledged by the peer. Only the three most recent request times are kept.
+#[derive(Clone, Debug, Default)]
+pub struct UploadSubmission {
+    requests: u64,
+    bytes: u64,
+    recent: [Option<Instant>; 3],
+    half_close: Option<Instant>,
+}
+impl UploadSubmission {
+    pub fn requests(&self) -> u64 {
+        self.requests
+    }
+    /// Protobuf payload bytes, excluding gRPC and HTTP/2 framing.
+    pub fn protobuf_bytes(&self) -> u64 {
+        self.bytes
+    }
+    /// A one-based request ordinal. Returns None for a request not in the tail.
+    pub fn request_at(&self, ordinal: u64) -> Option<Instant> {
+        let index = usize::try_from(self.requests.checked_sub(ordinal)?).ok()?;
+        self.recent.get(index).copied().flatten()
+    }
+    pub fn half_close_at(&self) -> Option<Instant> {
+        self.half_close
+    }
+    fn record_request(&mut self, bytes: u32) {
+        self.requests += 1;
+        self.bytes += u64::from(bytes);
+        self.recent.rotate_right(1);
+        self.recent[0] = Some(Instant::now());
+    }
+}
+
 #[derive(Default)]
 struct Progress {
     produced: AtomicU64,
@@ -347,6 +380,7 @@ struct Progress {
     eof: AtomicBool,
     closed: AtomicBool,
     terminal: Mutex<Option<Code>>,
+    upload: Mutex<UploadSubmission>,
 }
 impl Progress {
     fn snapshot(&self) -> Completion {
@@ -455,10 +489,30 @@ pub struct GrpcTransport {
     inner: Arc<Inner>,
 }
 impl GrpcTransport {
+    /// Eagerly establish TCP, verified TLS (except for explicit loopback), and
+    /// initialize the client side of HTTP/2 without opening an RPC.
     pub async fn connect(config: TransportConfig) -> Result<Self, TransportError> {
-        let connected = tokio::time::timeout(config.connect_timeout, connection::connect(&config))
-            .await
-            .map_err(|_| TransportError::Timeout)??;
+        Self::connect_inner(config, false).await
+    }
+
+    /// Like [`Self::connect`], but also wait for an HTTP/2 PING acknowledgement
+    /// within the same connection timeout. This confirms that the peer is
+    /// processing frames; it does not open an RPC, resolve RPC credentials, or
+    /// guarantee that a later RPC will be accepted. No periodic PING is sent.
+    pub async fn connect_ready(config: TransportConfig) -> Result<Self, TransportError> {
+        Self::connect_inner(config, true).await
+    }
+
+    async fn connect_inner(
+        config: TransportConfig,
+        wait_for_peer: bool,
+    ) -> Result<Self, TransportError> {
+        let connected = tokio::time::timeout(
+            config.connect_timeout,
+            connection::connect(&config, wait_for_peer),
+        )
+        .await
+        .map_err(|_| TransportError::Timeout)??;
         Ok(Self {
             inner: Arc::new(Inner {
                 config,
@@ -656,13 +710,18 @@ impl GrpcTransport {
 
 pub struct Session {
     control: Arc<Control>,
-    responses: mpsc::Receiver<Bytes>,
+    responses: mpsc::Receiver<(Bytes, Instant)>,
     terminal_delivered: bool,
 }
 impl Session {
     /// Each response is opaque. EOF is returned only after gRPC terminal status
     /// and source cleanup; failures are returned once here, and again by finish.
     pub async fn next(&mut self) -> Result<Option<Bytes>, TransportError> {
+        Ok(self.next_timed().await?.map(|(bytes, _)| bytes))
+    }
+    /// Like [`Self::next`], with the time the complete gRPC message was deframed,
+    /// before waiting for capacity in the application's response queue.
+    pub async fn next_timed(&mut self) -> Result<Option<(Bytes, Instant)>, TransportError> {
         if self.terminal_delivered {
             return Ok(None);
         }
@@ -676,6 +735,9 @@ impl Session {
     }
     pub fn completion(&self) -> Completion {
         self.control.progress.snapshot()
+    }
+    pub fn upload_submission(&self) -> UploadSubmission {
+        self.control.progress.upload.lock().unwrap().clone()
     }
     /// Drain remaining responses (discarding their bytes), then join supervision.
     pub async fn finish(&mut self) -> Outcome {
@@ -795,7 +857,7 @@ async fn supervise<S: RequestSource>(
     deadline: Instant,
     cancel: CancellationToken,
     progress: Arc<Progress>,
-    responses: mpsc::Sender<Bytes>,
+    responses: mpsc::Sender<(Bytes, Instant)>,
 ) -> Result<(), TransportError> {
     let stop = CancellationToken::new();
     let failed = CancellationToken::new();

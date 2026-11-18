@@ -6,6 +6,7 @@ use rambler_protocol::{
 };
 use rambler_transport::{
     Completion, GrpcTransport, Metadata, MetadataProvider, RequestSource, TransportConfig,
+    UploadSubmission,
 };
 use std::{
     pin::Pin,
@@ -57,6 +58,12 @@ pub enum ContextInput {
     Static(EditingContext),
     Provider(Arc<dyn ContextProvider>),
 }
+/// Suggested opt-in post-audio budget for interactive apps. Healthy native
+/// sessions in the measured campaign finished within about 0.5 s of audio end;
+/// 5 s leaves room for variation and late context without waiting for the full
+/// RPC deadline on stalls. This is not a service latency guarantee.
+pub const RECOMMENDED_FINALIZE_TIMEOUT: Duration = Duration::from_secs(5);
+
 #[derive(Clone)]
 pub struct SessionOptions {
     pub config: ProtocolConfig,
@@ -67,7 +74,8 @@ pub struct SessionOptions {
     /// Optional budget from audio EOF and successful cleanup through late context,
     /// upload END, final gRPC status, and successful EOF publication. Never extends
     /// `timeout` or ends audio.
-    /// Defaults to None; zero is invalid. Overflowing deadlines use the hard cap.
+    /// Defaults to None; opt in with [`Self::with_recommended_finalize_timeout`]
+    /// or an app-specific budget. Zero is invalid; overflow uses the hard cap.
     pub finalize_timeout: Option<Duration>,
     pub context_timeout: Duration,
     pub credentials: Option<Arc<dyn MetadataProvider>>,
@@ -82,6 +90,15 @@ impl Default for SessionOptions {
             context_timeout: Duration::from_secs(2),
             credentials: None,
         }
+    }
+}
+
+impl SessionOptions {
+    /// Explicitly set the post-audio budget to [`RECOMMENDED_FINALIZE_TIMEOUT`].
+    #[must_use]
+    pub fn with_recommended_finalize_timeout(mut self) -> Self {
+        self.finalize_timeout = Some(RECOMMENDED_FINALIZE_TIMEOUT);
+        self
     }
 }
 
@@ -111,10 +128,54 @@ pub struct SessionMetrics {
     /// Successful EOF commitment, after cleanup and event-queue reservation.
     pub eof_seconds: Option<f64>,
 }
+/// Local observations, relative to engine session start. Missing observations
+/// remain `None`; h2 acceptance is not socket delivery or peer acknowledgement.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct SessionTimeline {
+    pub last_audio_sent_seconds: Option<f64>,
+    pub context_sent_seconds: Option<f64>,
+    pub end_sent_seconds: Option<f64>,
+    pub half_close_sent_seconds: Option<f64>,
+    /// Transport deframe time for the last response delivered to the engine.
+    pub last_response_seconds: Option<f64>,
+    /// S3 envelope status, not the gRPC trailer or recognition state. Absent
+    /// for an omitted status, an undecodable payload, or no response at all.
+    pub last_response_s3_status: Option<i32>,
+    /// Last response with at least one decoded partial hypothesis (not heartbeat).
+    pub last_partial_response_seconds: Option<f64>,
+    pub recognition_finals_received: u64,
+    pub requests_submitted: u64,
+    pub request_protobuf_bytes_submitted: u64,
+}
+impl SessionTimeline {
+    fn record_upload(&mut self, upload: &UploadSubmission, counts: &Counts, start: Instant) {
+        let relative = |at: Instant| at.duration_since(start).as_secs_f64();
+        let context = counts.context_ordinal.load(Ordering::SeqCst);
+        let end = counts.end_ordinal.load(Ordering::SeqCst);
+        // The first request is init. Only optional context and required END
+        // can follow the final audio, so three completed requests suffice.
+        let last_audio = upload.requests().min(
+            [context, end]
+                .into_iter()
+                .find(|ordinal| *ordinal > 0)
+                .map_or(u64::MAX, |ordinal| ordinal - 1),
+        );
+        self.last_audio_sent_seconds = (last_audio > 1)
+            .then(|| upload.request_at(last_audio))
+            .flatten()
+            .map(relative);
+        self.context_sent_seconds = upload.request_at(context).map(relative);
+        self.end_sent_seconds = upload.request_at(end).map(relative);
+        self.half_close_sent_seconds = upload.half_close_at().map(relative);
+        self.requests_submitted = upload.requests();
+        self.request_protobuf_bytes_submitted = upload.protobuf_bytes();
+    }
+}
+
 /// Safe final counters and timings, deliberately excluding session identifiers,
 /// audio, context, hypotheses, response bytes, and caller/server error details.
-/// Counts describe produced protobuf payloads, not acknowledged network bytes.
-#[derive(Clone, Debug, PartialEq)]
+/// Request byte counts without a `submitted` suffix describe produced payloads.
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DiagnosticMetrics {
     pub audio: EncodedAudioProgress,
     pub requests_produced: u64,
@@ -124,6 +185,7 @@ pub struct DiagnosticMetrics {
     pub elapsed_seconds: f64,
     pub first_response_seconds: Option<f64>,
     pub eof_seconds: Option<f64>,
+    pub timeline: SessionTimeline,
 }
 impl From<&SessionMetrics> for DiagnosticMetrics {
     fn from(metrics: &SessionMetrics) -> Self {
@@ -136,6 +198,7 @@ impl From<&SessionMetrics> for DiagnosticMetrics {
             elapsed_seconds: metrics.elapsed_seconds,
             first_response_seconds: metrics.first_response_seconds,
             eof_seconds: metrics.eof_seconds,
+            timeline: SessionTimeline::default(),
         }
     }
 }
@@ -144,12 +207,24 @@ impl From<&SessionMetrics> for DiagnosticMetrics {
 /// or replay audio. `upload_eof_polled` is a local transport observation, not a
 /// server acknowledgement. Only safe structural data is retained here.
 #[derive(Clone, Debug, PartialEq)]
-pub struct IncompleteSessionDiagnostic {
+pub struct SessionDiagnostic {
     pub saw_s3_end: bool,
     pub completion: Completion,
     pub metrics: DiagnosticMetrics,
 }
-type DiagnosticSlot = Arc<Mutex<Option<Arc<IncompleteSessionDiagnostic>>>>;
+/// Diagnostic attached to [`EngineError::IncompleteSession`].
+pub type IncompleteSessionDiagnostic = SessionDiagnostic;
+
+#[derive(Clone)]
+pub struct SessionDiagnostics(Arc<Mutex<Option<Arc<SessionDiagnostic>>>>);
+impl SessionDiagnostics {
+    /// The joined terminal observation, if published. Await terminal `next`,
+    /// session `close`, or engine `close` before reading after cancellation.
+    /// The handle does not keep the session alive or acknowledge its errors.
+    pub fn final_snapshot(&self) -> Option<Arc<SessionDiagnostic>> {
+        self.0.lock().unwrap().clone()
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct EngineEvent {
@@ -163,11 +238,16 @@ pub struct EngineEvent {
 struct Counts {
     requests: AtomicU64,
     bytes: AtomicU64,
+    context_ordinal: AtomicU64,
+    end_ordinal: AtomicU64,
 }
 impl Counts {
-    fn count(&self, payload: Vec<u8>) -> Bytes {
-        self.requests.fetch_add(1, Ordering::SeqCst);
+    fn count(&self, payload: Vec<u8>, milestone: Option<&AtomicU64>) -> Bytes {
+        let ordinal = self.requests.fetch_add(1, Ordering::SeqCst) + 1;
         self.bytes.fetch_add(payload.len() as u64, Ordering::SeqCst);
+        if let Some(milestone) = milestone {
+            milestone.store(ordinal, Ordering::SeqCst);
+        }
         payload.into()
     }
 }
@@ -387,7 +467,7 @@ impl Requests {
             match self.phase {
                 0 => {
                     self.phase = 1;
-                    return Ok(Some(self.counts.count(self.initial.take().unwrap())));
+                    return Ok(Some(self.counts.count(self.initial.take().unwrap(), None)));
                 }
                 1 => match self.audio.next().await? {
                     Some(chunk) if chunk.is_empty() => {
@@ -397,7 +477,8 @@ impl Requests {
                     }
                     Some(chunk) => {
                         return Ok(Some(
-                            self.counts.count(audio_request(&chunk, self.elapsed())?),
+                            self.counts
+                                .count(audio_request(&chunk, self.elapsed())?, None),
                         ));
                     }
                     None => {
@@ -438,12 +519,18 @@ impl Requests {
                 3 => {
                     self.phase = 4;
                     if let Some(payload) = self.context_payload.take() {
-                        return Ok(Some(self.counts.count(payload)));
+                        return Ok(Some(
+                            self.counts
+                                .count(payload, Some(&self.counts.context_ordinal)),
+                        ));
                     }
                 }
                 4 => {
                     self.phase = 5;
-                    return Ok(Some(self.counts.count(end_request().to_vec())));
+                    return Ok(Some(
+                        self.counts
+                            .count(end_request().to_vec(), Some(&self.counts.end_ordinal)),
+                    ));
                 }
                 _ => return Ok(None),
             }
@@ -553,10 +640,29 @@ impl Engine {
             }),
         }
     }
+    /// Eagerly connect an owned transport before starting any dictation RPC.
+    /// TCP and verified TLS (unless explicit loopback) complete here; use
+    /// [`Self::connect_ready`] to also wait for confirmation from the HTTP/2 peer.
     pub async fn connect(config: TransportConfig) -> Result<Self, EngineError> {
-        let mut engine = Self::new(GrpcTransport::connect(config).await?);
+        Ok(Self::with_owned_transport(
+            GrpcTransport::connect(config).await?,
+        ))
+    }
+
+    /// Warm up an owned connection before the first dictation. Waits for the
+    /// HTTP/2 peer to acknowledge a PING within the configured connection
+    /// timeout. Does not start an RPC or query credentials. Reuse the returned
+    /// engine for sessions; the PING is not a guarantee of future availability.
+    pub async fn connect_ready(config: TransportConfig) -> Result<Self, EngineError> {
+        Ok(Self::with_owned_transport(
+            GrpcTransport::connect_ready(config).await?,
+        ))
+    }
+
+    fn with_owned_transport(transport: GrpcTransport) -> Self {
+        let mut engine = Self::new(transport);
         engine.owns_transport = true;
-        Ok(engine)
+        engine
     }
     /// Requires an active Tokio runtime. Ownership of audio transfers immediately,
     /// even before the session's first poll. Failed preflight also cleans up audio;
@@ -649,7 +755,7 @@ impl Engine {
         let transport = self.transport.clone();
         let cancel = control.cancel.clone();
         let (events_tx, events) = mpsc::channel(1);
-        let diagnostic: DiagnosticSlot = Arc::new(Mutex::new(None));
+        let diagnostic = SessionDiagnostics(Arc::new(Mutex::new(None)));
         let final_diagnostic = diagnostic.clone();
         let final_control = control.clone();
         let id = SESSION_ID.fetch_add(1, Ordering::Relaxed);
@@ -669,7 +775,7 @@ impl Engine {
                 start,
                 id,
                 fault,
-                final_diagnostic,
+                final_diagnostic.clone(),
             )
             .await
             {
@@ -689,6 +795,20 @@ impl Engine {
                     }
                 }
             };
+            // Cancellation or rejection before transport start still has a
+            // session and final source-cleanup observations, but no wire events.
+            let mut diagnostic = final_diagnostic.0.lock().unwrap();
+            if diagnostic.is_none() {
+                *diagnostic = Some(Arc::new(SessionDiagnostic {
+                    saw_s3_end: false,
+                    completion: Completion::default(),
+                    metrics: DiagnosticMetrics {
+                        audio: audio.progress.lock().unwrap().clone(),
+                        elapsed_seconds: start.elapsed().as_secs_f64(),
+                        ..Default::default()
+                    },
+                }));
+            }
             let _ = sender.send(Some(result));
         });
         drop(lifecycle);
@@ -773,7 +893,7 @@ pub struct EngineSession {
     events: mpsc::Receiver<EngineEvent>,
     captured: Arc<Mutex<Option<EditingContext>>>,
     audio_progress: Arc<Mutex<EncodedAudioProgress>>,
-    diagnostic: DiagnosticSlot,
+    diagnostic: SessionDiagnostics,
     terminal_delivered: bool,
 }
 impl EngineSession {
@@ -796,6 +916,11 @@ impl EngineSession {
     /// These are encoded-source observations, not PCM or server consumption.
     pub fn audio_progress(&self) -> EncodedAudioProgress {
         self.audio_progress.lock().unwrap().clone()
+    }
+    /// Retain safe final measurements across all terminal outcomes, including
+    /// when the session is moved into [`crate::collect_session`].
+    pub fn diagnostics(&self) -> SessionDiagnostics {
+        self.diagnostic.clone()
     }
     pub fn request_cancel(&self) {
         self.control.cancel.cancel();
@@ -824,9 +949,7 @@ impl EngineSession {
             return error;
         }
         self.diagnostic
-            .lock()
-            .unwrap()
-            .clone()
+            .final_snapshot()
             .map(EngineError::IncompleteSession)
             .unwrap_or(EngineError::Supervisor)
     }
@@ -853,7 +976,7 @@ async fn supervise(
     start: Instant,
     id: u64,
     fault: Arc<Mutex<Option<EngineError>>>,
-    final_diagnostic: DiagnosticSlot,
+    final_diagnostic: SessionDiagnostics,
 ) -> Result<Committed, EngineError> {
     if cancel.is_cancelled() {
         return Err(EngineError::Cancelled);
@@ -871,6 +994,7 @@ async fn supervise(
     let mut received = 0;
     let mut bytes = 0;
     let mut first = None;
+    let mut timeline = SessionTimeline::default();
     let mut s3_end = false;
     let mut s3_error = None;
     let snapshot = |received, bytes, first, eof| SessionMetrics {
@@ -886,16 +1010,22 @@ async fn supervise(
     };
     let outcome = async {
         loop {
-            let payload = rpc.next().await?;
-            let Some(payload) = payload else {
+            let Some((payload, deframed_at)) = rpc.next_timed().await? else {
                 break;
             };
             received += 1;
             bytes += payload.len() as u64;
-            if first.is_none() {
-                first = Some(start.elapsed().as_secs_f64());
-            }
+            let at = deframed_at.duration_since(start).as_secs_f64();
+            first.get_or_insert(at);
+            timeline.last_response_seconds = Some(at);
+            timeline.last_response_s3_status = None;
             let response = decode_response(&payload)?;
+            timeline.last_response_s3_status = response.status;
+            if !response.partials().is_empty() {
+                timeline.last_partial_response_seconds = Some(at);
+            }
+            timeline.recognition_finals_received +=
+                u64::from(response.recognition_state() == Some(1));
             if response.status == Some(1) {
                 s3_end = true;
             }
@@ -951,50 +1081,65 @@ async fn supervise(
         rpc.request_cancel();
     }
     let cleanup = rpc.finish().await;
-    let diagnostic = Arc::new(IncompleteSessionDiagnostic {
-        saw_s3_end: s3_end,
-        completion: rpc.completion(),
-        metrics: DiagnosticMetrics::from(&snapshot(received, bytes, first, None)),
-    });
-    *final_diagnostic.lock().unwrap() = Some(diagnostic.clone());
+    timeline.record_upload(&rpc.upload_submission(), &counts, start);
+    let completion = rpc.completion();
+    let diagnostic = |metrics: &SessionMetrics| {
+        Arc::new(SessionDiagnostic {
+            saw_s3_end: s3_end,
+            completion: completion.clone(),
+            metrics: DiagnosticMetrics {
+                timeline,
+                ..DiagnosticMetrics::from(metrics)
+            },
+        })
+    };
     let cleanup = cleanup
         .map_err(EngineError::from)
         .map_err(|error| restore_source_error(error, fault.lock().unwrap().as_ref()));
-    match result {
-        Err(error) => Err(error),
-        Ok(false) => {
-            cleanup?;
-            Err(EngineError::IncompleteSession(diagnostic))
-        }
-        Ok(true) => {
-            cleanup?;
-            audio.close().await?;
-            let permit = reserve_success(&events, &cancel, deadline, &mut finalize_done).await?;
-            let finalize = finalize_done.as_ref().and_then(|done| *done.borrow());
-            commit_success(
-                cancel.is_cancelled(),
-                Instant::now(),
-                deadline,
-                finalize,
-                || {
-                    let metrics =
-                        snapshot(received, bytes, first, Some(start.elapsed().as_secs_f64()));
-                    *final_diagnostic.lock().unwrap() =
-                        Some(Arc::new(IncompleteSessionDiagnostic {
-                            saw_s3_end: s3_end,
-                            completion: rpc.completion(),
-                            metrics: DiagnosticMetrics::from(&metrics),
-                        }));
-                    // No await or fallible result after this commitment. In
-                    // particular a consumer cancelling upon EOF cannot revoke it.
-                    permit.send(EngineEvent {
-                        response: None,
-                        metrics,
-                    });
-                },
-            )
+    let result = async {
+        match result {
+            Err(error) => Err(error),
+            Ok(false) => {
+                cleanup?;
+                Err(EngineError::IncompleteSession(diagnostic(&snapshot(
+                    received, bytes, first, None,
+                ))))
+            }
+            Ok(true) => {
+                cleanup?;
+                audio.close().await?;
+                let permit =
+                    reserve_success(&events, &cancel, deadline, &mut finalize_done).await?;
+                let finalize = finalize_done.as_ref().and_then(|done| *done.borrow());
+                commit_success(
+                    cancel.is_cancelled(),
+                    Instant::now(),
+                    deadline,
+                    finalize,
+                    || {
+                        let metrics =
+                            snapshot(received, bytes, first, Some(start.elapsed().as_secs_f64()));
+                        *final_diagnostic.0.lock().unwrap() = Some(diagnostic(&metrics));
+                        // No await or fallible result after this commitment. In
+                        // particular a consumer cancelling upon EOF cannot revoke it.
+                        permit.send(EngineEvent {
+                            response: None,
+                            metrics,
+                        });
+                    },
+                )
+            }
         }
     }
+    .await;
+    if let Err(error) = &result {
+        let diagnostic = match error {
+            EngineError::IncompleteSession(diagnostic) => diagnostic.clone(),
+            _ => diagnostic(&snapshot(received, bytes, first, None)),
+        };
+        *final_diagnostic.0.lock().unwrap() = Some(diagnostic);
+    }
+    result
 }
 
 #[cfg(test)]
@@ -1327,7 +1472,7 @@ mod finalization_tests {
             events,
             captured: Arc::new(Mutex::new(None)),
             audio_progress: Arc::new(Mutex::new(EncodedAudioProgress::default())),
-            diagnostic: Arc::new(Mutex::new(None)),
+            diagnostic: SessionDiagnostics(Arc::new(Mutex::new(None))),
             terminal_delivered: false,
         };
         // This is a deterministic helper/control injection, not an end-to-end

@@ -1,22 +1,24 @@
 mod common;
 use bytes::Bytes;
 use common::*;
-use futures_util::stream;
+use futures_util::{StreamExt, stream};
 use rambler_engine::*;
 use rambler_protocol::{
     RECOGNITION_RESPONSE,
     wire::{bytes_field as b, string_field as s, varint_field as v},
 };
+use rambler_transport::TransportError;
 use std::{
     collections::VecDeque,
     sync::{
         Arc, Mutex,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
+    task::Poll,
     time::Duration,
 };
 use tokio::sync::Semaphore;
-use tonic::Code;
+use tonic::{Code, Status};
 
 struct Audio {
     chunks: VecDeque<Bytes>,
@@ -82,14 +84,7 @@ fn check_safe(diagnostic: &Arc<IncompleteSessionDiagnostic>) {
         format!("{error:?}"),
         format!("{diagnostic:?}"),
     ] {
-        for forbidden in [
-            "private",
-            "session_id",
-            "hypothesis",
-            "raw",
-            "context",
-            "credential",
-        ] {
+        for forbidden in ["private", "session_id", "hypothesis", "raw", "credential"] {
             assert!(
                 !formatted.contains(forbidden),
                 "diagnostic contained forbidden data category"
@@ -348,6 +343,191 @@ async fn completed_collector_preserves_both_incomplete_diagnostic_kinds() {
         transport.close().await.unwrap();
         server.close().await;
     }
+}
+
+#[tokio::test]
+async fn remote_deadline_after_end_separates_silence_from_late_partials() {
+    let hypothesis = s(1, "PRIVATE_PARTIAL").unwrap();
+    let recognition = [v(1, 0).unwrap(), b(4, &b(1, &hypothesis).unwrap()).unwrap()].concat();
+    let partial: Bytes = [
+        v(1, 0).unwrap(),
+        b(RECOGNITION_RESPONSE, &b(1, &recognition).unwrap()).unwrap(),
+    ]
+    .concat()
+    .into();
+    let partial_size = partial.len() as u64;
+    for late_partial in [false, true] {
+        let payload = late_partial.then(|| partial.clone());
+        let server = TestServer::new(move |mut request| {
+            let payload = payload.clone();
+            async move {
+                // Send the initial S3 response before EOF. The same response stream
+                // then waits for END and verifies that the peer sees the half-close.
+                assert!(request.metadata().get("grpc-timeout").is_some());
+                assert!(request.get_mut().message().await?.is_some());
+                let request = request.into_inner();
+                let after_upload = stream::once(async move {
+                    let remaining = drain(request).await;
+                    assert_eq!(remaining.len(), 3);
+                    assert_eq!(
+                        remaining.last().unwrap().as_ref(),
+                        rambler_protocol::end_request()
+                    );
+                    tokio::time::sleep(Duration::from_millis(30)).await;
+                    payload.map(Ok)
+                })
+                .filter_map(std::future::ready);
+                Ok(replies(
+                    stream::iter([Ok(Bytes::from_static(b"\x08\x03"))])
+                        .chain(after_upload)
+                        .chain(stream::once(async {
+                            tokio::time::sleep(Duration::from_millis(25)).await;
+                            Err(Status::deadline_exceeded("PRIVATE_REMOTE_STATUS"))
+                        })),
+                ))
+            }
+        })
+        .await;
+        let transport = server.transport().await;
+        let engine = Engine::new(transport.clone());
+        let context = ContextInput::Static(EditingContext {
+            before: "PRIVATE_CONTEXT".into(),
+            ..Default::default()
+        });
+        let (release, audio_gate) = tokio::sync::oneshot::channel();
+        let audio = StreamAudio::new(stream::once(async move {
+            audio_gate.await.unwrap();
+            Ok(Bytes::from_static(b"PRIVATE_AUDIO"))
+        }));
+        let mut session = engine
+            .start(
+                Box::new(audio),
+                SessionOptions {
+                    context,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let diagnostics = session.diagnostics();
+        assert_eq!(
+            bounded(session.next())
+                .await
+                .unwrap()
+                .unwrap()
+                .response
+                .unwrap()
+                .status,
+            Some(3)
+        );
+        release.send(()).unwrap();
+        let error = bounded(collect_session(session, CollectorLimits::default()))
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            EngineError::Transport(TransportError::Grpc(Code::DeadlineExceeded))
+        ));
+        let diagnostic = diagnostics.final_snapshot().unwrap();
+        let metrics = &diagnostic.metrics;
+        let timeline = &metrics.timeline;
+        let audio = timeline.last_audio_sent_seconds.unwrap();
+        let context = timeline.context_sent_seconds.unwrap();
+        let end = timeline.end_sent_seconds.unwrap();
+        let half_close = timeline.half_close_sent_seconds.unwrap();
+        let last = timeline.last_response_seconds.unwrap();
+        assert!(audio <= context && context <= end && end <= half_close);
+        assert!(half_close < metrics.elapsed_seconds);
+        assert!(metrics.first_response_seconds.unwrap() <= last && last < metrics.elapsed_seconds);
+        if late_partial {
+            assert!(half_close < last);
+            assert_eq!(timeline.last_response_s3_status, Some(0));
+            assert_eq!(timeline.last_partial_response_seconds, Some(last));
+        } else {
+            assert_eq!(Some(last), metrics.first_response_seconds);
+            assert!(last <= audio);
+            assert_eq!(timeline.last_response_s3_status, Some(3));
+            assert_eq!(timeline.last_partial_response_seconds, None);
+        }
+        assert_eq!(metrics.responses_received, 1 + u64::from(late_partial));
+        assert_eq!(
+            metrics.response_protobuf_bytes,
+            2 + u64::from(late_partial) * partial_size
+        );
+        assert_eq!(timeline.recognition_finals_received, 0);
+        assert_eq!(timeline.requests_submitted, 4);
+        assert_eq!(
+            timeline.request_protobuf_bytes_submitted,
+            metrics.request_protobuf_bytes
+        );
+        assert!(!diagnostic.saw_s3_end);
+        assert!(diagnostic.completion.upload_eof_polled);
+        assert_eq!(
+            diagnostic.completion.terminal_code,
+            Some(Code::DeadlineExceeded)
+        );
+        assert!(!format!("{diagnostic:?}{error:?}").contains("PRIVATE"));
+        engine.close().await.unwrap();
+        transport.close().await.unwrap();
+        server.close().await;
+    }
+}
+
+#[tokio::test]
+async fn peer_withholds_upload_credit_before_produced_end_is_sent() {
+    let server = TestServer::new(|mut request| async move {
+        assert!(request.get_mut().message().await?.is_some()); // Init.
+        assert!(request.get_mut().message().await?.is_some()); // Small audio.
+        Ok(replies(
+            stream::iter([Ok(Bytes::from_static(b"\x08\x00"))]).chain(stream::poll_fn(move |_| {
+                // Keep the request alive but never poll or release its next DATA.
+                let _hold = &request;
+                Poll::Pending
+            })),
+        ))
+    })
+    .await;
+    let transport = server.transport().await;
+    let engine = Engine::new(transport.clone());
+    let mut audio = Audio::new(false);
+    audio
+        .chunks
+        .push_back(Bytes::from(vec![0; 2 * 1024 * 1024]));
+    let session = engine
+        .start(
+            Box::new(audio),
+            SessionOptions {
+                timeout: Duration::from_millis(750),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let diagnostics = session.diagnostics();
+    let error = bounded(collect_session(session, CollectorLimits::default()))
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        EngineError::Transport(TransportError::Timeout)
+    ));
+    let diagnostic = diagnostics.final_snapshot().unwrap();
+    let metrics = &diagnostic.metrics;
+    let timeline = &metrics.timeline;
+    assert!(metrics.audio.eof && metrics.audio.cleanup_succeeded);
+    assert!(metrics.first_response_seconds.is_some());
+    assert_eq!(metrics.responses_received, 1);
+    assert_eq!(metrics.response_protobuf_bytes, 2);
+    assert_eq!(timeline.last_response_s3_status, Some(0));
+    assert_eq!(metrics.requests_produced, 4); // END queued behind blocked audio.
+    assert_eq!(timeline.requests_submitted, 2); // Init and first audio only.
+    assert!(timeline.request_protobuf_bytes_submitted < metrics.request_protobuf_bytes);
+    assert!(timeline.last_audio_sent_seconds.is_some());
+    assert_eq!(timeline.end_sent_seconds, None);
+    assert_eq!(timeline.half_close_sent_seconds, None);
+    assert!(!diagnostic.completion.upload_eof_polled);
+    assert_eq!(diagnostic.completion.terminal_code, None);
+    engine.close().await.unwrap();
+    transport.close().await.unwrap();
+    server.close().await;
 }
 
 #[test]

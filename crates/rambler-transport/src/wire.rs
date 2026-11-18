@@ -136,11 +136,13 @@ async fn upload(
         // Exact original payload; the only bytes added are gRPC's envelope.
         let len = u32::try_from(bytes.len()).map_err(|_| TransportError::MessageTooLarge)?;
         send_envelope(&sender, crate::grpc_prefix::grpc_prefix(len), bytes).await?;
+        input.progress.upload.lock().unwrap().record_request(len);
     }
     sender
         .lock()
         .unwrap()
         .send_data(Bytes::new().chain(Bytes::new()), true)?;
+    input.progress.upload.lock().unwrap().half_close = Some(Instant::now());
     input
         .progress
         .eof
@@ -199,7 +201,7 @@ fn response_headers(headers: &http::HeaderMap) -> Result<(), TransportError> {
 async fn read(
     response: h2::client::ResponseFuture,
     limit: usize,
-    responses: mpsc::Sender<Bytes>,
+    responses: mpsc::Sender<(Bytes, Instant)>,
     progress: Arc<Progress>,
 ) -> Result<(), RpcError> {
     let response = response.await?;
@@ -234,7 +236,7 @@ async fn read(
                 .responses
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             responses
-                .send(bytes)
+                .send((bytes, Instant::now()))
                 .await
                 .map_err(|_| TransportError::Cancelled)?;
             next = decoder.message()?;
@@ -269,7 +271,7 @@ pub(crate) async fn rpc(
     provider: Arc<dyn MetadataProvider>,
     upload_stream: Upload,
     deadline: Instant,
-    responses: mpsc::Sender<Bytes>,
+    responses: mpsc::Sender<(Bytes, Instant)>,
     progress: Arc<Progress>,
     admitted: tokio::sync::oneshot::Sender<()>,
 ) -> Result<(), RpcError> {
@@ -533,7 +535,7 @@ mod cause_tests {
                 while tcp.read(&mut buffer).await.is_ok_and(|n| n != 0) {}
             });
             let config = TransportConfig::loopback(address).unwrap();
-            let connected = crate::connection::connect(&config).await.unwrap();
+            let connected = crate::connection::connect(&config, false).await.unwrap();
             let progress = Arc::new(Progress::default());
             let (tx, receiver) = mpsc::channel(1);
             tx.send(Bytes::from(vec![0; 1024 * 1024])).await.unwrap();
