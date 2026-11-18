@@ -20,6 +20,12 @@
 
 ## Portage Rust
 
+- [Corrections de capture et d’intégration](rust-capture-fidelity-windows-20261118.md) :
+  559 tests réussis et 2 ignorés, plus 24 tests CLI sans audio avec chacune des
+  toolchains Windows (stable et 1.88.0). Rollover avec PCM intégral, récupération
+  des segments validés, raccord SDK/CLI, sélection riche et reprise TCP explicite.
+  Pairs locaux uniquement : ni appareil, ni micro, ni service réel.
+
 - [rust-pcm-engine-loopback.json](rust-pcm-engine-loopback.json) :
   publication du15 novembre2026 d'exécutions du14 : cinq tests CLI du vrai canal
   PCM/encodeur/moteur/transport avec pair tonic synthétique. CRC/durée et paquets
