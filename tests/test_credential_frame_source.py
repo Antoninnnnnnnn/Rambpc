@@ -157,7 +157,9 @@ class CredentialFrameSourceTests(unittest.TestCase):
 
     def assert_wiped(self):
         for buffer in self.buffers:
-            self.assertTrue(all(item == 0 for item in buffer))
+            # Check every allocated byte, without one Python iteration per byte
+            # or including any buffer contents in a failure message.
+            self.assertEqual(buffer.count(0), len(buffer))
 
     def assert_closed(self, action):
         error = None

@@ -11,6 +11,12 @@ Only the waiter stops on cancellation: the transport continues to own the cleanu
 
 **Qualification:** Windows, Python 3.14.5, grpcio 1.85.1, owned IPv4 loopback. The regression tests failed before correction and passed after it. The offline Python suite plus a bounded stress fixture passed **928 tests, 4 skipped, 968 successful subtests**. The stress fixture invoked the originally audited scenario 200 times and found no lingering Python transport tasks after each iteration. Windows Job containment was empty after exit. The optional stress fixture checks for pending tasks and reports code locations without locals on timeout; it is not kept in the checkout. This does not prove the cause of the original 761 s interruption, or that it cannot recur.
 
+## Integrated follow-up
+
+One combined run reached its 120 s owned Job limit with a stack in the test's byte-by-byte zeroization assertion. Checking the same complete region with `bytearray.count(0) == len(buffer)` avoids a Python generator per byte and reports only the count on failure; no production credential code changed. The next run still hit the 120 s limit, this time with the asyncio loop idle. Its quiet progress matched the original producer-cleanup test in a later named run, but the suspended task was not identified in that attempt.
+
+Three subsequent full runs with a per-loop watchdog all passed **931 tests, 4 skipped, 981 successful subtests**, in 35.69 s, 33.40 s and 35.50 s. No watchdog fired, and each owned Job was empty afterwards. Both terminated attempts are retained separately; no assert or failing scenario was skipped.
+
 ```sh
-python -m pytest -q tests/test_transport.py
+python -m pytest -vv -s -o faulthandler_timeout=15 tests/test_transport.py
 ```
