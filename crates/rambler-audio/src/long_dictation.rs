@@ -112,11 +112,11 @@ impl LongDictationResult {
     /// An ambiguous or unsafe segment makes the entire projection fail. No
     /// segments yields an empty string. The individual results are unchanged.
     pub fn text(&self) -> Result<String, EngineError> {
-        let mut joined = String::new();
+        let mut joined = crate::segment_text::SegmentText::default();
         for segment in &self.segments {
-            crate::segment_text::append_segment_text(&mut joined, &segment.text()?);
+            joined.push(&segment.text()?);
         }
-        Ok(joined)
+        Ok(joined.finish())
     }
 }
 
