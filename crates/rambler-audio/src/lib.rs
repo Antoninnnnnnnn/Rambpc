@@ -41,6 +41,7 @@ mod lifecycle;
 mod long_dictation;
 mod ogg;
 mod progress;
+mod segment_text;
 mod wav;
 pub use capture::{
     CaptureConfig, CaptureError, CaptureInput, CaptureSender, MAX_CAPTURE_BYTES,
@@ -57,6 +58,7 @@ pub use long_dictation::{
     stream_long_pcm_dictation_with_observer,
 };
 pub use progress::{PcmProgress, PcmProgressHandle};
+pub use segment_text::join_segment_texts;
 pub use wav::{PcmFormat, WavAudio, WavConfig};
 
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;

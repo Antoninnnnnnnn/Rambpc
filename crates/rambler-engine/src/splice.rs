@@ -4,8 +4,9 @@ use unicode_segmentation::UnicodeSegmentation;
 
 /// One scalar-aligned textual replacement within the original captured window.
 /// This is neither a document range, a selection update, nor authorization to
-/// apply an edit. [`ReplacementProposal::derive_grapheme_splice`] additionally
-/// aligns the splice to extended grapheme clusters within both windows.
+/// apply an edit. [`ReplacementProposal::derive_grapheme_splice`] and
+/// [`ReplacementProposal::derive_selection_splice`] additionally require
+/// extended grapheme cluster boundaries within both windows.
 pub struct ScalarSplice<'a> {
     original_utf16_range: Range<usize>,
     inserted_text: &'a str,
@@ -120,15 +121,89 @@ impl ReplacementProposal {
         }))
     }
 
+    /// Describe a splice anchored to the exact nonempty captured selection,
+    /// rather than inferring its position from a common prefix and suffix.
+    /// Use an unmodified, successfully collected proposal; the same exact
+    /// current text split and revision checks as [`Self::derive_scalar_splice`]
+    /// run first. `Ok(None)` means unchanged text, not unchanged selection.
+    ///
+    /// A text change must have a structured replacement context (field 7)
+    /// whose `before` and `after` exactly match the original. Its `selected`
+    /// must be the exact intervening replacement text, possibly empty. This
+    /// allows deleting the first styled `oui ` from `oui oui` without
+    /// discarding the second occurrence. The splice replaces the whole
+    /// original selection, including any matching text inside it.
+    ///
+    /// Returns [`EngineError::UnsupportedEdit`] if evidence is missing,
+    /// either surrounding part differs, or either splice end would split an
+    /// extended grapheme cluster in either complete window. No widening,
+    /// re-targeting, policy fallback, or editor effect occurs.
+    ///
+    /// The checks are window-relative. Before any explicit apply the host
+    /// must verify document identity and window anchor, revalidate the exact
+    /// split and revision in the same transaction, check both sets of
+    /// boundaries in the full document under the host's rules, and apply an
+    /// exact-range operation that preserves outside styles. The SDK neither
+    /// sees style attributes nor chooses formatting for inserted text.
+    pub fn derive_selection_splice(
+        &self,
+        current: &EditingContext,
+        current_revision: &Revision,
+    ) -> Result<Option<ScalarSplice<'_>>, EngineError> {
+        self.validate_splice_current(current, current_revision)?;
+        let replacement = self.replacement_text.as_str();
+        let inserted = replacement
+            .strip_prefix(&current.before)
+            .and_then(|rest| rest.strip_suffix(&current.after))
+            .ok_or(EngineError::UnsupportedEdit)?;
+        if inserted == current.selected {
+            return Ok(None);
+        }
+        let evidence = self
+            .replacement_context
+            .as_ref()
+            .ok_or(EngineError::UnsupportedEdit)?;
+        if current.selected.is_empty()
+            || evidence.before != current.before
+            || evidence.after != current.after
+            || evidence.selected != inserted
+        {
+            return Err(EngineError::UnsupportedEdit);
+        }
+
+        let start = current.before.len();
+        let original = [&current.before[..], &current.selected, &current.after].concat();
+        if !is_grapheme_span(&original, start, start + current.selected.len())
+            || !is_grapheme_span(replacement, start, start + inserted.len())
+        {
+            return Err(EngineError::UnsupportedEdit);
+        }
+        let start_utf16 = current.before.encode_utf16().count();
+        let end_utf16 = start_utf16 + current.selected.encode_utf16().count();
+        Ok(Some(ScalarSplice {
+            original_utf16_range: start_utf16..end_utf16,
+            inserted_text: inserted,
+        }))
+    }
+
+    fn validate_splice_current(
+        &self,
+        current: &EditingContext,
+        current_revision: &Revision,
+    ) -> Result<(), EngineError> {
+        self.validate_current(current, Some(current_revision))?;
+        if self.expected_revision.is_none() {
+            return Err(EngineError::ContextConflict);
+        }
+        Ok(())
+    }
+
     fn scalar_bounds(
         &self,
         current: &EditingContext,
         current_revision: &Revision,
     ) -> Result<Option<ScalarBounds>, EngineError> {
-        self.validate_current(current, Some(current_revision))?;
-        if self.expected_revision.is_none() {
-            return Err(EngineError::ContextConflict);
-        }
+        self.validate_splice_current(current, current_revision)?;
 
         let original = || {
             current
@@ -175,6 +250,12 @@ fn grapheme_boundaries(text: &str) -> impl Iterator<Item = usize> + '_ {
     text.grapheme_indices(true)
         .map(|(offset, _)| offset)
         .chain(iter::once(text.len()))
+}
+
+fn is_grapheme_span(text: &str, start: usize, end: usize) -> bool {
+    let mut boundaries = grapheme_boundaries(text).skip_while(|&offset| offset < start);
+    boundaries.next() == Some(start)
+        && (start == end || boundaries.find(|&offset| offset >= end) == Some(end))
 }
 
 fn shared_offsets(

@@ -1,5 +1,6 @@
 use rambler_engine::{
-    DictationResult, EditingContext, EngineError, Revision, replacement_proposal,
+    DictationResult, EditingContext, EngineError, RenderPolicy, Revision, ScalarSplice,
+    replacement_proposal, replacement_proposal_with_policy,
 };
 use rambler_protocol::{
     HYPOTHESIS_SAFETY_STATUS, RECOGNITION_RESPONSE, VOICE_EDITING_RESULT, decode_response,
@@ -22,13 +23,17 @@ fn field3(text: &str) -> Vec<u8> {
 }
 
 fn field7(before: &str, selected: &str, after: &str) -> Vec<u8> {
+    field7_with_intent(2, before, selected, after)
+}
+
+fn field7_with_intent(intent: u64, before: &str, selected: &str, after: &str) -> Vec<u8> {
     let context = [
         s(1, before).unwrap(),
         s(2, selected).unwrap(),
         s(3, after).unwrap(),
     ]
     .concat();
-    [v(4, 2).unwrap(), b(7, &context).unwrap()].concat()
+    [v(4, intent).unwrap(), b(7, &context).unwrap()].concat()
 }
 
 fn fixture(context: &EditingContext, edit: Option<&[u8]>, safety: Option<u64>) -> DictationResult {
@@ -172,6 +177,10 @@ fn mismatched_text_split_or_revision_conflicts_before_even_a_no_op() {
             proposal.derive_scalar_splice(&live, &rev),
             Err(EngineError::ContextConflict)
         ));
+        assert!(matches!(
+            proposal.derive_selection_splice(&live, &rev),
+            Err(EngineError::ContextConflict)
+        ));
     }
     let unversioned = replacement_proposal(&result, None).unwrap();
     unversioned
@@ -179,6 +188,10 @@ fn mismatched_text_split_or_revision_conflicts_before_even_a_no_op() {
         .unwrap();
     assert!(matches!(
         unversioned.derive_scalar_splice(&current, &revision),
+        Err(EngineError::ContextConflict)
+    ));
+    assert!(matches!(
+        unversioned.derive_selection_splice(&current, &revision),
         Err(EngineError::ContextConflict)
     ));
 }
@@ -326,5 +339,227 @@ fn grapheme_splice_handles_empty_windows_and_checks_revision_even_on_no_op() {
             .unwrap()
             .derive_grapheme_splice(&current, &revision),
         Err(EngineError::ContextConflict)
+    ));
+}
+
+#[test]
+fn selection_splice_preserves_the_unselected_styled_occurrence() {
+    let revision = Revision::from("styled");
+    // The two cases share plain document text and response text but must keep
+    // disjoint occurrences. Offsets are relative to the captured window.
+    let apply_mock = |splice: &ScalarSplice<'_>| {
+        assert!(splice.inserted_text().is_empty());
+        let mut units = "[oui oui]"
+            .encode_utf16()
+            .zip([
+                "outside", "link-a", "link-a", "link-a", "space", "link-b", "link-b", "link-b",
+                "outside",
+            ])
+            .collect::<Vec<_>>();
+        let range = splice.original_utf16_range();
+        units.drain(1 + range.start..1 + range.end);
+        let (kept_text, styles): (Vec<_>, Vec<_>) = units.into_iter().unzip();
+        assert_eq!(String::from_utf16(&kept_text).unwrap(), "[oui]");
+        styles
+    };
+    for (current, edit, expected_range, retained_style) in [
+        (
+            window("", "oui ", "oui"),
+            field7("", "", "oui"),
+            0..4,
+            "link-b",
+        ),
+        (
+            window("oui", " oui", ""),
+            field7("oui", "", ""),
+            3..7,
+            "link-a",
+        ),
+    ] {
+        let proposal = replacement_proposal(
+            &fixture(&current, Some(&edit), None),
+            Some(revision.clone()),
+        )
+        .unwrap();
+        let splice = proposal
+            .derive_selection_splice(&current, &revision)
+            .unwrap()
+            .unwrap();
+        assert_eq!(splice.original_utf16_range(), expected_range);
+        assert_eq!(
+            apply_mock(&splice),
+            [
+                "outside",
+                retained_style,
+                retained_style,
+                retained_style,
+                "outside"
+            ]
+        );
+        let grapheme_diff = proposal
+            .derive_grapheme_splice(&current, &revision)
+            .unwrap()
+            .unwrap();
+        assert_eq!(grapheme_diff.original_utf16_range(), 3..7);
+        assert_eq!(
+            apply_mock(&grapheme_diff),
+            ["outside", "link-a", "link-a", "link-a", "outside"]
+        );
+    }
+}
+
+#[test]
+fn selection_splice_keeps_disjoint_utf16_scopes_exact() {
+    let revision = Revision::from(1i64);
+    for (current, edit, expected_range, inserted, updated) in [
+        (
+            window("🚲A", "😀old", "💡"),
+            field7("🚲A", "😀new", "💡"),
+            3..8,
+            "😀new",
+            "🚲A😀new💡",
+        ),
+        (
+            window("🚲A😀old", "💡", ""),
+            field7("🚲A😀old", "🚦", ""),
+            8..10,
+            "🚦",
+            "🚲A😀old🚦",
+        ),
+    ] {
+        let proposal = replacement_proposal(
+            &fixture(&current, Some(&edit), None),
+            Some(revision.clone()),
+        )
+        .unwrap();
+        let splice = proposal
+            .derive_selection_splice(&current, &revision)
+            .unwrap()
+            .unwrap();
+        assert_eq!(splice.original_utf16_range(), expected_range);
+        assert_eq!(splice.inserted_text(), inserted);
+        let mut original: Vec<u16> = "🚲A😀old💡".encode_utf16().collect();
+        original.splice(
+            splice.original_utf16_range(),
+            splice.inserted_text().encode_utf16(),
+        );
+        assert_eq!(String::from_utf16(&original).unwrap(), updated);
+    }
+}
+
+#[test]
+fn selection_splice_refuses_missing_shifted_or_outside_scope_evidence() {
+    let revision = Revision::from(1i64);
+    for (current, edit) in [
+        (window("", "oui ", "oui"), field3("oui")), // Matching plain text is insufficient.
+        (window("", "oui ", "oui"), field7("oui", "", "")), // Same text, wrong split.
+        (window("a", "b", "c"), field7("x", "y", "c")), // Before changed.
+        (window("a", "b", "c"), field7("a", "y", "z")), // After changed.
+        (window("a", "", "c"), field7("a", "y", "c")), // Empty capture selection.
+        (window("xy", "a", "xy"), field7("xy", "", "")), // Prefix and suffix cannot overlap.
+    ] {
+        let proposal = replacement_proposal(
+            &fixture(&current, Some(&edit), None),
+            Some(revision.clone()),
+        )
+        .unwrap();
+        assert!(matches!(
+            proposal.derive_selection_splice(&current, &revision),
+            Err(EngineError::UnsupportedEdit)
+        ));
+    }
+}
+
+#[test]
+fn selection_splice_refuses_grapheme_splits_in_either_window() {
+    let revision = Revision::from(1i64);
+    for (current, edit) in [
+        (window("e", "\u{301}", "x"), field7("e", "!", "x")), // Original start.
+        (window("", "e", "\u{301}x"), field7("", "\n", "\u{301}x")), // Original end.
+        (window("e", "!", "x"), field7("e", "\u{301}", "x")), // Proposed start.
+        (window("x", "\n", "\u{301}x"), field7("x", "e", "\u{301}x")), // Proposed end.
+        (window("\r", "x", "\n"), field7("\r", "", "\n")),    // Deletion joins CRLF.
+        (window("🇦", "x", "🇧"), field7("🇦", "", "🇧")),        // Deletion joins a flag.
+    ] {
+        let proposal = replacement_proposal(
+            &fixture(&current, Some(&edit), None),
+            Some(revision.clone()),
+        )
+        .unwrap();
+        assert!(matches!(
+            proposal.derive_selection_splice(&current, &revision),
+            Err(EngineError::UnsupportedEdit)
+        ));
+        assert!(
+            proposal
+                .derive_grapheme_splice(&current, &revision)
+                .unwrap()
+                .is_some()
+        );
+    }
+}
+
+#[test]
+fn selection_splice_does_not_treat_cursor_movement_as_a_text_edit() {
+    let revision = Revision::from(1i64);
+    let current = window("a", "🦀", "c");
+    let edit = field7("a🦀", "", "c");
+    let proposal = replacement_proposal(
+        &fixture(&current, Some(&edit), None),
+        Some(revision.clone()),
+    )
+    .unwrap();
+    assert!(
+        proposal
+            .derive_selection_splice(&current, &revision)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(proposal.selection_utf16_range(), Some((3, 3)));
+}
+
+#[test]
+fn selection_splice_uses_checked_structured_proposals_without_fallback() {
+    let revision = Revision::from(1i64);
+    let current = window("a", "b", "c");
+    let edit = field7_with_intent(3, "a", "y", "c");
+    let compatible = |result: &DictationResult| {
+        replacement_proposal_with_policy(
+            result,
+            Some(revision.clone()),
+            RenderPolicy::S3ClientCompatible,
+        )
+    };
+    let result = fixture(&current, Some(&edit), None);
+    let proposal = compatible(&result).unwrap();
+    let splice = proposal
+        .derive_selection_splice(&current, &revision)
+        .unwrap()
+        .unwrap();
+    assert_eq!(splice.original_utf16_range(), 1..2);
+    assert_eq!(splice.inserted_text(), "y");
+    assert!(matches!(
+        replacement_proposal_with_policy(&result, Some(revision.clone()), RenderPolicy::AsrOnly),
+        Err(EngineError::UnsupportedEdit)
+    ));
+    assert!(matches!(
+        compatible(&fixture(&current, Some(&edit), Some(1))),
+        Err(EngineError::SafetyBlocked)
+    ));
+    assert!(matches!(
+        compatible(&fixture(&current, Some(&edit), Some(2))),
+        Err(EngineError::UnrecognizedSafety)
+    ));
+    assert!(matches!(
+        compatible(&fixture(&current, None, None)),
+        Err(EngineError::UnsupportedEdit)
+    ));
+    let mut ambiguous = result;
+    ambiguous
+        .final_updates
+        .push(ambiguous.final_updates[0].clone());
+    assert!(matches!(
+        compatible(&ambiguous),
+        Err(EngineError::AmbiguousResult)
     ));
 }
