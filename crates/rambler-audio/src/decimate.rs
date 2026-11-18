@@ -22,6 +22,7 @@ const HALF_Q30: [i32; RADIUS + 1] = [
     239913, 173189, 0, -131676, -138504, -47064, 52305, 87381, 51922, -7881, -42317, -35838, -7781,
     13757, 16315, 6784, -1817, -3596, -1478, -55, 0,
 ];
+#[cfg(test)]
 const Q30: [i32; TAPS] = {
     let mut taps = [0; TAPS];
     let mut n = 0;
@@ -37,6 +38,15 @@ fn pcm_sample(acc: i64) -> i16 {
     // rounding is nearest, ties away from zero. Clamp before narrowing.
     let rounded = (acc + UNITY / 2 - i64::from(acc < 0)) >> SHIFT;
     rounded.clamp(i64::from(i16::MIN), i64::from(i16::MAX)) as i16
+}
+
+fn symmetric_part(left: &[i16], right: &[i16], weights: &[i32]) -> i64 {
+    left.iter()
+        .rev()
+        .zip(right)
+        .zip(weights)
+        .map(|((&l, &r), &weight)| (i64::from(l) + i64::from(r)) * i64::from(weight))
+        .sum()
 }
 
 struct Fir {
@@ -63,15 +73,28 @@ impl Fir {
             return None;
         }
         self.until_output = DECIMATION as u8 - 1;
-        let (left, right) = self.history.split_at(self.oldest);
-        // Sum of absolute Q30 weights is < 2.1 * UNITY; even full-scale PCM
-        // cannot overflow i64 (including the rounding bias).
-        let acc = right
-            .iter()
-            .chain(left)
-            .zip(Q30.iter())
-            .map(|(&x, &weight)| i64::from(x) * i64::from(weight))
-            .sum();
+        let center = (self.oldest + RADIUS) % TAPS;
+        let (before, rest) = self.history.split_at(center);
+        let (&middle, after) = rest.split_first().expect("center is in the ring");
+
+        // Walk out from the center; only one wing can wrap. Pair at most two
+        // contiguous spans to avoid per-tap ring indexing.
+        let (left_inner, left_outer, right_inner, right_outer) = if before.len() >= RADIUS {
+            let (right_outer, left) = before.split_at(before.len() - RADIUS);
+            let (left_outer, left_inner) = left.split_at(RADIUS - after.len());
+            (left_inner, left_outer, after, right_outer)
+        } else {
+            let (right, left_outer) = after.split_at(RADIUS);
+            let (right_inner, right_outer) = right.split_at(before.len());
+            (before, left_outer, right_inner, right_outer)
+        };
+        let (inner, outer) = HALF_Q30[1..].split_at(left_inner.len());
+        // Each pair is widened before addition (range -65536..=65534).
+        // The full absolute weight sum is < 2.1 * UNITY; all partial sums,
+        // even at full scale with rounding bias, fit well within i64.
+        let acc = i64::from(middle) * i64::from(HALF_Q30[0])
+            + symmetric_part(left_inner, right_inner, inner)
+            + symmetric_part(left_outer, right_outer, outer);
         Some(pcm_sample(acc))
     }
 }

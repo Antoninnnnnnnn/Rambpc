@@ -1,0 +1,320 @@
+{
+  "base": "0d10ad0c5c798ea0c832d16f657a615d035a858c",
+  "candidate_checks": [
+    "4 decimator unit tests",
+    "7 PCM48 integration tests",
+    "Release clippy --all-targets -D warnings",
+    "fmt --check"
+  ],
+  "candidate_file_sha256": "d9fbb15c79f92dfb0eee9eb2fe1bfe3aadd60c83f64f984fb63b6ada8729269a",
+  "change": "crates/rambler-audio/src/decimate.rs only: 90 widened symmetric pair sums plus center tap, contiguous spans; coefficients, rounding, phase, buffering and lifecycle unchanged",
+  "exactness": {
+    "baseline": {
+      "aligned": [
+        "15002",
+        "60",
+        "9600002",
+        "3d28c4ec53ca3a96008a53e30868c7af7b61086a77377ae2414de0deee3289a8",
+        "15003"
+      ],
+      "bulk": [
+        "15003",
+        "60",
+        "9600002",
+        "3d28c4ec53ca3a96008a53e30868c7af7b61086a77377ae2414de0deee3289a8",
+        "6"
+      ],
+      "odd": [
+        "52045",
+        "60",
+        "9600002",
+        "3d28c4ec53ca3a96008a53e30868c7af7b61086a77377ae2414de0deee3289a8",
+        "64058"
+      ]
+    },
+    "candidate": {
+      "aligned": [
+        "15002",
+        "60",
+        "9600002",
+        "3d28c4ec53ca3a96008a53e30868c7af7b61086a77377ae2414de0deee3289a8",
+        "15003"
+      ],
+      "bulk": [
+        "15003",
+        "60",
+        "9600002",
+        "3d28c4ec53ca3a96008a53e30868c7af7b61086a77377ae2414de0deee3289a8",
+        "6"
+      ],
+      "odd": [
+        "52045",
+        "60",
+        "9600002",
+        "3d28c4ec53ca3a96008a53e30868c7af7b61086a77377ae2414de0deee3289a8",
+        "64058"
+      ]
+    },
+    "final_block_bytes": 60,
+    "output_samples": 4800001,
+    "output_sha256": "3d28c4ec53ca3a96008a53e30868c7af7b61086a77377ae2414de0deee3289a8"
+  },
+  "input": "Deterministic in-memory PCM16LE, 14,400,002 samples (300 s + 2), signed extrema; profiles bulk 8 MiB, aligned 1920 B, odd/empty [181,1,0,26,637,1,640,2111]",
+  "limits": [
+    "Current-thread CPU and wall of source+adapter draining only; excludes Opus encoding, transport and service.",
+    "One machine, one batch, no affinity pinning; not a whole-session or WAN latency claim.",
+    "An earlier preflight (missing CMake) and a log-parser failure stopped before timing; both preserved in the owner evidence."
+  ],
+  "metrics": {
+    "aligned": {
+      "metrics": {
+        "cpu_ms": {
+          "baseline_median_ms": 625.0,
+          "candidate_median_ms": 359.375,
+          "max_paired_ratio": 0.6923076923076923,
+          "median_paired_ratio_c_over_b": 0.570460704607046,
+          "min_paired_ratio": 0.44,
+          "pass": true
+        },
+        "wall_ms": {
+          "baseline_median_ms": 617.8942,
+          "candidate_median_ms": 374.70865000000003,
+          "max_paired_ratio": 0.7353430659347927,
+          "median_paired_ratio_c_over_b": 0.572937696373775,
+          "min_paired_ratio": 0.4567928408766895,
+          "pass": true
+        }
+      },
+      "pairs_by_round": [
+        {
+          "B": {
+            "cpu_ms": 609.375,
+            "wall_ms": 604.84
+          },
+          "C": {
+            "cpu_ms": 421.875,
+            "wall_ms": 444.7649
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 546.875,
+            "wall_ms": 598.1558
+          },
+          "C": {
+            "cpu_ms": 296.875,
+            "wall_ms": 297.2107
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 703.125,
+            "wall_ms": 701.0316
+          },
+          "C": {
+            "cpu_ms": 390.625,
+            "wall_ms": 391.4185
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 781.25,
+            "wall_ms": 790.5102
+          },
+          "C": {
+            "cpu_ms": 343.75,
+            "wall_ms": 361.0994
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 640.625,
+            "wall_ms": 630.9484
+          },
+          "C": {
+            "cpu_ms": 375.0,
+            "wall_ms": 388.3179
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 562.5,
+            "wall_ms": 591.1884
+          },
+          "C": {
+            "cpu_ms": 343.75,
+            "wall_ms": 347.3403
+          }
+        }
+      ]
+    },
+    "bulk": {
+      "metrics": {
+        "cpu_ms": {
+          "baseline_median_ms": 570.3125,
+          "candidate_median_ms": 265.625,
+          "max_paired_ratio": 0.7058823529411765,
+          "median_paired_ratio_c_over_b": 0.4928571428571429,
+          "min_paired_ratio": 0.4146341463414634,
+          "pass": true
+        },
+        "wall_ms": {
+          "baseline_median_ms": 575.14095,
+          "candidate_median_ms": 269.39635,
+          "max_paired_ratio": 0.6998719265926355,
+          "median_paired_ratio_c_over_b": 0.4967160375712072,
+          "min_paired_ratio": 0.393822922158677,
+          "pass": true
+        }
+      },
+      "pairs_by_round": [
+        {
+          "B": {
+            "cpu_ms": 640.625,
+            "wall_ms": 652.2385
+          },
+          "C": {
+            "cpu_ms": 265.625,
+            "wall_ms": 271.6857
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 546.875,
+            "wall_ms": 535.9578
+          },
+          "C": {
+            "cpu_ms": 265.625,
+            "wall_ms": 263.9078
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 531.25,
+            "wall_ms": 533.1179
+          },
+          "C": {
+            "cpu_ms": 265.625,
+            "wall_ms": 267.107
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 625.0,
+            "wall_ms": 614.1831
+          },
+          "C": {
+            "cpu_ms": 328.125,
+            "wall_ms": 325.5781
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 593.75,
+            "wall_ms": 670.8609
+          },
+          "C": {
+            "cpu_ms": 250.0,
+            "wall_ms": 264.2004
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 531.25,
+            "wall_ms": 536.0988
+          },
+          "C": {
+            "cpu_ms": 375.0,
+            "wall_ms": 375.2005
+          }
+        }
+      ]
+    },
+    "odd": {
+      "metrics": {
+        "cpu_ms": {
+          "baseline_median_ms": 781.25,
+          "candidate_median_ms": 523.4375,
+          "max_paired_ratio": 0.75,
+          "median_paired_ratio_c_over_b": 0.6708173690932312,
+          "min_paired_ratio": 0.6086956521739131,
+          "pass": true
+        },
+        "wall_ms": {
+          "baseline_median_ms": 776.1764000000001,
+          "candidate_median_ms": 524.3358499999999,
+          "max_paired_ratio": 0.7268298250638748,
+          "median_paired_ratio_c_over_b": 0.6817418369084083,
+          "min_paired_ratio": 0.619727578222212,
+          "pass": true
+        }
+      },
+      "pairs_by_round": [
+        {
+          "B": {
+            "cpu_ms": 718.75,
+            "wall_ms": 711.5034
+          },
+          "C": {
+            "cpu_ms": 437.5,
+            "wall_ms": 465.4908
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 718.75,
+            "wall_ms": 714.8393
+          },
+          "C": {
+            "cpu_ms": 515.625,
+            "wall_ms": 509.4024
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 687.5,
+            "wall_ms": 705.286
+          },
+          "C": {
+            "cpu_ms": 515.625,
+            "wall_ms": 512.6229
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 843.75,
+            "wall_ms": 864.9749
+          },
+          "C": {
+            "cpu_ms": 531.25,
+            "wall_ms": 536.0488
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 906.25,
+            "wall_ms": 908.6687
+          },
+          "C": {
+            "cpu_ms": 578.125,
+            "wall_ms": 568.2068
+          }
+        },
+        {
+          "B": {
+            "cpu_ms": 843.75,
+            "wall_ms": 837.5135
+          },
+          "C": {
+            "cpu_ms": 593.75,
+            "wall_ms": 594.0049
+          }
+        }
+      ]
+    }
+  },
+  "platform": "Windows 11 x64, Intel Core i5-12450H, Rust 1.99.1, MSVC Release, offline locked, 2 jobs",
+  "provider_calls": 0,
+  "schedule": "Six adjacent baseline/candidate pairs per profile, order alternated each round, profile order rotated; 36 timed drains, no retries",
+  "schema": "rambler-pcm48-fir-symmetry-windows-v1"
+}
