@@ -1,0 +1,384 @@
+{
+  "date": "2026-11-18",
+  "revision_workspace": "9a29ab868a60664c81b1358da883b692dff536e7",
+  "revision_intermediate": "7ceb5905516f8cf0ee40aea8d061abf4767eb04d",
+  "revision_audited": "e52e568ec8a602a224b249970e69f749ffa9ab18",
+  "scope": "Les mesures sans révision indiquée portent sur revision_audited. Pairs de dictée sur localhost et réponses imposées. Les deux contrôles HTTPS de l’application utilisent www.google.com. Zéro RPC de dictée adressé à Google pendant cet audit.",
+  "environment": {
+    "windows": "Windows 11 x64, Intel Core i5-12450H",
+    "rustc": "1.99.1, x86_64-pc-windows-msvc",
+    "android_phone": "Xiaomi 2109119DG, Android 14, API 34, ARM64, pages 4096 octets",
+    "android_app_test": "AVD Android 16 API 36 x86_64, traduction ARM64, pages 4096 octets, application cible API 34, permission INTERNET, UID applicatif, debuggable=false",
+    "android_build": "NDK 27.1.12297006, ABI aarch64-linux-android, API native 28"
+  },
+  "windows_tests": {
+    "all_targets_command": "cargo test --workspace --all-targets --all-features --locked --offline",
+    "all_targets": {
+      "test_targets": 92,
+      "passed": 588,
+      "failed": 0,
+      "ignored": 4
+    },
+    "opt_in_passed": {
+      "pyav_decode": 1,
+      "edit_proposals": 2,
+      "desktop_default_trust": 1
+    },
+    "opt_in_note": "Un premier lancement du contrôle TLS a échoué à sa précondition sur la présence d’une variable. Le processus de contrôle lancé avec les deux variables de certificats absentes a réussi.",
+    "doctests": {
+      "test_targets": 4,
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    "rustfmt": "pass",
+    "clippy_all_targets_deny_warnings": "pass",
+    "python": {
+      "passed": 931,
+      "skipped": 4,
+      "subtests_passed": 981,
+      "seconds": 69.55
+    }
+  },
+  "previous_windows_counts": {
+    "9a29ab8": {
+      "rust_passed": 558,
+      "rust_ignored": 3,
+      "python_passed": 923,
+      "python_skipped": 4
+    },
+    "7ceb590": {
+      "test_targets": 92,
+      "passed": 579,
+      "failed": 0,
+      "ignored": 3
+    }
+  },
+  "ci": {
+    "rust_main": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44391305891",
+    "rust_main_jobs_succeeded": 10,
+    "python_main": "https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44391305956"
+  },
+  "android_app_public_endpoint": {
+    "default_policy_intermediate": {
+      "androidHttpsStatus": "204",
+      "appUid": "true",
+      "debuggable": "false",
+      "javaRoots": "149",
+      "mode": "default",
+      "rustH2Ping": "failed",
+      "rustRoots": "0"
+    },
+    "default_policy_current": {
+      "androidHttpsStatus": "204",
+      "appUid": "true",
+      "debuggable": "false",
+      "javaRoots": "149",
+      "mode": "default",
+      "resultCode": "1",
+      "rustH2Ping": "ok"
+    },
+    "restricted_domain_current": {
+      "androidHttpsError": "SSLHandshakeException",
+      "appUid": "true",
+      "debuggable": "false",
+      "javaRoots": "149",
+      "mode": "default",
+      "resultCode": "3",
+      "rustH2Ping": "failed"
+    },
+    "method": "Même hôte public. Rust attend le PONG HTTP/2. Java demande generate_204. La seconde APK de la révision courante ne fait confiance qu’à la CA du test pour www.google.com. Le code 1 indique succès, 3 CertificateRejected. javaRoots est le nombre global d’émetteurs déclarés par le gestionnaire Java.",
+    "physical_phone": "L’installation ADB ordinaire de l’APK de cet audit a été refusée par le téléphone. Les essais de l’application ont été faits sur l’émulateur. Les essais PCM, de ralenti et d’endurance ont tourné sur le Xiaomi via ADB.",
+    "app_sha256": {
+      "default_current": "7a907d3d4dccbc77f12785f0522766fe13c46b662ff15fed2ee305047aa0255e",
+      "restricted_current": "d8fc8cbae350292187ce46326089ec7f61c8815bdfe81483f7fa173df4bca673"
+    },
+    "page_size": "Les quatre segments LOAD de la bibliothèque temporaire API 28 / NDK r27 par défaut ont p_align=0x1000. Le canari Android publié du projet vérifie un binaire aligné pour 16 Kio. Les deux environnements de cet audit ont des pages de 4 Kio."
+  },
+  "pcm_encode": {
+    "method": "10 secondes synthétiques, mono, PCM16LE, sinusoïdes à 220 et 990 Hz, blocs de 20 ms. 16 kHz ou 48 kHz avec décimation vers 16 kHz. Opus 24 kbit/s et pages de 20 ms. Processus Release, signal préparé avant chronométrage, horloge monotone, fermeture comprise. Une chauffe par fréquence exclue, neuf tours alternés. Ni capture matérielle ni réseau.",
+    "windows": {
+      "48000": {
+        "duration_us": [
+          66677,
+          51005,
+          54261,
+          55726,
+          43604,
+          54103,
+          52340,
+          52641,
+          47670
+        ],
+        "ogg_bytes": 45303,
+        "median_us": 52641
+      },
+      "16000": {
+        "duration_us": [
+          48058,
+          50078,
+          38253,
+          40174,
+          30257,
+          36127,
+          32456,
+          31284,
+          32876
+        ],
+        "ogg_bytes": 45310,
+        "median_us": 36127
+      }
+    },
+    "xiaomi": {
+      "48000": {
+        "duration_us": [
+          53218,
+          53041,
+          52949,
+          53156,
+          52929,
+          53062,
+          52812,
+          52979,
+          52842
+        ],
+        "ogg_bytes": 45300,
+        "median_us": 52979
+      },
+      "16000": {
+        "duration_us": [
+          44339,
+          44144,
+          44233,
+          44433,
+          44386,
+          44331,
+          44398,
+          44287,
+          44247
+        ],
+        "ogg_bytes": 45298,
+        "median_us": 44331
+      }
+    }
+  },
+  "rollover_backpressure": {
+    "method": "90 blocs PCM16 de 640 octets à échéances de 20 ms, canal PCM à une place. Coupure à 600 ms, recherche de pause désactivée. Le pair attend le délai indiqué après épuisement de chaque envoi avant de produire son résultat. Reserve mesuré du début d’attente à la remise du bloc. La source conserve son audio et peut rattraper un retard.",
+    "windows": [
+      {
+        "final_wait_ms": 0,
+        "blocks_sent": 90,
+        "reservations_over_20ms": 0,
+        "max_reserve_us": 2195,
+        "completed_segments": 3,
+        "requests": 3
+      },
+      {
+        "final_wait_ms": 600,
+        "blocks_sent": 90,
+        "reservations_over_20ms": 2,
+        "max_reserve_us": 598699,
+        "completed_segments": 3,
+        "requests": 3
+      }
+    ],
+    "xiaomi": [
+      {
+        "final_wait_ms": 0,
+        "blocks_sent": 90,
+        "reservations_over_20ms": 0,
+        "max_reserve_us": 18,
+        "completed_segments": 3,
+        "requests": 3
+      },
+      {
+        "final_wait_ms": 600,
+        "blocks_sent": 90,
+        "reservations_over_20ms": 2,
+        "max_reserve_us": 580736,
+        "completed_segments": 3,
+        "requests": 3
+      }
+    ]
+  },
+  "endurance": {
+    "method": "1001 sessions successives, même Engine, 100 ms de PCM synthétique par session. Le pair termine chaque dixième demande avec gRPC Unavailable. Les autres finales valent Texte. Contrôles sur le code d’erreur et le texte. RAM Android lue depuis VmRSS aux points de contrôle.",
+    "windows": {
+      "sessions": 1001,
+      "verified_texts": 901,
+      "expected_unavailable": 100,
+      "accepted_tcp": 1,
+      "last_success": true,
+      "clean_shutdown": true
+    },
+    "xiaomi": {
+      "sessions": 1001,
+      "verified_texts": 901,
+      "expected_unavailable": 100,
+      "accepted_tcp": 1,
+      "last_success": true,
+      "clean_shutdown": true,
+      "vmrss_kib": {
+        "1": 6536,
+        "100": 6588,
+        "250": 6588,
+        "500": 6588,
+        "750": 6588,
+        "1001": 6588
+      }
+    }
+  },
+  "interactive_31s": {
+    "input_samples": 496000,
+    "chunks": 1550,
+    "chunk_ms": 20,
+    "input": "silence cadencé, première trame disponible au démarrage",
+    "intermediate_generic_defaults": {
+      "elapsed_ms": 30030,
+      "completed": 0
+    },
+    "intermediate_session_timeout_40s": {
+      "elapsed_ms": 30997,
+      "completed": 1
+    },
+    "current_InteractivePcmProfile_default": {
+      "elapsed_ms": 30993,
+      "completed": 1,
+      "expected_text": "Texte témoin."
+    }
+  },
+  "interactive_cli": {
+    "normal_and_peer_failure": [
+      {
+        "failure_injected": false,
+        "exit": 0,
+        "calls": 2,
+        "type": "result",
+        "text": "L’ équipe arrive.",
+        "category": null,
+        "segments": [
+          {
+            "text": "L’",
+            "samples": [
+              0,
+              17600
+            ]
+          },
+          {
+            "text": "équipe arrive.",
+            "samples": [
+              17600,
+              32000
+            ]
+          }
+        ]
+      },
+      {
+        "failure_injected": true,
+        "exit": 1,
+        "calls": 2,
+        "type": "error",
+        "text": null,
+        "category": "grpc",
+        "segments": [
+          {
+            "text": "L’",
+            "samples": [
+              0,
+              17600
+            ]
+          }
+        ]
+      }
+    ],
+    "user_interrupt": {
+      "first_segment_closed_by_peer": true,
+      "second_rpc_started": true,
+      "second_rpc_cancelled": true,
+      "exit": 130,
+      "completed_segments": [],
+      "category": "cancelled",
+      "method": "Ctrl-C envoyé à la seule console de la CLI Windows quand le second RPC avait commencé après le premier succès. WAV silencieux de 14 secondes, segment maximal de 6 secondes."
+    }
+  },
+  "rendering": {
+    "sdk_long_text": [
+      {
+        "server_finals": [
+          "明天",
+          "开会。"
+        ],
+        "sdk_text": "明天 开会。"
+      },
+      {
+        "server_finals": [
+          "Aujourd’hui,",
+          " il pleut."
+        ],
+        "sdk_text": "Aujourd’hui,  il pleut."
+      },
+      {
+        "server_finals": [
+          "L’",
+          "équipe arrive."
+        ],
+        "sdk_text": "L’ équipe arrive."
+      }
+    ],
+    "edit": {
+      "captured": {
+        "before": "",
+        "selected": "oui ",
+        "after": "oui"
+      },
+      "server_after": {
+        "before": "",
+        "selected": "",
+        "after": "oui"
+      },
+      "selected_utf16": [
+        0,
+        4
+      ],
+      "proposed_grapheme_utf16": [
+        3,
+        7
+      ],
+      "inserted": "",
+      "final_text": "oui",
+      "resulting_selection_utf16": [
+        0,
+        0
+      ],
+      "nature": "Réponse synthétique structurée, même révision, texte brut correct. La position physique de la suppression est différente."
+    }
+  },
+  "cross_platform_fixtures_intermediate": {
+    "cases": [
+      "literal",
+      "rewrite",
+      "selection",
+      "partial"
+    ],
+    "repetitions_each": 10,
+    "per_platform": 40,
+    "pairs_equal_on_pcm_and_response_and_render_hashes_and_counts": 40,
+    "pairs_with_different_ogg_length": 20
+  },
+  "dependency_query": {
+    "rust_versions": 150,
+    "python_versions": {
+      "grpcio": "1.85.1",
+      "av": "19.0.2"
+    },
+    "matched": []
+  },
+  "pip_check": "pass",
+  "artifacts_sha256": {
+    "cli_release": "f63f0695f3bcf75197e29681349219d974f025508608476df923a2536b1e0a87",
+    "android_loopback": "9624666b609d2eef10baeda82275b6d4b97b19c0c745e9f03a52ec9c8e7215a0",
+    "windows_loopback": "09a9ee11f13eb3bbc9fc248416505e3abaeefe57eb6dd381a5abae32c107f6b9",
+    "source_timing_probe": "d8a27e4e570e13246c52d0fcd1f51a0a7285d7c5ea930c55ad981f6ab501d3ae",
+    "source_continuity_probe": "338573884210fd4a7f427c42489fabcc7f3adc619030ba638d69be8e69a7857c"
+  }
+}
