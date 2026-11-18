@@ -78,8 +78,12 @@ Un exemple compilé est dans [`crates/rambler-engine/src/lib.rs`](crates/rambler
 Le [guide d'intégration SDK](docs/research/sdk-integration-guide.md) détaille chaque étape.
 Pour une [dictée longue](docs/research/sdk-integration-guide.md#opt-in-to-long-dictation),
 le collecteur PCM découpe l'audio en sessions successives, de préférence sur une pause.
-Il conserve les segments terminés si le suivant échoue, sans rejouer d'audio ni
-transférer de contexte éditeur.
+Pour un callback de capture fourni par l'app, [`capture_channel`](docs/research/rust-pcm-capture.md)
+accepte les blocs sans attendre et signale explicitement tout débordement.
+[`stream_long_pcm_dictation`](docs/research/recoverable-segment-delivery.md) remet
+chaque segment validé à l'app avant le suivant ; une panne ou une annulation ne
+retire pas les résultats déjà remis. Aucun audio n'est rejoué et aucun contexte
+d'éditeur ne passe entre segments.
 
 Règles à respecter :
 
