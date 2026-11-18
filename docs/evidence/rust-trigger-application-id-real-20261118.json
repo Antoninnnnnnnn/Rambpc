@@ -1,0 +1,22 @@
+{
+  "schema": "rambler-trigger-application-id-20261118-v1",
+  "question": "Does ClientInfo field 16 (triggerApplicationId), the only editor-derived request field Android sets that the native client omitted, change advanced-mode behavior?",
+  "source_trace": "docs/research/advanced-mode-request-trace.md",
+  "method": "Same synthetic utterances, one session per arm, no retries; value = package name of the owned test editor (org.rambpc.publicvoiceprobe), no other identity used.",
+  "results": [
+    {
+      "case": "compose on empty field",
+      "baseline": "intent 2 field 3, literal",
+      "with_field16": "intent 2 field 3, identical literal text"
+    },
+    {
+      "case": "continue existing draft",
+      "baseline": "intent 2 field 7, appended literally",
+      "with_field16": "intent 2 field 7, identical text"
+    }
+  ],
+  "conclusion": "Field 16 alone does not trigger COMPOSE/RAMBLE behavior for these utterances; the option is kept (Android parity, off by default).",
+  "limits": [
+    "Two utterances, one session each; not proof that no profile triggers composition."
+  ]
+}

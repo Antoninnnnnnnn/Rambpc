@@ -207,3 +207,5 @@ aucune qualification d'un futur commit documentaire n'en découle.
 Les traces absentes de l'incident long historique ne peuvent pas être recréées
 par une série de succès. Sa cause reste indéterminée ; les nouveaux compteurs
 audio améliorent un futur diagnostic sans prétendre résoudre cet ancien incident.
+
+Mise à jour 2026-11-18 : la [trace statique de la requête](advanced-mode-request-trace.md) ne montre aucun sélecteur de mode côté client ; l’intention est décidée par le serveur. Le seul champ manquant, ClientInfo 16 (`--trigger-application-id`), est maintenant pris en charge mais [n’a pas déclenché de composition](../evidence/rust-trigger-application-id-real-20261118.json).

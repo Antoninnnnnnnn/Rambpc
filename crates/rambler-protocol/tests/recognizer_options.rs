@@ -276,3 +276,47 @@ fn new_options_stay_private_and_init_only_without_legacy_selection_changes() {
     );
     assert_eq!(end_request(), [0x10, 1, 0x18, 1]);
 }
+
+#[test]
+fn trigger_application_id_is_an_optional_client_info_field_16() {
+    fn client(request: &[u8]) -> Vec<u8> {
+        let mut payloads = fields(request)
+            .into_iter()
+            .filter_map(|(n, v)| match (n, v) {
+                (294000, Value::Bytes(bytes)) => Some(bytes.to_vec()),
+                _ => None,
+            });
+        let payload = payloads.next().unwrap();
+        assert!(payloads.next().is_none(), "one ClientInfo extension");
+        payload
+    }
+    fn others(request: &[u8]) -> Vec<String> {
+        fields(request)
+            .into_iter()
+            .filter(|(n, _)| *n != 294000)
+            .map(|(n, v)| format!("{n}:{v:?}"))
+            .collect()
+    }
+    let baseline = initial_request(&ProtocolConfig::default(), 0).unwrap();
+    assert_eq!(
+        client(&baseline),
+        hex::decode("120667626f617264420452757374d00101").unwrap()
+    );
+    let config = ProtocolConfig {
+        trigger_application_id: Some("com.example.notes".into()),
+        ..Default::default()
+    };
+    let request = initial_request(&config, 0).unwrap();
+    // Frozen vector: field2 "gboard", field8 "Rust", field16 package, field26 = 1.
+    assert_eq!(
+        client(&request),
+        hex::decode("120667626f617264420452757374820111636f6d2e6578616d706c652e6e6f746573d00101")
+            .unwrap()
+    );
+    assert_eq!(others(&request), others(&baseline));
+    let empty = ProtocolConfig {
+        trigger_application_id: Some(String::new()),
+        ..Default::default()
+    };
+    assert!(empty.validate().is_err());
+}

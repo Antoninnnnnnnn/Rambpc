@@ -81,6 +81,9 @@ struct CommonArgs {
     /// Optional secondary S3 routing key; no automatic route discovery.
     #[arg(long)]
     secondary_routing: Option<String>,
+    /// Package name of the editor app being dictated into (ClientInfo field 16).
+    #[arg(long)]
+    trigger_application_id: Option<String>,
     /// Test-only plaintext endpoint; only loopback addresses are accepted.
     #[arg(long)]
     loopback: Option<SocketAddr>,
@@ -443,6 +446,7 @@ async fn main() {
         block_offensive_words,
         auto_punctuation,
         secondary_routing,
+        trigger_application_id,
         loopback,
     } = common;
     let transport =
@@ -499,6 +503,7 @@ async fn main() {
             block_offensive_words,
             auto_punctuation,
             secondary_routing,
+            trigger_application_id,
             ..Default::default()
         },
         context,

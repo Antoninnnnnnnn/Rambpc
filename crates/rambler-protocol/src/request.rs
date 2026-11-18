@@ -24,6 +24,11 @@ pub struct ProtocolConfig {
     /// Nonempty RecognizerInfo field64 routing key, observed on the Jetson S3 path.
     /// Preserved verbatim and bounded like routing; no backend effect is guaranteed.
     pub secondary_routing: Option<String>,
+    /// ClientInfo field16 `triggerApplicationId`: package name of the editor
+    /// application the user dictates into, as Android sets from
+    /// `EditorInfo.packageName`. None omits it; no backend effect is guaranteed.
+    /// Supply only the real host application's identifier.
+    pub trigger_application_id: Option<String>,
     pub platform: String,
     pub bias_terms: Vec<String>,
     pub preferences: Vec<String>,
@@ -41,6 +46,7 @@ impl Default for ProtocolConfig {
             block_offensive_words: None,
             auto_punctuation: None,
             secondary_routing: None,
+            trigger_application_id: None,
             platform: "Rust".into(),
             bias_terms: vec![],
             preferences: vec![],
@@ -71,6 +77,7 @@ impl ProtocolConfig {
         ]
         .into_iter()
         .chain(self.secondary_routing.as_ref())
+        .chain(self.trigger_application_id.as_ref())
         {
             if value.is_empty() {
                 return Err(Error::InvalidConfig("nonempty text required"));
@@ -151,6 +158,9 @@ pub fn initial_request(config: &ProtocolConfig, elapsed_ms: u64) -> Result<Vec<u
     }
     let mut client = s(2, &config.application_id)?;
     append(&mut client, s(8, &config.platform)?)?;
+    if let Some(trigger) = &config.trigger_application_id {
+        append(&mut client, s(16, trigger)?)?;
+    }
     append(&mut client, v(26, 1)?)?;
     let mut user = b(2, &s(1, &config.language)?)?;
     for language in &config.secondary_languages {
