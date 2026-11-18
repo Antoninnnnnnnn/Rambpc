@@ -1,0 +1,153 @@
+{
+  "automatic_retry": false,
+  "base": "2658ffb619ce91b0f456b5330e5eac64b286f637",
+  "limits": [
+    "One optional existing PyAV test ignored. Scope is audio and engine all targets, doctests, two CLI PCM suites, and workspace Clippy; not hosted CI.",
+    "The 48 kHz mono adapter verifies sample-count, filter and lifecycle invariants; no claim about natural speech, ASR, or production latency.",
+    "The edit splice is scalar-aligned rather than necessarily grapheme-aligned; host verifies boundaries, identity, anchor and current revision and decides whether to apply.",
+    "Public reference notes contain no live Gboard/PixelBoard experiment."
+  ],
+  "provider_calls": 0,
+  "repository_blob_sha256_when_line_endings_differ": {
+    "Cargo.lock": "9da4d24f75b82b3ae9b258ed20758f34478165f15b2958c1b25ded2c7876d507",
+    "crates/rambler-audio/BUILDING.md": "d2b75e26f0dc35794ea7293047f0cbfb42ef4db51f913e923bee991e0449d4a0",
+    "crates/rambler-audio/src/lib.rs": "76266acbe8716dc353c4c57c45c7d5825594453e400fd15bfca0a978da0c5ff4",
+    "crates/rambler-engine/src/lib.rs": "e4be74dc93d4fd20b949868c1d464c3b7260c30503dfddf621cc1aee93347a0b",
+    "docs/research/sdk-integration-guide.md": "46611245f7e60f20f0168a271c241ad95193bb8be1f09b004ca40f772de40173"
+  },
+  "schema": "rambler-sdk-input-edits-local-v1",
+  "scope": "Windows stable Rust; offline locked, synthetic fixtures and owned localhost only",
+  "status": "PASS_INTEGRATED_SCOPES",
+  "steps": [
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "name": "format",
+      "passed": true
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "rambler-engine",
+        "-p",
+        "rambler-audio",
+        "--all-targets"
+      ],
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "name": "core",
+      "passed": true,
+      "results_by_target_summed": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 1,
+        "measured": 0,
+        "passed": 233
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "rambler-engine",
+        "-p",
+        "rambler-audio",
+        "--doc"
+      ],
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "name": "doctests",
+      "passed": true,
+      "results_by_target_summed": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 5
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "-p",
+        "rambler-cli",
+        "--features",
+        "audio",
+        "--test",
+        "pcm_sdk",
+        "--test",
+        "pcm_channel_engine"
+      ],
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "name": "cli_pcm",
+      "passed": true,
+      "results_by_target_summed": {
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "measured": 0,
+        "passed": 6
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "job_empty": true,
+      "membership_verified": true,
+      "name": "clippy",
+      "passed": true
+    }
+  ],
+  "validated_file_sha256": {
+    "Cargo.lock": "cd573232fdc09ce3a637f22b2de70ad6fb564ecc8613dda302629d04660cce15",
+    "crates/rambler-audio/BUILDING.md": "b00ef87b7edcada98e8a60a376c5dff8e004a74d33f08662bfb10823ba170958",
+    "crates/rambler-audio/src/decimate.rs": "582f8652eaa013f0a84a87aa305d07167c08637feb07b28a457f8ba733807356",
+    "crates/rambler-audio/src/decimate_tests.rs": "2d7f5f5d41431b90fb712aab107af159d08f5c5bc92c5f4d9566b5001ecc287b",
+    "crates/rambler-audio/src/lib.rs": "7f63950b2d5a44451f304dbc4dec0121d9550689b6cebc0885a0bcfe77f867ea",
+    "crates/rambler-audio/tests/pcm_48k.rs": "0beafebffbc39eb0750e026fd3037982d6f599ab3b8ea74d39b352e0071e774f",
+    "crates/rambler-engine/src/lib.rs": "55a10d8a93c64efa4daa2f5a31ba9784d3107a9eb4ceeb7207ebc4483ea18928",
+    "crates/rambler-engine/src/splice.rs": "9a840df6277fa5c44c1ddee59dcccf78ceeb69e460bc2a19b1b9b0f8dfbd4c10",
+    "crates/rambler-engine/tests/splice.rs": "eba7483104a4629931d80d438fdd15adb7f7f6bc6169d3736aafe444f36760b7",
+    "docs/research/advanced-voice-observable-reference.md": "04ee876d17f8a69c8824f9f84e6d4eadf6abdbf5760adca56c192389239cce30",
+    "docs/research/pixelboard-135-client-result-audit.md": "0fbed3398c38b73f2b5d7d628a280d9b24ed423936a7c78a3194d586ac7dc0d8",
+    "docs/research/sdk-integration-guide.md": "e36368ce3f6c867595d616f2d5c8ff0eb13382f38f976b8cfd754047b3c0f021"
+  }
+}

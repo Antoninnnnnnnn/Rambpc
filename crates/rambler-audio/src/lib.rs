@@ -7,7 +7,9 @@
 //! as `Pcm16Opus::new(WavAudio::open(path, WavConfig::default()).await?,
 //! EncoderConfig::default())`, then give ownership to the engine. For caller-fed
 //! PCM dictation, [`start_pcm_dictation`] and [`start_pcm_dictation_with_observer`]
-//! pair a bounded producer with an engine completion future.
+//! pair a bounded producer with an engine completion future. For explicitly
+//! caller-supplied 48 kHz mono PCM16LE, opt in to [`Pcm48kTo16k`] before the
+//! unchanged 16 kHz encoder.
 //!
 //! Normal EOF closes upstream BEFORE emitting a successful Ogg EOS. All tail
 //! samples and encoder lookahead are flushed; EOS granules trim padding exactly.
@@ -25,6 +27,7 @@
 //! network or logging. The dictation helpers use only your supplied engine.
 //! See `BUILDING.md` for native toolchain, linkage audit and third-party licences.
 
+mod decimate;
 mod dictation;
 mod encode;
 mod input;
@@ -32,6 +35,7 @@ mod lifecycle;
 mod ogg;
 mod progress;
 mod wav;
+pub use decimate::Pcm48kTo16k;
 pub use dictation::{start_pcm_dictation, start_pcm_dictation_with_observer};
 pub use encode::{EncoderConfig, Pcm16Opus};
 pub use input::{PcmInput, PcmInputError, PcmPermit, PcmSendError, PcmSender, pcm_channel};

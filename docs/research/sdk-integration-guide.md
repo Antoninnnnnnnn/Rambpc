@@ -63,7 +63,13 @@ Admission takes ownership even if the future is never polled; a rejected source 
 - Call `replacement_proposal(&completed, Some(captured_revision))`. It refuses unsafe, ambiguous, unsupported, or context-free results. The strict proposal is a replacement of the **captured window**, not a text delta or a whole-document replacement. `selection_utf16_range()` is available when the proposal contains a replacement context; its offsets are local to the replacement string. Treat an empty replacement as data requiring the same approval, not as a command.
 - The user/application must explicitly approve an edit. In the *same* editor transaction as applying it, verify the document identity and window anchor, read the current window and revision, then call `proposal.validate_current(&current_window, Some(&current_revision))`. If anything changed, discard the proposal. Use revisions that change even if text is edited and restored; window text alone cannot detect that race. Do not coerce integer and string revisions or reuse a revision from a different snapshot. The [engine example](../../crates/rambler-engine/src/lib.rs) shows pairing a late window with a revision and validating a proposal for review; it intentionally does not mutate anything.
 
-The SDK never performs editor/system effects. Command classification is separate, opt-in, and descriptive only; neither preview nor successful collection is authorization to SEND or CLEAR.
+### Opt in to a single local text splice
+
+If the host needs one range replacement instead of the whole captured window, call `proposal.derive_scalar_splice(&current_window, &current_revision)` on the **unmodified strict proposal**. Stop on proposal errors; do not build a proposal from rendered text, a preview, or an ASR fallback. The helper repeats exact `before`/`selected`/`after` and revision validation and refuses an unversioned proposal with `ContextConflict`. The same text after an intervening edit still conflicts if the revision has advanced. Identical text and revision in a *different document or window* are not proof of identity; the host must verify the original document and anchor and derive again in the transaction for any explicitly approved apply.
+
+`Ok(Some(splice))` describes the half-open `original_utf16_range()` measured from the **original window start**, with exact `inserted_text()` for that range. Preserve the longest equal prefix first (it wins ties on repeated text), then the longest non-overlapping equal suffix. For `The kite is blue. Marker stays.` → `The kite is green. Marker stays.`, the range is `12..16` and the inserted text is `green`; never pass the full replacement as insertion at the cursor. `Ok(None)` means no text change; an empty range is an insertion, and empty text with a nonempty range is a deletion. The optional `selection_utf16_range()` stays separate, relative to the **resulting window**, and may change even when there is no text splice.
+
+This is deliberately a **scalar**, not a grapheme, splice. It never splits a surrogate pair, but may split a grapheme (for example, a base letter and a combining mark), and does not normalize text. If the host requires grapheme-aligned edits, verify both splice boundaries in the original and proposed *document* with the host's segmentation rules; if unknown or unsupported, do not use the splice. Do not round offsets. The SDK never performs editor/system effects. Command classification is separate, opt-in, and descriptive only; a splice has no SEND or CLEAR semantics, even when it contains those words.
 
 ## Local verification
 
@@ -71,6 +77,7 @@ From the workspace root, the public-API tests and examples below need no microph
 
 ```sh
 cargo +stable test --locked --offline -p rambler-engine --test observed_dictation
+cargo +stable test --locked --offline -p rambler-engine --test splice
 cargo +stable test --locked --offline -p rambler-engine --doc
 cargo +stable test --locked --offline -p rambler-cli --features audio --test pcm_sdk
 cargo +stable test --locked --offline -p rambler-audio --doc

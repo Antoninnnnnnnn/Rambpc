@@ -199,6 +199,41 @@ explicitly await `close` for a cleanup guarantee; an arbitrary uncooperative
 upstream can still block its own close. Neither Drop nor cancellation manufactures
 EOS or claims a completed dictation.
 
+## Optional 48 kHz caller PCM
+
+Use the same bounded channel and collector, with an explicit adapter in between:
+
+```rust,ignore
+let (sender, input) = rambler_audio::pcm_channel();
+let audio = rambler_audio::Pcm16Opus::new(
+    rambler_audio::Pcm48kTo16k::new(input), rambler_audio::EncoderConfig::default(),
+);
+let completed = rambler_engine::collect_dictation(engine, Box::new(audio), options, limits);
+// Drive sender.reserve()/send()/finish() concurrently with completed, as for 16 kHz.
+```
+
+Supply **raw, mono PCM16LE at 48 kHz**. The format is a caller assertion, not
+inferred from bytes. The adapter does not capture audio, accept 48 kHz WAV,
+convert channels/other rates, pace, or change the 16 kHz codec/engine defaults.
+It retains one chunk (at most 8 MiB logical length), an odd byte if necessary,
+and a fixed 181-sample history. Nonempty outputs are at most 640 bytes.
+
+The symmetric 181-tap Q30 FIR needs 90 samples (1.875 ms) of lookahead; it
+centers output at input indices 0, 3, 6, … with missing edge context set to
+zero. Clean EOF closes upstream before flushing only those centers within the
+input. For `N` complete samples it emits `ceil(N / 3)` samples (zero for empty
+input); nominal duration rounds up by 0, 1 or 2 ticks at 48 kHz (at most 41.7 µs).
+There is no added delay or ringing tail in the output duration. An unmatched
+final byte fails, and any read or close failure suppresses the padded tail.
+Output rounds to nearest, ties away from zero, and saturates without dither.
+
+Independent checks of the quantized coefficients bound the **linear filter**
+response to ±0.02 dB over 0–6 kHz (including 1 and 3.4 kHz), with exact DC
+unity, and at least 70 dB rejection over 8–24 kHz (including 10 and 14 kHz).
+6–8 kHz is the transition (about −0.15/−6.02/−35.54 dB at 6.5/7/7.5 kHz).
+These limits exclude finite-stream edge transients, PCM rounding/clipping and
+lossy encoding; no perceptual, recognition or real-time performance claim.
+
 ## Offline verification
 
 With the workspace member added and `CMAKE` set if needed:

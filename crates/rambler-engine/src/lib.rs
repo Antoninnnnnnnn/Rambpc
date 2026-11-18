@@ -117,12 +117,14 @@ mod engine;
 mod ogg;
 mod presentation;
 mod results;
+mod splice;
 pub use engine::*;
 pub use ogg::OggAudio;
 pub use presentation::*;
 pub use rambler_protocol::{EditingContext, ProtocolConfig, S3Response};
 pub use rambler_transport::{MetadataProvider, SourceError, SourceFuture};
 pub use results::*;
+pub use splice::ScalarSplice;
 
 use std::{fmt, sync::Arc};
 
