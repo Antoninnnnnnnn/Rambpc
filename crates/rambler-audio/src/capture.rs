@@ -184,12 +184,12 @@ pub struct CaptureSender {
 impl CaptureSender {
     /// Copies a borrowed PCM chunk in capture order, or accepts none of it.
     ///
-    /// No waiting for the reader, locks, heap allocation or task creation on the
-    /// offer path. Work is bounded by the configured chunk size. An accepted
-    /// offer may wake the consumer (the executor controls wake and scheduling
-    /// latency). `Ok` acknowledges queue acceptance only. A concurrent consumer
-    /// close can discard the chunk, and a concurrent read may free a slot just
-    /// after a full queue has been observed.
+    /// The ring does not wait for the reader, lock, allocate or create tasks.
+    /// Its work is bounded by the configured chunk size. Waking the consumer
+    /// may call its executor's waker synchronously; that code is outside the
+    /// ring's guarantees. `Ok` acknowledges queue acceptance only. A concurrent
+    /// consumer close can discard the chunk, and a concurrent read may free a
+    /// slot just after a full queue has been observed.
     ///
     /// A full queue or oversized even chunk permanently latches `Overflow`;
     /// an empty or odd-length chunk permanently latches `InvalidChunk`. Stop

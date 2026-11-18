@@ -146,7 +146,10 @@ async fn callback_handoff_preserves_three_rollovers_and_delivers_owned_finals() 
                     // supplies the next 600 ms without waiting on the reader.
                     assert_eq!(delivered_count.load(Ordering::SeqCst), index - 1);
                 }
-                for block in pcm[index * SEGMENT..(index + 1) * SEGMENT].chunks_exact(BLOCK) {
+                let (blocks, tail) =
+                    pcm[index * SEGMENT..(index + 1) * SEGMENT].as_chunks::<BLOCK>();
+                assert!(tail.is_empty());
+                for block in blocks {
                     writer.offer(block).unwrap();
                 }
                 if index != 0 {
