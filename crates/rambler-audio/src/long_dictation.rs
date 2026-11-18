@@ -108,16 +108,13 @@ impl fmt::Debug for LongDictationResult {
     }
 }
 impl LongDictationResult {
-    /// Strict text for every segment joined by a single ASCII space. No trimming,
-    /// skipping empty strings, reconciliation, or fallback. An ambiguous or unsafe
-    /// segment makes the entire projection fail. No segments yields an empty string.
+    /// Strict text for every segment, joined using [`crate::join_segment_texts`].
+    /// An ambiguous or unsafe segment makes the entire projection fail. No
+    /// segments yields an empty string. The individual results are unchanged.
     pub fn text(&self) -> Result<String, EngineError> {
         let mut joined = String::new();
-        for (index, segment) in self.segments.iter().enumerate() {
-            if index != 0 {
-                joined.push(' ');
-            }
-            joined.push_str(&segment.text()?);
+        for segment in &self.segments {
+            crate::segment_text::append_segment_text(&mut joined, &segment.text()?);
         }
         Ok(joined)
     }

@@ -459,7 +459,7 @@ async fn run_interactive(
     policy: Option<ResultPolicy>,
     signal: impl std::future::Future<Output = bool>,
 ) -> (Value, i32) {
-    use rambler_audio::{CompletedDictationSegment, stream_long_pcm_dictation};
+    use rambler_audio::{CompletedDictationSegment, join_segment_texts, stream_long_pcm_dictation};
     let mut completed = Vec::new();
     let mut sink = |segment| completed.push(segment);
     let collection = stream_long_pcm_dictation(
@@ -528,17 +528,7 @@ async fn run_interactive(
         (None, None, Ok(()), Some(error)) => (failure_output(&error, None, None), 1),
         (None, None, Ok(()), None) if ambiguous => (json!({"type":"ambiguous", "text":null}), 1),
         (None, None, Ok(()), None) => {
-            let mut text = String::new();
-            for (index, part) in segments
-                .iter()
-                .filter_map(|s| s["text"].as_str())
-                .enumerate()
-            {
-                if index != 0 {
-                    text.push(' ');
-                }
-                text.push_str(part);
-            }
+            let text = join_segment_texts(segments.iter().filter_map(|s| s["text"].as_str()));
             (json!({"type":"result", "text":text}), 0)
         }
     };
