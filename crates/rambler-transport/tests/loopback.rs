@@ -171,6 +171,18 @@ async fn bounded<F: Future>(future: F) -> F::Output {
         .await
         .expect("test deadline")
 }
+// This is a progress snapshot, not an acknowledgement of the final outcome.
+async fn wait_for_terminal_code(session: &Session) -> Code {
+    bounded(async {
+        loop {
+            if let Some(code) = session.completion().terminal_code {
+                return code;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+}
 fn fake_metadata(value: &str) -> Metadata {
     Metadata::new([
         ("x-test".into(), CredentialValue::Text(value.into())),
@@ -396,8 +408,10 @@ async fn close_reports_each_unobserved_cleanup_failure_after_reaping_or_interrup
                 Duration::from_secs(2),
             )
             .unwrap();
-        for start in started {
+        for (session, start) in [&a, &b].into_iter().zip(started) {
             bounded(start.notified()).await;
+            // Dropping a Session cancels it. Fix the RPC outcome first.
+            assert_eq!(wait_for_terminal_code(session).await, Code::Ok);
         }
         drop((a, b)); // Neither final error is observed through its Session.
         releases[0].add_permits(1);
@@ -482,6 +496,10 @@ async fn concurrent_interrupted_closes_deliver_each_unobserved_failure_exactly_o
                 )
                 .unwrap();
             bounded(started.notified()).await;
+            // Producer EOF can start cleanup before the RPC has read its
+            // trailers. Settle the echo before close can race the network,
+            // but keep cleanup blocked and its final outcome unobserved.
+            assert_eq!(wait_for_terminal_code(&session).await, Code::Ok);
             sessions.push(session);
         }
         for release in &releases[..4] {
@@ -553,6 +571,63 @@ async fn concurrent_interrupted_closes_deliver_each_unobserved_failure_exactly_o
         transport.close().await.unwrap();
         server.close().await;
     }
+}
+
+#[tokio::test]
+async fn rpc_failure_selected_during_natural_cleanup_is_retained() {
+    let terminal = CancellationToken::new();
+    let server = TestServer::new({
+        let terminal = terminal.clone();
+        move |request| {
+            let terminal = terminal.clone();
+            async move {
+                let echo = echo(request).await?.into_inner();
+                let trailer = stream::once(async move {
+                    terminal.cancelled().await;
+                    Err(Status::data_loss("fixture terminal failure"))
+                });
+                Ok(replies(echo.chain(trailer)))
+            }
+        }
+    })
+    .await;
+    let transport = server.transport().await;
+    let mut source = OwnedSource::new();
+    source.block_after_first = false;
+    let started = source.close_started.clone();
+    let release = source.release.clone();
+    let error_id = 106;
+    let session = transport
+        .start(
+            DistinctCleanupSource { source, error_id },
+            Metadata::default(),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+    bounded(started.notified()).await;
+    assert_eq!(session.completion().terminal_code, None);
+    terminal.cancel();
+    assert_eq!(wait_for_terminal_code(&session).await, Code::DataLoss);
+    assert!(!session.completion().source_closed);
+    release.add_permits(1);
+    let error = bounded(transport.close()).await.unwrap_err();
+    let TransportError::PrimaryAndCleanup(failure) = error else {
+        panic!("expected the selected RPC error and cleanup failure, got {error:?}");
+    };
+    assert!(matches!(
+        failure.primary(),
+        TransportError::Grpc(Code::DataLoss)
+    ));
+    assert_eq!(
+        failure
+            .cleanup()
+            .original()
+            .downcast_ref::<CleanupTag>()
+            .map(|tag| tag.0),
+        Some(error_id)
+    );
+    transport.close().await.unwrap();
+    server.close().await;
 }
 
 #[tokio::test]
@@ -895,13 +970,7 @@ async fn normal_eof_waits_for_cleanup_and_never_hides_cleanup_failure() {
         assert!(bounded(session.next()).await.unwrap().is_some());
         bounded(started.notified()).await;
         // The network can finish while source.close is still pending.
-        bounded(async {
-            while session.completion().terminal_code.is_none() {
-                tokio::task::yield_now().await;
-            }
-        })
-        .await;
-        assert_eq!(session.completion().terminal_code, Some(Code::Ok));
+        assert_eq!(wait_for_terminal_code(&session).await, Code::Ok);
         assert!(
             tokio::time::timeout(Duration::from_millis(20), session.next())
                 .await
