@@ -7,6 +7,7 @@ description = "Bounded native PCM16LE to continuous Ogg/Opus audio sources"
 publish = false
 
 [dependencies]
+atomic-waker = "1"
 bytes.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

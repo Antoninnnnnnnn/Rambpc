@@ -12,7 +12,9 @@
 //! unchanged 16 kHz encoder. For long captures, [`collect_long_pcm_dictation`]
 //! accumulates results from consecutive pause-aware sessions on one engine;
 //! [`stream_long_pcm_dictation`] delivers each successful segment by ownership.
-//! Use [`InteractivePcmProfile`] for ready-to-use paced-capture budgets.
+//! Use [`InteractivePcmProfile`] for ready-to-use paced-capture budgets. For an
+//! application-owned PCM callback, opt in to [`capture_channel`] before the
+//! long collector or its continuous 48-to-16 kHz converter.
 //!
 //! Normal EOF closes upstream BEFORE emitting a successful Ogg EOS. All tail
 //! samples and encoder lookahead are flushed; EOS granules trim padding exactly.
@@ -30,6 +32,7 @@
 //! network or logging. The dictation helpers use only your supplied engine.
 //! See `BUILDING.md` for native toolchain, linkage audit and third-party licences.
 
+mod capture;
 mod decimate;
 mod dictation;
 mod encode;
@@ -39,6 +42,10 @@ mod long_dictation;
 mod ogg;
 mod progress;
 mod wav;
+pub use capture::{
+    CaptureConfig, CaptureError, CaptureInput, CaptureSender, MAX_CAPTURE_BYTES,
+    MAX_CAPTURE_CHUNKS, capture_channel,
+};
 pub use decimate::Pcm48kTo16k;
 pub use dictation::{start_pcm_dictation, start_pcm_dictation_with_observer};
 pub use encode::{EncoderConfig, Pcm16Opus};
