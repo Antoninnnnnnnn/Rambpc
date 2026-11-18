@@ -39,18 +39,28 @@ The upstream `rustls-platform-verifier` 0.7.1 Android backend was checked but is
 not used: its [Kotlin release implementation][upstream] ignores `Context` and
 supplies `AndroidCAStore` explicitly, which is not the app-default policy above.
 Rambler instead uses maintained `jni` bindings to public Android/Java APIs and
-rustls' own DNS/IP name and TLS signature checks. The original DNS name or IP,
-not the address picked by TCP racing, is the verification identity. No retries
-use a weaker verifier. Android TLS session resumption is disabled, so a new
-connection checks the certificate again.
+rustls' own DNS/IP name and TLS signature checks. Android receives the original
+validated authority host without IPv6 brackets or port, not rustls' normalized
+IP spelling or the address picked during TCP racing. Rustls uses the parsed
+identity for its own checks. No retries use a weaker verifier. Android TLS
+session resumption is disabled, so a new connection checks the certificate
+again.
 
 On Android API 36+, the adapter passes a stapled OCSP response when available
 through the corresponding public overload. Rustls does not expose a separate
 TLS SCT list to the verifier; Android can use embedded and stapled SCTs and is
 allowed to reject when evidence is insufficient. Older API levels use the
-public three-argument method. These are API-level choices, not fallback after
-rejection. Verification is synchronous within rustls; the existing overall
-connect timeout remains, but cannot interrupt a Java trust check mid-call.
+public three-argument method. API 36+ builds or custom trust managers lacking
+support for the selected hostname-aware call can fail closed: a missing API,
+unsupported manager, or failed JNI call does not trigger a retry with the
+legacy overload, another manager, or a host-unaware trust check.
+
+Verification is synchronous on the thread polling the connection. A current-
+thread executor can stall until the Java verifier returns; cancellation and the
+connect timer cannot interrupt it. If that poll completes the connection after
+the deadline, the transport drops it and reports `Timeout` rather than
+publishing a late success or certificate failure. This does not guarantee a
+wall-clock return bound during the Java call.
 
 ## Fixed diagnostics
 
@@ -63,7 +73,9 @@ connect timeout remains, but cannot interrupt a Java trust check mid-call.
 | `Timeout` | The transport's overall connect timer expired. It does not imply that DNS, TCP, TLS or H2 in particular was responsible. |
 
 No OS errors, exception text, chain bytes, or endpoint are emitted by these
-errors. The CLI's existing generic transport bucket remains unchanged.
+errors. The CLI's existing generic transport bucket remains unchanged. Rust
+callers exhaustively matching the previous `TransportError` enum must handle
+the three new variants: `TrustUnavailable`, `CertificateRejected`, and `Resolve`.
 
 ## Validation
 

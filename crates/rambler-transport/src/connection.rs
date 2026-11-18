@@ -226,9 +226,9 @@ fn build_tls_config(
 }
 
 #[cfg(target_os = "android")]
-fn build_android_tls_config() -> Result<rustls::ClientConfig, TransportError> {
+fn build_android_tls_config(host: &str) -> Result<rustls::ClientConfig, TransportError> {
     let provider = Arc::new(rustls::crypto::ring::default_provider());
-    let verifier = crate::android_tls::Verifier::new(provider.clone())?;
+    let verifier = crate::android_tls::Verifier::new(provider.clone(), host.to_owned())?;
     let mut tls = tls_builder(provider)?
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(verifier))
@@ -274,25 +274,71 @@ async fn connect_tls(
     Ok(stream)
 }
 
-pub(crate) async fn connect(
+fn authority_host(authority: &http::uri::Authority) -> &str {
+    let host = authority.host();
+    host.strip_prefix('[')
+        .and_then(|unbracketed| unbracketed.strip_suffix(']'))
+        .unwrap_or(host)
+}
+
+#[cfg(any(target_os = "android", test))]
+fn android_tls_names(host: &str) -> Result<(&str, ServerName<'static>), TransportError> {
+    let identity =
+        ServerName::try_from(host.to_owned()).map_err(|_| TransportError::InvalidConfig)?;
+    Ok((host, identity))
+}
+
+fn discard_late_connect<T>(
+    deadline: Option<tokio::time::Instant>,
+    result: Result<T, TransportError>,
+) -> Result<T, TransportError> {
+    // Tokio can return Ready without polling its timer after a synchronous
+    // Java verifier call. Do not use a late success or failure; dropping the
+    // result closes the socket or aborts an h2 driver that became ready.
+    if deadline.is_some_and(|deadline| tokio::time::Instant::now() >= deadline) {
+        Err(TransportError::Timeout)
+    } else {
+        result
+    }
+}
+
+pub(crate) async fn connect_with_timeout(
     config: &TransportConfig,
     wait_for_peer: bool,
+) -> Result<Connected, TransportError> {
+    #[cfg(target_os = "android")]
+    if let Some(deadline) = tokio::time::Instant::now().checked_add(config.connect_timeout) {
+        let result =
+            tokio::time::timeout_at(deadline, connect(config, wait_for_peer, Some(deadline)))
+                .await
+                .map_err(|_| TransportError::Timeout)?;
+        return discard_late_connect(Some(deadline), result);
+    }
+    // Preserve desktop behavior and Tokio's handling of an Android timeout
+    // too large to represent as an absolute Instant.
+    tokio::time::timeout(config.connect_timeout, connect(config, wait_for_peer, None))
+        .await
+        .map_err(|_| TransportError::Timeout)?
+}
+
+async fn connect(
+    config: &TransportConfig,
+    wait_for_peer: bool,
+    deadline: Option<tokio::time::Instant>,
 ) -> Result<Connected, TransportError> {
     let authority: http::uri::Authority = config
         .target
         .parse()
         .map_err(|_| TransportError::InvalidConfig)?;
-    let host = authority
-        .host()
-        .trim_start_matches('[')
-        .trim_end_matches(']');
+    let host = authority_host(&authority);
     // Construct the Android verifier before DNS/TCP so an app that has not
     // initialized trust fails deterministically without touching the network.
     #[cfg(target_os = "android")]
     let android_tls = if config.plaintext_loopback {
         None
     } else {
-        Some(build_android_tls_config()?)
+        let (policy_host, name) = android_tls_names(host)?;
+        Some((build_android_tls_config(policy_host)?, name))
     };
     // Resolve once inside the existing outer DNS/TCP/TLS/h2 timeout. Keep the
     // original host/port for authority and verified TLS, not an IP substitute.
@@ -314,13 +360,20 @@ pub(crate) async fn connect(
         // the winning socket here so dropping the outer timeout closes it even
         // when a started OS loader cannot be interrupted. TLS starts after await.
         #[cfg(not(target_os = "android"))]
-        let tls =
-            blocking_tls_setup(|| build_tls_config(rustls_native_certs::load_native_certs)).await?;
+        let (tls, name) = {
+            let tls =
+                blocking_tls_setup(|| build_tls_config(rustls_native_certs::load_native_certs))
+                    .await?;
+            let name =
+                ServerName::try_from(host.to_owned()).map_err(|_| TransportError::InvalidConfig)?;
+            (tls, name)
+        };
         #[cfg(target_os = "android")]
-        let tls = android_tls.ok_or(TransportError::TrustUnavailable)?;
-        let name =
-            ServerName::try_from(host.to_owned()).map_err(|_| TransportError::InvalidConfig)?;
-        Box::new(connect_tls(tls, name, tcp).await?)
+        let (tls, name) = android_tls.ok_or(TransportError::TrustUnavailable)?;
+        Box::new(discard_late_connect(
+            deadline,
+            connect_tls(tls, name, tcp).await,
+        )?)
     };
     let (sender, mut connection) = h2::client::Builder::new()
         // Separate bounded native connection credit from capacity-one app queues.
@@ -771,7 +824,7 @@ mod tests {
     async fn tls_without_android_app_init_reports_trust_unavailable_before_networking() {
         let config = TransportConfig::tls("127.0.0.1:9").unwrap();
         assert!(matches!(
-            connect(&config, true).await,
+            connect_with_timeout(&config, true).await,
             Err(TransportError::TrustUnavailable)
         ));
         let marker = rustls::Error::Other(rustls::OtherError(Arc::new(
@@ -780,6 +833,38 @@ mod tests {
         assert!(matches!(
             tls_connect_error(io::Error::other(marker)),
             TransportError::TrustUnavailable
+        ));
+    }
+
+    #[test]
+    fn authority_host_preserves_spelling_for_android_policy() {
+        let authority: http::uri::Authority = "[2001:0DB8:0000:0:0:0:0:0010]:443".parse().unwrap();
+        let (policy_host, identity) = android_tls_names(authority_host(&authority)).unwrap();
+        assert_eq!(policy_host, "2001:0DB8:0000:0:0:0:0:0010");
+        assert_eq!(identity.to_str(), "2001:db8::10");
+        let authority: http::uri::Authority = "Example.COM.:443".parse().unwrap();
+        assert_eq!(
+            android_tls_names(authority_host(&authority)).unwrap().0,
+            "Example.COM."
+        );
+    }
+
+    #[test]
+    fn a_late_android_connect_result_is_discarded() {
+        let now = tokio::time::Instant::now();
+        let future = now + Duration::from_secs(60);
+        let payload = Arc::new(());
+        let outcome = discard_late_connect(Some(now), Ok(payload.clone()));
+        assert!(matches!(outcome, Err(TransportError::Timeout)));
+        assert_eq!(Arc::strong_count(&payload), 1);
+        let rejected = || Err::<(), _>(TransportError::CertificateRejected);
+        assert!(matches!(
+            discard_late_connect(Some(now), rejected()),
+            Err(TransportError::Timeout)
+        ));
+        assert!(matches!(
+            discard_late_connect(Some(future), rejected()),
+            Err(TransportError::CertificateRejected)
         ));
     }
 

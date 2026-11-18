@@ -1278,6 +1278,9 @@ async fn unavailable_is_never_retried() {
     server.close().await;
 }
 
+// An Android shell test has no app verifier; its initialization failure would
+// not be evidence of an attempted TLS handshake.
+#[cfg(not(target_os = "android"))]
 #[tokio::test]
 async fn tls_never_downgrades_to_loopback_plaintext() {
     let server = TestServer::new(echo).await;

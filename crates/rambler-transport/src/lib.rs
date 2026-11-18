@@ -112,6 +112,9 @@ impl std::error::Error for SourceError {}
 
 /// All formatting is fixed text / status code only: never tonic status details,
 /// metadata, credentials, endpoint text, or caller error formatting.
+///
+/// The addition of `Resolve`, `TrustUnavailable` and `CertificateRejected`
+/// requires callers matching the previous enum exhaustively to handle them.
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum TransportError {
     #[error("invalid transport configuration")]
@@ -523,12 +526,7 @@ impl GrpcTransport {
         config: TransportConfig,
         wait_for_peer: bool,
     ) -> Result<Self, TransportError> {
-        let connected = tokio::time::timeout(
-            config.connect_timeout,
-            connection::connect(&config, wait_for_peer),
-        )
-        .await
-        .map_err(|_| TransportError::Timeout)??;
+        let connected = connection::connect_with_timeout(&config, wait_for_peer).await?;
         Ok(Self {
             inner: Arc::new(Inner {
                 config,

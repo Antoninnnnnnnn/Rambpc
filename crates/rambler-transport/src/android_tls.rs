@@ -171,7 +171,7 @@ impl AppTrust {
         env: &mut Env<'_>,
         leaf: &CertificateDer<'_>,
         intermediates: &[CertificateDer<'_>],
-        name: &ServerName<'_>,
+        policy_host: &str,
         ocsp: &[u8],
     ) -> Result<(), VerificationFailure> {
         let x509 = env.new_string("X.509")?;
@@ -218,8 +218,9 @@ impl AppTrust {
             .get_element(env, 0)?
             .get_public_key(env)?
             .get_algorithm(env)?;
-        let name = name.to_str();
-        let host = env.new_string(name.strip_suffix('.').unwrap_or(&name))?;
+        // Keep the validated authority text for policy lookup. A parsed
+        // ServerName canonicalizes IPv6 and can select a different domain rule.
+        let host = env.new_string(policy_host)?;
         let chain = JObject::from(chain);
         let trusted = if self.sdk >= 36 {
             // API 36 accepts the optional OCSP staple for policy/CT. Rustls
@@ -264,12 +265,20 @@ impl AppTrust {
 pub(crate) struct Verifier {
     app: &'static AppTrust,
     provider: Arc<CryptoProvider>,
+    policy_host: String,
 }
 
 impl Verifier {
-    pub(crate) fn new(provider: Arc<CryptoProvider>) -> Result<Self, TransportError> {
+    pub(crate) fn new(
+        provider: Arc<CryptoProvider>,
+        policy_host: String,
+    ) -> Result<Self, TransportError> {
         let app = TRUST.get().ok_or(TransportError::TrustUnavailable)?;
-        Ok(Self { app, provider })
+        Ok(Self {
+            app,
+            provider,
+            policy_host,
+        })
     }
 }
 
@@ -286,7 +295,8 @@ impl ServerCertVerifier for Verifier {
         // does not authenticate the leaf's DNS/IP identity for a rustls socket.
         verify_server_name(&ParsedCertificate::try_from(leaf)?, name)?;
         match self.app.vm.attach_current_thread_for_scope(|env| {
-            self.app.check_chain(env, leaf, intermediates, name, ocsp)
+            self.app
+                .check_chain(env, leaf, intermediates, &self.policy_host, ocsp)
         }) {
             Ok(()) => Ok(ServerCertVerified::assertion()),
             Err(VerificationFailure::Rejected) => {

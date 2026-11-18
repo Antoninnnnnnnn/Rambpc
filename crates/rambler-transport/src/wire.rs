@@ -535,7 +535,9 @@ mod cause_tests {
                 while tcp.read(&mut buffer).await.is_ok_and(|n| n != 0) {}
             });
             let config = TransportConfig::loopback(address).unwrap();
-            let connected = crate::connection::connect(&config, false).await.unwrap();
+            let connected = crate::connection::connect_with_timeout(&config, false)
+                .await
+                .unwrap();
             let progress = Arc::new(Progress::default());
             let (tx, receiver) = mpsc::channel(1);
             tx.send(Bytes::from(vec![0; 1024 * 1024])).await.unwrap();
