@@ -235,3 +235,96 @@ fn accepted_command_like_text_remains_literal_data() {
         assert_change(&window("captured", "", ""), text, 0..8, text);
     }
 }
+
+fn assert_grapheme_change(
+    current: &EditingContext,
+    new: &str,
+    expected_range: Range<usize>,
+    expected_inserted: &str,
+) {
+    let revision = Revision::from(1i64);
+    let result = fixture(current, Some(&field3(new)), None);
+    let proposal = replacement_proposal(&result, Some(revision.clone())).unwrap();
+    let splice = proposal
+        .derive_grapheme_splice(current, &revision)
+        .unwrap()
+        .unwrap();
+    assert_eq!(splice.original_utf16_range(), expected_range);
+    assert_eq!(splice.inserted_text(), expected_inserted);
+    let mut original: Vec<u16> = [&current.before, &current.selected, &current.after]
+        .into_iter()
+        .flat_map(|part| part.encode_utf16())
+        .collect();
+    original.splice(
+        splice.original_utf16_range(),
+        splice.inserted_text().encode_utf16(),
+    );
+    assert_eq!(String::from_utf16(&original).unwrap(), new);
+}
+
+#[test]
+fn grapheme_splice_keeps_zwj_emoji_and_flags_whole() {
+    assert_grapheme_change(
+        &window("x👩\u{200d}", "👩", "\u{200d}👧!"),
+        "x👩\u{200d}👨\u{200d}👧!",
+        1..9,
+        "👩\u{200d}👨\u{200d}👧",
+    );
+    assert_grapheme_change(&window("x🇺", "🇸", "🇫🇷!"), "x🇺🇾🇫🇷!", 1..5, "🇺🇾");
+}
+
+#[test]
+fn grapheme_splice_widens_accent_and_hangul_clusters_without_normalizing() {
+    let accent = window("Cafe", "\u{301}", ".");
+    assert_grapheme_change(&accent, "Cafe\u{300}.", 3..5, "e\u{300}");
+    assert_grapheme_change(&accent, "Café.", 3..5, "é");
+    // Preserve the scalar prefix tie-break even if moving the insertion left
+    // could keep more unchanged text by pairing the suffix with a different a.
+    assert_grapheme_change(&window("a", "", "!"), "a\u{301}a!", 0..1, "a\u{301}a");
+    assert_grapheme_change(
+        &window("x\u{1100}", "\u{1161}", "\u{11a8}!"),
+        "x\u{1100}\u{1165}\u{11a8}!",
+        1..4,
+        "\u{1100}\u{1165}\u{11a8}",
+    );
+}
+
+#[test]
+fn grapheme_splice_finds_a_shared_suffix_boundary_after_regrouped_indicators() {
+    // An inserted or deleted RI changes the grouping of the otherwise identical
+    // suffix. Neither window's boundaries alone are enough.
+    assert_grapheme_change(&window("x", "", "🇦🇧🇨🇩!"), "x🇪🇦🇧🇨🇩!", 1..9, "🇪🇦🇧🇨🇩");
+    assert_grapheme_change(&window("x", "🇪", "🇦🇧🇨🇩!"), "x🇦🇧🇨🇩!", 1..11, "🇦🇧🇨🇩");
+}
+
+#[test]
+fn grapheme_splice_handles_empty_windows_and_checks_revision_even_on_no_op() {
+    assert_grapheme_change(&window("", "", ""), "e\u{301}", 0..0, "e\u{301}");
+    assert_grapheme_change(&window("", "e\u{301}", ""), "", 0..2, "");
+
+    let current = window("a", "🦀", "c");
+    let result = fixture(&current, Some(&field7("a🦀", "", "c")), None);
+    let revision = Revision::from(1i64);
+    let proposal = replacement_proposal(&result, Some(revision.clone())).unwrap();
+    assert!(
+        proposal
+            .derive_grapheme_splice(&current, &revision)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(proposal.selection_utf16_range(), Some((3, 3)));
+    assert!(matches!(
+        proposal.derive_grapheme_splice(&current, &Revision::from(2i64)),
+        Err(EngineError::ContextConflict)
+    ));
+    assert!(matches!(
+        proposal.derive_grapheme_splice(&window("a🦀", "", "c"), &revision),
+        Err(EngineError::ContextConflict)
+    ));
+    assert!(matches!(
+        replacement_proposal(&result, None)
+            .unwrap()
+            .derive_grapheme_splice(&current, &revision),
+        Err(EngineError::ContextConflict)
+    ));
+}

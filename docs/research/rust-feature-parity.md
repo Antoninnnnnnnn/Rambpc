@@ -21,7 +21,8 @@ et un résultat distant n'est pas nécessairement le texte appliqué par Android
   travaille sur une VoiceAction déjà créée ; son mock ne prouve pas une réponse S3.
 - **Rust réel** : [première tranche Ogg](../evidence/rust-first-slice-public.json),
   [PCM, réécriture, sélection](../evidence/rust-pcm-functional-public.json),
-  [trois sessions sur un même moteur](../evidence/rust-native-session-reuse-public.json).
+  [trois sessions sur un même moteur](../evidence/rust-native-session-reuse-public.json),
+  [observations Rust et PixelBoard du 18 novembre](../evidence/pixelboard-vs-native-real-20261118.json).
 - **Python réel seulement** : corpus/hints et réutilisation de canal documentés dans
   [les observations](../evidence/README.md). Pas attribués rétrospectivement à Rust.
 - **Statique/offline** : schéma, branche client, test synthétique. Pas une activation
@@ -47,7 +48,32 @@ et un résultat distant n'est pas nécessairement le texte appliqué par Android
 - **Qualité et latence** : mesurer des entrées vocales naturelles représentatives et
   la latence client/session, avec protocole et référence comparables ; les profils
   synthétiques offline ne prouvent ni qualité naturelle ni performance WAN
-  ([état](../STATUS.md)). L'observation REWRITE ci-dessous ne mesure ni la qualité ni la latence.
+  ([état](../STATUS.md)). Les observations ci-dessous ne constituent pas un benchmark.
+
+## Observations du 18 novembre 2026 sur le service réel
+
+Le [relevé du 18 novembre](../evidence/pixelboard-vs-native-real-20261118.json)
+consigne trois sessions CLI natives avec voix synthétique :
+
+- **Dictée** : `The kite is blue. Marker stays.` exactement, en un seul énoncé
+  (intention 2, champ 3).
+- **Remplacement ciblé** : `The kite is green. Marker stays.` exactement, avec
+  la phrase témoin conservée (intention 2, champ 7).
+- **Réécriture polie** : avec `Send me the report now.` sélectionné et la demande
+  `Make this more polite.`, le service a renvoyé `Could you please send me the report at your earliest convenience?`
+  dans `edited_context` (intention 3, champ 7). Le rendu `Strict` de cet essai
+  l’a refusé comme ambigu. Pour rendre le texte de ce type de réponse, la CLI
+  propose l’option explicite `--result-policy s3-client-compatible`
+  ([guide](sdk-integration-guide.md#opt-in-to-selection-rewrites)) ; le
+  relevé n’enregistre pas de second appel réel avec cette option.
+
+Sur un Xiaomi 11 Lite 5G NE (Android 14, non-Pixel), **PixelBoard 1.3.5** a
+produit la dictée exacte lorsqu’elle était dite en deux parties avec une pause ;
+en un seul énoncé, les tentatives n’ont ajouté que `The kite is blue.`. Le
+remplacement ciblé était exact. Lors des essais de réécriture, l’instruction
+parlée a remplacé la sélection littéralement au lieu de la reformuler. Ce
+n’était pas Gboard officiel ; les voix, le réseau et les points de mesure
+n’étaient pas appariés.
 
 ## Intentions et politiques de résultat
 
@@ -62,7 +88,7 @@ inventer de fonctionnalité d'intention ni la sélection de candidat Android.
 |0 DICTATION|Intention conservée ; `Strict` refuse VoiceEdit0, modes opt-in projettent l'ASR|Enum statique. Pas de valeur wire0 démontrée dans les preuves publiées. Écart conservateur de façade avec le fallback Android.|
 |1 EDIT|Décodable ; `Strict` refuse, modes opt-in projettent l'ASR sans interpréter EDIT|Nom statique seulement ; ne signifie pas automatiquement suppression, envoi ou delta.|
 |2 EDIT_HISTORY|`DictationResult::text`, `replacement_proposal`, snapshot/révision ; champs3 et7|**Rust réel** : dictées EN/FR, correction, `ten→eleven`, sélection avec emoji dans le contexte. Fenêtre complète, pas ajout aveugle.|
-|3 REWRITE|`Strict` inchangé : champ3 rendu, champ7 ambigu. `S3ClientCompatible` opt-in : champs3/7 rendus ; pour une réécriture de sélection, utiliser `replacement_proposal_with_policy` (proposition de fenêtre au champ7), avec validation de la révision et de l'ancre.|**Rust réel** : réécriture polie au champ3 ; le 2026-11-18, une seule phrase synthétique (« Make this more polite. »), dans une seule session CLI native avec sélection, a aussi renvoyé l'intention3 au champ7 (`edited_context`). Le helper Android accepte aussi ce cas statiquement ; cette observation ne démontre pas de parité plus large.|
+|3 REWRITE|`Strict` inchangé : champ3 rendu, champ7 ambigu. `S3ClientCompatible` opt-in : champs3/7 rendus ; pour une réécriture de sélection, utiliser `replacement_proposal_with_policy` (proposition de fenêtre au champ7), avec validation de la révision et de l'ancre.|**Rust réel** : réécriture polie au champ3, puis au champ7 avec sélection le [18 novembre](#observations-du-18-novembre-2026-sur-le-service-réel). Le helper Android accepte aussi ce cas statiquement ; l’observation ne qualifie pas l’application côté Android.|
 |4 COMPOSE|Décodable ; aucune implémentation COMPOSE. Strict/proposition refusent ; fallback ASR opt-in n'est pas une composition|**Non démontré**. Huit essais historiques restent distincts des mocks et prompts locaux ; voir [composition](composition.md). Aucun switch S3 vérifié.|
 |5 RAMBLE|Décodable ; pas de sémantique RAMBLE, fallback ASR opt-in seulement|Enum certaine, sémantique opérationnelle non établie par son nom ; non observé.|
 |6 RAMBLE_HISTORY|Décodable ; pas de sémantique RAMBLE_HISTORY, fallback ASR opt-in seulement|Même limite ; aucune preuve de résumé ou nettoyage de notes.|

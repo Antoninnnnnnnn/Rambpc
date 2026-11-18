@@ -28,6 +28,11 @@ required-features = ["audio"]
 name = "native_cpu_profile"
 required-features = ["audio"]
 
+[[example]]
+name = "minimal_app"
+required-features = ["audio"]
+test = true
+
 [features]
 default = []
 audio = ["dep:rambler-audio"]

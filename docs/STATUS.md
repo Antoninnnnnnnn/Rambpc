@@ -1,6 +1,30 @@
-# État du moteur — 2026-11-17
+# État du moteur — 2026-11-18
 
-## Objectif global : backend non terminé
+Pour démarrer : [README](../README.md). Pour les priorités et les points
+ouverts : [feuille de route](ROADMAP.md). Pour les résultats vérifiables :
+[index des preuves](evidence/README.md).
+
+- **SDK et CLI natifs** : entrée Ogg/Opus ou PCM mono à 16/48 kHz et proposition
+  d’édition UTF-16 sans application automatique. Le
+  [guide d’intégration](research/sdk-integration-guide.md) décrit les contrôles de
+  révision, d’ancre et de frontières de graphèmes. La
+  [qualification Windows locale](evidence/rust-native-qualification-kit-windows-20261117.json)
+  couvre des parcours synthétiques sur loopback, pas le service réel.
+- **Service réel, 18 novembre** : le client natif a obtenu une dictée et un
+  remplacement exacts, ainsi qu’une réponse de réécriture polie (intention 3,
+  champ 7) que le mode strict a refusé de rendre. PixelBoard 1.3.5 n’a pas
+  réécrit la sélection sur l’appareil non-Pixel testé.
+  [Observations et limites](evidence/pixelboard-vs-native-real-20261118.json).
+- **Toujours ouverts** : accès durable documenté par le fournisseur, appelant
+  Linux avec accès réel, référence Android appariée et contrats serveur pour
+  COMPOSE/RAMBLE/RAMBLE_HISTORY. Les observations disponibles n’établissent ni
+  parité Android ni qualité ou latence représentative.
+
+## Journal
+
+### État du moteur — 2026-11-17
+
+#### Objectif global : backend non terminé
 
 Les jalons et les CI ci-dessous qualifient des périmètres précis, **pas un backend
 complet ni « parfait »**. Le jalon Opus et ses 14 jobs verts ne ferment pas les
@@ -32,7 +56,7 @@ Aucun gain ou accès durable ne doit être déduit d’une nouvelle série de mo
 Microphone, GUI et insertion OS restent hors du périmètre moteur initial, pas des
 fonctions cloud manquantes.
 
-## Kit de qualification native — quatre parcours intégrés
+#### Kit de qualification native — quatre parcours intégrés
 
 `native_qualification` combine le codec PCM/Opus, le moteur, le transport et
 les politiques de résultat sur un pair localhost possédé et une connexion
@@ -47,7 +71,7 @@ ni entrée privée ; ce banc ne qualifie pas le comportement du vrai service.
 [Guide](research/native-qualification-kit.md) ·
 [Preuve locale](evidence/rust-native-qualification-kit-windows-20261117.json).
 
-## Sessions en streaming — qualification locale groupée
+#### Sessions en streaming — qualification locale groupée
 
 **Deux nouveaux scénarios** passent sur Windows, avec Clippy strict et formatage
 pour les deux paquets, en une validation sans relance. Ils composent le vrai
@@ -65,7 +89,7 @@ Ces scénarios synthétiques ne qualifient ni l’émission des partiels par le 
 service, ni la parité des modes avancés, ni sa latence. Pas de nouvelle mesure de
 performance. [Preuve locale](evidence/rust-streaming-integration-windows-20261117.json).
 
-## Rendu strict — une seule vérification globale, 17 novembre
+#### Rendu strict — une seule vérification globale, 17 novembre
 
 `render(Strict)` réutilise le candidat déjà contrôlé, au lieu de rappeler
 `text()` et de parcourir une seconde fois les hypothèses. L’API `text()`
@@ -75,7 +99,7 @@ toujours la projection. Le test distingue un texte ASR vide d’un texte absent.
 d’un parcours supprimé, pas d’un gain de latence chronométré.
 [Preuve locale](evidence/rust-strict-render-single-pass-windows-20261117.json).
 
-## Pipeline natif local — référence `a89abd2`, 17 novembre
+#### Pipeline natif local — référence `a89abd2`, 17 novembre
 
 Une exécution Release de `engine_loopback_profile --chunks 16384 --repeats 1`
 passe les quatre scénarios, dont deux avec ralentissements injectés. Par
@@ -88,7 +112,7 @@ pas une comparaison de vitesse. Les blocs sont opaques : le test ne mesure ni
 le codec, ni la dictée, ni la latence de Rambler. Aucun ancien banc rejoué.
 [Quatre mesures et limites](evidence/rust-engine-loopback-current-windows-20261117.json).
 
-## Audio PCM — invariance au découpage, 17 novembre
+#### Audio PCM — invariance au découpage, 17 novembre
 
 Un test compare les paquets Opus produits par l’adaptateur à ceux du même codec
 alimenté directement en échantillons : six longueurs, trois découpages chacun
@@ -100,7 +124,7 @@ Les échecs de préparation CMake/MSBuild et le premier lint sont conservés.
 Aucun changement de production, nouveau benchmark ou appel au service.
 [Preuve locale](evidence/rust-pcm-partition-invariance-windows-20261117.json).
 
-## Oneof — allocations temporaires réduites, 17 novembre
+#### Oneof — allocations temporaires réduites, 17 novembre
 
 Le nouveau candidat garde les groupes singleton sur la pile et ne construit un
 vecteur de morceaux que pour une vraie fusion. Champs inconnus, ordre, raw,
@@ -134,7 +158,7 @@ n’en sont déduits.
 [Preuves et 500 lignes](evidence/rust-oneof-run-allocation-windows-20261117.json) ·
 [Provenance CI](evidence/rust-oneof-run-allocation-ci-20261117.json).
 
-## Modes avancés et accès natif — audits documentaires, 17 novembre
+#### Modes avancés et accès natif — audits documentaires, 17 novembre
 
 L’audit statique de la base `ee336cf` ne démontre pas de champ client confirmé
 manquant pour COMPOSE/RAMBLE/HISTORY : préférences, contexte tardif, projections
@@ -153,7 +177,7 @@ ne remplace pas une provenance et un périmètre d’utilisation vérifiables.
 Aucune nouvelle connexion service/appareil ou lecture d’identifiants dans ces
 deux audits. [Sources, bornes et prérequis](research/native-access-public-research.md).
 
-## Décodage safety — gain local mesuré, 17 novembre
+#### Décodage safety — gain local mesuré, 17 novembre
 
 La source `c89f140` évite de matérialiser comme inconnus les marqueurs exacts
 `hypothesis.field30=0/1`, sans changer parsing, budgets, statut final, octets bruts
@@ -183,7 +207,7 @@ Python restent identiques. Cette CI porte sur `c89f140`, pas sur le prototype
 oneof non publié ; aucun service, credential ou session REAL requalifié.
 [Incident et reçus CI](evidence/rust-safety-field-allocation-ci-20261117.json).
 
-## Appelant REAL — régressions simulées, 17 novembre
+#### Appelant REAL — régressions simulées, 17 novembre
 
 R1 reste figée **MAIN_NO_GO, sans invocation du lanceur**, malgré les deux GO
 source conditionnels : son faux indicateur de nettoyage est conservé comme preuve.
@@ -207,7 +231,7 @@ publics portables ; aucune perfection ni parité complète n’est déduite.
 [Preuves R2/R3 bornées](evidence/linux-session-real-caller-fake-qa-20261117.json) ·
 [Provisionnement](research/authentication.md#complément-documentaire--17-novembre-2026).
 
-## Producteur de trame — QA simulée, 17 novembre
+#### Producteur de trame — QA simulée, 17 novembre
 
 La bibliothèque développeur `credential_frame_source.py` passe **60 tests** sous
 Windows/Python 3.14, sans échec, erreur ni skip, après revue indépendante et
@@ -238,7 +262,7 @@ quatre enregistrements Python restent inchangés. Aucune campagne native publiqu
 ni session de service Rambler n’est rejouée par cette CI offline.
 [Provenance CI](evidence/credential-frame-source-ci-20261117.json).
 
-## Contrôleur de session gardé — 17 novembre
+#### Contrôleur de session gardé — 17 novembre
 
 Le nouveau contrôleur passe **49 tests simulés sous Windows et 49 sous Linux**,
 zéro échec/erreur/skip. Deux défauts de tests ont été corrigés avant exécution,
@@ -263,7 +287,7 @@ live_go=false.**
 Le CI de `da591e9` passe **14/14 jobs au premier essai**, sans relance ni
 activation des modes natifs du contrôleur.
 
-## Canal d’entrée public — 17 novembre
+#### Canal d’entrée public — 17 novembre
 
 Le nouvel émetteur Windows refuse les interpréteurs redirigés de venv et passe
 31 tests simulés/fixture (un test non applicable ignoré), puis une fixture native
@@ -299,7 +323,7 @@ sans relance. Cela qualifie la compilation et les suites offline, pas un essai
 SSH, l’annulation native bloquée ni un canal avec identifiants.
 [Preuve CI distincte](evidence/public-channel-ci-20261117.json).
 
-## Admission Linux native publique — 17 novembre
+#### Admission Linux native publique — 17 novembre
 
 Sur un hôte x86_64 non root, l'exemple optionnel **Debug** et un superviseur
 public passent 11/11 cas finis : noargs silencieux volontairement non durci,
@@ -321,7 +345,7 @@ restent non qualifiés ; **live NO_GO**. Pas de conclusion sur latence, sémanti
 ASR ou sécurité universelle. [Contrat, reproduction et limites](research/linux-real-admission.md) ·
 [Preuve expurgée](evidence/linux-native-public-admission-20261117.json).
 
-## Qualification native et référence vocale supervisée — 16 novembre
+#### Qualification native et référence vocale supervisée — 16 novembre
 
 Le snapshot `82e6394` passe sur un hôte Linux natif non privilégié : workspace
 **430/0/2**, construction du vrai CLI audio Release, quatre contrôles de ce
@@ -353,7 +377,7 @@ Linux, sans relance de workflow. Cela ne qualifie pas l’admission native ni le
 canal d’identifiants.
 [Échec conservé et delta source](evidence/linux-real-admission-ci-20261117.json).
 
-## Linux natif — contrôle public des cores réussi
+#### Linux natif — contrôle public des cores réussi
 
 Sur un nouvel hôte Linux x86_64, le témoin public produit un core borné et le bit
 `WCOREDUMP` ; le cas protégé ne produit ni fichier ni bit et refuse l’ouverture
@@ -366,7 +390,7 @@ L’échec WSL historique reste inchangé ; **Linux réel avec identifiants NO_G
 [Protocole et limites](research/linux-public-core-control.md) ·
 [Preuve expurgée](evidence/linux-public-core-control-20261116.json).
 
-## Enveloppes gRPC — CI des huit configurations natives qualifiée
+#### Enveloppes gRPC — CI des huit configurations natives qualifiée
 
 Les 13 jobs de la source exacte `8cb381e8d26d448db80481d4aab9472aee3b096c`
 réussissent : [Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489195)
@@ -399,7 +423,7 @@ attente à ce checkpoint. Aucun gain global de temps/allocation ni accès durabl
 parité complète ou Linux live déduit. [Contrat et limites](research/rust-grpc-envelope-coalescing.md) ·
 [Preuve positive locale](evidence/rust-grpc-envelope-coalescing-windows-20261116.json).
 
-## HPACK des métadonnées — qualification locale Windows S1
+#### HPACK des métadonnées — qualification locale Windows S1
 
 Un oracle indépendant décode les frames et HPACK/Huffman selon la RFC 7541 sur
 une trace loopback native : trois RPC simultanées, credentials fictifs en rotation
@@ -424,7 +448,7 @@ S2/CONTINUATION, éviction, mises à jour de table, TLS, isolation universelle,
 performance et accès durable restent hors qualification. G1 Linux reste non satisfait,
 live NO_GO ; budget réel Windows MAX1 déjà consommé et téléphone inchangés.
 
-## Préfixes gRPC — allocation retirée sur le chemin court mesuré
+#### Préfixes gRPC — allocation retirée sur le chemin court mesuré
 
 Une table immuable de **1280 octets de données source** remplace l'allocation du
 préfixe de cinq octets pour les messages0–255 ; le payload était déjà zéro-copy,
@@ -448,7 +472,7 @@ CI distante hors ligne désormais réussie sur la source exacte `98d46590ec708c7
 [Preuve locale historique](evidence/rust-grpc-prefix-allocation-windows-20261116.json) ·
 [Preuve CI distante](evidence/rust-grpc-prefix-allocation-ci-20261116.json).
 
-## Optimisation de sérialisation — CI des huit configurations natives qualifiée
+#### Optimisation de sérialisation — CI des huit configurations natives qualifiée
 
 Le commit `43e918d` passe les **13 jobs CI** : Windows, Ubuntu, macOS ARM64 et
 Intel × 1.88/stable, lint et quatre Python. Workspace **411/0/2** sous Windows,
@@ -463,7 +487,7 @@ nouveau timing en CI ni gain WAN/moteur complet attribué. La qualification loca
 G1/Linux live ne sont pas résolus par cette optimisation.
 [Mesure et limites](research/rust-wire-encoding-allocation.md).
 
-## Sérialisation protobuf — gain d'allocations mesuré (checkpoint local historique)
+#### Sérialisation protobuf — gain d'allocations mesuré (checkpoint local historique)
 
 Les encodeurs génériques écrivent sans vecteurs temporaires, avec octets, erreurs
 et bornes préservés. Deux runs synthétiques sur le même binaire confirment les
@@ -482,7 +506,7 @@ CI plus bas portent sur leurs commits exacts.
 [Contrat et limites](research/rust-wire-encoding-allocation.md) ·
 [Preuve locale et toutes les valeurs brutes](evidence/rust-wire-encoding-allocation-windows-20261116.json).
 
-## SDK gardé — Linux natif offline et CI qualifiés
+#### SDK gardé — Linux natif offline et CI qualifiés
 
 La source `aaf56df` passe les **13 jobs CI**, dont huit natifs Windows, Ubuntu,
 macOS ARM64 et Intel × Rust 1.88/stable. Chaque gate de l'exemple passe **9/0/0** ;
@@ -503,7 +527,7 @@ global. Il s'agit d'un exemple de développement à entrée publique fixe, pas d
 receiver de secrets ni d'une qualification TLS/ASR : **G1 reste non satisfait et
 Linux live NO_GO**. La qualification Windows ci-dessous est un checkpoint antérieur.
 
-## Contexte applicatif — frontière wire précisée, pas nouvelle fonction inventée
+#### Contexte applicatif — frontière wire précisée, pas nouvelle fonction inventée
 
 Le chemin Android statique rejoint bien S3 via InputBox1203/champ5, déjà encodé
 par `ProtocolConfig::preferences`. Aucun champ protobuf supplémentaire manquant
@@ -511,7 +535,7 @@ n'est établi. La collecte OS, ses gates et son formatage restent absents ; effe
 serveur et activation runtime non observés. Aucun essai distant ni changement de
 production. [Trace et limites](research/rust-application-context-boundary.md).
 
-## SDK complet derrière admission simulée — Windows qualifié (checkpoint historique)
+#### SDK complet derrière admission simulée — Windows qualifié (checkpoint historique)
 
 Le nouvel exemple compose réellement PCM/Opus, Engine et transport vers un pair
 numérique loopback, avec ordre init/audio/contexte/END, CRC/décodage et nettoyage
@@ -526,7 +550,7 @@ inchangés. Le mode natif Linux de ce nouvel exemple reste à exécuter séparé
 la sonde précédente ne le qualifie pas. [Contrat et preuve Windows](research/rust-linux-guarded-loopback.md).
 G1 reste non satisfait ; aucun budget ou accès réel supplémentaire déduit.
 
-## Préprotection Linux — observation offline, pas admission live
+#### Préprotection Linux — observation offline, pas admission live
 
 Un [prototype Rust autonome à entrée publique fixe](../tools/reference/LINUX_PRECREDENTIAL_CANARY.md)
 passe ses 12 tests simulés sous Windows stable/1.88 et Linux 1.88. Sur Linux,
@@ -541,7 +565,7 @@ Ces effets d'accès ne prouvent ni suppression réelle des cores ni absence de
 lancement du collecteur : **G1 reste non satisfait et Linux live NO_GO**. Aucun
 budget n'est réinitialisé. [Preuve et limites](evidence/linux-precredential-canary-offline-20261116.json).
 
-## CI des refus précoces — source `1d66138` qualifiée
+#### CI des refus précoces — source `1d66138` qualifiée
 
 Les 13 jobs Rust/Python réussissent, dont huit natifs sur Windows, Ubuntu,
 macOS ARM64 et Intel × Rust 1.88.0/stable. Les quatre scénarios sont confirmés
@@ -552,7 +576,7 @@ quatre jobs Python passent. [Preuve CI du commit exact](evidence/rust-credential
 Les checkpoints locaux « CI non exécutée » ci-dessous sont historiques ; aucune
 nouvelle dictée, authentification distante ou récupération après révocation déduite.
 
-## Refus précoces — qualification locale, sans nouveau service
+#### Refus précoces — qualification locale, sans nouveau service
 
 Deux tests supplémentaires couvrent un refus headers-only avant EOF pendant
 qu'un voisin est encore en upload ; remplacement explicite puis drainage intégral
@@ -562,7 +586,7 @@ fmt et Clippy transport strict. Aucun changement de production ou de binaire rel
 [Contrat, preuve et exclusions](research/rust-credential-snapshots.md#refus-headers-only-pendant-un-autre-upload--extension-locale).
 La CI ci-dessous porte sur le commit précédent, pas cette extension locale.
 
-## CI des refus après upload — source `0e5ce23`
+#### CI des refus après upload — source `0e5ce23`
 
 Les 13 jobs Rust/Python ont réussi. Huit jobs natifs sur Windows, Ubuntu,
 macOS ARM64 et Intel × 1.88.0/stable : workspace 404/0/2 sous Windows,
@@ -572,7 +596,7 @@ provenance ; pas une somme de tests distincts. Les quatre jobs Python et le lint
 passent aussi. [Preuve CI liée au commit exact](evidence/rust-credential-rejection-ci-20261116.json).
 Ni nouveau TLS/service réel ni provisionnement/récupération après révocation déduit.
 
-## Refus d'authentification — isolation offline
+#### Refus d'authentification — isolation offline
 
 Deux nouveaux tests loopback couvrent les refus `UNAUTHENTICATED` et
 `PERMISSION_DENIED`, le voisin actif, les métadonnées fictives remplacées
@@ -587,7 +611,7 @@ ni provisionnement durable ni récupération réelle après révocation déduits
 [Contrat et limites](research/rust-credential-snapshots.md#refus-du-pair-remplacement-explicite-et-voisin-actif--16-novembre-2026) ·
 [Preuve locale](evidence/rust-credential-rejection-offline-20261116.json).
 
-## Régression native release — résultat observé, réservation immuable
+#### Régression native release — résultat observé, réservation immuable
 
 Une unique opportunité et capture natives ont été consommées avec succès, sans
 rejeu ni retry : contrôleur gelé `78ce29130fef8ac828d0dac58e7bc2183ddc8861a985ab01c2f9eb753a5bc1f4`,
@@ -613,7 +637,7 @@ ne la réécrit pas. [Méthode et limites](research/rust-pcm-channel.md#régress
 Linux live, téléphone, autres intentions, révocation, incident long et limites
 d'accès restent ouverts ; ni perfection, provisionnement durable ou parité Android.
 
-## CI attribution codec — qualification de la source
+#### CI attribution codec — qualification de la source
 
 Les 13 jobs Rust/Python du commit `72fd4affa561619745e9d642500467d41364458f`
 ont réussi. Les huit jobs natifs passent chacun le nouveau gate de huit tests de
@@ -624,7 +648,7 @@ La mesure Windows locale reste distincte et l'ISA native liée n'est pas attest�
 [Preuve CI](evidence/rust-codec-attribution-ci-20261115.json) ·
 [protocole et limites](research/rust-audio-profiling.md#qualification-ci-distante-du-banc--2026-11-15).
 
-## Opus Release Windows — gain local borné et contrôle VS17
+#### Opus Release Windows — gain local borné et contrôle VS17
 
 Une nouvelle comparaison fraîche et indépendante de l'étude CRC rejetée mesure
 `native_frames` 3,0–3,6× plus rapide et le pipeline audio 67,4–71,6 % plus court
@@ -636,7 +660,7 @@ un manque de capacité GitHub, avant toute exécution initiale ; incidents conse
 [Protocole, incidents et limites](research/rust-opus-release-build.md) ·
 [588 mesures brutes](evidence/rust-opus-release-build-windows-20261116.json).
 
-## Répertoire privé de validation — remédiation locale
+#### Répertoire privé de validation — remédiation locale
 
 Un nouveau répertoire est créé et accepté par le contrôle strict d'origine,
 sans modification des permissions existantes. Les 30 tests synthétiques passent ;
@@ -645,7 +669,7 @@ suppression pendant sa tenue. Aucun renommage, suppression, identifiant chargé
 ou appel Rambler. L'intégration du lanceur reste distincte de cette admission.
 [Preuve et limites](evidence/rust-private-capture-root-20261115.json).
 
-## CI budgets et fermeture — nouveau résultat
+#### CI budgets et fermeture — nouveau résultat
 
 Sur `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442`, les 13 jobs Rust/Python
 ont réussi, dont huit natifs sur quatre familles et deux toolchains. Chaque
@@ -663,7 +687,7 @@ Aucun changement de production entre ces deux commits. Les limites de service
 réel, téléphone et liaison noyau Linux restent inchangées.
 [Preuve détaillée et provenance](evidence/rust-close-ledger-zero-budgets-ci-20261115.json).
 
-## CI PCM et admission — matrice étendue (historique)
+#### CI PCM et admission — matrice étendue (historique)
 
 Sur `4264126852b2c03e25fc231c60f9582569a84ae9`, les 13 jobs Rust/Python
 ont réussi : huit natifs, lint Rust et quatre Python. Windows rapporte 399
@@ -683,7 +707,7 @@ Linux reste ouvert sans nouvelle tentative ; téléphone inchangé à 0/3 phrase
 [Preuve, comptes par job et provenance](evidence/rust-pcm-admission-expanded-ci-20261115.json).
 Le checkpoint local ci-dessous conserve ses échecs et limites historiques.
 
-## PCM et admission stricte — qualification locale du 15 novembre
+#### PCM et admission stricte — qualification locale du 15 novembre
 
 Sur le snapshot A (base `1813602` et changements locaux), le workspace passe
 399 tests, 0 échec, 2 ignorés sur Windows stable et 1.88, et 400/0/2 sur
@@ -708,7 +732,7 @@ que le moteur Linux est unsupported. Le téléphone reste à 0 armement, 0 voix,
 0 phrase sur 3. Le nouveau code n'est pas encore qualifié sur macOS, ni commité
 ou poussé à ce point ; aucune CI distante de ce code n'est revendiquée.
 
-## Qualification CI native et racines publiques — code `9069059`
+#### Qualification CI native et racines publiques — code `9069059`
 
 Les deux runs CI3 du push `906905988c5c51d83b05b259cd642a165325b7d2`
 sont **completed/success**, vérifiés par API et logs : six jobs natifs
@@ -758,7 +782,7 @@ L'observation Unicode `🙂`→`😎` ci-dessous reste sémantiquement non confi
 [Historique du runner](evidence/rust-native-root-runner-history.json) ·
 [Validation détaillée](research/rust-build-validation.md).
 
-## Qualification CI native — code `1561f87` (historique)
+#### Qualification CI native — code `1561f87` (historique)
 
 La matrice distante Windows/Linux/macOS × Rust 1.88/stable a réellement terminé
 avec succès, ainsi que le lint Rust et les quatre jobs Python. Les comptes Rust
@@ -791,7 +815,7 @@ qualité sémantique ou de déterminisme. Les plages UTF-16 publiées sont déri
 offline ; la CLI n'exerce pas l'API de proposition ni une insertion dans un éditeur.
 [Observation et limites](evidence/rust-native-non-bmp-selection-public.json).
 
-## Point de fiabilité R4 — code `b0591f5`
+#### Point de fiabilité R4 — code `b0591f5`
 
 Le snapshot production R4, conservé comme référence historique, passe **382 tests workspace,
 0 échoué, 1 ignoré** sur Windows stable 1.99.1, Windows/MSVC 1.88 et Linux/WSL
@@ -815,7 +839,7 @@ provisionnement/récupération après révocation restent ouverts. Les sections
 suivantes conservent leurs **snapshots historiques** : leurs comptes et empreintes
 ne désignent pas le code courant.
 
-## Suivi ciblé tests / CI — 15 novembre
+#### Suivi ciblé tests / CI — 15 novembre
 
 Le helper de cleanup remplace le no-op macOS par un audit device/inode ; Linux
 ajoute le contrôle positif 0→1→0, Windows conserve l'ouverture exclusive.
@@ -836,7 +860,7 @@ prouvée/corrigée, aucun gain moteur/WAN ni parité/provisionnement déduit.
 [Validation ciblée et exclusions](research/rust-build-validation.md#focused-platform-gate-follow-up--2026-11-15) ·
 [Preuve expurgée](evidence/rust-platform-gates.json).
 
-## Canal PCM jusqu'au moteur : cinq tests loopback qualifiés
+#### Canal PCM jusqu'au moteur : cinq tests loopback qualifiés
 
 Publication du15 novembre, **exécutions du14 novembre2026** : les deux fichiers
 CLI `pcm_channel_engine.rs` (2 tests) et `pcm_engine_failure.rs` (3 tests) composent
@@ -865,7 +889,7 @@ revue, bloquée par un mauvais nom de cible, n'est pas comptée comme réussie.
 Ni dictée distante supplémentaire, ni gain WAN, ni perfection ou parité Gboard
 déduite de ces tests. Les sections suivantes conservent leurs comptes historiques.
 
-## Deux frontières HTTP/2 corrigées et reproduites localement
+#### Deux frontières HTTP/2 corrigées et reproduites localement
 
 Un workflow couvre10 périmètres en parallèle, avec2 contre-vérifications et une
 synthèse (13 agents Sol). Deux suites séparées établissent ensuite RED/GREEN et
@@ -879,7 +903,7 @@ Linux1.88, avec un oracle ignoré et sources hashées identiques.10 tests d'exem
 smokes PCM passent. Zéro nouvel appel Rambler/appareil, aucun gain WAN revendiqué.
 [Reproductions, contrats et limites](research/rust-http2-boundaries.md).
 
-## Entrée PCM producteur et arrêt normal explicite
+#### Entrée PCM producteur et arrêt normal explicite
 
 `pcm_channel()` ajoute un producteur unique avec une file d'un seul chunk et des
 réservations annulables sans remise prématurée des bytes. `finish()` annonce
@@ -894,7 +918,7 @@ builds release natifs passent. Le smoke offline vérifie1017→3051 échantillon
 après trim, un EOS, zéro service/appareil. L'échec de formatage initial est conservé.
 [Contrat, exemple offline et limites](research/rust-pcm-channel.md).
 
-## Métadonnées natives : snapshots par session
+#### Métadonnées natives : snapshots par session
 
 Deux nouveaux tests couvrent le fournisseur partagé avec rotation puis retrait
 pendant trois RPCs simultanément ouverts sur un seul TCP loopback : doublons et
@@ -908,7 +932,7 @@ Aucun changement de comportement production, aucun appel service/appareil et
 aucun renouvellement ou accès après révocation démontré.
 [Contrat et validation ciblée](research/rust-credential-snapshots.md).
 
-## Référence Android de développement : préparation, pas parité acquise
+#### Référence Android de développement : préparation, pas parité acquise
 
 PixelBoard officiel est installé côte à côte avec Gboard sur le téléphone de test
 explicitement autorisé. L'[éditeur inerte original](../tools/reference/android_editor/README.md)
@@ -924,7 +948,7 @@ Les sources expérimentales audio/UI sont conservées avec29 tests Node et5 test
 d'assembleur Python passants, pas présentées comme injecteur fonctionnel.
 [État, sources reproductibles et limites](research/android-reference-validation.md).
 
-## Observation native des partiels
+#### Observation native des partiels
 
 Le validateur expose `--observe-partials` : compteurs par session et hashes cadrés
 stable/provisoire/rendu, distinction avant/première state1, sans texte ni promotion
@@ -938,7 +962,7 @@ intégral vérifié, mais20 réponses et **0 field4** : rendu partiel réel/prog
 pré-state1 restent **inconclusifs**, sans second appel ni retry. La première réponse
 n'est pas assimilée à un partiel. [Preuve](evidence/rust-native-partials-public.json).
 
-## Décodage : allocations défensives
+#### Décodage : allocations défensives
 
 **279 tests workspace passent** sur Windows stable1.99.1 et1.88, ainsi que
 Linux1.88 (R9), avec un oracle audio ignoré. Les4 tests d'exemple et30 tests CLI
@@ -954,7 +978,7 @@ un compte non validé a été rejetée, avec ses mesures conservées séparémen
 Les médianes CPU locales sont favorables, mais certains pics temporaires sparse
 augmentent d'environ18,5% : ni optimum universel de mémoire ni gain WAN revendiqué.
 
-## Suite de consolidation : mémoire, entrées fichier et options S3
+#### Suite de consolidation : mémoire, entrées fichier et options S3
 
 **274 tests workspace passent** sur Windows stable1.99.1 et Rust1.88, ainsi que
 Linux1.88 (snapshot R6). L'exemple de réutilisation passe4 tests, la CLI sans audio
@@ -988,7 +1012,7 @@ services/modèles Android locaux, accès après révocation et macOS non exécut
 Aucun autre moteur ni API Gemini publique substitué. Le code n'est pas déclaré
 mathématiquement parfait et l'incident long historique n'est pas déclaré résolu.
 
-## Consolidation backend native — jalon fdc9fd9
+#### Consolidation backend native — jalon fdc9fd9
 
 **262 tests Rust passent** sous Windows stable1.99.1 et1.88.0, ainsi que Linux
 x86_64/WSL Ubuntu24.04 avec Rust1.88. L'exemple `session_reuse` passe4 tests et la
@@ -1028,7 +1052,7 @@ non établies, services/modèles Android locaux, récupération après révocati
 exécution macOS nécessitent des preuves/accès distincts. Microphone/GUI/insertion
 restent hors périmètre initial. Aucun autre ASR/API Gemini substitué.
 
-## Parité, robustesse, profilage et MSRV — jalon e427fb1 (13 novembre)
+#### Parité, robustesse, profilage et MSRV — jalon e427fb1 (13 novembre)
 
 **186 tests Rust passent** sur l'arbre intégré avec stable1.99.1 et Rust1.88.0,
 Windows x86_64/MSVC ; un oracle audio indépendant est ignoré par défaut, passé
@@ -1065,7 +1089,7 @@ Cette observation n'est ni cachée ni attribuée à une cause non démontrée.
 La référence Python0.3 reste gelée : la nouvelle politique safety est portée
 explicitement dans Rust, pas rétroactivement revendiquée pour Python.
 
-## Consolidation Rust : diagnostic sans faux succès — jalon4fdf29e
+#### Consolidation Rust : diagnostic sans faux succès — jalon4fdf29e
 
 Le cœur Rust comprend protocole/transport, sessions/résultats, WAV/PCM natif et CLI.
 **163 tests Rust intégrés et 654 tests stricts de référence/outils Python passent**,
@@ -1089,7 +1113,7 @@ récupérer après coup ; cela interdit d'en attribuer la cause au client ou au 
 Le prochain incident d'usage autorisé disposera du diagnostic, sans accepter des
 résultats tronqués ni les rejouer automatiquement.
 
-## Audio Rust natif et endurance mesurée — jalon eb87cc5
+#### Audio Rust natif et endurance mesurée — jalon eb87cc5
 
 L'entrée PCM est portée dans `rambler-audio` : WAV strict PCM16LE mono16k,
 libopus 1.6.1 statique, VoIP/VBR24kbps, trames/pages20ms par défaut, flush et EOS
@@ -1127,7 +1151,7 @@ Le premier pilote de test a temporisé ; son isolation/héritage console a été
 corrigé sans changer le binaire. Le pilote reproductible est versionné sous
 `tools/validate_rust_ctrl_c.py`. [Guide Rust](rust.md).
 
-## Première tranche Rust validée
+#### Première tranche Rust validée
 
 Le workspace natif contient `rambler-protocol`, `rambler-transport`,
 `rambler-engine` et `rambler-cli`. **121 tests Rust intégrés passent**, ainsi que
@@ -1156,7 +1180,7 @@ distincts, pas des succès déduits des essais Python. Aucun gain de vitesse glo
 Rust n'est revendiqué. Voir [le guide Rust](rust.md) pour construire, exécuter et
 intégrer le moteur ; GUI/microphone/insertion restent hors périmètre.
 
-## Continuation SDK 0.3 et référence Rust
+#### Continuation SDK 0.3 et référence Rust
 
 Le SDK 0.3 intègre les options de contexte initial et **623 tests locaux stricts**
 passent. Les goldens de protocole par défaut restent identiques. Python est la
@@ -1189,7 +1213,7 @@ général : un nom change avec changement de ponctuation/conjonction ; la préf�
 britannique et la langue secondaire n'ont pas de bénéfice isolé démontré. Les
 invocations vocales testées restent littérales ; COMPOSE 4 n'est pas observé.
 
-## Raffinement 0.2.0 — jalon historique du 2026-11-13
+#### Raffinement 0.2.0 — jalon historique du 2026-11-13
 
 Branche locale : `feat/engine-refinement`, construite sur `1f52c94` sans modifier
 la branche publiée. **438 tests locaux passent** avec asyncio debug et avertissements
@@ -1224,7 +1248,7 @@ une dictée longue progressive et le suivi réécriture ; ils ne constituent pas
 avec identifiants opaques restent hors git. Aucune nouvelle CI distante ou exécution
 Google/Linux n'est revendiquée pour ce raffinement local.
 
-## Jalon réel du 2026-11-12
+#### Jalon réel du 2026-11-12
 
 **Des réponses du véritable chemin Rambler ont été obtenues par un client natif
 Windows sans Android.** Ce n'est plus seulement une piste statique ou une connexion
@@ -1234,7 +1258,7 @@ Chemin exercé : `speechs3proto2-pa.googleapis.com` / `S3Bidi`, service
 `beyond-a2a-recognizer`, routage `gboard_gemini_v3_streaming_voice_edit_mul`,
 Ogg/Opus16k mono, contexte tardif, fin S3 puis statut gRPC OK.
 
-## Capacités et niveau de validation
+#### Capacités et niveau de validation
 
 | Capacité | Preuve actuelle |
 |---|---|
@@ -1269,7 +1293,7 @@ Ne pas extrapoler ce corpus à toutes les intentions, langues, qualités de voix
 conditions réseau. Les réponses de champ `transcript` peuvent déjà être corrigées
 ou contenir l'historique complet : ce n'est pas une garantie de verbatim audio.
 
-## Preuves et performance
+#### Preuves et performance
 
 - [Observations et conditions](evidence/README.md)
 - [Premier appel complet](evidence/reconstructed-default-session.json)
@@ -1305,7 +1329,7 @@ client, pas du temps de calcul serveur ; les deux expériences utilisent une
 source simulée, pas un microphone réel. Ne pas mélanger les horloges EOF des deux
 producteurs (stdout encodé FFmpeg contre lecteur PCM natif).
 
-## Dépendances et limites
+#### Dépendances et limites
 
 - Python>=3.11, grpcio ; le codec d'entrée natif optionnel nécessite Python>=3.12
   et PyAV. Le flux déjà encodé n'en dépend pas.
@@ -1327,7 +1351,7 @@ producteurs (stdout encodé FFmpeg contre lecteur PCM natif).
   représentative, endurance plus longue, transport réellement perdu et renouvellement
   de credentials après révocation restent non validés.
 
-## Historique utile
+#### Historique utile
 
 Dépôt initialement vide ; premier lot documentation/wire poussé dans
 `4745be3`, branche `feat/rambler-engine`. Analyse statique APK PixelBoard1.3.4

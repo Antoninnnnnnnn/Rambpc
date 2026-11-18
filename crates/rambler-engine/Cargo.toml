@@ -13,6 +13,8 @@ futures-util.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
 tonic.workspace = true
+# Maintained, dependency-free UAX #29 segmentation; avoids partial Unicode rules.
+unicode-segmentation = "1.13.3"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

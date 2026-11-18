@@ -1,8 +1,11 @@
 use crate::{EditingContext, EngineError, ReplacementProposal, Revision};
-use std::{fmt, ops::Range};
+use std::{fmt, iter, ops::Range};
+use unicode_segmentation::UnicodeSegmentation;
 
-/// One textual replacement within the original captured window. This is neither
-/// a document range, a selection update, nor authorization to apply an edit.
+/// One scalar-aligned textual replacement within the original captured window.
+/// This is neither a document range, a selection update, nor authorization to
+/// apply an edit. [`ReplacementProposal::derive_grapheme_splice`] additionally
+/// aligns the splice to extended grapheme clusters within both windows.
 pub struct ScalarSplice<'a> {
     original_utf16_range: Range<usize>,
     inserted_text: &'a str,
@@ -30,6 +33,11 @@ impl fmt::Debug for ScalarSplice<'_> {
     }
 }
 
+struct ScalarBounds {
+    original_utf16: Range<usize>,
+    replacement_bytes: Range<usize>,
+}
+
 impl ReplacementProposal {
     /// Revalidate the exact text split and captured revision, then describe at
     /// most one scalar-aligned text splice. Unversioned proposals return
@@ -54,6 +62,69 @@ impl ReplacementProposal {
         current: &EditingContext,
         current_revision: &Revision,
     ) -> Result<Option<ScalarSplice<'_>>, EngineError> {
+        Ok(self
+            .scalar_bounds(current, current_revision)?
+            .map(|bounds| ScalarSplice {
+                original_utf16_range: bounds.original_utf16,
+                inserted_text: &self.replacement_text[bounds.replacement_bytes],
+            }))
+    }
+
+    /// Like [`Self::derive_scalar_splice`], but widens both ends to extended
+    /// grapheme cluster boundaries (UAX #29) shared by the original and
+    /// replacement windows. Segments each full window, not the individual
+    /// `before`/`selected`/`after` parts. Text is not normalized.
+    ///
+    /// This is a window-relative guarantee only. Text beyond a captured window
+    /// can affect segmentation inside it (e.g. a run of regional indicators).
+    /// Before applying, verify both sets of boundaries in document context with
+    /// the host's segmentation rules, as well as the document, anchor and
+    /// revision in the same editor transaction. Do not round the offsets.
+    pub fn derive_grapheme_splice(
+        &self,
+        current: &EditingContext,
+        current_revision: &Revision,
+    ) -> Result<Option<ScalarSplice<'_>>, EngineError> {
+        let Some(bounds) = self.scalar_bounds(current, current_revision)? else {
+            return Ok(None);
+        };
+        let original = [&current.before[..], &current.selected, &current.after].concat();
+        let replacement = self.replacement_text.as_str();
+        let scalar = bounds.replacement_bytes;
+
+        let start = shared_offsets(
+            grapheme_boundaries(&original),
+            grapheme_boundaries(replacement),
+        )
+        .take_while(|&offset| offset <= scalar.start)
+        .last()
+        .unwrap_or(0);
+
+        // The retained suffix is byte-identical, but may segment differently
+        // due to the preceding edit. Find its first boundary in both windows.
+        let suffix_len = replacement.len() - scalar.end;
+        let original_suffix = original.len() - suffix_len;
+        let suffix_skip = shared_offsets(
+            grapheme_boundaries(&original).filter_map(|offset| offset.checked_sub(original_suffix)),
+            grapheme_boundaries(replacement).filter_map(|offset| offset.checked_sub(scalar.end)),
+        )
+        .next()
+        .unwrap_or(suffix_len);
+        let original_end = original_suffix + suffix_skip;
+        let start_utf16 = original[..start].encode_utf16().count();
+        let end_utf16 = start_utf16 + original[start..original_end].encode_utf16().count();
+
+        Ok(Some(ScalarSplice {
+            original_utf16_range: start_utf16..end_utf16,
+            inserted_text: &replacement[start..scalar.end + suffix_skip],
+        }))
+    }
+
+    fn scalar_bounds(
+        &self,
+        current: &EditingContext,
+        current_revision: &Revision,
+    ) -> Result<Option<ScalarBounds>, EngineError> {
         self.validate_current(current, Some(current_revision))?;
         if self.expected_revision.is_none() {
             return Err(EngineError::ContextConflict);
@@ -93,9 +164,28 @@ impl ReplacementProposal {
             replacement_end -= old.len_utf8();
         }
 
-        Ok(Some(ScalarSplice {
-            original_utf16_range: start_utf16..end_utf16,
-            inserted_text: &replacement[prefix_bytes..replacement_end],
+        Ok(Some(ScalarBounds {
+            original_utf16: start_utf16..end_utf16,
+            replacement_bytes: prefix_bytes..replacement_end,
         }))
     }
+}
+
+fn grapheme_boundaries(text: &str) -> impl Iterator<Item = usize> + '_ {
+    text.grapheme_indices(true)
+        .map(|(offset, _)| offset)
+        .chain(iter::once(text.len()))
+}
+
+fn shared_offsets(
+    left: impl Iterator<Item = usize>,
+    right: impl Iterator<Item = usize>,
+) -> impl Iterator<Item = usize> {
+    let mut right = right.peekable();
+    left.filter(move |left| {
+        while right.peek().is_some_and(|right| right < left) {
+            right.next();
+        }
+        right.peek() == Some(left)
+    })
 }
