@@ -58,10 +58,23 @@ def records_fixture():
     return lines, token_map
 
 
+HARNESS_NAMES = (
+    "ingress::tests::partitions_match_the_same_clip_and_cross_sample_and_frame_seams",
+    "tests::codec_defaults_and_explicit_bounds",
+    "tests::codec_rejects_zero_overflow_unknown_missing_duplicate_and_bad_numbers",
+    "tests::checked_padding_covers_boundaries_without_extra_frames",
+    "tests::conversion_preserves_le_samples_tail_and_lookahead_zeros",
+    "tests::synthetic_inputs_retain_published_integer_only_fingerprints",
+    "native_ogg::tests::maximum_packets_and_255_byte_multiples_keep_valid_lacing_and_crc",
+    "native_ogg::tests::pending_output_has_hard_limit_and_bad_packet_sizes_fail",
+    "native_ogg::tests::sequence_overflow_is_an_error_not_a_panic",
+)
+
+
 def harness_output():
-    return ("   Compiling fabricated v0.0.0\nnoise without harness markers\nrunning 8 tests\n" +
-            "\n".join("test " + name + " ... ok" for name in sorted(CHECKER.EXPECTED_TESTS)) +
-            "\n\ntest result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n")
+    return ("   Compiling fabricated v0.0.0\nnoise without harness markers\nrunning 9 tests\n" +
+            "\n".join("test " + name + " ... ok" for name in HARNESS_NAMES) +
+            "\n\ntest result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n")
 
 
 def instance_fixture():
@@ -232,25 +245,27 @@ class RecordTests(unittest.TestCase):
 
 
 class HarnessTests(unittest.TestCase):
-    def test_exact_eight_names_with_normal_noise(self):
-        self.assertEqual(CHECKER.validate_test_output(harness_output()), 8)
+    def test_exact_nine_names_with_normal_noise(self):
+        self.assertEqual(CHECKER.validate_test_output(harness_output()), 9)
 
     def test_compiler_warning_about_a_test_is_not_a_harness_record(self):
         self.assertEqual(CHECKER.validate_test_output(
-            "warning: this test helper is unused\n" + harness_output()), 8)
+            "warning: this test helper is unused\n" + harness_output()), 9)
 
     def test_count_poison_duplicate_unknown_missing_and_extra(self):
         text = harness_output()
-        name = sorted(CHECKER.EXPECTED_TESTS)[0]
-        other = sorted(CHECKER.EXPECTED_TESTS)[1]
+        name, other = HARNESS_NAMES[:2]
+        old_eight = (text.replace("running 9 tests", "running 8 tests")
+                     .replace("9 passed", "8 passed")
+                     .replace("test " + name + " ... ok\n", ""))
         variants = (
-            text.replace("8 passed", "5 passed"), text.replace("0 ignored", "1 ignored"),
-            text + "running 8 tests\n", text + "test result: FAILED.\n",
+            old_eight, text.replace("9 passed", "8 passed"), text.replace("0 ignored", "1 ignored"),
+            text + "running 9 tests\n", text + "test result: FAILED.\n",
             text + "test injected ... ok\n", text.replace(name, other),
             text.replace(name, "unknown"), text.replace("test " + name + " ... ok\n", ""),
-            text.replace(" ... ok", " ... ignored", 1), text + "test malformed\n",
-            text.replace("running 8 tests", "running 80 tests"), text + "\x1b[0m",
-            text + "  running 8 tests\n", text + "  test injected ... ok\n",
+            text.replace(" ... ok", " ... ignored", 1), text.replace(" ... ok", " ... FAILED", 1),
+            text + "test malformed\n", text.replace("running 9 tests", "running 90 tests"),
+            text + "\x1b[0m", text + "  running 9 tests\n", text + "  test injected ... ok\n",
         )
         for bad in variants:
             with self.subTest(tail=bad[-100:]), self.assertRaises(CHECKER.QualificationError):
@@ -260,7 +275,7 @@ class HarnessTests(unittest.TestCase):
 class CargoOutputTests(unittest.TestCase):
     def parse(self, message):
         text = json.dumps(message) + "\n" + harness_output()
-        self.assertEqual(CHECKER.validate_test_output(text), 8)
+        self.assertEqual(CHECKER.validate_test_output(text), 9)
         return CHECKER.opus_output_directory(text, TARGET)
 
     def test_out_dir_independent_of_old_new_or_future_private_layout(self):

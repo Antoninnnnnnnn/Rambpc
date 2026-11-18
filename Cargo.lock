@@ -728,7 +728,6 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tonic",
- "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -739,6 +738,7 @@ dependencies = [
  "futures-util",
  "hex",
  "http",
+ "libc",
  "rambler-protocol",
  "rambler-transport",
  "serde_json",
@@ -748,6 +748,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tonic",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

@@ -9,15 +9,22 @@ les résultats et incidents ; cette page sert à décider du prochain travail.
 
 **Validation du lot PCM/réception :** formatage, Clippy strict et tests du
 workspace hors ligne sur Windows ([461 réussites, 2 ignorées, 1 test TLS
-filtré](evidence/rust-streamed-sdk-wave-windows-20261118.json)). Le jalon
-précédent `4cf9c4d` a passé les 14 jobs de CI Rust/Python, dont le kit natif
-sur Ubuntu stable. Aucun appel au vrai service dans ces validations.
+filtré](evidence/rust-streamed-sdk-wave-windows-20261118.json)). Pour
+`ac5d22d`, la [CI initiale](evidence/rust-streamed-sdk-wave-ci-20261118.json)
+a passé 12 jobs sur 14 : le contrôle VS2022 attendait l’ancienne liste de
+tests et le test Ogg macOS supposait une réception que rien ne synchronisait.
+Le [lot Ogg/édition et les corrections de
+qualification](evidence/rust-ogg-edit-wave-windows-20261118.json) passent
+465 tests Rust, 42 tests Python, le formatage et Clippy strict hors ligne
+sur Windows (2 tests ignorés, 1 test TLS filtré). Les corrections restent à
+confirmer dans la CI multiplateforme. Le jalon `4cf9c4d` avait passé les 14
+jobs, dont le kit natif sur Ubuntu stable. Aucun appel au vrai service.
 
 | Thème | État | Critère de livraison |
 |---|---|---|
-| **SDK et intégration** | Le [guide](research/sdk-integration-guide.md) couvre l’observation des aperçus et le démarrage PCM borné, sans seconde collecte. | Le fournisseur d’audio reste maître de la capture ; l’API préserve les erreurs, la fin normale et l’annulation. Prochaine étape : rendre la source Ogg/Opus réutilisable hors CLI sans codec natif. |
-| **Robustesse du client** | [Fin de flux et frontières wire](research/native-robustness-coverage.md) : les cas synthétiques vérifient les erreurs, le nettoyage et l’isolation des sessions. | Maintenir l’ordre et les limites de réception, sans faux succès ni rejeu. N’ajouter des cas que lorsqu’ils établissent un invariant distinct. |
-| **Livraison et fidélité** | Le [kit natif](research/native-qualification-kit.md) teste un flux complet sur Ubuntu stable. Les rapports de corpus existants ne contiennent pas d’attendus d’édition par cas ; un WER ou une proposition valide ne suffit pas à juger la fidélité. | Définir des attentes indépendantes et appariées avant d’évaluer le texte, l’intention et l’effet d’édition ; les valider hors ligne sur des données inventées. |
+| **SDK et intégration** | Le [guide](research/sdk-integration-guide.md) couvre les aperçus, le démarrage PCM borné et `OggAudio::open` pour lire un fichier préencodé sans codec natif. | Le même lecteur sert au SDK et à la CLI, avec préflight borné, pages intactes, erreurs et annulation préservées. La capture reste à l’application. |
+| **Robustesse du client** | [Fin de flux et frontières wire](research/native-robustness-coverage.md) : les cas synthétiques vérifient les erreurs, le nettoyage et l’isolation des sessions. Le test d’erreur Ogg tardive attend maintenant la réception d’un paquet audio par le pair. | Maintenir l’ordre et les limites de réception, sans faux succès ni rejeu. Vérifier les corrections dans la CI groupée. |
+| **Livraison et fidélité** | Le [kit natif](research/native-qualification-kit.md) teste un flux complet sur Ubuntu stable. Le [contrat d’édition hors ligne](research/edit-acceptance-contract.md) compare un résultat de proposition strict à un attendu préétabli ; les rapports historiques ne contiennent pas ces attendus. | Qualifier séparément la provenance et le producteur des observations avant de conclure sur un corpus réel. Ni le WER, ni une session réussie ne prouvent un effet d’édition conforme. |
 | **Accès et parité sur le service** | En attente d’éléments externes. Les succès natifs historiques ne qualifient pas une méthode durable d’accès. | Périmètre autorisé, émission/renouvellement/révocation et échange de référence apparié pour les [modes avancés](research/rust-feature-parity.md#acceptation-actuelle-et-reste-à-faire). Ne pas inventer un mode ou une activation pour lever le blocage. |
 | **Optimisation et mesure** | La [réception gRPC](research/raw-h2-receive-cost.md) réduit les allocations dans le cas local mesuré. Le [profil PCM](research/native-audio-hotpath.md) ne justifie pas de changement de production. | Préserver les mêmes entrées/résultats, publier les limites, puis mesurer la qualité et la latence réelles seulement avec une référence qualifiée. |
 

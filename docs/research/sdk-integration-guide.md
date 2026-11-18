@@ -22,7 +22,9 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 ## 2. Feed ordered caller audio
 
-For already encoded audio, supply a `Box<dyn AudioSource>` over **one continuous Ogg/Opus stream**, with bytes in order; do not concatenate independently encoded clips or pass PCM as encoded audio. `StreamAudio::new` wraps a `Stream<Item = Result<bytes::Bytes, SourceError>>` when synchronous Drop is sufficient. If the source needs asynchronous release, implement `AudioSource`: `next()` must tolerate being dropped; return `Ok(None)` only for normal EOF; make `close()` eventually complete. Keep Tokio alive for cleanup.
+For a local Ogg/Opus file, give `Box::new(rambler_engine::OggAudio::open(path).await?)` to either collector. This is the same bounded, byte-preserving source used by `rambler dictate`; it needs no native Opus dependency. It preflights the first page and validates the remaining pages as they are read, without real-time pacing. A late framing or read error fails the session rather than pretending the input ended normally. See [`OggAudio`'s file policy](../../crates/rambler-engine/src/ogg.rs).
+
+For other already encoded audio, supply a `Box<dyn AudioSource>` over **one continuous Ogg/Opus stream**, with bytes in order; do not concatenate independently encoded clips or pass PCM as encoded audio. `StreamAudio::new` wraps a `Stream<Item = Result<bytes::Bytes, SourceError>>` when synchronous Drop is sufficient. If the source needs asynchronous release, implement `AudioSource`: `next()` must tolerate being dropped; return `Ok(None)` only for normal EOF; make `close()` eventually complete. Keep Tokio alive for cleanup.
 
 For PCM16 little-endian, 16 kHz, mono:
 

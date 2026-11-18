@@ -1,8 +1,5 @@
-//! Bounded, byte-preserving Ogg framing validation for the CLI's mono/16 kHz
-//! Opus profile. This is not an Opus decoder: compressed audio, duration, and
-//! audible quality are deliberately not certified here.
+use crate::{AudioSource, SourceError, SourceFuture};
 use bytes::Bytes;
-use rambler_engine::{AudioSource, SourceError, SourceFuture};
 use std::path::Path;
 use tokio::{
     fs::{File, OpenOptions},
@@ -24,11 +21,29 @@ enum Phase {
     Body,
 }
 
-/// One validated Ogg page per chunk; the first OpusHead page is preflighted
-/// before returning from open. Later corruption remains a source error, never
-/// clean EOF. No seek, whole-file prebuffer, transcoding, or invented EOS.
-/// Pending reads and into_std cleanup survive dropped next/close futures.
-pub(crate) struct OggAudio {
+/// Byte-preserving [`AudioSource`] for a regular Ogg/Opus file.
+///
+/// Accepts one logical stream with a v1 mono Opus header declaring a 16 kHz
+/// input rate and mapping family 0. Each `next` yields one unchanged Ogg page
+/// (at most 65,307 bytes), read on demand without real-time pacing or buffering
+/// the entire file. OpusTags and individual audio packets are limited to 64 KiB
+/// each, including any padding. This validates Ogg framing, headers, and
+/// granule ordering, not the compressed audio, duration, or audible quality.
+///
+/// The EOS page is withheld until physical EOF is verified and the file is
+/// closed. Later validation or read failures are sticky source errors, not EOF.
+/// Dropping a pending `next` or `close` future does not lose progress; await
+/// [`AudioSource::close`] if consuming the source directly and stopping early.
+/// The engine handles cleanup when it owns the source.
+///
+/// ```no_run
+/// use rambler_engine::{AudioSource, OggAudio, SourceError};
+///
+/// async fn file_source(path: &std::path::Path) -> Result<Box<dyn AudioSource>, SourceError> {
+///     Ok(Box::new(OggAudio::open(path).await?))
+/// }
+/// ```
+pub struct OggAudio {
     file: Option<File>,
     closing: Option<SourceFuture<'static, ()>>,
     page: Vec<u8>,
@@ -49,7 +64,11 @@ pub(crate) struct OggAudio {
     failure: Option<&'static str>,
 }
 impl OggAudio {
-    pub(crate) async fn open(path: impl AsRef<Path>) -> Result<Self, SourceError> {
+    /// Opens a regular file on a Tokio runtime and preflights only its first
+    /// page (`OpusHead`). The rest is validated as the source is consumed.
+    ///
+    /// Returns a [`SourceError`] on open or preflight failure.
+    pub async fn open(path: impl AsRef<Path>) -> Result<Self, SourceError> {
         let mut options = OpenOptions::new();
         options.read(true);
         // Reject FIFOs from their opened descriptor without blocking open or

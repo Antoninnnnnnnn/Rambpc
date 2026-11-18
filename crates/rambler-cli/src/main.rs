@@ -1,11 +1,11 @@
-mod ogg;
 #[cfg(test)]
 mod tests;
 
 use clap::{Args, Parser, Subcommand};
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext,
-    EncodedAudioProgress, Engine, EngineError, ProtocolConfig, SessionOptions, collect_dictation,
+    EncodedAudioProgress, Engine, EngineError, OggAudio, ProtocolConfig, SessionOptions,
+    collect_dictation,
 };
 use rambler_transport::{
     EnvironmentCredentials, Metadata, MetadataProvider, TransportConfig, TransportError,
@@ -126,7 +126,7 @@ async fn open_audio(
 ) -> Result<(Box<dyn AudioSource>, PcmObservation), &'static str> {
     match kind {
         InputKind::Ogg => Ok((
-            Box::new(ogg::OggAudio::open(path).await.map_err(|_| "audio")?),
+            Box::new(OggAudio::open(path).await.map_err(|_| "audio")?),
             PcmObservation::default(),
         )),
         #[cfg(feature = "audio")]

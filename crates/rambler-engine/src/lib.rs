@@ -9,7 +9,8 @@
 //!
 //! # Collect caller-provided audio
 //!
-//! Supply one continuous Ogg/Opus source, not raw PCM labelled as Opus. For
+//! Supply one continuous Ogg/Opus source, not raw PCM labelled as Opus.
+//! [`OggAudio::open`] streams a supported Ogg/Opus file without a codec. For
 //! caller-owned PCM, `rambler-audio` provides a bounded `pcm_channel` and
 //! `Pcm16Opus` adapter. Drive the PCM writer and collection concurrently and
 //! explicitly finish the writer at normal input EOF. The application supplies
@@ -113,9 +114,11 @@
 //! revalidate it with the current revision atomically with any explicit apply.
 //! This SDK does not perform edits, SEND, or CLEAR.
 mod engine;
+mod ogg;
 mod presentation;
 mod results;
 pub use engine::*;
+pub use ogg::OggAudio;
 pub use presentation::*;
 pub use rambler_protocol::{EditingContext, ProtocolConfig, S3Response};
 pub use rambler_transport::{MetadataProvider, SourceError, SourceFuture};

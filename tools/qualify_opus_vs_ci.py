@@ -35,6 +35,7 @@ AVX2_SOURCES = frozenset((
     "silk/float/x86/inner_product_flp_avx2.c",
 ))
 EXPECTED_TESTS = frozenset((
+    "ingress::tests::partitions_match_the_same_clip_and_cross_sample_and_frame_seams",
     "tests::codec_defaults_and_explicit_bounds",
     "tests::codec_rejects_zero_overflow_unknown_missing_duplicate_and_bad_numbers",
     "tests::checked_padding_covers_boundaries_without_extra_frames",
@@ -222,17 +223,17 @@ def validate_test_output(text):
     # Ignore ordinary Cargo/compiler noise, but no malformed/duplicate harness lines.
     running = [x for x in lines if x.startswith("running ") or
                re.search(r"\brunning\s+[0-9]+\s+tests?\b", x)]
-    require(running == ["running 8 tests"], "wrong_running_test_marker")
+    require(running == ["running 9 tests"], "wrong_running_test_marker")
     summaries = [x for x in lines if "test result:" in x]
     require(len(summaries) == 1 and re.fullmatch(
-        r"test result: ok\. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9]+\.[0-9]+s",
+        r"test result: ok\. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9]+\.[0-9]+s",
         summaries[0]) is not None, "wrong_test_summary")
     entries = [x for x in lines if x.lstrip().startswith("test ") and
                not x.lstrip().startswith("test result:")]
     matches = [re.fullmatch(r"test (\S+) \.\.\. ok", x) for x in entries]
-    require(len(matches) == 8 and all(matches), "malformed_or_extra_test_record")
+    require(len(matches) == 9 and all(matches), "malformed_or_extra_test_record")
     require(Counter(m[1] for m in matches) == Counter(EXPECTED_TESTS), "wrong_test_names")
-    return 8
+    return 9
 
 
 def unique_json_object(pairs):
@@ -451,7 +452,7 @@ def main():
         print(json.dumps({
             "qualification": "functional-only", "vs_major": 17, "generator": GENERATOR,
             "platform": "x64", "host_toolset": "host=x64", "configuration": "Release",
-            "rust_stable_release": rust_release, "test_passed": 8, **record_summary,
+            "rust_stable_release": rust_release, "test_passed": 9, **record_summary,
             "required_bare_defines": sorted(REQUIRED_DEFINES), "brepro_per_record": 1,
             "archive_sha256": archive_hash, "installed_archive_matches": True,
         }, sort_keys=True))

@@ -1,0 +1,105 @@
+{
+  "automatic_retry": false,
+  "base": "ac5d22d6945c50df7a97cd92946e51dfd9a24d2d",
+  "commands": [
+    "python -I -S -B -m unittest discover -s tests -p test_check_edit_acceptance.py",
+    "python -I -S -B tools/opus_vs_ci_selftest.py",
+    "cargo +stable fmt --all -- --check",
+    "cargo +stable clippy --offline --locked --workspace --all-targets --all-features -- -D warnings",
+    "cargo +stable test --offline --locked --workspace --all-features -- --skip tls_never_downgrades_to_loopback_plaintext"
+  ],
+  "limits": [
+    "Two default ignored tests and the named TLS test were not run locally.",
+    "No codec timing, historic proof binary, advanced mode, or actual service was exercised.",
+    "The pre-existing VS17 job was not rerun; the verifier only was tested locally.",
+    "The late Ogg failure test observes actual audio on owned localhost before exposing the bad final page. A corrected macOS CI run is separate.",
+    "No real or historic corpus was evaluated. The input labels alone do not authenticate provenance."
+  ],
+  "moved_cli_private_sources": [
+    "crates/rambler-cli/src/ogg.rs",
+    "crates/rambler-cli/src/ogg_tests.rs"
+  ],
+  "provider_calls": 0,
+  "python_tests_passed": {
+    "edit_acceptance": 12,
+    "vs17_verifier": 30
+  },
+  "repository_blob_sha256_when_line_endings_differ": {
+    "Cargo.lock": "9da4d24f75b82b3ae9b258ed20758f34478165f15b2958c1b25ded2c7876d507",
+    "crates/rambler-cli/Cargo.toml": "2d9071c1bcfc0323bcd56f0f363e7c988c8abbe67e451bfe8018e41ac505a9b3",
+    "crates/rambler-cli/src/main.rs": "8733318eee339fd646a179d29adf9b977e7e3406f9816725fdac805e8720beb4",
+    "crates/rambler-engine/Cargo.toml": "e11c79afb70d4cbe0a87c2ec53a794a31e4748b1c1ce3c0023798e82dd6a507a",
+    "crates/rambler-engine/src/lib.rs": "d3884128c7c1de9d2786a5e2c706c3b8ae1546b288ce3802bedef76b4111cd2e",
+    "crates/rambler-engine/src/ogg.rs": "eae56dea14f615502d04bc8df619a32912c204f3b29474556bc156bbb63c28e5",
+    "docs/research/sdk-integration-guide.md": "7b2d6f550778d2892bdef061bd3a1997236151dffe1db21ea2450f087308d525",
+    "tools/opus_vs_ci_selftest.py": "5e794ccc7a4dc90aed0140fffaa174630b07381324850f74fb7347a130eb7ac2",
+    "tools/qualify_opus_vs_ci.py": "8fbe1e722b03015a24c1506ce527567d69df20f645a25313f7f8261c1b3a049d"
+  },
+  "schema": "rambler-native-wave-local-validation-v1",
+  "scope": "Windows x64, stable Rust and Python 3.14, offline owned jobs, synthetic fixtures only",
+  "status": "PASS_INTEGRATED_WORKSPACE_OWNED_LOCAL",
+  "validated_file_sha256": {
+    "Cargo.lock": "cd573232fdc09ce3a637f22b2de70ad6fb564ecc8613dda302629d04660cce15",
+    "crates/rambler-cli/Cargo.toml": "bba6ccd339b787e76dfbe17bd8ea9f8fb7985f7ad26907723aa69b5046a40f75",
+    "crates/rambler-cli/src/main.rs": "aa70a66aa1c2829c31211c248c549ce32dfb934f4ed9f3026ca4e839fb3d7e04",
+    "crates/rambler-cli/tests/ogg.rs": "08f64fd217a0abbf9ea26ceeb8555eea239b444cefe74c9e6690547e176ce462",
+    "crates/rambler-engine/Cargo.toml": "5a4e8578f4f43d6abe46e51b47557d17a26b90309b7ee501fff0d32043e9db9a",
+    "crates/rambler-engine/src/lib.rs": "44d05c6409ab89bc48ab7d44e58b1ac6ba62d684751fa187ca60c3f0bc51034f",
+    "crates/rambler-engine/src/ogg.rs": "a1a76d8b31fc774a4fb63686c59f163263aa99033ddaff658ebe4a599c3058ce",
+    "crates/rambler-engine/src/ogg_tests.rs": "fcda047f76e9e761d9062990c4e364def653b9106af7c4ea09953ff2ff330b21",
+    "docs/evidence/rust-streamed-sdk-wave-ci-20261118.json": "85d3c23bf884561acd73184ef85f810283dd2042035c6c8c09566eb2544e529c",
+    "docs/research/edit-acceptance-contract.md": "4be2a8ca7b00c2b0c497076b62ac1209bca5b237458d92baca2361ebcd04ffd8",
+    "docs/research/sdk-integration-guide.md": "5406d30c14d0facd5a1446f64774131bf5fd8cf89b0e70c29d68d8e8755dc8ce",
+    "tests/test_check_edit_acceptance.py": "fbc236db647c2980ce749b1fe5c7e0b68361956114a1f7d9814ae3c6e4e211a3",
+    "tools/check_edit_acceptance.py": "9445f5119c476b517e39cf435f33d56aed29ebef9da241fc83d355a5feba2e3e",
+    "tools/opus_vs_ci_selftest.py": "f6f5fd237471683ac17522d5ed6c126b023e9d54634272f8673aa5d79211161d",
+    "tools/qualify_opus_vs_ci.py": "c924edeb5f4af347433a81f3fa2d8bcec1f127033089c2aa6254e99ad80c656b"
+  },
+  "windows_jobs": {
+    "steps": [
+      {
+        "exit": 0,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "edit-acceptance"
+      },
+      {
+        "exit": 0,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "vs17-verifier"
+      },
+      {
+        "exit": 0,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "format"
+      },
+      {
+        "exit": 0,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "clippy"
+      },
+      {
+        "exit": 0,
+        "job_empty": true,
+        "membership_verified": true,
+        "passed": true,
+        "step": "workspace"
+      }
+    ]
+  },
+  "workspace_results_by_target_summed": {
+    "failed": 0,
+    "filtered_out": 1,
+    "ignored": 2,
+    "measured": 0,
+    "passed": 465,
+    "summaries": 78
+  }
+}

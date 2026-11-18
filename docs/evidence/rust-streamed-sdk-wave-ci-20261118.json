@@ -1,0 +1,34 @@
+{
+  "schema": "rambler-native-wave-ci-v1",
+  "head": "ac5d22d6945c50df7a97cd92946e51dfd9a24d2d",
+  "attempt": 1,
+  "status": "TERMINAL_NON_SUCCESS",
+  "reruns_requested": 0,
+  "jobs": {
+    "success": 12,
+    "failure": 2,
+    "total": 14
+  },
+  "python": { "run": 44257306467, "success": 4, "total": 4 },
+  "rust": { "run": 44257306429, "success": 8, "total": 10 },
+  "failed_jobs": [
+    {
+      "name": "vs17-opus",
+      "job": 134641976930,
+      "failed_step": "Isolate and verify the functional VS17 Release branch",
+      "observed": "The Release profile example built and all 9 tests passed; the exact-output verifier rejected wrong_running_test_marker because it expected the previous 8-test suite."
+    },
+    {
+      "name": "test (macos-latest, 1.88.0)",
+      "job": 134641977537,
+      "failed_step": "Test workspace with audio offline",
+      "test": "late_crc_failure_after_upload_stays_audio_error_and_never_sends_end_request",
+      "observed": "The pre-assertions for CLI exit, audio error and absence of text passed. The test failed at failure must occur after RPC starts because the peer's captured request vector was empty. The fixture did not gate delivery of the bad final page on peer receipt of audio."
+    }
+  ],
+  "limits": [
+    "Job conclusions and failing steps were read from the exact workflow runs; each failure was checked in the corresponding completed job log.",
+    "No retry or replacement run changes this initial attempt. A correct CLI error alone does not prove the error occurred after peer receipt of audio.",
+    "No provider behavior or performance was measured."
+  ]
+}
