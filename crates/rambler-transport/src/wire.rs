@@ -1,10 +1,13 @@
 //! Raw gRPC over h2, with explicit per-stream reset ownership. No protobuf parsing.
 use crate::{MetadataProvider, Progress, TransportConfig, TransportError, Upload};
-use bytes::{Buf, Bytes, BytesMut};
+use bytes::{Buf, Bytes};
 use futures_util::{StreamExt, future::poll_fn};
 use std::sync::{Arc, Mutex};
 use tokio::{sync::mpsc, time::Instant};
 use tonic::{Code, Request};
+
+mod deframer;
+use deframer::Deframer;
 
 // Keep prefix and original payload together without a contiguous envelope copy.
 pub(crate) type Envelope = bytes::buf::Chain<Bytes, Bytes>;
@@ -193,42 +196,6 @@ fn response_headers(headers: &http::HeaderMap) -> Result<(), TransportError> {
     Ok(())
 }
 
-/// Incremental, bounded gRPC envelope decoder. Uses the raw tonic decoder for
-/// payload identity on the test server side; this client never parses protobuf.
-struct Deframer {
-    buffer: BytesMut,
-    limit: usize,
-}
-impl Deframer {
-    fn new(limit: usize) -> Self {
-        Self {
-            buffer: BytesMut::new(),
-            limit,
-        }
-    }
-    fn push(&mut self, bytes: &[u8]) {
-        self.buffer.extend_from_slice(bytes);
-    }
-    fn message(&mut self) -> Result<Option<Bytes>, TransportError> {
-        if self.buffer.len() < 5 {
-            return Ok(None);
-        }
-        match self.buffer[0] {
-            0 => {}
-            1 => return Err(TransportError::CompressionUnsupported),
-            _ => return Err(TransportError::Protocol),
-        }
-        let size = u32::from_be_bytes(self.buffer[1..5].try_into().unwrap()) as usize;
-        if size > self.limit {
-            return Err(TransportError::Grpc(Code::ResourceExhausted));
-        }
-        if self.buffer.len() - 5 < size {
-            return Ok(None);
-        }
-        self.buffer.advance(5);
-        Ok(Some(self.buffer.split_to(size).freeze()))
-    }
-}
 async fn read(
     response: h2::client::ResponseFuture,
     limit: usize,
@@ -248,17 +215,21 @@ async fn read(
     let mut stream = response.into_body();
     let mut decoder = Deframer::new(limit);
     while let Some(chunk) = stream.data().await {
-        let chunk = chunk?;
-        // Trailers-Only ends with the initial HEADERS. Even zero-length DATA
-        // is another frame, not proof that those HEADERS ended the stream.
-        if initial_status.is_some() {
-            return Err(TransportError::Protocol.into());
-        }
-        if framed {
-            decoder.push(&chunk);
-        }
-        stream.flow_control().release_capacity(chunk.len())?;
-        while let Some(bytes) = decoder.message()? {
+        let mut next = {
+            let chunk = chunk?;
+            // Trailers-Only ends with the initial HEADERS. Even zero-length DATA
+            // is another frame, not proof that those HEADERS ended the stream.
+            if initial_status.is_some() {
+                return Err(TransportError::Protocol.into());
+            }
+            // Preserve credit release before parser errors or a blocked send.
+            stream.flow_control().release_capacity(chunk.len())?;
+            if !framed {
+                continue;
+            }
+            decoder.frame(&chunk)?
+        }; // Drop h2's backing before awaiting the response queue.
+        while let Some(bytes) = next {
             progress
                 .responses
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -266,9 +237,10 @@ async fn read(
                 .send(bytes)
                 .await
                 .map_err(|_| TransportError::Cancelled)?;
+            next = decoder.message()?;
         }
     }
-    if !decoder.buffer.is_empty() {
+    if !decoder.is_empty() {
         return Err(TransportError::Protocol.into());
     }
     let trailers = stream.trailers().await?;

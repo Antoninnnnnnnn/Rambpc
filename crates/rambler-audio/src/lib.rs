@@ -5,7 +5,9 @@
 //! 24kbps VBR, 20ms codec-frame profile is exposed. [`WavAudio`] reads strict PCM
 //! WAVE progressively, with optional first-chunk-at-t0 file pacing. Compose them
 //! as `Pcm16Opus::new(WavAudio::open(path, WavConfig::default()).await?,
-//! EncoderConfig::default())`, then give ownership to the engine.
+//! EncoderConfig::default())`, then give ownership to the engine. For caller-fed
+//! PCM dictation, [`start_pcm_dictation`] and [`start_pcm_dictation_with_observer`]
+//! pair a bounded producer with an engine completion future.
 //!
 //! Normal EOF closes upstream BEFORE emitting a successful Ogg EOS. All tail
 //! samples and encoder lookahead are flushed; EOS granules trim padding exactly.
@@ -19,15 +21,18 @@
 //! releases the native codec synchronously and schedules upstream async cleanup
 //! when a Tokio runtime exists; outside a runtime only explicit close can await it.
 //!
-//! No Python, FFmpeg process/library, microphone, credentials, network or logging.
+//! The sources use no Python, FFmpeg process/library, microphone, credentials,
+//! network or logging. The dictation helpers use only your supplied engine.
 //! See `BUILDING.md` for native toolchain, linkage audit and third-party licences.
 
+mod dictation;
 mod encode;
 mod input;
 mod lifecycle;
 mod ogg;
 mod progress;
 mod wav;
+pub use dictation::{start_pcm_dictation, start_pcm_dictation_with_observer};
 pub use encode::{EncoderConfig, Pcm16Opus};
 pub use input::{PcmInput, PcmInputError, PcmPermit, PcmSendError, PcmSender, pcm_channel};
 pub use progress::{PcmProgress, PcmProgressHandle};

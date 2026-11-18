@@ -1,0 +1,53 @@
+{
+  "schema": "rambler-native-wave-local-validation-v1",
+  "scope": "Windows x64, stable Rust, locked offline builds and synthetic tests only",
+  "base": "4cf9c4dafaabc1c04e668ec10fe50e2e33b25a81",
+  "status": "PASS_INTEGRATED_WORKSPACE_OWNED_LOCAL",
+  "commands": [
+    "cargo +stable fmt --all -- --check",
+    "cargo +stable clippy --offline --locked --workspace --all-targets --all-features -- -D warnings",
+    "cargo +stable test --offline --locked --workspace --all-features -- --skip tls_never_downgrades_to_loopback_plaintext"
+  ],
+  "workspace_results_by_target_summed": {
+    "summaries": 78,
+    "passed": 461,
+    "failed": 0,
+    "ignored": 2,
+    "filtered_out": 1
+  },
+  "windows_jobs": { "exit_zero": 3, "membership_verified": 3, "empty_on_join": 3 },
+  "validated_file_sha256": {
+    "Cargo.lock": "1a75efa67e804017d268534ca345471e40e6185fb333640b98d2278845a98f68",
+    "crates/rambler-audio/examples/profile_pipeline.rs": "a2b178e0e662d8f45ae8a990a4a10bf70150e6165b335de2adab02b9ef93255d",
+    "crates/rambler-audio/examples/profile_pipeline/ingress.rs": "40cbfaad867d4e2679a391cfb9a05957db8153c915fdfbe04b1e3d570ea31405",
+    "crates/rambler-audio/src/dictation.rs": "cde6a9a4e496810b5efbf8a34b5944f123304d46f81af1bc1a6e15830bffb44c",
+    "crates/rambler-audio/src/lib.rs": "ec10d652de1efdb52f3ca7f3d5cb953ba0ad81a87b4960edd561e55d0f1f4bbc",
+    "crates/rambler-cli/tests/pcm_sdk.rs": "ffbbf27e5dc374ddf10a3b0dfe59a5a5aacebbf782beea5362e5c77077c7c7b3",
+    "crates/rambler-transport/src/wire.rs": "18c033e0ce484edb01781790f56b14788750bc52d85b82f8a0418a74914e324b",
+    "crates/rambler-transport/src/wire/deframer.rs": "a33525817fcada0f66c6f065d9a50756df4992abcce5c9be114f1f3461541f09",
+    "crates/rambler-transport/src/wire/deframer/tests.rs": "7d11459db78823c8edbfaec1214ec9c97b7fd506d96ca41df4447110a83a5cd5",
+    "docs/research/native-audio-hotpath.md": "400f30b1d11adc9e225810d13668da3babf6901852baf0c6b3ae1449277cdbaa",
+    "docs/research/raw-h2-receive-cost.md": "a077b3e100ea7791144cec7c9f9f0f7e9070b9cd948a93d193eaa8c058675122",
+    "docs/research/sdk-integration-guide.md": "ebb2a6cb426b11a787abce297b54f5806f4a98cb85614da04b2276c5a35e7d4d"
+  },
+  "repository_blob_sha256_when_line_endings_differ": {
+    "crates/rambler-audio/examples/profile_pipeline.rs": "c2f9b2b97446cd06ad3c4e8742f835755500d5b342e31ce1bc537e0fb5337304",
+    "crates/rambler-audio/src/lib.rs": "2515cf51ed22d889368fed53cb5a0a10117f0258901b7ce0de2b7cce0516cc13",
+    "crates/rambler-transport/src/wire.rs": "75f559b88efcfa45570e3362cd57e7db07f3db21ca8a5989582e33c197c48dd0",
+    "docs/research/sdk-integration-guide.md": "dcf5416ecbb6021ea22b1b66e33aa599c048497a1b9b9bb1d5e3fe9bf4b0c55e"
+  },
+  "owner_evidence": [
+    "../research/sdk-integration-guide.md",
+    "../research/raw-h2-receive-cost.md",
+    "../research/native-audio-hotpath.md"
+  ],
+  "provider_calls": 0,
+  "automatic_retry": false,
+  "timing_campaign_repeated": false,
+  "limits": [
+    "The named TLS test was intentionally filtered out locally; the two default ignored tests were not opted in.",
+    "Example timing was not rerun. The profile example invariants were tested by the owner before assembly; Clippy compiled all targets on the assembly.",
+    "Corpus reports do not establish expected edit intent or effect; no comparator of those historical reports was included.",
+    "No service access, advanced-mode behavior or end-to-end speed was qualified."
+  ]
+}

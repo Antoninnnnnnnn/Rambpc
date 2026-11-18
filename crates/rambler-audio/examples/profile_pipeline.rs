@@ -3,10 +3,13 @@
 //!     [repeats=9] [encode/total iterations=10] [mux iterations=100] [samples=160017]
 //! Additive codec attribution mode (20ms pages only):
 //!     --codec-attribution [--repeats 7] [--iterations 5] [--samples 80017]
+//! Additive bounded native ingress mode: --native-ingress (fixed workload).
 //! Timers exclude generation, validation, hashing and decoding. Legacy operations
 //! include setup, allocations and consuming every output byte into Vecs.
 //! Attribution scopes and exclusions are emitted as metadata; none are CPU cycles.
 //! Compile the actual private mux source, without exposing a benchmark-only API.
+#[path = "profile_pipeline/ingress.rs"]
+mod ingress;
 #[path = "../src/ogg.rs"]
 mod native_ogg;
 
@@ -601,6 +604,14 @@ fn arg(index: usize, default: usize) -> usize {
 #[allow(clippy::assertions_on_constants)]
 fn main() {
     assert!(!cfg!(debug_assertions), "benchmark requires --release");
+    if std::env::args().nth(1).as_deref() == Some("--native-ingress") {
+        if std::env::args_os().nth(2).is_some() {
+            eprintln!("--native-ingress takes no arguments");
+            std::process::exit(2);
+        }
+        ingress::run();
+        return;
+    }
     if std::env::args().nth(1).as_deref() == Some("--codec-attribution") {
         let args: Vec<String> = std::env::args().skip(2).collect();
         let refs: Vec<&str> = args.iter().map(String::as_str).collect();
