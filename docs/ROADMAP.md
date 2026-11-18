@@ -8,17 +8,19 @@ Depuis l’audit, `7ceb590` a passé les [10 jobs Rust](https://github.com/Anton
 
 Les [diagnostics de fin et l’endurance](evidence/rust-native-real-reliability-20261118.json) séparent ce qui est observé par le client d’une livraison au pair. Un `DeadlineExceeded` historique et deux arrêts vers 300 s sont documentés ; leurs causes ne sont pas établies. Aucun succès local ne démontre un accès autorisé au service pour une application distribuée.
 
+Le lot correctif (`7d9af7b` pour le code validé) passe sous Windows avec Rust stable et 1.88 : **526 tests réussis, 2 ignorés**, plus **24 tests CLI sans audio** par toolchain ; formatage et Clippy strict au vert. La suite Python intégrée a passé **931 tests, 4 sautés** sur trois passages instrumentés. Le TLS de l’APK témoin et la dictée locale à cadence réelle sont détaillés ci-dessous. La CI multiplateforme de ce nouveau lot reste distincte de celle de `7ceb590`.
+
 | Quand | Travail à engager | Résultat attendu |
 | --- | --- | --- |
-| Dès maintenant | Corriger la connexion Android et la durée des dictées. Ajouter les horodatages de session et commencer le corpus français. | Un essai reproductible sur le Xiaomi, une dictée longue qui termine et une première mesure du délai après l’arrêt. |
+| Lot correctif | TLS Android, dictée temps réel, horodatage de fin et acceptation d’édition compatible. | APK vérifié sur API 34, plage intégrale sur cinq minutes de fichier local, séparation résultat/diagnostic et tests d’édition hors ligne. |
 | Avant d’intégrer le moteur | Qualifier les coupures, les éditions, l’endurance et le même parcours SDK sur les quatre systèmes. | L’app peut distinguer un texte final, une proposition à relire, une interruption et une indisponibilité réseau. |
 | À partir des mesures | Optimiser le coût qui pèse sur l’utilisateur. Étendre les formats audio, les langues et les modes avancés selon les résultats. | Chaque extension documente les plateformes couvertes, son effet observable et son coût. |
 
 ## 1. Faire fonctionner la connexion Android avec les réglages du téléphone
 
-- Intégrer la vérification TLS du serveur au magasin de confiance Android. Sur le Xiaomi, le chargeur actuel trouvait zéro racine par défaut et 120 lorsque le magasin système était indiqué au processus. Utiliser la politique de la plateforme pour tenir compte des différences de versions et de profils.
-- Distinguer dans le diagnostic un magasin vide, un certificat serveur refusé, un échec DNS et une expiration de connexion. Conserver la vérification du nom du serveur et la négociation HTTP/2.
-- **Vérification.** Depuis un petit APK de test lancé sur le Xiaomi avec ses réglages ordinaires, réussir une connexion à un serveur HTTPS public. Vérifier aussi le rejet d’un serveur de test dont le nom ne correspond pas. Garder le contrôle TLS existant sur les trois systèmes de bureau. [Transport TLS](../crates/rambler-transport/src/connection.rs)
+- Le [transport Android](../crates/rambler-transport/ANDROID_TLS.md) initialise la politique de confiance de l’application via les API publiques Android. Il conserve le nom d’origine pour cette politique, la vérification DNS/IP du certificat et ALPN `h2`. Le SDK distingue confiance indisponible, refus du certificat, échec de résolution et expiration ; les catégories CLI existantes restent stables.
+- **Vérifié sur le Xiaomi/API 34.** L’APK ordinaire a obtenu un PONG h2 depuis un serveur public et un serveur local avec CA limitée à l’application. Le même pair local au mauvais nom a été refusé. L’installation autorisée a utilisé le root ; le processus de test était non-root et a été désinstallé. [Résultats et limites](evidence/android-tls-host-app-20261118.md)
+- **Reste.** Exercer une politique locale plus restrictive que le magasin système et le chemin API ≥ 36 ; vérifier le chargement sur un Android à pages 16 Kio (l’alignement ELF et APK a déjà été contrôlé).
 
 ## 2. Donner à la dictée longue un contrat de durée utilisable
 
