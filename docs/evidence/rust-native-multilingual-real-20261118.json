@@ -1,0 +1,103 @@
+{
+  "schema": "rambler-native-multilingual-real-20261118-v1",
+  "method": "One synthetic sentence per language (Microsoft Edge neural TTS, converted to 16 kHz mono), one real session each via rambler dictate-wav --realtime, no retries.",
+  "results": [
+    {
+      "lang": "de-DE",
+      "type": "result",
+      "text": "Die Besprechung wird auf morgen um 3 Uhr verschoben. Bitte bestätigen Sie per E-Mail.",
+      "char_similarity": 0.965
+    },
+    {
+      "lang": "es-ES",
+      "type": "result",
+      "text": "La reunión se traslada a mañana a las tres. Por favor, confirme por correo electrónico.",
+      "char_similarity": 1.0
+    },
+    {
+      "lang": "it-IT",
+      "type": "result",
+      "text": "La riunione è spostata a domani alle 3. Per favore, conferma via email.",
+      "char_similarity": 0.965
+    },
+    {
+      "lang": "pt-BR",
+      "type": "result",
+      "text": "A reunião foi transferida para amanhã às 3 horas. Por favor, confirme por e-mail.",
+      "char_similarity": 0.962
+    },
+    {
+      "lang": "ru-RU",
+      "type": "result",
+      "text": "Встреча переносится на завтра на 3 часа. Пожалуйста, подтвердите по электронной почте.",
+      "char_similarity": 0.973
+    },
+    {
+      "lang": "ar-SA",
+      "type": "result",
+      "text": "تم تأجيل الاجتماع إلى الغد الساعة الثالثة. يرجى التأكيد عبر البريد الإلكتروني.",
+      "char_similarity": 1.0
+    },
+    {
+      "lang": "hi-IN",
+      "type": "result",
+      "text": "Baithak kal 3:00 baje tak ke liye tal di gai hai. Kripya imel se pushti karen.",
+      "char_similarity": 0.0
+    },
+    {
+      "lang": "ta-IN",
+      "type": "result",
+      "text": "Koottam naalai moondru manikku maattrappattullathu. Thayaseithu minnanjal moolam uruthippaduththavum.",
+      "char_similarity": 0.0
+    },
+    {
+      "lang": "ja-JP",
+      "type": "result",
+      "text": "会議は明日の3時に変更されました。メールで確認してください。",
+      "char_similarity": 0.964
+    },
+    {
+      "lang": "ko-KR",
+      "type": "result",
+      "text": "회의가 내일 3시로 변경되었습니다. 이메일로 확인해 주세요.",
+      "char_similarity": 0.96
+    },
+    {
+      "lang": "zh-CN",
+      "type": "result",
+      "text": "会议改到明天三点，请通过电子邮件确认。",
+      "char_similarity": 1.0
+    },
+    {
+      "lang": "nl-NL",
+      "type": "result",
+      "text": "De vergadering is verplaatst naar morgen om 3 uur. Bevestig dit alstublieft per e-mail.",
+      "char_similarity": 0.966
+    },
+    {
+      "lang": "pl-PL",
+      "type": "result",
+      "text": "Spotkanie zostało przeniesione na jutro na godzinę 15:00. Proszę potwierdzić emailem.",
+      "char_similarity": 0.925
+    }
+  ],
+  "indic_script_variants": {
+    "hi": [
+      "hi",
+      "hi-Deva-IN",
+      "hi-IN-x-native"
+    ],
+    "ta": [
+      "ta",
+      "ta-Taml-IN"
+    ],
+    "result": "all returned correct content in Latin transliteration, not native script"
+  },
+  "findings": [
+    "13/13 languages returned a correct final; differences are number formatting (e.g. three -> 3, trzecia -> 15:00).",
+    "Hindi and Tamil return romanized text; the request mechanism Gboard uses for native Indic script is not established."
+  ],
+  "limits": [
+    "One synthetic voice and sentence per language; not a quality benchmark."
+  ]
+}

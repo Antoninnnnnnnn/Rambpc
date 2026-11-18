@@ -156,6 +156,7 @@ Petits corpus synthétiques et naturels ; ces résultats ne mesurent pas la qual
 | 13 nov. | Réécriture « Send me the report now. » | « Could you please send me the report at your earliest convenience? » |
 | 13 nov. | Dix extraits naturels (7 EN, 3 FR), 72,825 s au total | Écarts WER normalisés de 3/109 mots (EN) et 3/79 (FR), dont formatage et un temps verbal |
 | 18 nov. | Dictée de deux phrases et « Change blue to green » (voix synthétique) | Exacts : `The kite is blue. Marker stays.` puis `The kite is green. Marker stays.` |
+| 18 nov. | Une phrase dans 13 langues (DE, ES, IT, PT, RU, AR, HI, TA, JA, KO, ZH, NL, PL) | [Toutes correctes](docs/evidence/rust-native-multilingual-real-20261118.json) ; hindi et tamoul renvoyés en alphabet latin |
 | 18 nov. | Sélection « Send me the report now. » + « Make this more polite. » | Réécriture polie (intention 3, champ 7) acceptée avec `--result-policy s3-client-compatible` ; PixelBoard 1.3.5 ne l'a pas produite sur le téléphone de test (Xiaomi, pas un Pixel) |
 
 Les flux ont consommé l'intégralité des octets audio avec vérification SHA-256. Preuves
