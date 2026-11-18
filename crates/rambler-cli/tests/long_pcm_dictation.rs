@@ -11,8 +11,8 @@ use common::{TestServer, bounded, drain, replies};
 use futures_util::{StreamExt, stream};
 use rambler_audio::{
     AudioError, EncoderConfig, LongDictationObservation, LongDictationOptions,
-    MAX_LONG_SEGMENT_BUDGET, Pcm16Opus, Pcm48kTo16k, collect_long_pcm_dictation,
-    collect_long_pcm_dictation_with_observer, pcm_channel,
+    MAX_LONG_SEGMENT_BUDGET, Pcm16Opus, Pcm48kTo16k, PcmInputError, collect_long_pcm_dictation,
+    collect_long_pcm_dictation_with_observer, pcm_channel, stream_long_pcm_dictation_with_observer,
 };
 use rambler_engine::{
     CollectorLimits, ContextInput, EditingContext, Engine, EngineError, SessionOptions,
@@ -74,18 +74,28 @@ fn nested_audio(message: &[u8]) -> Vec<u8> {
     data.to_vec()
 }
 
+struct NotifyOnDrop(Arc<Notify>);
+impl Drop for NotifyOnDrop {
+    fn drop(&mut self) {
+        self.0.notify_one();
+    }
+}
+
 struct Peer {
     server: TestServer,
     calls: Arc<AtomicUsize>,
     uploads: Arc<Mutex<Vec<Vec<u8>>>>,
+    held_response_dropped: Arc<Notify>,
 }
 impl Peer {
     async fn new(fail_at: Option<usize>, hold_status: Option<(usize, Arc<Notify>)>) -> Self {
         let calls = Arc::new(AtomicUsize::new(0));
         let uploads = Arc::new(Mutex::new(Vec::new()));
+        let held_response_dropped = Arc::new(Notify::new());
         let server = TestServer::new({
             let calls = Arc::clone(&calls);
             let uploads = Arc::clone(&uploads);
+            let held_response_dropped = Arc::clone(&held_response_dropped);
             move |request| {
                 let index = calls.fetch_add(1, Ordering::SeqCst);
                 let uploads = Arc::clone(&uploads);
@@ -93,6 +103,9 @@ impl Peer {
                     .as_ref()
                     .filter(|(held_index, _)| *held_index == index)
                     .map(|(_, gate)| Arc::clone(gate));
+                let drop_guard = hold
+                    .as_ref()
+                    .map(|_| NotifyOnDrop(Arc::clone(&held_response_dropped)));
                 async move {
                     let messages = drain(request.into_inner()).await;
                     let (init, messages) = messages.split_first().unwrap();
@@ -109,6 +122,7 @@ impl Peer {
                     assert_eq!(record.len(), index);
                     record.push(audio);
                     let terminal = stream::once(async move {
+                        let _drop_guard = drop_guard;
                         if let Some(hold) = hold {
                             hold.notified().await;
                         }
@@ -126,6 +140,7 @@ impl Peer {
             server,
             calls,
             uploads,
+            held_response_dropped,
         }
     }
 
@@ -453,6 +468,182 @@ async fn cancellation_closes_idle_source_and_opens_no_session() {
         peer.server.close().await;
     })
     .await;
+}
+
+fn tracked_pcm(samples: usize) -> (Bytes, std::sync::Weak<()>) {
+    struct Owner {
+        pcm: Vec<u8>,
+        _live: Arc<()>,
+    }
+    impl AsRef<[u8]> for Owner {
+        fn as_ref(&self) -> &[u8] {
+            &self.pcm
+        }
+    }
+    let live = Arc::new(());
+    let weak = Arc::downgrade(&live);
+    (
+        Bytes::from_owner(Owner {
+            pcm: pcm(samples),
+            _live: live,
+        }),
+        weak,
+    )
+}
+
+#[tokio::test]
+async fn owned_delivery_distinguishes_finish_abort_and_late_failure() {
+    use tokio::sync::mpsc;
+
+    #[derive(PartialEq, Eq)]
+    enum Stop {
+        Finish,
+        Abort,
+        Fail,
+    }
+    for stop in [Stop::Finish, Stop::Abort, Stop::Fail] {
+        bounded(async {
+            let release_second = Arc::new(Notify::new());
+            let peer = Peer::new(
+                (stop == Stop::Fail).then_some(1),
+                Some((1, Arc::clone(&release_second))),
+            )
+            .await;
+            let transport = peer.server.transport().await;
+            let engine = Engine::new(transport.clone());
+            let (mut producer, input) = pcm_channel();
+            let (initial, initial_owner) = tracked_pcm(32_000);
+            producer.reserve().await.unwrap().send(initial).unwrap();
+
+            let (deliver, mut receive) = mpsc::unbounded_channel();
+            let calls = &peer.calls;
+            let mut sink = |segment: rambler_audio::CompletedDictationSegment| {
+                assert_eq!(calls.load(Ordering::SeqCst), segment.segment_index + 1);
+                deliver.send(segment).unwrap();
+            };
+            let second_end = Notify::new();
+            let mut completed = 0;
+            let mut observe = |event: LongDictationObservation<'_>| match event {
+                LongDictationObservation::Response {
+                    segment_index: 1,
+                    observation,
+                } if observation.metrics.responses_received == 2 => {
+                    second_end.notify_one();
+                }
+                LongDictationObservation::SegmentCompleted {
+                    segment_index,
+                    sample_range,
+                } => {
+                    assert_eq!(segment_index, completed);
+                    assert_eq!(
+                        sample_range,
+                        [0..16_000, 16_000..32_000, 32_000..32_005][segment_index]
+                    );
+                    completed += 1;
+                }
+                _ => (),
+            };
+            let mut collecting = Box::pin(stream_long_pcm_dictation_with_observer(
+                &engine,
+                input,
+                SessionOptions {
+                    timeout: Duration::from_secs(60),
+                    ..SessionOptions::default()
+                },
+                LIMITS,
+                budget(1000, 0),
+                &mut sink,
+                &mut observe,
+            ));
+            let first = tokio::select! {
+                first = receive.recv() => first.unwrap(),
+                result = &mut collecting => panic!("collection ended before delivery: {result:?}"),
+            };
+            assert_eq!(first.segment_index, 0);
+            assert_eq!(first.sample_range, 0..16_000);
+            assert!(first.result.metrics.as_ref().unwrap().eof_seconds.is_some());
+            assert!(!format!("{first:?}").contains("segment 0"));
+
+            tokio::select! {
+                _ = second_end.notified() => (),
+                result = &mut collecting => panic!("collection crossed held status: {result:?}"),
+            }
+            assert_eq!(peer.calls.load(Ordering::SeqCst), 2);
+            assert!(matches!(
+                receive.try_recv(),
+                Err(mpsc::error::TryRecvError::Empty)
+            ));
+            assert!(initial_owner.upgrade().is_none());
+            // Keep the last 5 samples queued behind the held RPC. Finish drains
+            // them; an abort or a late RPC failure instead discards them.
+            let (tail, tail_owner) = tracked_pcm(5);
+            producer.reserve().await.unwrap().send(tail).unwrap();
+            let mut expected_pcm = pcm(32_000);
+            match stop {
+                Stop::Abort => {
+                    drop(collecting);
+                    assert!(matches!(
+                        producer.reserve().await,
+                        Err(PcmInputError::Closed)
+                    ));
+                    // Drop alone aborts the RPC, without waiting for its deadline
+                    // or closing the engine or transport first.
+                    peer.held_response_dropped.notified().await;
+                    assert_eq!(completed, 1);
+                }
+                Stop::Fail => {
+                    release_second.notify_one();
+                    assert!(matches!(
+                        collecting.await,
+                        Err(EngineError::Transport(
+                            rambler_transport::TransportError::Grpc(tonic::Code::Internal)
+                        ))
+                    ));
+                    assert!(matches!(
+                        producer.reserve().await,
+                        Err(PcmInputError::Closed)
+                    ));
+                    assert_eq!(completed, 1);
+                }
+                Stop::Finish => {
+                    producer.finish().unwrap();
+                    release_second.notify_one();
+                    collecting.await.unwrap();
+                    assert_eq!(completed, 3);
+                    for (index, range, text) in [
+                        (1, 16_000..32_000, "segment 1"),
+                        (2, 32_000..32_005, "segment 2"),
+                    ] {
+                        let segment = receive.try_recv().unwrap();
+                        assert_eq!(segment.segment_index, index);
+                        assert_eq!(segment.sample_range, range);
+                        assert_eq!(segment.result.text().unwrap(), text);
+                    }
+                    expected_pcm.extend(pcm(5));
+                }
+            }
+            assert_eq!(first.result.text().unwrap(), "segment 0");
+            assert!(matches!(
+                receive.try_recv(),
+                Err(mpsc::error::TryRecvError::Empty)
+            ));
+            assert!(tail_owner.upgrade().is_none());
+            assert_eq!(
+                peer.calls.load(Ordering::SeqCst),
+                if stop == Stop::Finish { 3 } else { 2 }
+            );
+            let lengths = if stop == Stop::Finish {
+                &[16_000, 16_000, 5][..]
+            } else {
+                &[16_000, 16_000]
+            };
+            peer.assert_exact_pcm(&expected_pcm, lengths).await;
+            engine.close().await.unwrap();
+            transport.close().await.unwrap();
+            peer.server.close().await;
+        })
+        .await;
+    }
 }
 
 #[tokio::test]

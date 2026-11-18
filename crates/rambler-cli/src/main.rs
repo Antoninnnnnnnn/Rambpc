@@ -457,60 +457,48 @@ async fn run_interactive(
     session: SessionOptions,
     segmentation: rambler_audio::LongDictationOptions,
     policy: Option<ResultPolicy>,
+    signal: impl std::future::Future<Output = bool>,
 ) -> (Value, i32) {
-    use rambler_audio::{LongDictationObservation, collect_long_pcm_dictation_with_observer};
-    let mut ranges = Vec::new();
-    let mut observe = |event: LongDictationObservation<'_>| {
-        if let LongDictationObservation::SegmentCompleted { sample_range, .. } = event {
-            ranges.push(sample_range);
-        }
-    };
-    let collection = collect_long_pcm_dictation_with_observer(
+    use rambler_audio::{CompletedDictationSegment, stream_long_pcm_dictation};
+    let mut completed = Vec::new();
+    let mut sink = |segment| completed.push(segment);
+    let collection = stream_long_pcm_dictation(
         engine,
         pcm,
         session,
         CollectorLimits::default(),
         segmentation,
-        &mut observe,
+        &mut sink,
     );
-    let (result, cleanup, interrupted) = supervise(collection, || engine.close(), async {
-        tokio::signal::ctrl_c().await.is_ok()
-    })
-    .await;
-    let (completed, failure) = match result {
-        Some(Ok(completed)) => (completed, None),
-        Some(Err(error)) => (error.completed, Some(error.cause)),
-        None => (Default::default(), None),
-    };
-    let mut text = String::new();
+    let (result, cleanup, interrupted) = supervise(collection, || engine.close(), signal).await;
+    let failure = result.and_then(Result::err);
     let mut ambiguous = false;
     let mut projection_failure = None;
+    // The collector has been dropped and the engine is closed. Do not project or
+    // serialize results on the polling path where Ctrl-C must cancel the RPC.
     let segments: Vec<_> = completed
-        .segments
-        .iter()
-        .zip(ranges)
-        .enumerate()
-        .map(|(index, (segment, range))| {
-            let mut value = match output(segment, policy) {
-                Ok((value, needs_review)) => {
-                    ambiguous |= needs_review;
-                    if let Some(part) = value["text"].as_str() {
-                        if index != 0 {
-                            text.push(' ');
-                        }
-                        text.push_str(part);
+        .into_iter()
+        .map(
+            |CompletedDictationSegment {
+                 sample_range,
+                 result,
+                 ..
+             }| {
+                let mut value = match output(&result, policy) {
+                    Ok((value, needs_review)) => {
+                        ambiguous |= needs_review;
+                        value
                     }
-                    value
-                }
-                Err(error) => {
-                    let value = failure_output(&error, None, None);
-                    projection_failure.get_or_insert(error);
-                    value
-                }
-            };
-            value["sample_range"] = json!([range.start, range.end]);
-            value
-        })
+                    Err(error) => {
+                        let value = failure_output(&error, None, None);
+                        projection_failure.get_or_insert(error);
+                        value
+                    }
+                };
+                value["sample_range"] = json!([sample_range.start, sample_range.end]);
+                value
+            },
+        )
         .collect();
     let (mut value, code) = match (interrupted, failure, cleanup, projection_failure) {
         (Some(signal_ok), _, cleanup, _) => {
@@ -539,9 +527,22 @@ async fn run_interactive(
         }
         (None, None, Ok(()), Some(error)) => (failure_output(&error, None, None), 1),
         (None, None, Ok(()), None) if ambiguous => (json!({"type":"ambiguous", "text":null}), 1),
-        (None, None, Ok(()), None) => (json!({"type":"result", "text":text}), 0),
+        (None, None, Ok(()), None) => {
+            let mut text = String::new();
+            for (index, part) in segments
+                .iter()
+                .filter_map(|s| s["text"].as_str())
+                .enumerate()
+            {
+                if index != 0 {
+                    text.push(' ');
+                }
+                text.push_str(part);
+            }
+            (json!({"type":"result", "text":text}), 0)
+        }
     };
-    value["completed_segments"] = json!(segments);
+    value["completed_segments"] = Value::Array(segments);
     (value, code)
 }
 
@@ -683,8 +684,15 @@ async fn main() {
     };
     #[cfg(feature = "audio")]
     if let Some(profile) = profile {
-        let (value, code) =
-            run_interactive(&engine, audio, options, profile.segmentation, result_policy).await;
+        let (value, code) = run_interactive(
+            &engine,
+            audio,
+            options,
+            profile.segmentation,
+            result_policy,
+            async { tokio::signal::ctrl_c().await.is_ok() },
+        )
+        .await;
         println!("{value}");
         if code != 0 {
             std::process::exit(code);

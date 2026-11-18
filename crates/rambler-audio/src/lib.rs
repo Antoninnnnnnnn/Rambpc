@@ -10,8 +10,9 @@
 //! pair a bounded producer with an engine completion future. For explicitly
 //! caller-supplied 48 kHz mono PCM16LE, opt in to [`Pcm48kTo16k`] before the
 //! unchanged 16 kHz encoder. For long captures, [`collect_long_pcm_dictation`]
-//! opts in to consecutive pause-aware sessions on one engine. Use
-//! [`InteractivePcmProfile`] for ready-to-use paced-capture budgets.
+//! accumulates results from consecutive pause-aware sessions on one engine;
+//! [`stream_long_pcm_dictation`] delivers each successful segment by ownership.
+//! Use [`InteractivePcmProfile`] for ready-to-use paced-capture budgets.
 //!
 //! Normal EOF closes upstream BEFORE emitting a successful Ogg EOS. All tail
 //! samples and encoder lookahead are flushed; EOS granules trim padding exactly.
@@ -43,9 +44,10 @@ pub use dictation::{start_pcm_dictation, start_pcm_dictation_with_observer};
 pub use encode::{EncoderConfig, Pcm16Opus};
 pub use input::{PcmInput, PcmInputError, PcmPermit, PcmSendError, PcmSender, pcm_channel};
 pub use long_dictation::{
-    InteractivePcmProfile, LongDictationError, LongDictationObservation, LongDictationOptions,
-    LongDictationResult, MAX_LONG_SEGMENT_BUDGET, collect_long_pcm_dictation,
-    collect_long_pcm_dictation_with_observer,
+    CompletedDictationSegment, InteractivePcmProfile, LongDictationError, LongDictationObservation,
+    LongDictationOptions, LongDictationResult, MAX_LONG_SEGMENT_BUDGET, collect_long_pcm_dictation,
+    collect_long_pcm_dictation_with_observer, stream_long_pcm_dictation,
+    stream_long_pcm_dictation_with_observer,
 };
 pub use progress::{PcmProgress, PcmProgressHandle};
 pub use wav::{PcmFormat, WavAudio, WavConfig};

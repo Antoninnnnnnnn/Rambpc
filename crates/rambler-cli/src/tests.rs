@@ -1,3 +1,7 @@
+#[cfg(feature = "audio")]
+#[path = "../../rambler-engine/tests/common/mod.rs"]
+mod interactive_peer;
+
 use super::{admit_credentials, failure_output, supervise};
 use rambler_engine::{DiagnosticMetrics, EngineError, IncompleteSessionDiagnostic, SourceError};
 use rambler_transport::Completion;
@@ -387,6 +391,130 @@ fn finalize_timeout_cli_defaults_validation_and_category() {
     assert_eq!(value["category"], "finalize_timeout");
     assert!(value["grpc_code"].is_null());
     assert!(!value.to_string().contains("deadline"));
+}
+
+#[cfg(feature = "audio")]
+#[tokio::test]
+async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
+    use bytes::Bytes;
+    use futures_util::{StreamExt, stream};
+    use interactive_peer::{TestServer, bounded, drain, replies};
+    use rambler_audio::LongDictationOptions;
+    use rambler_engine::{Engine, SessionOptions, StreamAudio};
+    use rambler_protocol::{
+        HYPOTHESIS_SAFETY_STATUS, RECOGNITION_RESPONSE, end_request,
+        wire::{bytes_field, string_field, varint_field},
+    };
+    use std::{sync::atomic::AtomicUsize, time::Duration};
+    use tokio::sync::Notify;
+
+    struct NotifyOnDrop(Arc<Notify>);
+    impl Drop for NotifyOnDrop {
+        fn drop(&mut self) {
+            self.0.notify_one();
+        }
+    }
+
+    for blocked in [false, true] {
+        bounded(async {
+            let calls = Arc::new(AtomicUsize::new(0));
+            let hold_second = Arc::new(Notify::new());
+            let second_aborted = Arc::new(Notify::new());
+            let peer = TestServer::new({
+                let calls = Arc::clone(&calls);
+                let hold_second = Arc::clone(&hold_second);
+                let second_aborted = Arc::clone(&second_aborted);
+                move |request| {
+                    let index = calls.fetch_add(1, Ordering::SeqCst);
+                    let hold_second = Arc::clone(&hold_second);
+                    let drop_guard =
+                        (index == 1).then(|| NotifyOnDrop(Arc::clone(&second_aborted)));
+                    async move {
+                        assert_eq!(
+                            drain(request.into_inner()).await.last().unwrap().as_ref(),
+                            end_request()
+                        );
+                        let text = match index {
+                            0 if blocked => "blocked synthetic text",
+                            0 => "completed synthetic text",
+                            1 => "uncommitted synthetic text",
+                            _ => panic!("unexpected replay or extra RPC"),
+                        };
+                        let mut hypothesis = string_field(1, text).unwrap();
+                        if blocked && index == 0 {
+                            hypothesis.extend(varint_field(HYPOTHESIS_SAFETY_STATUS, 1).unwrap());
+                        }
+                        let hypotheses = bytes_field(3, &hypothesis).unwrap();
+                        let recognition =
+                            [&b"\x08\x01"[..], &bytes_field(3, &hypotheses).unwrap()].concat();
+                        let final_response = Bytes::from(
+                            bytes_field(
+                                RECOGNITION_RESPONSE,
+                                &bytes_field(1, &recognition).unwrap(),
+                            )
+                            .unwrap(),
+                        );
+                        let messages =
+                            stream::iter([Ok(final_response), Ok(Bytes::from_static(b"\x08\x01"))]);
+                        if index == 1 {
+                            Ok(replies(messages.chain(stream::once(async move {
+                                let _drop_guard = drop_guard;
+                                hold_second.notify_one();
+                                std::future::pending().await
+                            }))))
+                        } else {
+                            Ok(replies(messages))
+                        }
+                    }
+                }
+            })
+            .await;
+            let transport = peer.transport().await;
+            let engine = Engine::new(transport.clone());
+            let pcm = StreamAudio::new(stream::iter([Ok(Bytes::from(vec![0; 64_014]))]));
+            let (value, code) = super::run_interactive(
+                &engine,
+                Box::new(pcm),
+                SessionOptions {
+                    timeout: Duration::from_secs(60),
+                    ..SessionOptions::default()
+                },
+                LongDictationOptions {
+                    segment_budget: Duration::from_secs(1),
+                    pause_search: Duration::ZERO,
+                },
+                None,
+                async {
+                    hold_second.notified().await;
+                    true // The production signal future returns this after Ctrl-C.
+                },
+            )
+            .await;
+            second_aborted.notified().await;
+            assert_eq!(code, 130);
+            assert_eq!(value["type"], "error");
+            assert_eq!(value["category"], "cancelled");
+            assert!(value["close_error_category"].is_null());
+            assert!(value.get("text").is_none());
+            let segments = value["completed_segments"].as_array().unwrap();
+            assert_eq!(segments.len(), 1);
+            assert_eq!(segments[0]["sample_range"], serde_json::json!([0, 16_000]));
+            if blocked {
+                assert_eq!(segments[0]["category"], "safety_blocked");
+                assert!(segments[0].get("final_updates").is_none());
+            } else {
+                assert_eq!(segments[0]["text"], "completed synthetic text");
+                assert_eq!(segments[0]["final_updates"].as_array().unwrap().len(), 1);
+            }
+            let stdout = value.to_string();
+            assert!(!stdout.contains("blocked synthetic text"));
+            assert!(!stdout.contains("uncommitted synthetic text"));
+            assert_eq!(calls.load(Ordering::SeqCst), 2);
+            transport.close().await.unwrap();
+            peer.close().await;
+        })
+        .await;
+    }
 }
 
 #[cfg(feature = "audio")]

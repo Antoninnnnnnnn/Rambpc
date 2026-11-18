@@ -40,7 +40,7 @@ impl Default for LongDictationOptions {
 }
 
 /// Opt-in budgets for interactive, context-free PCM dictation via
-/// [`collect_long_pcm_dictation`] or [`collect_long_pcm_dictation_with_observer`].
+/// [`collect_long_pcm_dictation`] or [`stream_long_pcm_dictation`].
 /// The current defaults are a 120 s segment, 5 s pause search, 5 s separate
 /// finalization budget, and a 135 s overall deadline **per RPC**. There is no
 /// fixed duration limit for a whole capture: the host owns stopping its source.
@@ -152,7 +152,28 @@ pub enum LongDictationObservation<'a> {
     },
 }
 
+/// Ownership of one terminally successful RPC's result and its input location.
+/// Success does not imply that the result contains safe or unambiguous text.
+pub struct CompletedDictationSegment {
+    /// Zero-based index in capture order.
+    pub segment_index: usize,
+    /// Absolute half-open range in the collector's 16 kHz PCM input, excluding
+    /// Opus padding. If resampling upstream, these are post-resampling indices.
+    pub sample_range: Range<u64>,
+    /// Structured finals; use `result.render(...)` for safety-checked text.
+    pub result: DictationResult,
+}
+impl fmt::Debug for CompletedDictationSegment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CompletedDictationSegment")
+            .field("segment_index", &self.segment_index)
+            .field("sample_range", &self.sample_range)
+            .finish_non_exhaustive()
+    }
+}
+
 type Observer<'a> = &'a mut (dyn for<'event> FnMut(LongDictationObservation<'event>) + Send + 'a);
+type SegmentSink<'a> = &'a mut (dyn FnMut(CompletedDictationSegment) + Send + 'a);
 
 /// Collect successive live-PCM segments on an existing shared engine.
 ///
@@ -196,7 +217,7 @@ pub fn collect_long_pcm_dictation(
     limits: CollectorLimits,
     options: LongDictationOptions,
 ) -> impl Future<Output = Result<LongDictationResult, LongDictationError>> + Send + '_ {
-    collect(
+    collect_accumulated(
         engine,
         SourceOwner::new(pcm),
         session,
@@ -217,12 +238,74 @@ pub fn collect_long_pcm_dictation_with_observer<'a>(
     options: LongDictationOptions,
     observer: Observer<'a>,
 ) -> impl Future<Output = Result<LongDictationResult, LongDictationError>> + Send + 'a {
+    collect_accumulated(
+        engine,
+        SourceOwner::new(pcm),
+        session,
+        limits,
+        options,
+        Some(observer),
+    )
+}
+
+/// Run the same segmentation and per-RPC collection as [`collect_long_pcm_dictation`],
+/// moving each successful result to `sink` exactly once, in order, before opening
+/// the next RPC. The collector does not retain delivered results or copy the
+/// whole capture. Limits and backpressure still apply per segment.
+///
+/// The sink runs synchronously in the collecting task; keep it nonblocking. The
+/// SDK does not log or queue its results. The structured result can contain
+/// private or safety-blocked candidates. Do not log its text or apply editor
+/// effects; use [`DictationResult::check_safety`] or [`DictationResult::render`]
+/// when deciding whether a result may be used.
+///
+/// For a normal stop, finish the source (e.g. [`PcmSender::finish`]) and keep
+/// polling: the collector drains admitted PCM and finalizes the last nonempty
+/// segment. `Ok(())` means the whole source completed and closed successfully.
+/// On a later error the collector closes the source and returns the cause, with
+/// no replay and no result for the failed segment. For an explicit abort, drop
+/// the future: this cancels the active RPC and schedules best-effort source
+/// closure on the live Tokio runtime. Ownership of earlier deliveries is never
+/// revoked. Keep the runtime alive and use [`Engine::close`] at shutdown to await
+/// outstanding engine cleanup.
+pub fn stream_long_pcm_dictation<'a>(
+    engine: &'a Engine,
+    pcm: impl AudioSource,
+    session: SessionOptions,
+    limits: CollectorLimits,
+    options: LongDictationOptions,
+    sink: SegmentSink<'a>,
+) -> impl Future<Output = Result<(), EngineError>> + Send + 'a {
     collect(
         engine,
         SourceOwner::new(pcm),
         session,
         limits,
         options,
+        sink,
+        None,
+    )
+}
+
+/// Like [`stream_long_pcm_dictation`], with a synchronous, nonblocking preview
+/// observer. Its unchanged `SegmentCompleted` event follows owned delivery of
+/// that segment. Clear previews on that event, failure or cancellation.
+pub fn stream_long_pcm_dictation_with_observer<'a>(
+    engine: &'a Engine,
+    pcm: impl AudioSource,
+    session: SessionOptions,
+    limits: CollectorLimits,
+    options: LongDictationOptions,
+    sink: SegmentSink<'a>,
+    observer: Observer<'a>,
+) -> impl Future<Output = Result<(), EngineError>> + Send + 'a {
+    collect(
+        engine,
+        SourceOwner::new(pcm),
+        session,
+        limits,
+        options,
+        sink,
         Some(observer),
     )
 }
@@ -313,28 +396,55 @@ impl<S: AudioSource> PcmRead<S> {
     }
 }
 
+async fn collect_accumulated<S: AudioSource>(
+    engine: &Engine,
+    source: SourceOwner<S>,
+    session: SessionOptions,
+    limits: CollectorLimits,
+    options: LongDictationOptions,
+    observer: Option<Observer<'_>>,
+) -> Result<LongDictationResult, LongDictationError> {
+    let mut completed = LongDictationResult::default();
+    let outcome = collect(
+        engine,
+        source,
+        session,
+        limits,
+        options,
+        |segment| completed.segments.push(segment.result),
+        observer,
+    )
+    .await;
+    match outcome {
+        Ok(()) => Ok(completed),
+        Err(cause) => Err(LongDictationError { completed, cause }),
+    }
+}
+
 async fn collect<S: AudioSource>(
     engine: &Engine,
     source: SourceOwner<S>,
     session: SessionOptions,
     limits: CollectorLimits,
     options: LongDictationOptions,
+    mut sink: impl FnMut(CompletedDictationSegment) + Send,
     mut observer: Option<Observer<'_>>,
-) -> Result<LongDictationResult, LongDictationError> {
+) -> Result<(), EngineError> {
     let mut pcm = PcmRead {
         source,
         pending: Bytes::new(),
         low_byte: None,
     };
-    let mut completed = LongDictationResult::default();
-    let mut sample_start = 0u64;
     let outcome = async {
         let policy = Policy::new(options)?;
         if !matches!(session.context, ContextInput::None) {
             return Err(EngineError::InvalidConfig);
         }
+        let mut sample_start = 0u64;
+        let mut segment_index = 0usize;
+        let overflow = || EngineError::Audio(SourceError::new(AudioError::CounterOverflow));
         while pcm.fill().await? {
-            let segment_index = completed.segments.len();
+            let next_index = segment_index.checked_add(1).ok_or_else(overflow)?;
             // Queue one complete sample before starting the wall clock so even
             // very small budgets cannot create an empty rollover loop.
             let (mut writer, input) = pcm_channel();
@@ -367,8 +477,12 @@ async fn collect<S: AudioSource>(
             };
             let sample_end = sample_start
                 .checked_add(samples as u64)
-                .ok_or_else(|| EngineError::Audio(SourceError::new(AudioError::CounterOverflow)))?;
-            completed.segments.push(result);
+                .ok_or_else(overflow)?;
+            sink(CompletedDictationSegment {
+                segment_index,
+                sample_range: sample_start..sample_end,
+                result,
+            });
             if let Some(observer) = observer.as_deref_mut() {
                 observer(LongDictationObservation::SegmentCompleted {
                     segment_index,
@@ -376,15 +490,13 @@ async fn collect<S: AudioSource>(
                 });
             }
             sample_start = sample_end;
+            segment_index = next_index;
         }
         Ok(())
     }
     .await;
     let cleanup = pcm.close().await;
-    match outcome.and(cleanup) {
-        Ok(()) => Ok(completed),
-        Err(cause) => Err(LongDictationError { completed, cause }),
-    }
+    outcome.and(cleanup)
 }
 
 async fn drive_segment<S: AudioSource>(
