@@ -12,4 +12,14 @@ The signed canary requested only `INTERNET`. The authorized installation used th
 
 The package, staging file, owned reverse mapping and local peer were removed. The Windows Job exited empty. The baseline APK's USB install had been refused. The first corrected run's log collector failed to recognize outcomes containing the digit in `h2`; the app's records were recovered with a corrected filter, then the same APK passed one bounded full verification with both independent peer observations. No failed artifact was counted as a passing run.
 
-Android ARM64 cross-link and strict Clippy passed with Rust 1.88/NDK r27.1. The APK signature, absence of host path/private keys, and 16 KiB alignment of ELF and ZIP entries were checked; 16 KiB loading was **not** tested. The test validates platform trust and hostname rejection on this API level, not arbitrary custom trust managers, a narrower-than-system app policy, or the API 36 certificate-transparency path. The [Android integration contract](../../crates/rambler-transport/ANDROID_TLS.md) explains initialization, the lossless Android policy host and the synchronous-verification deadline limit. OSV returned no indexed advisory for the 12 new exact public crate versions in the patch's lockfile delta; that is not a general security attestation.
+Android ARM64 cross-link and strict Clippy passed with Rust 1.88/NDK r27.1. The APK signature, absence of host path/private keys, and 16 KiB alignment of ELF `LOAD` segments, RELRO and ZIP entries were checked. The ARM64 APK ran only at 4 KiB. The [Android integration contract](../../crates/rambler-transport/ANDROID_TLS.md) explains initialization, the lossless Android policy host and the synchronous-verification deadline limit. OSV returned no indexed advisory for the 12 new exact public crate versions in the patch's lockfile delta; that is not a general security attestation.
+
+## API 36 with 16 KiB runtime pages
+
+For the same transport revision, the x86_64 canary APK (SHA-256 `9056d9178120a00738278e9ac6dbc90afd7674a0f93f1e61aa6a8fd650aa27fc`) installed without root and loaded on the official `android-36/google_apis_ps16k/x86_64` emulator image. The guest reported API **36** and `getconf PAGESIZE` returned **16384**. This verifies actual 16 KiB x86_64 loading, not just packaging alignment.
+
+- The owned `localhost` endpoint with an app-scoped CA passed (`verified_h2_pong`); the owned peer independently recorded a PONG. This exercised the API 36 trust-manager overload.
+- The same peer with a mismatched IP name returned `certificate_rejected`; the owned peer observed the handshake close without PONG. No public endpoint, app RPC or physical device was used for these two tests.
+- The APK and reverse mapping were removed, the peer and emulator stopped, and the owned Windows Job exited empty. A prior boot attempt on the standard API 36 image exceeded the boot deadline before any APK test; it is not counted as a TLS result.
+
+Still outside this evidence: a narrower-than-system app policy, custom trust managers, servers requiring TLS-supplied SCTs for certificate transparency, and the combination of ARM64 with 16 KiB runtime pages.

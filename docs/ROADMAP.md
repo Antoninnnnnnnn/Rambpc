@@ -20,7 +20,8 @@ Le lot correctif (`7d9af7b` pour le code validé) passe sous Windows avec Rust s
 
 - Le [transport Android](../crates/rambler-transport/ANDROID_TLS.md) initialise la politique de confiance de l’application via les API publiques Android. Il conserve le nom d’origine pour cette politique, la vérification DNS/IP du certificat et ALPN `h2`. Le SDK distingue confiance indisponible, refus du certificat, échec de résolution et expiration ; les catégories CLI existantes restent stables.
 - **Vérifié sur le Xiaomi/API 34.** L’APK ordinaire a obtenu un PONG h2 depuis un serveur public et un serveur local avec CA limitée à l’application. Le même pair local au mauvais nom a été refusé. L’installation autorisée a utilisé le root ; le processus de test était non-root et a été désinstallé. [Résultats et limites](evidence/android-tls-host-app-20261118.md)
-- **Reste.** Exercer une politique locale plus restrictive que le magasin système et le chemin API ≥ 36 ; vérifier le chargement sur un Android à pages 16 Kio (l’alignement ELF et APK a déjà été contrôlé).
+- **Vérifié aussi sur API 36/16 Kio.** L’APK x86_64 a chargé dans l’émulateur officiel à pages de 16 384 octets. Il a obtenu un PONG h2 avec la CA limitée à l’app et rejeté le même pair au mauvais nom. [Résultats et limites](evidence/android-tls-host-app-20261118.md)
+- **Reste.** Exercer une politique d’application plus restrictive que le magasin système, un serveur qui exige les SCT fournis uniquement par TLS et la combinaison ARM64 + pages 16 Kio. Le Xiaomi couvre ARM64 à 4 Kio ; le test chargé à 16 Kio couvre x86_64.
 
 ## 2. Donner à la dictée longue un contrat de durée utilisable
 
