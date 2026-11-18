@@ -10,7 +10,8 @@ permissions:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # Intel MSRV debug and release builds can exhaust the standard job budget.
+    timeout-minutes: ${{ (matrix.os == 'macos-26-intel' && matrix.toolchain == '1.88.0') && 60 || 30 }}
     strategy:
       fail-fast: false
       matrix:

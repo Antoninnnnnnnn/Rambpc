@@ -1,0 +1,354 @@
+{
+  "schema": "rambler-native-real-campaign-20261118-v1",
+  "source": "01631f3f32f74d74e6a68917fb20c92fa1cb1678",
+  "binary_sha256": "86610a8a508e700377500289be363522dfa2fd13760a33fe8c38c6ee88eb031d",
+  "cli": "rambler dictate-wav --realtime, one attempt per case, no retries; first three cases reused after a local console encoding crash, not re-run",
+  "audio": "Windows SAPI synthetic voices (Zira en-US, Hortense fr-FR), 16 kHz mono; mixed clip = EN then FR concatenated",
+  "rows": [
+    {
+      "case": "professional",
+      "audio_seconds": 2.595,
+      "type": "result",
+      "text": "Please send me the report at your earliest convenience.",
+      "provenance": "voice_edit_context",
+      "finals": 1,
+      "first_response_s": 0.025481,
+      "eof_s": 3.1049855,
+      "after_audio_end_s": 0.51,
+      "responses": 13,
+      "final_intent_field": [
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "case": "shorter",
+      "audio_seconds": 2.55,
+      "type": "result",
+      "text": "Tomorrow morning's meeting needs to be moved to the afternoon.",
+      "provenance": "voice_edit_context",
+      "finals": 1,
+      "first_response_s": 0.0348816,
+      "eof_s": 3.077997,
+      "after_audio_end_s": 0.528,
+      "responses": 13,
+      "final_intent_field": [
+        [
+          3,
+          7
+        ]
+      ]
+    },
+    {
+      "case": "emoji",
+      "audio_seconds": 2.685,
+      "type": "result",
+      "text": "I am so happy today. 😊",
+      "provenance": "voice_edit_context",
+      "finals": 1,
+      "first_response_s": 0.0310508,
+      "eof_s": 3.0236966,
+      "after_audio_end_s": 0.339,
+      "responses": 12,
+      "final_intent_field": [
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "case": "compose_empty",
+      "audio_seconds": 4.47,
+      "type": "result",
+      "text": "Write a short message to the team saying the meeting moves to 3 p.m.",
+      "provenance": "voice_edit_text",
+      "finals": 1,
+      "first_response_s": 0.0305298,
+      "eof_s": 4.8696625000000004,
+      "after_audio_end_s": 0.4,
+      "responses": 16,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "continue_draft",
+      "audio_seconds": 2.725,
+      "type": "result",
+      "text": "Hi team, the meeting moves to 3 pm. Also mention that lunch is provided.",
+      "provenance": "voice_edit_context",
+      "finals": 1,
+      "first_response_s": 0.0233315,
+      "eof_s": 3.1361807,
+      "after_audio_end_s": 0.411,
+      "responses": 13,
+      "final_intent_field": [
+        [
+          2,
+          7
+        ]
+      ]
+    },
+    {
+      "case": "dictation_fr",
+      "audio_seconds": 8.52,
+      "type": "result",
+      "text": "Bonjour à tous. La réunion de demain est déplacée à 15 heures. Merci de confirmer votre présence.",
+      "provenance": "voice_edit_text",
+      "finals": 1,
+      "first_response_s": 0.0190062,
+      "eof_s": 9.0301527,
+      "after_audio_end_s": 0.51,
+      "responses": 25,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "mixed_en_fr",
+      "audio_seconds": 5.21,
+      "type": "result",
+      "text": "I am going to the store first. Et ensuite, je rentre à la maison.",
+      "provenance": "voice_edit_text",
+      "finals": 1,
+      "first_response_s": 0.0450223,
+      "eof_s": 5.622852,
+      "after_audio_end_s": 0.413,
+      "responses": 18,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_en_1",
+      "audio_seconds": 5.81,
+      "type": "result",
+      "text": "The quarterly report is ready for review. Please send your comments by Friday.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0412196,
+      "eof_s": 6.198253,
+      "after_audio_end_s": 0.388,
+      "responses": 19,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_fr_1",
+      "audio_seconds": 6.685,
+      "type": "result",
+      "text": "Le rapport trimestriel est prêt. Merci de envoyer vos commentaires avant vendredi.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0252299,
+      "eof_s": 7.0880105,
+      "after_audio_end_s": 0.403,
+      "responses": 21,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_fr_2",
+      "audio_seconds": 6.685,
+      "type": "result",
+      "text": "Le rapport trimestriel est prêt. Merci de envoyer vos commentaires avant vendredi.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0271663,
+      "eof_s": 7.05797,
+      "after_audio_end_s": 0.373,
+      "responses": 21,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_en_2",
+      "audio_seconds": 5.81,
+      "type": "result",
+      "text": "The quarterly report is ready for review. Please send your comments by Friday.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0270339,
+      "eof_s": 6.2033636,
+      "after_audio_end_s": 0.393,
+      "responses": 19,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_en_3",
+      "audio_seconds": 5.81,
+      "type": "result",
+      "text": "The quarterly report is ready for review. Please send your comments by Friday.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0351485,
+      "eof_s": 6.160997,
+      "after_audio_end_s": 0.351,
+      "responses": 19,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_fr_3",
+      "audio_seconds": 6.685,
+      "type": "result",
+      "text": "Le rapport trimestriel est prêt. Merci de envoyer vos commentaires avant vendredi.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0382796,
+      "eof_s": 6.9988619,
+      "after_audio_end_s": 0.314,
+      "responses": 20,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_fr_4",
+      "audio_seconds": 6.685,
+      "type": "result",
+      "text": "Le rapport trimestriel est prêt. Merci de envoyer vos commentaires avant vendredi.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0310253,
+      "eof_s": 6.95429,
+      "after_audio_end_s": 0.269,
+      "responses": 20,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_en_4",
+      "audio_seconds": 5.81,
+      "type": "result",
+      "text": "The quarterly report is ready for review. Please send your comments by Friday.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0291707,
+      "eof_s": 6.1872202,
+      "after_audio_end_s": 0.377,
+      "responses": 19,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_en_5",
+      "audio_seconds": 5.81,
+      "type": "result",
+      "text": "The quarterly report is ready for review. Please send your comments by Friday.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0275522,
+      "eof_s": 6.2196443,
+      "after_audio_end_s": 0.41,
+      "responses": 19,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "latency_fr_5",
+      "audio_seconds": 6.685,
+      "type": "result",
+      "text": "Le rapport trimestriel est prêt. Merci de envoyer vos commentaires avant vendredi.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0331276,
+      "eof_s": 7.0741414,
+      "after_audio_end_s": 0.389,
+      "responses": 21,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "long_120s",
+      "audio_seconds": 122.58,
+      "type": "result",
+      "text": "The quarterly report is ready for review. Please send your comments by Friday.",
+      "provenance": null,
+      "finals": 1,
+      "first_response_s": 0.0309543,
+      "eof_s": 123.0129905,
+      "after_audio_end_s": 0.433,
+      "responses": 252,
+      "final_intent_field": [
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "case": "long_distinct_12_sentences",
+      "audio_seconds": 46.8,
+      "type": "result",
+      "text": "1. The project kickoff is on Monday at 9:00.\n2. Anna will prepare the budget slides.\n3. The client visit moves to Wednesday afternoon.\n4. Please book a room for 12 people.\n5. The design review needs two more reviewers.\n6. Invoices are due by the end of the month.\n7. The new laptop order was approved yesterday.\n8. Remember to update the shared calendar.\n9. The training session is postponed until March.\n10. Coffee will be served in the lobby at 10:00.\n11. The backup server needs a new disk.\n12. Send the final report to the board on Friday.",
+      "finals": 1,
+      "eof_s": 47.4284352,
+      "after_audio_end_s": 0.628,
+      "responses": 101
+    }
+  ],
+  "findings": [
+    "Selection rewrite (professional), shortening and emoji returned intent 3 or 2 with field 7 windows; rendered with --result-policy s3-client-compatible.",
+    "Compose-style and continue-draft phrasings were transcribed literally (intent 2); no intent 4/5/6 observed.",
+    "EN and FR latency: 5/5 each, identical text every repetition, completion about 0.27-0.41 s after audio end (paced real time).",
+    "A 122.6 s clip repeating one sentence returned that sentence once; a 46.8 s clip of 12 distinct sentences returned all 12 exactly as a numbered list, so the former is service-side de-duplication, not loss."
+  ],
+  "limits": [
+    "Synthetic voices and one machine/network; not a naturalistic quality benchmark.",
+    "after_audio_end_s = eof_seconds minus clip duration under --realtime pacing; indicative.",
+    "No credentials, account data or raw responses published."
+  ]
+}
