@@ -18,7 +18,9 @@
 //! Sources/providers must not panic. Internal HTTP/2 flow buffers are separate
 //! from the two capacity-one application queues (plus one in-flight item each).
 //!
-//! The client uses h2 + ring/rustls with OS trust roots and hostname verification.
+//! The client uses h2 + ring/rustls with platform trust and hostname verification.
+//! On Android the host application must call `init_android_tls` from JNI once
+//! before opening TLS connections; there is no standalone-shell trust fallback.
 //! Each RPC owns an explicit HTTP/2 CANCEL reset guard: cancelling a blocked upload
 //! releases its stream without closing the shared connection or sibling sessions.
 //! A tonic client was tested first, but dropping its response left a native upload
@@ -43,12 +45,16 @@
 //! transport. No idle keepalive/health guarantee is provided; an RPC deadline also
 //! bounds detection of an unresponsive peer, not its asynchronous source cleanup.
 
+#[cfg(target_os = "android")]
+mod android_tls;
 pub mod codec;
 mod connection;
 pub mod credentials;
 mod grpc_prefix;
 mod wire;
 
+#[cfg(target_os = "android")]
+pub use android_tls::init_android_tls;
 use bytes::Bytes;
 pub use codec::RawBytesCodec;
 pub use credentials::{
@@ -118,6 +124,15 @@ pub enum TransportError {
     Credentials,
     #[error("transport connection failed")]
     Connect,
+    /// The system resolver failed or supplied no addresses.
+    #[error("transport address resolution failed")]
+    Resolve,
+    /// No usable desktop roots or no usable initialized Android app verifier.
+    #[error("transport TLS trust unavailable")]
+    TrustUnavailable,
+    /// The peer did not present an acceptable server certificate for this name.
+    #[error("transport TLS server certificate rejected")]
+    CertificateRejected,
     #[error("transport is closed")]
     Closed,
     #[error("session cancelled")]
@@ -236,7 +251,8 @@ impl Default for TransportConfig {
 impl TransportConfig {
     /// `Host[:port]`, not a URL. An absent port means 443; explicit destination
     /// ports must be decimal 1..=65535 (including bracketed IPv6 authorities).
-    /// TLS roots come from the OS, with hostname verification.
+    /// Uses platform trust with hostname verification; Android host apps must
+    /// initialize that policy with `init_android_tls` before connecting.
     pub fn tls(target: impl Into<String>) -> Result<Self, TransportError> {
         let target = target.into();
         let authority = target

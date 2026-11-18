@@ -118,7 +118,7 @@ where
     Sleep: Future<Output = ()>,
 {
     let mut addresses = addresses.into_iter().peekable();
-    let mut address = addresses.next().ok_or(TransportError::Connect)?;
+    let mut address = addresses.next().ok_or(TransportError::Resolve)?;
     let mut attempts = FuturesUnordered::new();
     loop {
         let mut attempt = Box::pin(dial(address));
@@ -179,13 +179,16 @@ where
 
 /// Aborting prevents a queued blocking job from starting, but cannot interrupt
 /// one already running. Dropping its handle discards that job's eventual result.
+#[cfg(not(target_os = "android"))]
 struct AbortOnDrop<T>(JoinHandle<T>);
+#[cfg(not(target_os = "android"))]
 impl<T> Drop for AbortOnDrop<T> {
     fn drop(&mut self) {
         self.0.abort();
     }
 }
 
+#[cfg(not(target_os = "android"))]
 async fn blocking_tls_setup<T: Send + 'static>(
     prepare: impl FnOnce() -> Result<T, TransportError> + Send + 'static,
 ) -> Result<T, TransportError> {
@@ -193,6 +196,20 @@ async fn blocking_tls_setup<T: Send + 'static>(
     (&mut job.0).await.map_err(|_| TransportError::Supervisor)?
 }
 
+fn tls_builder(
+    provider: Arc<rustls::crypto::CryptoProvider>,
+) -> Result<rustls::ConfigBuilder<rustls::ClientConfig, rustls::WantsVerifier>, TransportError> {
+    rustls::ClientConfig::builder_with_provider(provider)
+        .with_safe_default_protocol_versions()
+        .map_err(|_| TransportError::Connect)
+}
+
+fn with_h2_alpn(mut tls: rustls::ClientConfig) -> rustls::ClientConfig {
+    tls.alpn_protocols = vec![b"h2".to_vec()];
+    tls
+}
+
+#[cfg(not(target_os = "android"))]
 fn build_tls_config(
     load: impl FnOnce() -> rustls_native_certs::CertificateResult,
 ) -> Result<rustls::ClientConfig, TransportError> {
@@ -200,17 +217,61 @@ fn build_tls_config(
     let mut roots = rustls::RootCertStore::empty();
     let (accepted, _) = roots.add_parsable_certificates(certs.certs);
     if accepted == 0 {
+        return Err(TransportError::TrustUnavailable);
+    }
+    let tls = tls_builder(Arc::new(rustls::crypto::ring::default_provider()))?
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+    Ok(with_h2_alpn(tls))
+}
+
+#[cfg(target_os = "android")]
+fn build_android_tls_config() -> Result<rustls::ClientConfig, TransportError> {
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let verifier = crate::android_tls::Verifier::new(provider.clone())?;
+    let mut tls = tls_builder(provider)?
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(verifier))
+        .with_no_client_auth();
+    // Always ask the Android policy for a new connection. Do not retain TLS
+    // authentication across changes to the host app's certificate policy.
+    tls.resumption = rustls::client::Resumption::disabled();
+    Ok(with_h2_alpn(tls))
+}
+
+fn tls_connect_error(error: io::Error) -> TransportError {
+    // tokio-rustls embeds the typed rustls error directly in the I/O error.
+    // Do not expose raw TLS/OS errors, or infer a cause from error strings.
+    match error
+        .get_ref()
+        .and_then(|e| e.downcast_ref::<rustls::Error>())
+    {
+        Some(rustls::Error::InvalidCertificate(_) | rustls::Error::NoCertificatesPresented) => {
+            TransportError::CertificateRejected
+        }
+        #[cfg(target_os = "android")]
+        Some(rustls::Error::Other(other))
+            if other.0.is::<crate::android_tls::PlatformTrustUnavailable>() =>
+        {
+            TransportError::TrustUnavailable
+        }
+        _ => TransportError::Connect,
+    }
+}
+
+async fn connect_tls(
+    tls: rustls::ClientConfig,
+    name: ServerName<'static>,
+    tcp: TcpStream,
+) -> Result<tokio_rustls::client::TlsStream<TcpStream>, TransportError> {
+    let stream = TlsConnector::from(Arc::new(tls))
+        .connect(name, tcp)
+        .await
+        .map_err(tls_connect_error)?;
+    if stream.get_ref().1.alpn_protocol() != Some(b"h2") {
         return Err(TransportError::Connect);
     }
-    let mut tls = rustls::ClientConfig::builder_with_provider(Arc::new(
-        rustls::crypto::ring::default_provider(),
-    ))
-    .with_safe_default_protocol_versions()
-    .map_err(|_| TransportError::Connect)?
-    .with_root_certificates(roots)
-    .with_no_client_auth();
-    tls.alpn_protocols = vec![b"h2".to_vec()];
-    Ok(tls)
+    Ok(stream)
 }
 
 pub(crate) async fn connect(
@@ -225,11 +286,19 @@ pub(crate) async fn connect(
         .host()
         .trim_start_matches('[')
         .trim_end_matches(']');
+    // Construct the Android verifier before DNS/TCP so an app that has not
+    // initialized trust fails deterministically without touching the network.
+    #[cfg(target_os = "android")]
+    let android_tls = if config.plaintext_loopback {
+        None
+    } else {
+        Some(build_android_tls_config()?)
+    };
     // Resolve once inside the existing outer DNS/TCP/TLS/h2 timeout. Keep the
     // original host/port for authority and verified TLS, not an IP substitute.
     let addresses = tokio::net::lookup_host((host, config.port))
         .await
-        .map_err(|_| TransportError::Connect)?;
+        .map_err(|_| TransportError::Resolve)?;
     let tcp = race_tcp(
         alternate_families(addresses),
         TcpStream::connect,
@@ -241,21 +310,17 @@ pub(crate) async fn connect(
     let io: Box<dyn Io> = if config.plaintext_loopback {
         Box::new(tcp)
     } else {
-        // Only root loading/parsing/configuration enter the blocking pool. Keep
+        // On desktop only root setup enters the blocking pool. Keep
         // the winning socket here so dropping the outer timeout closes it even
         // when a started OS loader cannot be interrupted. TLS starts after await.
+        #[cfg(not(target_os = "android"))]
         let tls =
             blocking_tls_setup(|| build_tls_config(rustls_native_certs::load_native_certs)).await?;
+        #[cfg(target_os = "android")]
+        let tls = android_tls.ok_or(TransportError::TrustUnavailable)?;
         let name =
             ServerName::try_from(host.to_owned()).map_err(|_| TransportError::InvalidConfig)?;
-        let stream = TlsConnector::from(Arc::new(tls))
-            .connect(name, tcp)
-            .await
-            .map_err(|_| TransportError::Connect)?;
-        if stream.get_ref().1.alpn_protocol() != Some(b"h2") {
-            return Err(TransportError::Connect);
-        }
-        Box::new(stream)
+        Box::new(connect_tls(tls, name, tcp).await?)
     };
     let (sender, mut connection) = h2::client::Builder::new()
         // Separate bounded native connection credit from capacity-one app queues.
@@ -296,24 +361,28 @@ pub(crate) async fn connect(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        pin::Pin,
-        sync::{
-            Condvar, Mutex as StdMutex,
-            atomic::{AtomicBool, AtomicUsize, Ordering},
-            mpsc,
-        },
+    use std::{pin::Pin, sync::Mutex as StdMutex};
+    use tokio::sync::watch;
+
+    #[cfg(not(target_os = "android"))]
+    use std::sync::{
+        Condvar,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+        mpsc,
     };
-    use tokio::sync::{oneshot, watch};
+    #[cfg(not(target_os = "android"))]
+    use tokio::sync::oneshot;
 
     // Every intentionally blocked worker has an independent OS-thread watchdog.
     // It releases even if the runtime is blocked or unwinding during shutdown.
+    #[cfg(not(target_os = "android"))]
     struct BlockingGate {
         open: Arc<(StdMutex<bool>, Condvar)>,
         release: Option<mpsc::Sender<()>>,
         watchdog: Option<std::thread::JoinHandle<()>>,
         expired: Arc<AtomicBool>,
     }
+    #[cfg(not(target_os = "android"))]
     impl BlockingGate {
         fn new() -> Self {
             let open = Arc::new((StdMutex::new(false), Condvar::new()));
@@ -364,12 +433,14 @@ mod tests {
             );
         }
     }
+    #[cfg(not(target_os = "android"))]
     impl Drop for BlockingGate {
         fn drop(&mut self) {
             self.release();
         }
     }
 
+    #[cfg(not(target_os = "android"))]
     fn tls_test(future: impl Future<Output = ()>) {
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -383,7 +454,9 @@ mod tests {
             });
     }
 
+    #[cfg(not(target_os = "android"))]
     struct DropSignal(Option<oneshot::Sender<()>>);
+    #[cfg(not(target_os = "android"))]
     impl Drop for DropSignal {
         fn drop(&mut self) {
             if let Some(signal) = self.0.take() {
@@ -392,18 +465,18 @@ mod tests {
         }
     }
 
+    #[cfg(not(target_os = "android"))]
     fn fake_roots() -> rustls_native_certs::CertificateResult {
         // Minimal synthetic v1 trust-anchor DER accepted by the root parser.
         // Parser/configuration fixture ONLY: not a usable TLS certificate, and
         // not evidence of certificate/hostname verification or a TLS handshake.
+        const SYNTHETIC_ANCHOR: &[u8] = b"\x30\x14\x30\x0d\x02\x01\x01\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x03\x01\x00";
         let mut roots = rustls_native_certs::CertificateResult::default();
-        roots.certs.push(rustls::pki_types::CertificateDer::from(
-            b"\x30\x14\x30\x0d\x02\x01\x01\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x30\x00\x03\x01\x00"
-                .to_vec(),
-        ));
+        roots.certs.push(SYNTHETIC_ANCHOR.into());
         roots
     }
 
+    #[cfg(not(target_os = "android"))]
     fn fake_provider_error() -> rustls_native_certs::Error {
         rustls_native_certs::Error {
             context: "injected provider error",
@@ -411,6 +484,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(target_os = "android"))]
     #[tokio::test(flavor = "current_thread")]
     #[ignore = "reads host public roots; run explicitly with SSL_CERT_FILE and SSL_CERT_DIR absent"]
     async fn tls_setup_native_public_roots_smoke() {
@@ -429,6 +503,7 @@ mod tests {
         assert_eq!(tls.alpn_protocols, [b"h2".to_vec()]);
     }
 
+    #[cfg(not(target_os = "android"))]
     #[test]
     fn tls_setup_keeps_current_thread_heartbeat_live_while_loader_blocks() {
         let mut gate = BlockingGate::new();
@@ -455,6 +530,7 @@ mod tests {
         gate.assert_not_expired();
     }
 
+    #[cfg(not(target_os = "android"))]
     #[test]
     fn tls_setup_outer_timeout_closes_caller_owned_socket_before_loader_returns() {
         use tokio::{io::AsyncReadExt, net::TcpListener};
@@ -501,6 +577,7 @@ mod tests {
         gate.assert_not_expired();
     }
 
+    #[cfg(not(target_os = "android"))]
     #[test]
     fn tls_setup_drop_aborts_queued_loader_in_single_worker_pool() {
         let mut gate = BlockingGate::new();
@@ -527,6 +604,7 @@ mod tests {
         gate.assert_not_expired();
     }
 
+    #[cfg(not(target_os = "android"))]
     #[test]
     fn tls_setup_drop_discards_started_result_without_continuation() {
         struct TrackedConfig {
@@ -567,6 +645,7 @@ mod tests {
         gate.assert_not_expired();
     }
 
+    #[cfg(not(target_os = "android"))]
     #[test]
     fn tls_setup_panic_is_fixed_supervisor_error() {
         tls_test(async {
@@ -579,6 +658,7 @@ mod tests {
         });
     }
 
+    #[cfg(not(target_os = "android"))]
     #[test]
     fn tls_setup_preserves_fresh_roots_partial_success_and_provider_errors() {
         tls_test(async {
@@ -615,10 +695,92 @@ mod tests {
                 })
                 .await
                 .unwrap_err();
-                assert!(matches!(error, TransportError::Connect));
-                assert_eq!(error.to_string(), "transport connection failed");
+                assert!(matches!(error, TransportError::TrustUnavailable));
+                assert_eq!(error.to_string(), "transport TLS trust unavailable");
             }
         });
+    }
+
+    #[cfg(not(target_os = "android"))]
+    #[test]
+    fn tls_loopback_requires_trusted_name_and_h2() {
+        use rustls::pki_types::{CertificateDer, PrivatePkcs8KeyDer};
+        use tokio::net::TcpListener;
+        use tokio_rustls::TlsAcceptor;
+
+        const CA: &[u8] = include_bytes!("../tests/fixtures/tls-loopback-ca.der");
+        const LEAF: &[u8] = include_bytes!("../tests/fixtures/tls-loopback-leaf.der");
+        const KEY: &[u8] = include_bytes!("../tests/fixtures/tls-loopback-key.pkcs8");
+        let trusted = || {
+            let mut result = rustls_native_certs::CertificateResult::default();
+            result.certs.push(CertificateDer::from(CA));
+            result
+        };
+        tls_test(async {
+            for (host, trust, h2) in [
+                ("localhost", true, true),
+                ("127.0.0.1", true, true),
+                ("localhost", false, true),
+                ("localhost", true, false),
+            ] {
+                let mut server = rustls::ServerConfig::builder_with_provider(Arc::new(
+                    rustls::crypto::ring::default_provider(),
+                ))
+                .with_safe_default_protocol_versions()
+                .unwrap()
+                .with_no_client_auth()
+                .with_single_cert(
+                    vec![CertificateDer::from(LEAF)],
+                    PrivatePkcs8KeyDer::from(KEY).into(),
+                )
+                .unwrap();
+                if h2 {
+                    server.alpn_protocols = vec![b"h2".to_vec()];
+                }
+                let listener = TcpListener::bind(v4(0)).await.unwrap();
+                let address = listener.local_addr().unwrap();
+                let (outcome, accepted) = tokio::join!(
+                    async {
+                        let tcp = TcpStream::connect(address).await.unwrap();
+                        let tls = build_tls_config(|| if trust { trusted() } else { fake_roots() })
+                            .unwrap();
+                        let name = ServerName::try_from(host).unwrap();
+                        connect_tls(tls, name, tcp).await
+                    },
+                    async {
+                        let (tcp, _) = listener.accept().await.unwrap();
+                        TlsAcceptor::from(Arc::new(server)).accept(tcp).await
+                    },
+                );
+                match (host, trust, h2) {
+                    ("localhost", true, true) => {
+                        assert!(outcome.is_ok());
+                        assert!(accepted.is_ok());
+                    }
+                    ("localhost", true, false) => {
+                        assert!(matches!(outcome, Err(TransportError::Connect)));
+                    }
+                    _ => assert!(matches!(outcome, Err(TransportError::CertificateRejected))),
+                }
+            }
+        });
+    }
+
+    #[cfg(target_os = "android")]
+    #[tokio::test]
+    async fn tls_without_android_app_init_reports_trust_unavailable_before_networking() {
+        let config = TransportConfig::tls("127.0.0.1:9").unwrap();
+        assert!(matches!(
+            connect(&config, true).await,
+            Err(TransportError::TrustUnavailable)
+        ));
+        let marker = rustls::Error::Other(rustls::OtherError(Arc::new(
+            crate::android_tls::PlatformTrustUnavailable,
+        )));
+        assert!(matches!(
+            tls_connect_error(io::Error::other(marker)),
+            TransportError::TrustUnavailable
+        ));
     }
 
     // No Tokio test-util dependency or paused time: this clock affects only
@@ -1111,7 +1273,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn entire_fast_failure_list_is_traversed_and_empty_list_is_connect() {
+    async fn entire_fast_failure_list_is_traversed_and_empty_list_is_resolve() {
         let clock = Clock::new();
         let attempts = Attempts::new(&clock);
         let race = race_tcp(
@@ -1148,7 +1310,7 @@ mod tests {
             |duration| clock.sleep(duration),
         )
         .await;
-        assert!(matches!(result, Err(TransportError::Connect)));
+        assert!(matches!(result, Err(TransportError::Resolve)));
         assert_eq!(attempts.starts().len(), 129);
     }
 
