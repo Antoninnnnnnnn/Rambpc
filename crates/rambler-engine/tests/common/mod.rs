@@ -1,12 +1,15 @@
 #![allow(dead_code)]
 use bytes::Bytes;
-use futures_util::Stream;
+use futures_util::{Stream, StreamExt};
 use rambler_transport::{GrpcTransport, RawBytesCodec, TransportConfig};
 use std::{
     convert::Infallible,
     future::Future,
     pin::Pin,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
     task::{Context, Poll},
     time::Duration,
 };
@@ -60,6 +63,7 @@ where
 }
 pub struct TestServer {
     pub address: std::net::SocketAddr,
+    accepted: Arc<AtomicUsize>,
     stop: CancellationToken,
     task: Option<JoinHandle<()>>,
 }
@@ -74,21 +78,31 @@ impl TestServer {
         let service = RawService(Arc::new(move |request| Box::pin(handler(request))));
         let stop = CancellationToken::new();
         let done = stop.clone();
+        let accepted = Arc::new(AtomicUsize::new(0));
+        let counter = accepted.clone();
+        let incoming = TcpListenerStream::new(listener).inspect(move |socket| {
+            if let Ok(socket) = socket {
+                // Tonic's builder cannot set this on a caller-supplied listener.
+                socket.set_nodelay(true).unwrap();
+                counter.fetch_add(1, Ordering::Relaxed);
+            }
+        });
         let task = tokio::spawn(async move {
             Server::builder()
                 .add_service(service)
-                .serve_with_incoming_shutdown(
-                    TcpListenerStream::new(listener),
-                    done.cancelled_owned(),
-                )
+                .serve_with_incoming_shutdown(incoming, done.cancelled_owned())
                 .await
                 .unwrap();
         });
         Self {
             address,
+            accepted,
             stop,
             task: Some(task),
         }
+    }
+    pub fn accepted_connections(&self) -> usize {
+        self.accepted.load(Ordering::Relaxed)
     }
     pub async fn transport(&self) -> GrpcTransport {
         GrpcTransport::connect(TransportConfig::loopback(self.address).unwrap())

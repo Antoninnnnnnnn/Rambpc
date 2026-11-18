@@ -47,7 +47,7 @@ et un résultat distant n'est pas nécessairement le texte appliqué par Android
 - **Qualité et latence** : mesurer des entrées vocales naturelles représentatives et
   la latence client/session, avec protocole et référence comparables ; les profils
   synthétiques offline ne prouvent ni qualité naturelle ni performance WAN
-  ([état](../STATUS.md)). Aucun nouveau benchmark ni appel fournisseur n'est revendiqué ici.
+  ([état](../STATUS.md)). L'observation REWRITE ci-dessous ne mesure ni la qualité ni la latence.
 
 ## Intentions et politiques de résultat
 
@@ -62,7 +62,7 @@ inventer de fonctionnalité d'intention ni la sélection de candidat Android.
 |0 DICTATION|Intention conservée ; `Strict` refuse VoiceEdit0, modes opt-in projettent l'ASR|Enum statique. Pas de valeur wire0 démontrée dans les preuves publiées. Écart conservateur de façade avec le fallback Android.|
 |1 EDIT|Décodable ; `Strict` refuse, modes opt-in projettent l'ASR sans interpréter EDIT|Nom statique seulement ; ne signifie pas automatiquement suppression, envoi ou delta.|
 |2 EDIT_HISTORY|`DictationResult::text`, `replacement_proposal`, snapshot/révision ; champs3 et7|**Rust réel** : dictées EN/FR, correction, `ten→eleven`, sélection avec emoji dans le contexte. Fenêtre complète, pas ajout aveugle.|
-|3 REWRITE|Strict : champ3 rendu, champ7 ambigu. Compatible opt-in :3/7 rendus, proposition de fenêtre uniquement champ7|**Rust réel** champ3 : réécriture polie. Helper Android accepte aussi7 statiquement ; cette combinaison n'est pas validée à distance.|
+|3 REWRITE|`Strict` inchangé : champ3 rendu, champ7 ambigu. `S3ClientCompatible` opt-in : champs3/7 rendus ; pour une réécriture de sélection, utiliser `replacement_proposal_with_policy` (proposition de fenêtre au champ7), avec validation de la révision et de l'ancre.|**Rust réel** : réécriture polie au champ3 ; le 2026-11-18, une seule phrase synthétique (« Make this more polite. »), dans une seule session CLI native avec sélection, a aussi renvoyé l'intention3 au champ7 (`edited_context`). Le helper Android accepte aussi ce cas statiquement ; cette observation ne démontre pas de parité plus large.|
 |4 COMPOSE|Décodable ; aucune implémentation COMPOSE. Strict/proposition refusent ; fallback ASR opt-in n'est pas une composition|**Non démontré**. Huit essais historiques restent distincts des mocks et prompts locaux ; voir [composition](composition.md). Aucun switch S3 vérifié.|
 |5 RAMBLE|Décodable ; pas de sémantique RAMBLE, fallback ASR opt-in seulement|Enum certaine, sémantique opérationnelle non établie par son nom ; non observé.|
 |6 RAMBLE_HISTORY|Décodable ; pas de sémantique RAMBLE_HISTORY, fallback ASR opt-in seulement|Même limite ; aucune preuve de résumé ou nettoyage de notes.|

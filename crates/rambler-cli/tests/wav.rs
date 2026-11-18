@@ -144,7 +144,7 @@ async fn wav_process_encodes_exact_duration_and_rejects_late_failure() {
             let mut cmd = command(&child_path, &addr);
             cmd.args(["--page-duration-ms", "40", "--before", "été🙂"]);
             if mode == 0 {
-                cmd.arg("--realtime");
+                cmd.args(["--realtime", "--result-policy", "strict"]);
             }
             cmd.output().unwrap()
         })
@@ -160,6 +160,7 @@ async fn wav_process_encodes_exact_duration_and_rejects_late_failure() {
             assert!(start.elapsed() >= std::time::Duration::from_millis(150));
             assert!(output.status.success());
             assert_eq!(value["text"], fixture["cases"][2]["expected"]["text"]);
+            assert_eq!(value["provenance"], "voice_edit_text");
         }
         assert!(!String::from_utf8_lossy(&output.stdout).contains("private-server-detail"));
         let requests = captured.lock().unwrap().clone();

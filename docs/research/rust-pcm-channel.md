@@ -289,3 +289,7 @@ publie le résultat observé sans modifier ce fait historique. Ce cas synthétiq
 unique ne démontre ni qualité ASR représentative, perfection, provisionnement
 durable ou parité Android. Linux live, téléphone, autres intentions, révocation et
 cause de l'incident long restent ouverts ; les échecs historiques sont conservés.
+
+## Profil CPU local de la session PCM 48 kHz — 18 novembre 2026
+
+Après la symétrisation du FIR, le [profil Windows hors ligne](../evidence/rust-native-pcm48-session-cpu-windows-20261118.md) sur 180 s de PCM synthétique non cadencé attribue environ 56 % des cycles du thread de session à Opus/Ogg, 17 % au décimateur et 26–27 % au reste (Engine, h2, pair local et collecteur). La lecture d’une source prête ou via le vrai `pcm_channel` borné conserve cette répartition. Le CRC Ogg à table a produit les mêmes octets, mais n’a gagné que 13 paires CPU sur 20 (seuil fixé à 15) : non retenu. Ces mesures ne prédisent ni la latence réseau ni la consommation microphone/service en temps réel.

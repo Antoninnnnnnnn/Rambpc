@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext,
-    EncodedAudioProgress, Engine, EngineError, OggAudio, ProtocolConfig, SessionOptions,
-    collect_dictation,
+    EncodedAudioProgress, Engine, EngineError, OggAudio, ProtocolConfig, RenderPolicy,
+    SessionOptions, TextProvenance, collect_dictation,
 };
 use rambler_transport::{
     EnvironmentCredentials, Metadata, MetadataProvider, TransportConfig, TransportError,
@@ -55,6 +55,9 @@ struct CommonArgs {
     after: Option<String>,
     #[arg(long)]
     cursor_aware: bool,
+    /// Final text projection (default: strict). Explicit selection reports text provenance.
+    #[arg(long, value_enum)]
+    result_policy: Option<ResultPolicy>,
     #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..))]
     timeout: u64,
     /// Post-audio finalization budget in seconds, bounded by the overall timeout.
@@ -81,6 +84,26 @@ struct CommonArgs {
     #[arg(long)]
     loopback: Option<SocketAddr>,
 }
+
+#[derive(Clone, Copy, ValueEnum)]
+enum ResultPolicy {
+    /// Use the conservative SDK text projection.
+    Strict,
+    /// Project the final recognition hypothesis text only.
+    AsrOnly,
+    /// Also accept VoiceEdit rewrites of the captured window.
+    S3ClientCompatible,
+}
+impl From<ResultPolicy> for RenderPolicy {
+    fn from(policy: ResultPolicy) -> Self {
+        match policy {
+            ResultPolicy::Strict => Self::Strict,
+            ResultPolicy::AsrOnly => Self::AsrOnly,
+            ResultPolicy::S3ClientCompatible => Self::S3ClientCompatible,
+        }
+    }
+}
+
 enum InputKind {
     Ogg,
     #[cfg(feature = "audio")]
@@ -197,8 +220,16 @@ fn audio_progress(progress: &EncodedAudioProgress) -> Value {
     json!({"chunks":progress.chunks, "bytes":progress.bytes, "eof":progress.eof,
         "cleanup_finished":progress.cleanup_finished, "cleanup_succeeded":progress.cleanup_succeeded})
 }
-fn output(result: &DictationResult) -> Result<Value, EngineError> {
-    result.check_safety()?;
+fn output(
+    result: &DictationResult,
+    policy: Option<ResultPolicy>,
+) -> Result<(Value, bool), EngineError> {
+    // Rendering checks all retained candidates for safety before it can be ambiguous.
+    let rendered = match result.render(policy.unwrap_or(ResultPolicy::Strict).into()) {
+        Ok(rendered) => Some(rendered),
+        Err(EngineError::AmbiguousResult) => None,
+        Err(error) => return Err(error),
+    };
     let finals: Vec<_> = result.final_updates.iter().map(|r| {
         let hypotheses: Vec<_> = r.hypotheses().iter().map(|h| {
             let edit = h.voice_edit.as_ref().map(|e| json!({"transcript": e.transcript, "alternative_text": e.alternative_text, "edited_text": e.edited_text, "edited_context": e.edited_context.as_ref().map(context), "intent": e.intent, "active_field": e.active_field.filter(|i| [2,3,7].contains(i))}));
@@ -207,9 +238,23 @@ fn output(result: &DictationResult) -> Result<Value, EngineError> {
         json!({"hypotheses":hypotheses})
     }).collect();
     let metrics = result.metrics.as_ref().map(|m| json!({"audio":audio_progress(&m.audio), "requests_produced":m.requests_produced, "request_protobuf_bytes":m.request_protobuf_bytes, "responses_received":m.responses_received, "response_protobuf_bytes":m.response_protobuf_bytes, "elapsed_seconds":m.elapsed_seconds, "first_response_seconds":m.first_response_seconds, "eof_seconds":m.eof_seconds}));
-    Ok(
-        json!({"type":"result", "text":result.text().ok(), "final_updates":finals, "context":result.context.as_ref().map(context), "metrics":metrics}),
-    )
+    let ambiguous = rendered.is_none();
+    let mut value = json!({
+        "type": if ambiguous { "ambiguous" } else { "result" },
+        "text": rendered.as_ref().map(|r| &r.text),
+        "final_updates": finals,
+        "context": result.context.as_ref().map(context),
+        "metrics": metrics,
+    });
+    // Leave the legacy JSON unchanged when the flag is omitted.
+    if let (Some(_), Some(rendered)) = (policy, rendered) {
+        value["provenance"] = json!(match rendered.provenance {
+            TextProvenance::HypothesisText => "hypothesis_text",
+            TextProvenance::VoiceEditText => "voice_edit_text",
+            TextProvenance::VoiceEditContext => "voice_edit_context",
+        });
+    }
+    Ok((value, ambiguous))
 }
 fn print_error(category: &str, code: Option<String>) {
     println!(
@@ -349,6 +394,7 @@ async fn main() {
         selected,
         after,
         cursor_aware,
+        result_policy,
         timeout,
         finalize_timeout,
         context_timeout,
@@ -457,17 +503,13 @@ async fn main() {
             std::process::exit(1);
         }
         (Ok(r), Ok(())) => {
-            let ambiguous = r.text().is_err();
-            let mut value = match output(&r) {
-                Ok(value) => value,
+            let (value, ambiguous) = match output(&r, result_policy) {
+                Ok(output) => output,
                 Err(error) => {
                     println!("{}", pcm.append_to(failure_output(&error, None)));
                     std::process::exit(1);
                 }
             };
-            if ambiguous {
-                value["type"] = json!("ambiguous");
-            }
             println!("{}", pcm.append_to(value));
             if ambiguous {
                 std::process::exit(1);

@@ -24,6 +24,10 @@ required-features = ["audio"]
 name = "native_qualification"
 required-features = ["audio"]
 
+[[example]]
+name = "native_cpu_profile"
+required-features = ["audio"]
+
 [features]
 default = []
 audio = ["dep:rambler-audio"]
