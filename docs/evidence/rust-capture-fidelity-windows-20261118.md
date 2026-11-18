@@ -28,3 +28,16 @@ cargo test -p rambler-cli --no-default-features --locked --offline
 Formatage, Clippy strict et contrôle du graphe de dépendances audio réussis. Les tests avec les deux toolchains ont tourné sous des Jobs Windows possédés et vides après chaque commande. Un passage Clippy préliminaire a signalé un `chunks_exact` à taille constante dans le nouveau témoin ; le remplacement par `as_chunks` vérifie aussi que la tranche n’a aucun reliquat.
 
 Les intervalles de production simulés ne mesurent pas le matériel, le délai réel d’un callback ou la consommation sur batterie. La suite ne démontre ni l’exactitude d’une transcription de part et d’autre d’une coupure, ni la latence sur le WAN, ni la parité Gboard. Cette preuve Windows ne remplace pas la CI multiplateforme. Voir le [second audit](../research/audit-parite-integration-20261118.md), le [guide SDK](../research/sdk-integration-guide.md) et les [limites du tampon](../research/rust-pcm-capture.md).
+
+## Compilation croisée Android ARM64 du lot publié
+
+Source exacte : `9120decab7df7b2ecb277445ef24ff8fb66aa1aa`. Hôte Windows/MSVC, Rust 1.88.0, NDK `27.1.12297006` et cible `aarch64-linux-android`, API 24. La commande suivante construit la CLI et le test qui lie ensemble `capture_channel` et `stream_long_pcm_dictation`, **sans les exécuter** :
+
+```sh
+cargo +1.88.0-x86_64-pc-windows-msvc test -p rambler-cli --features audio \
+  --test capture_rollover_delivery --target aarch64-linux-android --no-run --locked --offline
+```
+
+Utiliser les [réglages du compilateur et de l’éditeur de liens NDK](../../crates/rambler-transport/ANDROID_TLS.md#validation), dont `-Wl,-z,max-page-size=16384`. Pour Opus statique, ce build utilisait aussi la toolchain CMake du NDK avec `arm64-v8a`, `ANDROID_PLATFORM=android-24` et `ANDROID_STL=none`, CMake 3.31.10 et Ninja 1.12.1. La commande a terminé en 228,7 s sous un Job Windows vidé après la fin du build : c’est une durée de compilation, pas une mesure de performance du moteur.
+
+`llvm-readelf -h -l -W` a confirmé deux ELF64 AArch64, chacun avec quatre segments `PT_LOAD` d’alignement `0x4000` et des offsets fichier/adresses virtuelles congruents modulo 16 Kio. Ni le conditionnement en APK, ni le chargement sur un noyau ARM64 à pages de 16 Kio, ni le comportement de la capture ou du TLS dans cette configuration ne sont vérifiés par ce contrôle. Les binaires de test temporaires ont été supprimés.
