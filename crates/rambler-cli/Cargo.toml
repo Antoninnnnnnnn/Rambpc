@@ -33,6 +33,11 @@ name = "minimal_app"
 required-features = ["audio"]
 test = true
 
+[[example]]
+name = "long_wav_qualification"
+required-features = ["audio"]
+test = true
+
 [features]
 default = []
 audio = ["dep:rambler-audio"]

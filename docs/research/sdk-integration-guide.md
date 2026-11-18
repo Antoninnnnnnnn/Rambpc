@@ -50,6 +50,13 @@ Drive capture concurrently and keep its handoff bounded: the helper stops pullin
 
 Only successfully finalized sessions enter `result.segments`. `result.text()` joins the strict text of every segment with one ASCII space, without trimming or fallback; an unsafe or ambiguous segment makes the projection fail. No editing context is accepted or carried across sessions. A failure returns the cause and earlier results in `error.completed`, without replay. The `_with_observer` variant numbers provisional responses by segment and emits `SegmentCompleted { segment_index, sample_range }` after a successful session. The range gives exact absolute half-open 16 kHz PCM sample offsets (after resampling if used, excluding Opus padding). Clear preview there and on failure or cancellation. Completion and its sample range do not imply successful text projection.
 
+For a paced, bounded WAV check, run the [`long_wav_qualification` example](../../crates/rambler-cli/examples/long_wav_qualification.rs). It reports the completed sample ranges and strict result status in JSON; text is omitted unless explicitly requested. It accepts an owned loopback fixture or an explicit TLS authority for a deployment you are authorized to use, with no default endpoint. When testing fidelity, use synthetic paragraphs and keep any `--include-text` report private. Sample coverage is not a speech fidelity result, and the `eof_minus_segment_audio_seconds` metric is a pacing proxy, not a microphone-stop or peer-delivery measurement.
+
+```sh
+cargo test --locked --offline -p rambler-cli --features audio --test long_pcm_dictation
+cargo test --locked --offline -p rambler-cli --features audio --example long_wav_qualification
+```
+
 ## 3. Observe preview and progress without taking over the collector
 
 For an already encoded `AudioSource`, use `collect_dictation(&engine, audio, options, limits)` if you only need the result, or `collect_dictation_with_observer(&engine, audio, options, limits, &mut observe)` for an ordered synchronous callback. The single-session PCM helpers above call these same collectors. They admit the audio immediately and collect within the same bounds; you do **not** call `EngineSession::next()` alongside them.

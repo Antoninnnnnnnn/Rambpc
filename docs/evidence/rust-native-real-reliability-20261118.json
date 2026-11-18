@@ -30,7 +30,22 @@
       "after_end_p95_s": 0.447,
       "after_end_max_s": 1.143
     },
-    "total": "149/150 exact; one remote DeadlineExceeded at the advertised 30 s budget after full upload; cause not established"
+    "total": "149/150 exact across the three batches; one remote DeadlineExceeded around the advertised 30 s budget after locally observed PCM and encoder EOF. Peer receipt and cause are not established."
+  },
+  "instrumented_endurance": {
+    "binary_sha256": "f3011558e6c8116bf326fa683aca92dfd395e144cf4a45f91afc0b792ce4b180",
+    "settings": "Sequential cold CLI processes, two alternating synthetic FR/EN WAVs, real-time pacing, 60 s overall / 5 s post-audio budgets; no retries.",
+    "planned_sessions": 150,
+    "completed_result_artifacts": 103,
+    "single_finals_with_local_pcm_input_and_output_eof": 103,
+    "distinct_texts_per_input": [1, 1],
+    "interruption": "Artifact 104 is empty; its outcome is indeterminate. No artifacts for 105 through 150; the batch was not replayed. Per-case exit codes were not recovered.",
+    "eof_minus_pcm_duration_seconds": {
+      "median": 0.363718,
+      "p95_nearest_rank": 0.462695,
+      "max": 0.859974
+    },
+    "limits": "Approximation using local timing, not peer delivery or microphone-stop latency. No timeout observed in the recovered results; this does not establish the cause or rule out recurrence."
   },
   "python_vs_rust_real": {
     "pairs": 6,
@@ -57,7 +72,7 @@
     },
     {
       "audio_s": 122.6,
-      "result": "repeated sentence de-duplicated by service",
+      "result": "One copy of the repeated sentence was returned; consistent with deduplication, but the cause was not established.",
       "after_end_s": 0.433
     },
     {
@@ -70,7 +85,7 @@
     }
   ],
   "findings": [
-    "Service appears to enforce a ~300 s stream limit; sessions beyond it lose all text. Apps must segment long dictation.",
+    "Two streams of longer audio returned no final text before remote failure at about 300 s. Use separately finalized sessions below the observed threshold for this profile; the threshold and cause are not established for other profiles.",
     "Default 30 s session budget includes speech; apps must raise it for dictation longer than ~25 s."
   ],
   "limits": [
