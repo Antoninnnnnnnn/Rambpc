@@ -20,6 +20,11 @@
 
 ## Portage Rust
 
+- [Résultats partiels et WAV 48 kHz](interactive-partial-wav48-windows-20261119.md) :
+  573 tests workspace réussis et 2 ignorés sur Rust stable, plus 28 CLI sans audio ;
+  5 tests ciblés Rust 1.88. Le vrai binaire conserve les plages exactes et ne
+  publie pas la dictée en mode diagnostic. Vérifié en loopback synthétique.
+
 - [Corrections de l’audit indépendant](rust-integration-outcomes-windows-20261119.md) :
   569 tests Rust réussis et 2 ignorés, plus 28 CLI sans audio par toolchain
   Windows (stable et 1.88), et 947 tests Python réussis. Résultats de dictée
