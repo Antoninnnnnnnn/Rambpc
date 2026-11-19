@@ -90,6 +90,61 @@ def test_invalid_target():
         GrpcTransport(target="")
 
 
+@pytest.mark.parametrize(
+    "target",
+    [
+        "example.invalid:443", "localhost:443", "192.0.2.1:443", "[2001:db8::1]:443",
+        "0.0.0.0:80", "127.0.0.1:0", "127.0.0.1:65536", "127.0.0.1:１２３",
+        "127.1:80", "127.0.0.1:+80", "[::1%test]:80", "[::ffff:127.0.0.1]:80",
+        "::1:80", "127.0.0.1 ",
+    ],
+)
+def test_plaintext_requires_explicit_numeric_loopback_authority(target):
+    with pytest.raises(ValueError, match="numeric loopback") as exc:
+        GrpcTransport(target, secure=False)
+    assert target not in str(exc.value)
+
+
+async def test_plaintext_target_revalidated_before_mutable_transport_opens(monkeypatch):
+    def unexpected_channel(*args, **kwargs):
+        pytest.fail("invalid destination reached channel creation")
+
+    monkeypatch.setattr(grpc.aio, "insecure_channel", unexpected_channel)
+    transport = GrpcTransport("example.invalid:443")
+    transport.secure = False
+    with pytest.raises(ValueError, match="numeric loopback"):
+        await transport.open()
+    assert transport._channel is None
+
+
+@pytest.mark.parametrize(
+    ("target", "direct_address"),
+    [("127.0.0.1:00443", "ipv4:127.0.0.1:443"), ("[0:0:0:0:0:0:0:1]:80", "ipv6:[::1]:80")],
+)
+async def test_plaintext_numeric_loopback_uses_direct_no_proxy_channel(
+    monkeypatch, target, direct_address,
+):
+    class FakeChannel:
+        async def channel_ready(self):
+            pass
+
+        async def close(self):
+            pass
+
+    channels = []
+
+    def channel(address, *, options):
+        channels.append((address, dict(options)))
+        return FakeChannel()
+
+    monkeypatch.setattr(grpc.aio, "insecure_channel", channel)
+    async with GrpcTransport(target, secure=False):
+        pass
+    assert len(channels) == 1
+    assert channels[0][0] == direct_address
+    assert channels[0][1]["grpc.enable_http_proxy"] == 0
+
+
 @pytest.mark.parametrize("timeout", [0, -1, float("inf"), float("nan")])
 async def test_invalid_timeouts(timeout):
     transport = GrpcTransport()

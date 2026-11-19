@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterable, AsyncIterator, Sequence
+import ipaddress
 import math
 from typing import Any
 
@@ -15,6 +16,40 @@ import grpc
 
 DEFAULT_TARGET = "speechs3proto2-pa.googleapis.com:443"
 DEFAULT_METHOD = "/speech.s3.S3StubbyClientConnectorService/S3Bidi"
+
+
+def _plaintext_loopback_target(target: str) -> str:
+    """Return a direct gRPC address for a numeric loopback TCP authority only."""
+    error = "plaintext gRPC requires a numeric loopback address and port"
+    if not isinstance(target, str):
+        raise ValueError(error)
+    bracketed = target.startswith("[")
+    if bracketed:
+        host, separator, port = target[1:].partition("]:")
+    else:
+        host, separator, port = target.rpartition(":")
+    if (
+        not separator
+        or "%" in host
+        or not (0 < len(port) <= 5 and port.isascii() and port.isdecimal())
+    ):
+        raise ValueError(error)
+    number = int(port)
+    if not 0 < number <= 65535:
+        raise ValueError(error)
+    try:
+        if bracketed:
+            address = ipaddress.IPv6Address(host)
+            if address != ipaddress.IPv6Address("::1"):
+                raise ValueError
+            return f"ipv6:[{address}]:{number}"
+        address = ipaddress.IPv4Address(host)
+        if not address.is_loopback:
+            raise ValueError
+        return f"ipv4:{address}:{number}"
+    except ValueError:
+        # Do not echo an untrusted target in an error that may enter logs.
+        raise ValueError(error) from None
 
 
 def _validate_timeout(timeout: float) -> None:
@@ -143,7 +178,9 @@ class GrpcTransport:
     """Reusable channel with isolated concurrent calls, confined to one event loop.
 
     TLS uses gRPC's standard trust roots and hostname verification. ``secure=False``
-    is reserved for loopback/test servers; never use it for production traffic.
+    accepts only an explicit numeric loopback TCP authority, e.g. ``127.0.0.1:12345``
+    or ``[::1]:12345``. Plaintext fixtures use a direct address, without DNS or a
+    proxy; use TLS for every other destination.
     Each stream owns its request iterator and closes it once on exit when it
     exposes ``aclose``. This cleanup is independent of writer cancellation and
     awaited before EOF; cleanup failures propagate instead of successful EOF.
@@ -174,6 +211,8 @@ class GrpcTransport:
     ) -> None:
         if not target:
             raise ValueError("target must not be empty")
+        if not secure:
+            _plaintext_loopback_target(target)
         if not method.startswith("/") or len(method.split("/")) != 3:
             raise ValueError("method must have the form /service/method")
         if any(not part for part in method.split("/")[1:]):
@@ -222,7 +261,12 @@ class GrpcTransport:
                     self.target, grpc.ssl_channel_credentials(), options=options
                 )
             else:
-                channel = grpc.aio.insecure_channel(self.target, options=options)
+                # target and secure are public attributes; validate again before
+                # opening or reopening, not just at construction.
+                target = _plaintext_loopback_target(self.target)
+                channel = grpc.aio.insecure_channel(
+                    target, options=(*options, ("grpc.enable_http_proxy", 0))
+                )
             try:
                 await asyncio.wait_for(channel.channel_ready(), timeout)
             except BaseException:
