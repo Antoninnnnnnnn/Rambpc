@@ -418,17 +418,16 @@ async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
     for blocked in [false, true] {
         bounded(async {
             let calls = Arc::new(AtomicUsize::new(0));
-            let hold_second = Arc::new(Notify::new());
-            let second_aborted = Arc::new(Notify::new());
+            let hold_last = Arc::new(Notify::new());
+            let last_aborted = Arc::new(Notify::new());
             let peer = TestServer::new({
                 let calls = Arc::clone(&calls);
-                let hold_second = Arc::clone(&hold_second);
-                let second_aborted = Arc::clone(&second_aborted);
+                let hold_last = Arc::clone(&hold_last);
+                let last_aborted = Arc::clone(&last_aborted);
                 move |request| {
                     let index = calls.fetch_add(1, Ordering::SeqCst);
-                    let hold_second = Arc::clone(&hold_second);
-                    let drop_guard =
-                        (index == 1).then(|| NotifyOnDrop(Arc::clone(&second_aborted)));
+                    let hold_last = Arc::clone(&hold_last);
+                    let drop_guard = (index == 2).then(|| NotifyOnDrop(Arc::clone(&last_aborted)));
                     async move {
                         assert_eq!(
                             drain(request.into_inner()).await.last().unwrap().as_ref(),
@@ -437,7 +436,8 @@ async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
                         let text = match index {
                             0 if blocked => "blocked synthetic text",
                             0 => "completed synthetic text",
-                            1 => "uncommitted synthetic text",
+                            1 => "",
+                            2 => "uncommitted synthetic text",
                             _ => panic!("unexpected replay or extra RPC"),
                         };
                         let mut hypothesis = string_field(1, text).unwrap();
@@ -456,10 +456,10 @@ async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
                         );
                         let messages =
                             stream::iter([Ok(final_response), Ok(Bytes::from_static(b"\x08\x01"))]);
-                        if index == 1 {
+                        if index == 2 {
                             Ok(replies(messages.chain(stream::once(async move {
                                 let _drop_guard = drop_guard;
-                                hold_second.notify_one();
+                                hold_last.notify_one();
                                 std::future::pending().await
                             }))))
                         } else {
@@ -485,19 +485,20 @@ async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
                 },
                 None,
                 async {
-                    hold_second.notified().await;
+                    hold_last.notified().await;
                     true // The production signal future returns this after Ctrl-C.
                 },
             )
             .await;
-            second_aborted.notified().await;
+            last_aborted.notified().await;
             assert_eq!(code, 130);
             assert_eq!(value["type"], "error");
             assert_eq!(value["category"], "cancelled");
+            assert!(value.get("outcome").is_none());
             assert!(value["close_error_category"].is_null());
             assert!(value.get("text").is_none());
             let segments = value["completed_segments"].as_array().unwrap();
-            assert_eq!(segments.len(), 1);
+            assert_eq!(segments.len(), 2);
             assert_eq!(segments[0]["sample_range"], serde_json::json!([0, 16_000]));
             if blocked {
                 assert_eq!(segments[0]["category"], "safety_blocked");
@@ -506,10 +507,16 @@ async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
                 assert_eq!(segments[0]["text"], "completed synthetic text");
                 assert_eq!(segments[0]["final_updates"].as_array().unwrap().len(), 1);
             }
+            assert_eq!(
+                segments[1]["sample_range"],
+                serde_json::json!([16_000, 32_000])
+            );
+            assert_eq!(segments[1]["outcome"], "no_result");
+            assert_eq!(segments[1]["no_result_reason"], "empty_text");
             let stdout = value.to_string();
             assert!(!stdout.contains("blocked synthetic text"));
             assert!(!stdout.contains("uncommitted synthetic text"));
-            assert_eq!(calls.load(Ordering::SeqCst), 2);
+            assert_eq!(calls.load(Ordering::SeqCst), 3);
             transport.close().await.unwrap();
             peer.close().await;
         })
@@ -519,7 +526,7 @@ async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
 
 #[cfg(feature = "audio")]
 #[tokio::test]
-async fn interactive_missing_text_preserves_exact_completed_ranges_but_fails_the_join() {
+async fn interactive_projection_preserves_exact_completed_ranges_but_fails_the_join() {
     use bytes::Bytes;
     use futures_util::stream;
     use interactive_peer::{TestServer, bounded, drain, replies};
@@ -590,7 +597,7 @@ async fn interactive_missing_text_preserves_exact_completed_ranges_but_fails_the
             .await;
             assert_eq!(code, 1, "{value}");
             assert_eq!(value["type"], "ambiguous");
-            assert_eq!(value["outcome"], "no_result");
+            assert_eq!(value["outcome"], "partial");
             assert!(value["text"].is_null());
             let segments = value["completed_segments"].as_array().unwrap();
             assert_eq!(segments.len(), 2);

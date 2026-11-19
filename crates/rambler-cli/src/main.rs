@@ -511,6 +511,7 @@ async fn run_interactive(
     );
     let (result, cleanup, interrupted) = supervise(collection, || engine.close(), signal).await;
     let failure = result.and_then(Result::err);
+    let mut has_usable_text = false;
     let mut missing = false;
     let mut needs_review = false;
     let mut projection_failure = None;
@@ -527,7 +528,7 @@ async fn run_interactive(
                 let mut value = match output(&result, policy) {
                     Ok((value, kind)) => {
                         match kind {
-                            OutputKind::UsableText => {}
+                            OutputKind::UsableText => has_usable_text = true,
                             OutputKind::NoResult(_) => missing = true,
                             // Independent segments cannot apply a replacement to each other.
                             OutputKind::VerifiedDeletion | OutputKind::NeedsReview => {
@@ -573,6 +574,12 @@ async fn run_interactive(
             )
         }
         (None, None, Ok(()), Some(error)) => (failure_output(&error, None, None), 1),
+        // Mixed projection is not joined success. The ordered segment envelopes
+        // are the only source of usable text and exact gap ranges.
+        (None, None, Ok(()), None) if has_usable_text && (missing || needs_review) => (
+            json!({"type":"ambiguous", "outcome":"partial", "text":null}),
+            1,
+        ),
         (None, None, Ok(()), None) if needs_review => (
             json!({"type":"ambiguous", "outcome":"needs_review", "text":null}),
             1,

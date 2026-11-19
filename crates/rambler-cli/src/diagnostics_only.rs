@@ -28,6 +28,7 @@ const CATEGORIES: &[&str] = &[
 ];
 const OUTCOMES: &[&str] = &[
     "usable_text",
+    "partial",
     "no_result",
     "needs_review",
     "verified_deletion",
