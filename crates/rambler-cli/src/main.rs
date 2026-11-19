@@ -1,3 +1,4 @@
+mod diagnostics_only;
 #[cfg(test)]
 mod tests;
 
@@ -64,6 +65,9 @@ struct CommonArgs {
     /// Final text projection (default: strict). Explicit selection reports text provenance.
     #[arg(long, value_enum)]
     result_policy: Option<ResultPolicy>,
+    /// Emit only diagnostic categories, durations and counters, without transcript or context.
+    #[arg(long)]
+    diagnostics_only: bool,
     /// Overall seconds per RPC (default 30; interactive: segment + 10 + finalization).
     #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
     timeout: Option<u64>,
@@ -285,11 +289,8 @@ fn output(
     }
     Ok((value, ambiguous))
 }
-fn print_error(category: &str, code: Option<String>) {
-    println!(
-        "{}",
-        json!({"type":"error", "category":category, "grpc_code":code, "timeline":null})
-    );
+fn basic_error(category: &str) -> Value {
+    json!({"type":"error", "category":category, "grpc_code":null, "timeline":null})
 }
 
 fn with_timeline(mut value: Value, diagnostic: Option<&SessionDiagnostic>) -> Value {
@@ -542,7 +543,7 @@ async fn main() {
         Ok(v) => v,
         Err(e) => {
             if e.use_stderr() {
-                print_error("arguments", None);
+                diagnostics_only::write_report(basic_error("arguments"), false);
                 std::process::exit(2);
             } else {
                 print!("{e}");
@@ -579,6 +580,7 @@ async fn main() {
         after,
         cursor_aware,
         result_policy,
+        diagnostics_only,
         timeout,
         finalize_timeout,
         context_timeout,
@@ -591,13 +593,14 @@ async fn main() {
         trigger_application_id,
         loopback,
     } = common;
+    let emit = |value| diagnostics_only::write_report(value, diagnostics_only);
     #[cfg(feature = "audio")]
     let profile = match input_kind {
         InputKind::InteractiveWav { segment_seconds } => {
             match interactive_profile(segment_seconds, timeout, finalize_timeout) {
                 Ok(profile) => Some(profile),
                 Err(_) => {
-                    print_error("configuration", None);
+                    emit(basic_error("configuration"));
                     std::process::exit(2);
                 }
             }
@@ -611,14 +614,14 @@ async fn main() {
         match loopback.map_or_else(|| Ok(TransportConfig::default()), TransportConfig::loopback) {
             Ok(v) => v,
             Err(_) => {
-                print_error("configuration", None);
+                emit(basic_error("configuration"));
                 std::process::exit(2);
             }
         };
     let (mut audio, pcm) = match open_audio(input, input_kind).await {
         Ok(audio) => audio,
         Err(category) => {
-            print_error(category, None);
+            emit(basic_error(category));
             std::process::exit(1);
         }
     };
@@ -629,7 +632,7 @@ async fn main() {
     {
         Ok(credentials) => credentials,
         Err(value) => {
-            println!("{}", pcm.append_to(value));
+            emit(pcm.append_to(value));
             std::process::exit(1);
         }
     };
@@ -637,7 +640,7 @@ async fn main() {
         Ok(e) => e,
         Err(e) => {
             let value = pre_session_failure_output(audio.as_mut(), &e).await;
-            println!("{}", pcm.append_to(value));
+            emit(pcm.append_to(value));
             std::process::exit(1);
         }
     };
@@ -683,7 +686,7 @@ async fn main() {
             async { tokio::signal::ctrl_c().await.is_ok() },
         )
         .await;
-        println!("{value}");
+        emit(value);
         if code != 0 {
             std::process::exit(code);
         }
@@ -704,41 +707,29 @@ async fn main() {
             .err()
             .map(error_category)
             .map_or((None, None), |(c, g)| (Some(c), g));
-        println!(
-            "{}",
-            pcm.append_to(with_timeline(json!({"type":"error", "category": if signal_ok { "cancelled" } else { "signal" }, "grpc_code":null, "close_error_category":close_category, "close_grpc_code":close_code}), diagnostic))
-        );
+        emit(pcm.append_to(with_timeline(json!({"type":"error", "category": if signal_ok { "cancelled" } else { "signal" }, "grpc_code":null, "close_error_category":close_category, "close_grpc_code":close_code}), diagnostic)));
         std::process::exit(if signal_ok { 130 } else { 1 });
     }
     let result = result.expect("collection or interrupt");
     match (result, cleanup) {
         (Err(e), cleanup) => {
-            println!(
-                "{}",
-                pcm.append_to(failure_output(&e, cleanup.as_ref().err(), diagnostic))
-            );
+            emit(pcm.append_to(failure_output(&e, cleanup.as_ref().err(), diagnostic)));
             std::process::exit(1);
         }
         (Ok(_), Err(e)) => {
             let (c, g) = error_category(&e);
-            println!(
-                "{}",
-                pcm.append_to(with_timeline(json!({"type":"error", "category":"cleanup", "grpc_code":null, "close_error_category":c, "close_grpc_code":g}), diagnostic))
-            );
+            emit(pcm.append_to(with_timeline(json!({"type":"error", "category":"cleanup", "grpc_code":null, "close_error_category":c, "close_grpc_code":g}), diagnostic)));
             std::process::exit(1);
         }
         (Ok(r), Ok(())) => {
             let (value, ambiguous) = match output(&r, result_policy) {
                 Ok(output) => output,
                 Err(error) => {
-                    println!(
-                        "{}",
-                        pcm.append_to(failure_output(&error, None, diagnostic))
-                    );
+                    emit(pcm.append_to(failure_output(&error, None, diagnostic)));
                     std::process::exit(1);
                 }
             };
-            println!("{}", pcm.append_to(value));
+            emit(pcm.append_to(value));
             if ambiguous {
                 std::process::exit(1);
             }

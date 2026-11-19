@@ -144,7 +144,17 @@ bruts, champs opaques, identifiants de résultat ou credentials. Une suppression
 valide reste `"text":""`. Une ambiguïté conserve les finales et produit un code
 de sortie non nul ; aucune dernière hypothèse n'est choisie arbitrairement. Le
 contenu textuel reste sensible : la sortie n'est pas un journal automatiquement
-anonymisé.
+anonymisé. Des finales non retenues comme texte utilisable peuvent encore contenir
+la dictée ou le contexte privé dans cette sortie détaillée.
+
+Pour brancher la CLI à la télémétrie, utiliser **`--diagnostics-only`** avec `dictate`
+ou `dictate-wav`. La projection retire le texte, les hypothèses et le contexte,
+y compris dans les segments terminés en mode interactif. Elle conserve seulement
+les catégories connues, durées, compteurs et plages d’échantillons et porte le marqueur
+`"diagnostics_only":true` après une analyse valide des arguments. Le code de sortie
+reste celui de la dictée. Cette option ne transforme pas la sortie en résultat de
+reconnaissance, ne change pas les données envoyées au service et ne masque pas les
+arguments que le système ou le shell peuvent conserver.
 
 `--loopback 127.0.0.1:PORT` est réservé aux tests locaux en clair. Il refuse les
 adresses non-loopback et n'utilise **pas** les credentials de l'environnement.
