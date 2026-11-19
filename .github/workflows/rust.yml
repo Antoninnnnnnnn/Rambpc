@@ -98,7 +98,7 @@ jobs:
         with:
           toolchain: '1.88.0'
           targets: aarch64-linux-android
-      - run: cargo fetch --locked --target aarch64-linux-android
+      - run: cargo fetch --locked
       - name: Link the SDK and Opus for Android ARM64
         shell: bash
         run: |
@@ -133,7 +133,7 @@ jobs:
         with:
           toolchain: '1.88.0'
           targets: aarch64-apple-ios,aarch64-apple-ios-sim
-      - run: cargo fetch --locked --target aarch64-apple-ios --target aarch64-apple-ios-sim
+      - run: cargo fetch --locked
       - name: Link the SDK and Opus for iPhone
         shell: bash
         run: |
