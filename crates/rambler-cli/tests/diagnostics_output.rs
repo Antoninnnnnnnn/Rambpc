@@ -75,6 +75,14 @@ async fn native_diagnostics_only_retains_status_without_dictation_or_context() {
                 value["type"],
                 if ambiguous { "ambiguous" } else { "result" }
             );
+            assert_eq!(
+                value["outcome"],
+                if ambiguous {
+                    "needs_review"
+                } else {
+                    "usable_text"
+                }
+            );
             assert!(value["metrics"]["responses_received"].as_u64().is_some());
             assert_eq!(stdout.contains(TRANSCRIPT), !diagnostics_only);
             assert_eq!(stdout.contains(EDITOR_CONTEXT), !diagnostics_only);
