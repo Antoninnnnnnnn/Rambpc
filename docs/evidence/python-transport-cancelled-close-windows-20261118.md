@@ -20,3 +20,9 @@ Three subsequent full runs with a per-loop watchdog all passed **931 tests, 4 sk
 ```sh
 python -m pytest -vv -s -o faulthandler_timeout=15 tests/test_transport.py
 ```
+
+## Independent audit follow-up, 19 November
+
+The audit of `debd06e3fb960eaf2254aa8b330b8918df9dff94` reported three interrupted full runs in the shutdown tests. With the same published candidate, isolated Python 3.14.5 and owned loopback, the original `test_close_waits_for_async_producer_cleanup_and_cancels_server` passed **120/120** times in separate pytest-owned loops, the transport suite passed **72/72** three times, and two full `pytest -q -s` runs each passed **947 tests, 5 skipped, 981 successful subtests**. An asyncio task watchdog was armed in each test loop; no loop snapshot fired. Each Job was empty on exit. The tracing plugin emitted one pytest import-order warning per run, not a transport failure.
+
+The interruptions remain **unexplained**, not fixed or ruled out by these repetitions. No transport change was made based on this follow-up. A future reproduction should capture pending coroutine locations as well as the main thread stack before the test process is stopped, without dumping task locals, audio or metadata.
