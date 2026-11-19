@@ -52,7 +52,7 @@ fermé et les sources coopératives sont nettoyées.
   `ResultLimitError`, sans résultat partiel présenté comme réussi.
 
 Exemple autonome : fournir un fichier Ogg/Opus continu mono 16 kHz en argument et
-configurer les métadonnées applicatives autorisées comme dans le [README](../README.md#configurer-laccès-et-dicter).
+configurer les métadonnées applicatives autorisées comme dans le [README](../README.md#accès-au-service).
 L'exemple ne lit aucun fichier de configuration lui-même et ne modifie aucun texte.
 
 ```python

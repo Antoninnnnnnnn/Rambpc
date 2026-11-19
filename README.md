@@ -13,7 +13,7 @@ pas d'insertion dans un éditeur : ces éléments appartiennent à l'application
 
 | Sujet | État | Détails |
 |---|---|---|
-| Cœur Rust, SDK et CLI fichier | Opérationnel. Tests hors ligne passés sous Windows, CI par lots sur Linux et macOS selon les lots | [ROADMAP](docs/ROADMAP.md), [rust.md](docs/rust.md) |
+| Cœur Rust, SDK et CLI fichier | Tests hors ligne sur Windows, Linux et macOS. Compilation pour Android ARM64 et iPhone, tests sur simulateur iOS. | [Guide de démarrage](app/README.md), [rust.md](docs/rust.md) |
 | Service réel | Réponses observées sur de petits corpus synthétiques et naturels (12 au 18 novembre 2026) | [Observations](#ce-qui-a-été-observé-sur-le-service-réel) |
 | Édition | Préparation d'un remplacement avec contrôle de contexte, validation avant application | [Guide SDK](docs/research/sdk-integration-guide.md) |
 | Parité PixelBoard | **Non complète** ; les modes avancés restent à qualifier | [Matrice de parité](docs/research/rust-feature-parity.md) |

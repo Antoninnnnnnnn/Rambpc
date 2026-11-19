@@ -1,6 +1,6 @@
 # Feuille de route du moteur natif Rambler
 
-**Objectif avant l’app.** Livrer un SDK Rust qui prend un flux audio et un contexte d’édition, puis rend un texte fiable ou une erreur exploitable sur Windows, macOS, Linux et Android. La future app fournira le microphone, le document actif et l’interface. Un petit programme de test suffit pour exercer aujourd’hui les mêmes entrées du SDK.
+**Objectif.** Livrer un SDK Rust qui prend un flux audio et un contexte d’édition, puis rend un texte fiable ou une erreur exploitable sur Windows, macOS, Linux, Android et iOS. La future app fournira le microphone, le document actif et l’interface. Les vérifications actuelles et le test de départ figurent dans le [guide de démarrage](../app/README.md).
 
 Plan établi le 18 novembre 2026 sur la révision `9a29ab8`. Le Xiaomi disponible a terminé 40 sessions locales avec les mêmes textes que Windows. Deux problèmes étaient reproductibles sans service de reconnaissance : le transport Android ne trouvait pas de racines par défaut, et la limite globale de 30 s interrompait un WAV de 31 s à cadence réelle. [Audit historique](research/audit-moteur-20261118.md) · [Mesures et versions](evidence/audit-moteur-20261118.json)
 
@@ -17,7 +17,7 @@ L’audit indépendant du commit `9120dec` a ensuite reproduit un succès trompe
 | Quand | Travail à engager | Résultat attendu |
 | --- | --- | --- |
 | Lot correctif | TLS Android, dictée temps réel, horodatage de fin et acceptation d’édition compatible. | APK vérifié sur API 34, plage intégrale sur cinq minutes de fichier local, séparation résultat/diagnostic et tests d’édition hors ligne. |
-| Avant d’intégrer le moteur | Qualifier les coupures, les éditions, l’endurance et le même parcours SDK sur les quatre systèmes. | L’app peut distinguer un texte final, une proposition à relire, une interruption et une indisponibilité réseau. |
+| Pendant l’intégration | Qualifier les coupures, les éditions et l’endurance avec les applications hôtes sur les plateformes visées. | L’app peut distinguer un texte final, une proposition à relire, une interruption et une indisponibilité réseau. |
 | À partir des mesures | Optimiser le coût qui pèse sur l’utilisateur. Étendre les formats audio, les langues et les modes avancés selon les résultats. | Chaque extension documente les plateformes couvertes, son effet observable et son coût. |
 
 ## 1. Faire fonctionner la connexion Android avec les réglages du téléphone
@@ -68,7 +68,7 @@ L’audit indépendant du commit `9120dec` a ensuite reproduit un succès trompe
 - Profiler CPU, mémoire, démarrage, volume transmis et chauffe pendant des sessions successives. Pour l’autonomie, répéter un scénario de même durée dans des conditions d’écran, de charge et de réseau comparables. L’encodage de cinq secondes de PCM à 16 kHz prenait déjà 22 à 48 ms sur le Xiaomi. Les médianes historiques approximatives de fin de dictée atteignaient 373 ms en français et 388 ms en anglais sur Windows.
 - **Vérification.** Pour chaque coût dominant identifié, comparer une seule modification à la fois, sur le même audio. Les premiers candidats sont la réutilisation de connexion, la durée des pages Ogg et les copies sur le chemin audio. Retenir un changement quand le gain sur la session complète est reproductible et que qualité, consommation et délai de fin restent acceptables. [Mesures du Xiaomi](evidence/audit-moteur-20261118.json) · [Profil CPU Windows](evidence/rust-native-pcm48-session-cpu-windows-20261118.md) · [Méthode de mesure](performance.md)
 
-## 7. Rendre l’entrée audio prévisible sur les quatre plateformes
+## 7. Rendre l’entrée audio prévisible sur les plateformes cibles
 
 - Le [tampon de capture optionnel](research/rust-pcm-capture.md) accepte des blocs PCM depuis un callback sans attendre le lecteur. Il réserve sa mémoire à l’avance ; une capacité dépassée est un échec explicite. Les tests retiennent artificiellement une finale pendant que des blocs représentant 60, 600 ou 900 ms sont offerts ; ils vérifient les paquets, les granules et le cas de débordement, ainsi que le 48 → 16 kHz continu. Ce ne sont pas des mesures de délai de callback matériel.
 - Consolider les chemins existants de PCM16 mono à 16 et 48 kHz et d’Ogg/Opus continu. Varier taille des blocs, dernier bloc incomplet, absence de parole et pression sur la file. Vérifier la durée décodée, l’ordre des échantillons et la fin audible avec un décodeur indépendant.
@@ -77,7 +77,7 @@ L’audit indépendant du commit `9120dec` a ensuite reproduit un succès trompe
 
 ## 8. Livrer un SDK utilisable et détecter les régressions
 
-- Compiler en Release et exécuter le même exemple de consommation sur Windows x64, Linux x64, macOS Intel et Apple Silicon, Android ARM64. Sur Android, charger la bibliothèque dans le petit APK et couvrir les pages mémoire de 4 et 16 Kio. Après les essais locaux et TLS, comparer une dictée et un remplacement sur le service avec le même audio public depuis chaque plateforme disponible. Indiquer pour chaque cible la dernière étape réellement vérifiée.
+- Utiliser les [vérifications automatiques](../app/README.md#ce-que-vérifie-github) comme point de départ. Sur Android, charger la bibliothèque dans l’APK et couvrir les pages mémoire de 4 et 16 Kio. Sur iOS, compléter les essais du simulateur par un essai dans l’application sur un iPhone. Comparer une dictée et un remplacement avec le même fichier audio sur chaque plateforme disponible et indiquer la dernière étape vérifiée.
 - Stabiliser le parcours public « ouvrir → fournir l’audio → arrêter ou annuler → lire le résultat → fermer ». Vérifier la réutilisation après erreur, préciser qui libère chaque ressource et préserver la compatibilité des sorties CLI. Si le langage de l’app exige un pont natif, exposer ce parcours et tester la durée de vie des tampons audio et des fonctions de rappel depuis ce langage.
 - Faire tourner en CI les scénarios courts de bout en bout et la comparaison Rust/Python sur les réponses connues. Conserver des fixtures expurgées pour les nouveaux formats observés, notamment champs inconnus, résultats multiples et finales tardives. Diagnostiquer les évolutions du service par version et provenance.
 - Produire par défaut des diagnostics de durée, de volumes, d’étape et de catégorie d’erreur. Tester avec des marqueurs fictifs que texte dicté, sélection, audio et métadonnées privées restent hors des journaux et rapports d’incident. Vérifier de nouveau dépendances et bibliothèque Opus à chaque mise à jour.
@@ -89,7 +89,7 @@ L’audit indépendant du commit `9120dec` a ensuite reproduit un succès trompe
 - **Hors connexion.** Livrer dès le socle un état réseau indisponible et une reprise propre de la prochaine dictée. La reconnaissance, la ponctuation et le nettoyage locaux demanderaient un composant embarqué distinct. Si cette capacité devient souhaitée, évaluer séparément qualité FR/EN, poids, CPU et autonomie avant de l’intégrer.
 - **Autres langues et architectures.** Étendre la matrice en fonction des utilisateurs visés. Chaque ajout reprend le même corpus adapté, les tests d’écriture propres à la langue et une exécution sur la cible annoncée.
 
-**Pour commencer l’app**, je viserais le même appel SDK fonctionnel sur les quatre plateformes, une dictée testée jusqu’à la durée annoncée, une reprise propre après coupure et des éditions qui préservent le reste du document. Le premier bilan FR/EN et la mesure du délai de fin donnent alors une base concrète pour juger l’expérience dans l’application.
+**Pour intégrer l’app**, partir du [parcours de démarrage](../app/README.md) et tester la capture jusqu’à la durée annoncée, la reprise après coupure et les éditions qui préservent le reste du document. Mesurer la qualité en français et en anglais ainsi que le délai entre la fin de la capture et le texte final.
 
 ## Travaux déjà validés
 

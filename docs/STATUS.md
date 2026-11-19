@@ -1,8 +1,9 @@
 # État du moteur — 2026-11-18
 
-Pour démarrer : [README](../README.md). Pour les priorités et les points
-ouverts : [feuille de route](ROADMAP.md). Pour les résultats vérifiables :
-[index des preuves](evidence/README.md).
+Le [guide de démarrage](../app/README.md) décrit la couverture actuelle des
+plateformes. Ce journal conserve les validations datées du moteur. Les actions
+en cours et les résultats sont détaillés dans la [feuille de route](ROADMAP.md)
+et l’[index des preuves](evidence/README.md).
 
 - **SDK et CLI natifs** : entrée Ogg/Opus ou PCM mono à 16/48 kHz et proposition
   d’édition UTF-16 sans application automatique. Le
