@@ -52,6 +52,9 @@ ffmpeg -i input.wav -ac 1 -ar 16000 -c:a libopus -b:a 24k -application voip inpu
 
 ## Intégrer le SDK dans une application
 
+Commencer par le [guide de démarrage dans `app/`](app/README.md) pour lancer
+l'exemple hors ligne et voir ce qui est vérifié sur chaque plateforme.
+
 Dépendances par chemin, depuis un checkout de ce dépôt (ajuster les chemins) :
 
 ```toml

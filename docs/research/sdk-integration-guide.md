@@ -22,6 +22,8 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 On Android only, call `rambler_transport::init_android_tls` from an app-owned JNI entry point after the application is bound and before a TLS connection. It uses the app's Android trust policy, not a Unix certificate path. Hostname verification and HTTP/2 remain required. See the [Android integration contract](../../crates/rambler-transport/ANDROID_TLS.md) and [on-device checks](../evidence/android-tls-host-app-20261118.md). Desktop usage does not require Android.
 
+On iOS, the transport verifies the server with Apple's Security framework and uses the system trust settings. This requires no app-side TLS initialization. Native certificate evaluation is synchronous. If it finishes after `connect_timeout`, the transport discards the connection and reports a timeout.
+
 ### Warm the connection before recording
 
 `Engine::connect` is eager: it resolves the endpoint, establishes TCP and verified TLS (except for explicit loopback), and initializes the HTTP/2 client, without starting an RPC. For a confirmed warm start, use `Engine::connect_ready(transport_config).await` during app startup. It also waits for one HTTP/2 PING acknowledgement within the same connection timeout, without an RPC or credential lookup. When sharing a transport, use `GrpcTransport::connect_ready` before `Engine::new`.
