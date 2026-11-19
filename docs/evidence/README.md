@@ -20,6 +20,12 @@
 
 ## Portage Rust
 
+- [Corrections de l’audit indépendant](rust-integration-outcomes-windows-20261119.md) :
+  569 tests Rust réussis et 2 ignorés, plus 28 CLI sans audio par toolchain
+  Windows (stable et 1.88), et 947 tests Python réussis. Résultats de dictée
+  explicites, sélection riche, télémétrie expurgée et transport Python local
+  éprouvés sur des fixtures, sans nouvel appel fournisseur.
+
 - [Corrections de capture et d’intégration](rust-capture-fidelity-windows-20261118.md) :
   559 tests réussis et 2 ignorés, plus 24 tests CLI sans audio avec chacune des
   toolchains Windows (stable et 1.88.0). Rollover avec PCM intégral, récupération
