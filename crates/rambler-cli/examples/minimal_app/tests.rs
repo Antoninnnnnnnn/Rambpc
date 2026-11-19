@@ -4,7 +4,7 @@ use crate::common::{TestServer, bounded, drain, replies};
 use futures_util::stream;
 use rambler_protocol::{
     AUDIO_DATA, AUDIO_INFO, RECOGNITION_RESPONSE, VOICE_EDITING_RESULT, context_request,
-    end_request, initial_request,
+    decode_response, end_request, initial_request,
     wire::{Field, Value, bytes_field as b, parse_fields, string_field as s, varint_field as v},
 };
 use std::{io::Cursor, sync::Mutex};
@@ -33,19 +33,29 @@ fn preview(text: &str) -> Bytes {
     recognition(0, b(4, &b(1, &s(1, text).unwrap()).unwrap()).unwrap())
 }
 
-fn final_response(rewrite: bool) -> Bytes {
-    let mut hypothesis = s(1, "The kite stays aloft.").unwrap();
-    if rewrite {
-        let returned_window = [
-            s(1, "🪁 The kite is ").unwrap(),
-            s(2, "green").unwrap(),
-            s(3, ". Marker stays.").unwrap(),
-        ]
-        .concat();
-        let edit = [v(4, 3).unwrap(), b(7, &returned_window).unwrap()].concat();
-        hypothesis.extend(b(VOICE_EDITING_RESULT, &edit).unwrap());
-    }
+fn rewrite_final(before: &str, selected: &str, after: &str) -> Bytes {
+    let returned_window = [
+        s(1, before).unwrap(),
+        s(2, selected).unwrap(),
+        s(3, after).unwrap(),
+    ]
+    .concat();
+    let edit = [v(4, 3).unwrap(), b(7, &returned_window).unwrap()].concat();
+    let hypothesis = [
+        s(1, "The kite stays aloft.").unwrap(),
+        b(VOICE_EDITING_RESULT, &edit).unwrap(),
+    ]
+    .concat();
     recognition(1, b(3, &b(3, &hypothesis).unwrap()).unwrap())
+}
+
+fn final_response(rewrite: bool) -> Bytes {
+    if rewrite {
+        rewrite_final("🪁 The kite is ", "green", ". Marker stays.")
+    } else {
+        let hypothesis = s(1, "The kite stays aloft.").unwrap();
+        recognition(1, b(3, &b(3, &hypothesis).unwrap()).unwrap())
+    }
 }
 
 fn verify_upload(messages: &[Bytes], pcm16_samples: usize) -> Vec<Bytes> {
@@ -57,7 +67,10 @@ fn verify_upload(messages: &[Bytes], pcm16_samples: usize) -> Vec<Bytes> {
     let [context, end] = &messages[messages.len() - 2..] else {
         unreachable!()
     };
-    assert_eq!(*context, context_request(&demo_window().0).unwrap());
+    assert_eq!(
+        *context,
+        context_request(&demo_editor().window().unwrap()).unwrap()
+    );
     assert_eq!(end.as_ref(), end_request().as_slice());
 
     let mut ogg = Vec::new();
@@ -134,7 +147,8 @@ async fn wav_to_strict_text_and_compatible_review_on_owned_loopback() {
         std::fs::write(&path, sample_wav(hz)).unwrap();
         let bytes = wav::read(&path).await.unwrap();
         let wav = Wav::parse(&bytes).unwrap();
-        let (window, revision) = demo_window();
+        let editor = demo_editor();
+        let captured = editor.capture().unwrap();
         let mut current_preview = None;
         let mut previous_previews = Vec::new();
         let engine = bounded(Engine::connect_ready(
@@ -142,9 +156,14 @@ async fn wav_to_strict_text_and_compatible_review_on_owned_loopback() {
         ))
         .await
         .unwrap();
-        let result = bounded(collect_wav(&engine, None, wav, &window, None, |next| {
-            previous_previews.push(std::mem::replace(&mut current_preview, next))
-        }))
+        let result = bounded(collect_wav(
+            &engine,
+            None,
+            wav,
+            &captured.window,
+            None,
+            |next| previous_previews.push(std::mem::replace(&mut current_preview, next)),
+        ))
         .await
         .unwrap();
         assert_eq!(current_preview, None);
@@ -152,18 +171,18 @@ async fn wav_to_strict_text_and_compatible_review_on_owned_loopback() {
             previous_previews,
             [None, Some("The kite".into()), Some("The kite stays".into())]
         );
-        assert_eq!(result.context.as_ref(), Some(&window));
-        let review = propose_for_review(&result, revision.clone(), &window, &revision);
+        assert_eq!(result.context.as_ref(), Some(&captured.window));
+        let review = propose_for_review(&result, Some(&captured), &editor);
         if rewrite {
             assert!(matches!(result.text(), Err(EngineError::AmbiguousResult)));
-            let review = review.unwrap();
-            assert_eq!(review.splice, Some((15..19, "green".into())));
-            assert_eq!(review.resulting_selection, Some((15, 20)));
-            assert!(matches!(
-                propose_for_review(&result, revision, &window, &Revision::from(2_i64)),
-                Err(EngineError::ContextConflict)
-            ));
-            assert_eq!(window.selected, "blue");
+            assert_eq!(
+                review.unwrap(),
+                Some(Review::Anchored {
+                    splice: Some((22..26, "green".into())),
+                    resulting_selection: Some((15, 20)),
+                })
+            );
+            assert_eq!(editor.window().unwrap().selected, "blue");
         } else {
             assert_eq!(result.text().unwrap(), "The kite stays aloft.");
             assert!(matches!(review, Err(EngineError::UnsupportedEdit)));
@@ -172,6 +191,134 @@ async fn wav_to_strict_text_and_compatible_review_on_owned_loopback() {
         bounded(server.close()).await;
         dir.close().unwrap();
     }
+}
+
+fn styled_editor() -> EditorSnapshot<'static> {
+    EditorSnapshot {
+        target: EditorTarget {
+            document_id: 11,
+            // The astral prefix is five UTF-8 bytes but only three UTF-16 units.
+            window_bytes: 5..16,
+            selection_bytes: 5..11,
+        },
+        revision: Revision::from(7_i64),
+        document: "🧭[Paris Paris][Paris Paris]",
+    }
+}
+
+fn mocked_rewrite(
+    captured: &CapturedEdit,
+    before: &str,
+    selected: &str,
+    after: &str,
+) -> DictationResult {
+    DictationResult {
+        final_updates: vec![decode_response(&rewrite_final(before, selected, after)).unwrap()],
+        context: Some(captured.window.clone()),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn anchored_deletion_preserves_the_second_paris_and_its_link() {
+    let editor = styled_editor();
+    let captured = editor.capture().unwrap();
+    let completed = mocked_rewrite(&captured, "", "", "Paris");
+    let Some(Review::Anchored {
+        splice: Some((range, text)),
+        ..
+    }) = propose_for_review(&completed, Some(&captured), &editor).unwrap()
+    else {
+        panic!("expected a selection-anchored deletion");
+    };
+    assert_eq!(range, 3..9); // Window-local 0..6, translated to this document.
+    assert!(text.is_empty());
+    // Mock an exact-range editor deletion, tracking one style per UTF-16 unit.
+    let apply = |range| {
+        let mut styled: Vec<_> = editor
+            .document
+            .encode_utf16()
+            .enumerate()
+            .map(|(i, unit)| {
+                (
+                    unit,
+                    if (9..14).contains(&i) {
+                        Some("link")
+                    } else {
+                        None
+                    },
+                )
+            })
+            .collect();
+        styled.drain(range);
+        let (units, styles): (Vec<_>, Vec<_>) = styled.into_iter().unzip();
+        (String::from_utf16(&units).unwrap(), styles)
+    };
+    let (result, styles) = apply(range);
+    assert_eq!(result, "🧭[Paris][Paris Paris]");
+    assert_eq!(&styles[3..8], &[Some("link"); 5]);
+
+    // General textual diff would choose window-local 5..11: same characters,
+    // wrong occurrence. The rich-edit code path must never fall back to it.
+    let (general_result, general_styles) = apply(8..14);
+    assert_eq!(general_result, result);
+    assert_eq!(&general_styles[3..8], &[None; 5]);
+}
+
+#[test]
+fn transaction_rejects_wrong_field_window_selection_cursor_or_revision() {
+    let editor = styled_editor();
+    let captured = editor.capture().unwrap();
+    let completed = mocked_rewrite(&captured, "", "", "Paris");
+    let reject = |current: &EditorSnapshot<'_>| {
+        assert!(matches!(
+            propose_for_review(&completed, Some(&captured), current),
+            Err(EngineError::ContextConflict)
+        ));
+    };
+
+    let mut other = editor.clone();
+    other.target.document_id += 1;
+    assert_eq!(other.window().unwrap(), captured.window);
+    assert_eq!(other.revision, captured.revision);
+    reject(&other);
+
+    let mut moved_window = editor.clone();
+    moved_window.target.window_bytes = 18..29;
+    moved_window.target.selection_bytes = 18..24;
+    assert_eq!(moved_window.window().unwrap(), captured.window);
+    reject(&moved_window);
+
+    for selection in [6..12, 11..11] {
+        let mut moved = editor.clone();
+        moved.target.selection_bytes = selection;
+        reject(&moved);
+    }
+
+    let mut revised = editor.clone();
+    revised.revision = Revision::from(8_i64);
+    reject(&revised); // Same visible text, newer document revision.
+
+    let mut changed_window = editor.clone();
+    changed_window.document = "🧭[Paris Lyon!][Paris Paris]";
+    reject(&changed_window); // Re-read the actual document, not the captured split.
+
+    assert_eq!(propose_for_review(&completed, None, &editor).unwrap(), None);
+}
+
+#[test]
+fn rewrite_without_proven_selection_scope_is_for_review_only() {
+    let editor = styled_editor();
+    let captured = editor.capture().unwrap();
+    // Same final text as the verified deletion, but its structured split does
+    // not preserve the captured surroundings. It cannot establish a range.
+    let completed = mocked_rewrite(&captured, "Paris", "", "");
+    assert_eq!(
+        propose_for_review(&completed, Some(&captured), &editor).unwrap(),
+        Some(Review::Unanchored {
+            proposed_window: "Paris".into()
+        })
+    );
 }
 
 #[tokio::test]
@@ -209,7 +356,7 @@ async fn wav_retry_requires_approval_and_reuses_encoded_pages() {
             &engine,
             None,
             Wav::parse(&bytes).unwrap(),
-            &demo_window().0,
+            &demo_editor().window().unwrap(),
             Some(approve),
             |_| {},
         ))

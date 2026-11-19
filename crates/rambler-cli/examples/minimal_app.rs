@@ -44,18 +44,68 @@ struct Args {
     wav: PathBuf,
 }
 
-fn demo_window() -> (EditingContext, Revision) {
-    // A synthetic editor window; no file, clipboard or real editor is involved.
-    (
-        EditingContext {
-            before: "🪁 The kite is ".into(),
-            selected: "blue".into(),
-            after: ". Marker stays.".into(),
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct EditorTarget {
+    // Identity of the actual editable buffer/field, not a title or its text.
+    document_id: u64,
+    window_bytes: Range<usize>,
+    selection_bytes: Range<usize>, // A caret is a collapsed selection.
+}
+
+#[derive(Clone)]
+struct EditorSnapshot<'a> {
+    target: EditorTarget,
+    revision: Revision,
+    document: &'a str,
+}
+
+struct CapturedEdit {
+    target: EditorTarget,
+    revision: Revision,
+    window: EditingContext,
+}
+
+impl EditorSnapshot<'_> {
+    fn window(&self) -> Result<EditingContext, EngineError> {
+        let window = &self.target.window_bytes;
+        let selection = &self.target.selection_bytes;
+        if selection.start < window.start || selection.end > window.end {
+            return Err(EngineError::ContextConflict);
+        }
+        let read = |range| self.document.get(range).ok_or(EngineError::ContextConflict);
+        Ok(EditingContext {
+            before: read(window.start..selection.start)?.into(),
+            selected: read(selection.clone())?.into(),
+            after: read(selection.end..window.end)?.into(),
             cursor_aware: true,
             ..Default::default()
+        })
+    }
+
+    fn capture(&self) -> Result<CapturedEdit, EngineError> {
+        Ok(CapturedEdit {
+            target: self.target.clone(),
+            revision: self.revision.clone(),
+            window: self.window()?,
+        })
+    }
+}
+
+fn demo_editor() -> EditorSnapshot<'static> {
+    // A synthetic editor window within a document; no clipboard or real editor.
+    let prefix = "Draft: ";
+    let before = "🪁 The kite is ";
+    let document = "Draft: 🪁 The kite is blue. Marker stays.";
+    let selection_start = prefix.len() + before.len();
+    EditorSnapshot {
+        target: EditorTarget {
+            document_id: 1,
+            window_bytes: prefix.len()..document.len(),
+            selection_bytes: selection_start..selection_start + "blue".len(),
         },
-        Revision::from(1_i64),
-    )
+        revision: Revision::from(1_i64),
+        document,
+    }
 }
 
 async fn collect_audio(
@@ -155,30 +205,63 @@ async fn collect_wav(
     Ok(result)
 }
 
-struct Review {
-    splice: Option<(Range<usize>, String)>,
-    resulting_selection: Option<(usize, usize)>,
+#[derive(Debug, PartialEq, Eq)]
+enum Review {
+    Anchored {
+        // Document-local UTF-16 range; the resulting selection is window-local.
+        splice: Option<(Range<usize>, String)>,
+        resulting_selection: Option<(usize, usize)>,
+    },
+    Unanchored {
+        proposed_window: String,
+    },
 }
 
 fn propose_for_review(
     completed: &DictationResult,
-    captured_revision: Revision,
-    current_window: &EditingContext,
-    current_revision: &Revision,
-) -> Result<Review, EngineError> {
+    pending: Option<&CapturedEdit>,
+    current: &EditorSnapshot<'_>,
+) -> Result<Option<Review>, EngineError> {
+    let Some(captured) = pending else {
+        return Ok(None); // Cancelled/dismissed request: ignore a late response.
+    };
+    // A real editor must get these values from the actual target inside one
+    // transaction. For an approved apply, keep that transaction open through
+    // derivation, full-document boundary checks and the exact-range edit.
+    if current.target != captured.target || current.revision != captured.revision {
+        return Err(EngineError::ContextConflict);
+    }
+    if completed.context.as_ref() != Some(&captured.window) {
+        return Err(EngineError::ContextConflict);
+    }
+    let current_window = current.window()?;
     let proposal = replacement_proposal_with_policy(
         completed,
-        Some(captured_revision),
+        Some(captured.revision.clone()),
         RenderPolicy::S3ClientCompatible,
     )?;
-    proposal.validate_current(current_window, Some(current_revision))?;
-    let splice = proposal
-        .derive_scalar_splice(current_window, current_revision)?
-        .map(|splice| (splice.original_utf16_range(), splice.inserted_text().into()));
-    Ok(Review {
+    let splice = match proposal.derive_selection_splice(&current_window, &current.revision) {
+        Ok(splice) => splice.map(|splice| {
+            let offset = current.document[..current.target.window_bytes.start]
+                .encode_utf16()
+                .count();
+            let range = splice.original_utf16_range();
+            (
+                offset + range.start..offset + range.end,
+                splice.inserted_text().into(),
+            )
+        }),
+        Err(EngineError::UnsupportedEdit) => {
+            return Ok(Some(Review::Unanchored {
+                proposed_window: proposal.replacement_text,
+            }));
+        }
+        Err(error) => return Err(error),
+    };
+    Ok(Some(Review::Anchored {
         splice,
         resulting_selection: proposal.selection_utf16_range(),
-    })
+    }))
 }
 
 fn confirm_retry() -> bool {
@@ -204,13 +287,14 @@ async fn main() -> AppResult<()> {
     // Warm up once, outside the collection flow. A UI can do this at startup
     // and keep this engine alive across many utterances.
     let engine = Engine::connect_ready(transport).await?;
-    let (window, revision) = demo_window(); // Capture window and revision together.
+    let editor = demo_editor();
+    let captured = editor.capture()?; // Capture identity, ranges, window and revision together.
     let mut preview = None;
     let completed = collect_wav(
         &engine,
         Some(credentials),
         wav,
-        &window,
+        &captured.window,
         args.offer_retry.then_some(confirm_retry),
         |next| preview = next, // Publish to one replace-latest UI slot, not a log.
     )
@@ -231,20 +315,28 @@ async fn main() -> AppResult<()> {
         Ok(text) => println!("Final (strict): {text:?}"),
         Err(error) => eprintln!("No strict final text: {error}"),
     }
-    // The synthetic editor is immutable. A real host would verify document
-    // identity and window anchor and re-read the live window/revision here.
-    match propose_for_review(&completed, revision.clone(), &window, &revision) {
-        Ok(review) => {
-            if let Some((range, text)) = review.splice {
-                println!("Proposed window-local UTF-16 splice {range:?}: {text:?} (not applied)");
+    // The synthetic editor is immutable. A real host would take a fresh
+    // snapshot of the actual current target inside its editor transaction.
+    match propose_for_review(&completed, Some(&captured), &editor) {
+        Ok(Some(Review::Anchored {
+            splice,
+            resulting_selection,
+        })) => {
+            if let Some((range, text)) = splice {
+                println!("Proposed document UTF-16 splice {range:?}: {text:?} (not applied)");
             } else {
                 println!("Proposal has no text change (not applied)");
             }
-            if let Some(selection) = review.resulting_selection {
+            if let Some(selection) = resulting_selection {
                 println!("Proposed selection in resulting window: {selection:?} (not applied)");
             }
         }
+        Ok(Some(Review::Unanchored { proposed_window })) => {
+            println!("Review only; cannot establish selection scope: {proposed_window:?}");
+        }
+        Ok(None) => {} // No pending request.
         Err(EngineError::UnsupportedEdit) => println!("No selection rewrite proposal"),
+        Err(EngineError::ContextConflict) => println!("Editor target changed; proposal discarded"),
         Err(error) => return Err(error.into()),
     }
     Ok(())

@@ -182,6 +182,8 @@ async fn collect_rows(engine: &Engine, peer: &Peer) -> Check<Vec<Value>> {
 
 // The SDK only knows the text split and revision. This test-only host owns the
 // document and anchor checks and deliberately contains an identical second window.
+// The fixture compares general scalar and grapheme diffs; for an actual
+// selection rewrite, use the selection-anchored review path in minimal_app.
 fn verify_host_transaction(
     proposal: &ReplacementProposal,
     context: &EditingContext,
