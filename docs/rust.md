@@ -159,6 +159,9 @@ arguments que le système ou le shell peuvent conserver.
 `--loopback 127.0.0.1:PORT` est réservé aux tests locaux en clair. Il refuse les
 adresses non-loopback et n'utilise **pas** les credentials de l'environnement.
 Le chemin normal utilise TLS vérifié avec les racines système et ALPN HTTP/2.
+La référence Python restreint également `GrpcTransport(..., secure=False)`
+aux adresses numériques de boucle locale avec port explicite (`127.0.0.1:PORT`
+ou `[::1]:PORT`), sans résolution de nom ni proxy. Utiliser TLS ailleurs.
 
 ## CLI PCM native optionnelle
 
@@ -197,9 +200,10 @@ est distinct de ces preuves réseau. Les notices
 [libopus/wrapper](../crates/rambler-audio/THIRD_PARTY_LICENSES) accompagnent toute
 redistribution du binaire audio.
 
-Ctrl-C pendant collecte ou fermeture supprime le résultat, annule puis attend le
-nettoyage, avec erreur JSON et exit 130. Une erreur de fermeture est également
-indiquée. La supervision est testée par simulation déterministe et par
+Ctrl-C pendant collecte ou fermeture annule puis attend le nettoyage, avec erreur
+JSON et exit 130. En dictée interactive, les [segments déjà validés](research/recoverable-segment-delivery.md)
+sont conservés dans la sortie privée, sans texte global. Une erreur de fermeture
+est également indiquée. La supervision est testée par simulation déterministe et par
 [signal console Windows réel en loopback](evidence/rust-windows-ctrl-c.json), dans
 une nouvelle console dont les seuls processus attachés sont le pilote et son
 client enfant. Le premier pilote a temporisé ; l'isolation/héritage console a été
