@@ -1,112 +1,66 @@
-# Conteneurs de réponse Rust : structure sans politique de rendu
+# Rust response containers: structure without a rendering policy
 
-État : 2026-11-14. Schéma statique, tests offline ; **aucune nouvelle capacité du
-service validée**, aucun nouvel appel réseau ou essai Android. Ce lot ne change
-ni la requête, ni le wire parser, ni la sélection de texte du moteur.
+Status: 2026-11-14. Static schema, offline tests; **no new service capability validated**, no new network call or Android test. This batch changes neither the request, nor the wire parser, nor the engine's text selection.
 
-## Preuve et périmètre
+## Evidence and scope
 
-Les références Java suivantes concernent le build APK décrit dans
-[rust-feature-parity.md](rust-feature-parity.md). La vérification des métadonnées
-brutes a été confirmée par le parent du lot, après l'analyse Kimi
-`a99ede6646ef4ac75` ; les positions ci-dessous sont des repères de ce build,
-pas des identifiants pérennes d'API.
+The following Java references concern the APK build described in [rust-feature-parity.md](rust-feature-parity.md). Raw metadata verification was confirmed by the batch parent after the Kimi analysis `a99ede6646ef4ac75`; the positions below are landmarks for this build, not durable API identifiers.
 
-| Conteneur | Métadonnées vérifiées | API Rust |
+| Container | Verified metadata | Rust API |
 |---|---|---|
-|`RecognitionResult` / `aaln.java:33`|field5 : `aalp` singulier, présence bit4 (`0x10`) ; field7 : `aalp` singulier, présence bit5 (`0x20`) ; indépendants de3/4 et entre eux, **pas un oneof**|`hypothesis_result_field5`, `hypothesis_result_field7` : `Option<HypothesisResult>`|
-|`HypothesisResult` / `aalp.java:29`|field3 : `aalg` répété existant ; field5 : `aalo` singulier, présence `0x10`|`hypotheses` inchangé ; `fallback_field5: Option<HypothesisFallback>`|
-|`HypothesisFallback` / `aalo.java:27`|field1 : `aalg` singulier, présence bit0 ; **hypothèse complète, pas une string**|`hypothesis: Option<Hypothesis>`, `raw`, `unknown_fields`|
+|`RecognitionResult` / `aaln.java:33`|field5: singular `aalp`, presence bit4 (`0x10`); field7: singular `aalp`, presence bit5 (`0x20`); independent of 3/4 and each other, **not a oneof**|`hypothesis_result_field5`, `hypothesis_result_field7`: `Option<HypothesisResult>`|
+|`HypothesisResult` / `aalp.java:29`|field3: existing repeated `aalg`; field5: singular `aalo`, presence `0x10`|`hypotheses` unchanged; `fallback_field5: Option<HypothesisFallback>`|
+|`HypothesisFallback` / `aalo.java:27`|field1: singular `aalg`, presence bit0; **full hypothesis, not a string**|`hypothesis: Option<Hypothesis>`, `raw`, `unknown_fields`|
 
-Les noms par numéro n'attribuent pas de rôle métier non prouvé. Le mot
-`Fallback` désigne ici le wrapper vérifié, pas une consigne de sélection.
-Le champ10 de `RecognitionResult` reste opaque : la connaissance d'une map
-`int32 -> int64` dans `aalm.field5` ne suffit pas à nommer son rôle.
+Number-based names do not assign an unproven business role. `Fallback` here denotes the verified wrapper, not a selection instruction. `RecognitionResult` field10 remains opaque: knowing that `aalm.field5` contains an `int32 -> int64` map is not enough to name its role.
 
-## Fusion et conservation
+## Merging and preservation
 
-- Chaque message singulier fusionne récursivement toutes ses occurrences proto2.
-  Une occurrence vide conserve sa présence et n'efface pas les données antérieures.
-  Un wrapper field5 vide est distinct d'un wrapper avec field1 vide, lui-même
-  distinct de l'absence de wrapper.
-- Les hypothèses répétées field3 conservent ordre et doublons au sein de leur
-  conteneur. Les trois conteneurs et le résultat partiel field4 coexistent.
-- Le wrapper appelle le **même décodeur `Hypothesis`** que la liste primaire :
-  texte, confiance, safety field30 fermé0/1, VoiceEdit/oneof/contexte, raw et
-  inconnus ne sont pas projetés vers une simple chaîne.
-- Les mauvais wire types restent inconnus et ne créent ni présence ni changement
-  de valeur. Les valeurs safety inconnues ne suppriment pas un0/1 déjà reconnu.
-- `raw` racine reste exact ; le `raw` d'un singulier fusionné est la concaténation
-  logique des payloads originaux, pas une capture unique. Chaque occurrence est
-  parsée séparément : deux fragments malformés ne peuvent pas se réparer.
-- La limite racine reste **8 MiB** et le budget global **100000 champs**.
-  Chaque champ interprété est débité une seule fois, y compris les valeurs safety
-  et les branches ensuite effacées par le oneof de l'enveloppe. Les payloads
-  inconnus ne sont pas parcourus récursivement.
+- Each singular message recursively merges all its proto2 occurrences. An empty occurrence preserves presence and does not erase previous data. An empty field5 wrapper is distinct from a wrapper with an empty field1, which is itself distinct from an absent wrapper.
+- Repeated field3 hypotheses retain order and duplicates within their container. The three containers and partial result field4 coexist.
+- The wrapper calls the **same `Hypothesis` decoder** as the primary list: text, confidence, closed safety field30 0/1, VoiceEdit/oneof/context, raw and unknowns are not projected into a simple string.
+- Wrong wire types remain unknown and create neither presence nor a value change. Unknown safety values do not erase an already recognized 0/1.
+- Root `raw` remains exact; `raw` for a merged singular is the logical concatenation of the original payloads, not a single capture. Each occurrence is parsed separately: two malformed fragments cannot repair each other.
+- The root limit remains **8 MiB** and the global budget **100000 fields**. Each interpreted field is charged only once, including safety values and branches subsequently cleared by the envelope oneof. Unknown payloads are not traversed recursively.
 
-Des occurrences length-delimited autrefois opaques sont désormais validées comme
-messages : un contenu malformé sur ces chemins est maintenant une erreur, même
-si une occurrence ultérieure aurait fourni un résultat utilisable.
+Length-delimited occurrences formerly opaque are now validated as messages: malformed content on these paths is now an error, even if a later occurrence would have supplied a usable result.
 
-## Lecture structurelle et absence de priorité métier
+## Structural reading and absence of business priority
 
-`hypotheses()` et `partials()` restent limités à leurs chemins primaires
-existants. Aucun texte n'est concaténé, promu, sélectionné ou appliqué.
+`hypotheses()` and `partials()` remain limited to their existing primary paths. No text is concatenated, promoted, selected, or applied.
 
-`all_hypotheses()` est disponible sur `HypothesisResult`, `RecognitionResult` et
-`S3Response` pour l'inspection de tous les candidats du résultat actif. Son ordre
-est **canonique par conteneur**, pas un classement ni l'ordre global du wire :
+`all_hypotheses()` is available on `HypothesisResult`, `RecognitionResult`, and `S3Response` for inspection of all candidates in the active result. Its order is **canonical by container**, not a ranking or global wire order:
 
-1. conteneur RecognitionResult field3 : liste répétée, puis éventuel fallback ;
-2. conteneur field5 : liste répétée, puis éventuel fallback ;
-3. conteneur field7 : liste répétée, puis éventuel fallback.
+1. RecognitionResult field3 container: repeated list, then any fallback;
+2. field5 container: repeated list, then any fallback;
+3. field7 container: repeated list, then any fallback.
 
-Les champs publics des modèles permettent de retrouver cette provenance.
-L'itérateur ne ressuscite pas les résultats déjà effacés par le oneof extérieur
-et n'inclut pas les hypothèses partielles, qui ont un autre schéma.
-Le parent du lot adapte séparément la politique safety du moteur.
+Public model fields allow this provenance to be recovered. The iterator does not resurrect results already cleared by the outer oneof and does not include partial hypotheses, which have a different schema. The batch parent separately adapts the engine's safety policy.
 
-Il ne faut pas transplanter une priorité d'un autre client :
+A priority from another client must not be transplanted:
 
-- SmartDictation (`suz.java:128–189`) utilise le primaire3, puis le fallback
-  seulement si sa liste est vide ; il peut utiliser7 pour le non-final.
-- Rambler (`ihm.java:142–157,224–253`) ignore5/7/fallback sur ces chemins.
+- SmartDictation (`suz.java:128–189`) uses primary 3, then fallback only if its list is empty; it can use 7 for non-final.
+- Rambler (`ihm.java:142–157,224–253`) ignores 5/7/fallback on these paths.
 
-Ces comportements statiques distincts ne prouvent aucune priorité serveur ni
-aucune nouvelle fonction distante.
+These distinct static behaviors prove no server priority or new remote feature.
 
-## Validation offline
+## Offline validation
 
-`tests/response_containers.rs` apporte huit tests, dont :
+`tests/response_containers.rs` provides eight tests, including:
 
-- **11111 séquences exhaustives** de longueur0 à4, dix opérations indépendantes :
-  liste, fallback et fallback vide dans chacun des conteneurs3/5/7, et partiels4 ;
-  oracle par opérations indépendant des encodeurs/décodeurs de production,
-  fusion des enveloppes et égalité des modèles/raw ;
-- fusion récursive fallback → hypothèse complète → VoiceEdit → contexte,
-  conservation d'un safety1 malgré valeurs inconnues/occurrences vides ;
-- invariance aux mauvais wire types avec présence et inconnus exacts ;
-- chaque coupure intérieure d'un champ aux nouvelles frontières singulières,
-  y compris VoiceEdit/contexte et branches effacées ensuite ; contrôles positifs
-  pour les coupures entre champs ;
-- wire/UTF-8 invalides impossibles à masquer, field1 vérifié comme message ;
-- budget exact100000, rejet100001, avec safety et branches fusionnées/effacées ;
-  borne exacte8 MiB sur un nouveau chemin, rejet au-delà ; field10 toujours opaque.
+- **11111 exhaustive sequences** of length 0 to 4, ten independent operations: list, fallback and empty fallback in each of containers 3/5/7, and partials 4; operation-based oracle independent of production encoders/decoders, envelope merging and model/raw equality;
+- recursive fallback → full hypothesis → VoiceEdit → context merge, preserving safety 1 despite unknown values/empty occurrences;
+- invariance to wrong wire types with exact presence and unknowns;
+- every interior cut of a field at the new singular boundaries, including VoiceEdit/context and subsequently cleared branches; positive controls for cuts between fields;
+- invalid wire/UTF-8 cannot be masked, field1 verified as a message;
+- exact budget 100000, rejection at 100001, with safety and merged/cleared branches; exact 8 MiB limit on a new path, rejection above it; field10 still opaque.
 
-Vérifiés avec `CARGO_PROFILE_DEV_DEBUG=0`, `CARGO_PROFILE_TEST_DEBUG=0`,
-`CARGO_INCREMENTAL=0`, cible courte locale au worktree :
+Verified with `CARGO_PROFILE_DEV_DEBUG=0`, `CARGO_PROFILE_TEST_DEBUG=0`, `CARGO_INCREMENTAL=0`, short target local to the worktree:
 
-- nouveaux tests : **8/8** ;
-- suites existantes : adversarial4, decode20, requests10, safety5, wire4,
-  mutations/troncatures des fixtures1 ; doctest1 : **tous passent** ;
-- `cargo clippy -p rambler-protocol --all-targets --locked -- -D warnings` : OK.
+- new tests: **8/8**;
+- existing suites: adversarial 4, decode 20, requests 10, safety 5, wire 4, fixture mutations/truncations 1; doctest 1: **all pass**;
+- `cargo clippy -p rambler-protocol --all-targets --locked -- -D warnings`: OK.
 
-La suite intégrale initiale met en évidence une assertion historique à adapter
-par le parent dans `tests/fixtures.rs:146` : elle attendait RecognitionResult
-field5 dans les inconnus. Il devient logiquement structurel ; les fichiers de
-fixtures, payloads et SHA-256 ne sont pas modifiés par ce lot. Le test concerné
-n'est pas compté parmi les succès ci-dessus. La dernière exécution globale a
-explicitement exclu cette seule assertion historique en attente d'intégration.
+The initial full suite revealed a historical assertion for the parent to adapt in `tests/fixtures.rs:146`: it expected RecognitionResult field5 among the unknowns. It logically becomes structural; fixture files, payloads and SHA-256 are not changed by this batch. The affected test is not counted among the successes above. The last full run explicitly excluded only this historical assertion pending integration.
 
-Ces tests bornés ne sont ni une campagne de fuzzing exhaustive ni une preuve
-service. Aucun rendu nouveau n'est autorisé par ces seules structures.
+These bounded tests are neither an exhaustive fuzzing campaign nor service evidence. These structures alone authorize no new rendering.

@@ -1,299 +1,295 @@
-# Observations réseau
+# Network observations
 
-## Référence Android de développement
+## Android development reference
 
-- [android-reference-preflight1-public.json](android-reference-preflight1-public.json) :
-  APK officiel installé et vérifié, puis perte de session avant tout PCM armé.
-  Cause inconnue, état initial restauré, aucune qualification de dictée/parité.
-- [android-reference-sdk-diagnostics-public.json](android-reference-sdk-diagnostics-public.json) :
-  deux diagnostics distincts de20s sans audio, SDK lecture seule puis trois hooks
-  installés. Pas d'exécution du constructeur ART ni résolution rétroactive du premier échec.
-- [android-reference-active-ime-isolation-public.json](android-reference-active-ime-isolation-public.json) :
-  second préflight actif en erreur, puis cinq contrôles sans audio. Le constructeur
-  instrumenté minimal reproduit SIGSEGV dans `libart.so`, tandis que lecture seule
-  et hook de lecture seul tiennent20s ; cause exacte inconnue, restauration réussie,
-  zéro armement. Deux alternatives écartées statiquement, pas de dictée qualifiée.
-- [android-reference-editor-public.json](android-reference-editor-public.json) :
-  source originale d'éditeur à zéro permission, build host signé/vérifié et smoke
-  appareil contrôlé. SHA du rebuild à clé fraîche séparé de l'APK mesuré sur appareil.
-  [Protocole et limites](../research/android-reference-validation.md).
+- [android-reference-preflight1-public.json](android-reference-preflight1-public.json):
+  Official APK installed and verified, then session lost before any PCM was armed.
+  Cause unknown, initial state restored, no dictation or parity qualification.
+- [android-reference-sdk-diagnostics-public.json](android-reference-sdk-diagnostics-public.json):
+  Two separate 20 s diagnostics without audio, read-only SDK then three hooks
+  installed. No execution of the ART constructor or retroactive resolution of the first failure.
+- [android-reference-active-ime-isolation-public.json](android-reference-active-ime-isolation-public.json):
+  Second active preflight failed, followed by five checks without audio. The minimal
+  instrumented constructor reproduces SIGSEGV in `libart.so`, while read-only and a
+  read hook alone hold for 20 s; exact cause unknown, restoration successful,
+  zero arming. Two alternatives ruled out statically, no qualified dictation.
+- [android-reference-editor-public.json](android-reference-editor-public.json):
+  Original zero-permission editor source, signed/verified host build and controlled
+  device smoke test. Fresh-key rebuild SHA separate from the APK measured on device.
+  [Protocol and limits](../research/android-reference-validation.md).
 
-## Portage Rust
+## Rust port
 
-- [Résultats partiels et WAV 48 kHz](interactive-partial-wav48-windows-20261119.md) :
-  573 tests workspace réussis et 2 ignorés sur Rust stable, plus 28 CLI sans audio ;
-  5 tests ciblés Rust 1.88. Le vrai binaire conserve les plages exactes et ne
-  publie pas la dictée en mode diagnostic. Vérifié en loopback synthétique.
+- [Partial results and 48 kHz WAV](interactive-partial-wav48-windows-20261119.md):
+  573 workspace tests passed and 2 ignored on Rust stable, plus 28 CLI tests without audio;
+  5 targeted Rust 1.88 tests. The actual binary retains exact ranges and does not
+  publish dictation in diagnostic mode. Verified on synthetic loopback.
 
-- [Corrections de l’audit indépendant](rust-integration-outcomes-windows-20261119.md) :
-  569 tests Rust réussis et 2 ignorés, plus 28 CLI sans audio par toolchain
-  Windows (stable et 1.88), et 947 tests Python réussis. Résultats de dictée
-  explicites, sélection riche, télémétrie expurgée et transport Python local
-  éprouvés sur des fixtures, sans nouvel appel fournisseur.
+- [Independent audit corrections](rust-integration-outcomes-windows-20261119.md):
+  569 Rust tests passed and 2 ignored, plus 28 CLI tests without audio per Windows
+  toolchain (stable and 1.88), and 947 Python tests passed. Explicit dictation
+  results, rich selection, redacted telemetry and local Python transport exercised
+  on fixtures, without another provider call.
 
-- [Corrections de capture et d’intégration](rust-capture-fidelity-windows-20261118.md) :
-  559 tests réussis et 2 ignorés, plus 24 tests CLI sans audio avec chacune des
-  toolchains Windows (stable et 1.88.0). Rollover avec PCM intégral, récupération
-  des segments validés, raccord SDK/CLI, sélection riche et reprise TCP explicite.
-  Pairs locaux uniquement : ni appareil, ni micro, ni service réel.
+- [Capture and integration fixes](rust-capture-fidelity-windows-20261118.md):
+  559 tests passed and 2 ignored, plus 24 CLI tests without audio with each Windows
+  toolchain (stable and 1.88.0). Rollover with complete PCM, recovery of validated
+  segments, SDK/CLI joining, rich selection and explicit TCP recovery.
+  Local peers only: no device, microphone or real service.
 
-- [rust-pcm-engine-loopback.json](rust-pcm-engine-loopback.json) :
-  publication du15 novembre2026 d'exécutions du14 : cinq tests CLI du vrai canal
-  PCM/encodeur/moteur/transport avec pair tonic synthétique. CRC/durée et paquets
-  Ogg/Opus reçus, ordre sain/contexte tardif, abandon, réservation bloquée annulée
-  et END/OK précoce. L'abandon ne prouve que l'arrivée d'un en-tête/page Ogg,
-  pas celle d'échantillons.310 tests workspace passent sur chacun de Windows
-  stable/1.88 et Linux1.88 (0 échoué,1 ignoré), avec96 hashes sources identiques.
-  Exemple10 et feature-off30 passent sur les deux OS ; Clippy/fmt Windows et
-  builds/smokes release qualifiés. Zéro service/appareil, aucune dictée distante
-  supplémentaire ni changement production/dépendance.
-  [Contrats, périmètres exacts et limites](../research/rust-pcm-channel.md).
+- [rust-pcm-engine-loopback.json](rust-pcm-engine-loopback.json):
+  15 November 2026 publication of 14 November runs: five CLI tests of the actual
+  PCM channel/encoder/engine/transport with a synthetic tonic peer. Received
+  CRC/duration and Ogg/Opus packets, healthy order/late context, abandonment,
+  cancelled blocked reservation and early END/OK. Abandonment proves only arrival
+  of an Ogg header/page, not samples. 310 workspace tests pass on each of Windows
+  stable/1.88 and Linux 1.88 (0 failed, 1 ignored), with 96 identical source hashes.
+  Example 10 and feature-off 30 pass on both OSes; Windows Clippy/fmt and release
+  builds/smokes qualified. Zero service/device, no additional remote dictation
+  or production/dependency change.
+  [Contracts, exact scopes and limits](../research/rust-pcm-channel.md).
 
-- [rust-http2-boundaries.json](rust-http2-boundaries.json) :
-  revue parallèle de10 périmètres, deux corrections HTTP/2 reproduites RED/GREEN
-  et contre-revues : type MIME en casse mixte et validation précoce de cinq noms
-  de métadonnées interdits.305 tests workspace passent sur Windows stable/1.88
-  et Linux1.88 (un oracle ignoré), builds/smokes natifs et sources hashées identiques.
-  Zéro appel Rambler/appareil. [Contrats et limites](../research/rust-http2-boundaries.md).
+- [rust-http2-boundaries.json](rust-http2-boundaries.json):
+  Parallel review of 10 scopes, two HTTP/2 fixes reproduced RED/GREEN and independently
+  reviewed: mixed-case MIME type and early validation of five forbidden metadata
+  names. 305 workspace tests pass on Windows stable/1.88 and Linux 1.88 (one ignored
+  oracle), native builds/smokes and identical hashed sources. Zero Rambler/device
+  calls. [Contracts and limits](../research/rust-http2-boundaries.md).
 
-- [rust-pcm-channel.json](rust-pcm-channel.json) :
-  nouvelle entrée PCM à producteur unique et capacité1, arrêt normal explicite,
-  abandon distinct de l'EOF sain, réservations annulables et19 tests dédiés.
-  Exemple natif offline avec CRC/durée décodée vérifiés ; aucun appel service.
-  [Contrat et limites](../research/rust-pcm-channel.md).
+- [rust-pcm-channel.json](rust-pcm-channel.json):
+  New single-producer PCM input with capacity 1, explicit normal stop,
+  abandonment distinct from healthy EOF, cancellable reservations and 19 dedicated
+  tests. Offline native example with verified CRC/decoded duration; no service call.
+  [Contract and limits](../research/rust-pcm-channel.md).
 
-- [rust-credential-snapshots.json](rust-credential-snapshots.json) :
-  isolation de snapshots d'un fournisseur partagé, rotation puis retrait pendant
-  trois RPCs sur un seul TCP loopback, doublons/binaires exacts. Sensibilité
-  pré-envoi vérifiée séparément ; ni inspection HPACK ni renouvellement distant.
-  Suite transport :63 tests passent sur Windows stable/1.88 et Linux1.88 avec
-  sources hashées identiques ; zéro appel service/appareil.
-  [Contrat et limites](../research/rust-credential-snapshots.md).
+- [rust-credential-snapshots.json](rust-credential-snapshots.json):
+  Snapshot isolation from a shared provider, rotation then removal during three
+  RPCs on one loopback TCP connection, exact duplicates/binaries. Pre-send sensitivity
+  checked separately; no HPACK inspection or remote renewal. Transport suite:
+  63 tests pass on Windows stable/1.88 and Linux 1.88 with identical hashed sources;
+  zero service/device calls. [Contract and limits](../research/rust-credential-snapshots.md).
 
-- [rust-native-partials-msrv.json](rust-native-partials-msrv.json) :
- 10 tests ciblés de l'exemple passent sur chacun de Windows/MSVC1.88 et Linux1.88,
-  source hashée identique, zéro service/appareil. L'échec CMake initial Windows
-  dans un target profondément imbriqué reste distinct du succès au chemin ordinaire.
+- [rust-native-partials-msrv.json](rust-native-partials-msrv.json):
+  10 targeted example tests pass on each of Windows/MSVC 1.88 and Linux 1.88,
+  identical hashed source, zero service/device. Initial Windows CMake failure
+  in a deeply nested target remains separate from success at the ordinary path.
 
-- [rust-native-partials-public.json](rust-native-partials-public.json) :
-  un essai synthétique natif à débit temps réel, audio intégral vérifié et finale
-  saine ;20 réponses mais0 field4. Qualification des partiels **inconclusive**,
-  zéro retry et aucun second appel. [Observateur et limites](../research/rust-native-partials.md).
+- [rust-native-partials-public.json](rust-native-partials-public.json):
+  One synthetic native real-time-rate trial, complete audio verified and healthy
+  final; 20 responses but 0 field4. Partial qualification **inconclusive**,
+  zero retries and no second call. [Observer and limits](../research/rust-native-partials.md).
 
-- [rust-backend-decode-differential.json](rust-backend-decode-differential.json) :
- 6 791 entrées uniques,95 074 comparaisons de modèles/erreurs complets,
-  zéro différence avec la référence (limites production puis budget instrumenté).
-  Test Sol fini, pas preuve d'équivalence universelle ni revue Opus.
+- [rust-backend-decode-differential.json](rust-backend-decode-differential.json):
+  6,791 unique inputs, 95,074 comparisons of complete models/errors,
+  zero differences from the reference (production limits then instrumented budget).
+  Finite Sol test, not proof of universal equivalence or an Opus review.
 
-- [rust-backend-decode-defensive-capacity-profile.json](rust-backend-decode-defensive-capacity-profile.json) :
-  variante finale bornée,39→24 allocations/réponse et médianes CPU locales favorables.
-  Pics temporaires sparse environ+18,5% et outliers conservés ; pas de gain WAN.
-  [Méthode et limites](../research/rust-backend-decode-defensive-capacity.md).
+- [rust-backend-decode-defensive-capacity-profile.json](rust-backend-decode-defensive-capacity-profile.json):
+  Bounded final variant, 39→24 allocations/response and favorable local CPU medians.
+  Temporary sparse peaks around +18.5% and outliers retained; no WAN gain.
+  [Method and limits](../research/rust-backend-decode-defensive-capacity.md).
   [rust-backend-decode-allocations-profile.json](rust-backend-decode-allocations-profile.json)
-  conserve les mesures historiques de la variante V2 **rejetée**, pas du code livré.
+  retains historical measurements of the **rejected** V2 variant, not the shipped code.
 
-- [rust-recognizer-options-public.json](rust-recognizer-options-public.json) :
-  trois appels synthétiques du nouveau binaire, champs7/40 omis puis faux/vrais,
-  source PCM intégrale, même texte hashé, zéro retry. Acceptation sur le profil
-  testé, pas efficacité générale du filtre ou de la ponctuation. Field64 non essayé.
+- [rust-recognizer-options-public.json](rust-recognizer-options-public.json):
+  Three synthetic calls from the new binary, fields 7/40 omitted then false/true,
+  complete PCM source, same hashed text, zero retries. Acceptance on the tested
+  profile, not general filter or punctuation effectiveness. Field64 not tested.
 
-- [rust-backend-shared-raw-profile.json](rust-backend-shared-raw-profile.json) :
-  A/B du partage immuable des octets décodés,100 lignes CPU et40 sessions loopback.
-  Rétention logique12 635 008→3 686 912octets à payload identique (−70,82%).
-  Ce n'est pas une mesure RSS ni un gain WAN ; types `raw`/`active_raw` migrés
-  vers `Bytes`, avec conservation possible de la racine par un petit enfant.
+- [rust-backend-shared-raw-profile.json](rust-backend-shared-raw-profile.json):
+  A/B of immutable sharing of decoded bytes, 100 CPU rows and 40 loopback sessions.
+  Logical retention 12 635 008→3 686 912 bytes with identical payload (−70.82%).
+  This is not an RSS measurement or WAN gain; `raw`/`active_raw` types migrated
+  to `Bytes`, with possible retention of the root by a small child.
 
-- [rust-native-natural-public.json](rust-native-natural-public.json) : trois extraits
-  naturels licenciés EN/FR (18,885s), backend Rust consolidé, PCM réellement consommés
-  et hashés, trois rendus hashés identiques aux sorties Python historiques. Comparaison
-  rétrospective, pas un benchmark apparié ou une garantie de qualité générale.
+- [rust-native-natural-public.json](rust-native-natural-public.json): three licensed
+  natural EN/FR excerpts (18.885 s), consolidated Rust backend, PCM actually consumed
+  and hashed, three hashed renderings identical to historical Python outputs. Retrospective
+  comparison, not a paired benchmark or guarantee of general quality.
 
-- [rust-native-session-reuse-public.json](rust-native-session-reuse-public.json) :
-  trois cas contrôlés, un même moteur natif et un seul appel de connexion explicite,
-  hash des PCM réellement consommés, édition avec emoji et français, sans retry.
-  Connexion TCP physique distante non comptée ; une connexion est prouvée en loopback.
-- [rust-reuse-initial-marker-failure.json](rust-reuse-initial-marker-failure.json) :
-  lot original arrêté au premier cas, marqueur `eleven` contre rendu `11`. Il reste
-  inconclusif ; le lot qualifié suivant a déclaré ses variantes avant exécution.
-- [rust-backend-offline-profile.json](rust-backend-offline-profile.json) :
- 96 mesures CPU et40 sessions loopback, références et candidat à octets identiques.
-  Gain local d'allocation/sérialisation, pas de gain WAN revendiqué. Le snapshot
-  mesuré précède les modifications ultérieures ; [méthode et limites](../research/rust-backend-profiling.md).
+- [rust-native-session-reuse-public.json](rust-native-session-reuse-public.json):
+  Three controlled cases, one native engine and a single explicit connection call,
+  hash of PCM actually consumed, editing with emoji and French, without retry.
+  Remote physical TCP connections not counted; one connection is proven on loopback.
+- [rust-reuse-initial-marker-failure.json](rust-reuse-initial-marker-failure.json):
+  Original batch stopped at the first case, marker `eleven` versus rendering `11`. It remains
+  inconclusive; the following qualified batch declared its variants before execution.
+- [rust-backend-offline-profile.json](rust-backend-offline-profile.json):
+  96 CPU measurements and 40 loopback sessions, reference and candidate byte-identical.
+  Local allocation/serialization gain, no WAN gain claimed. The measured snapshot
+  predates later changes; [method and limits](../research/rust-backend-profiling.md).
 
-
-- [rust-incomplete-diagnostic-followup.json](rust-incomplete-diagnostic-followup.json) :
-  consolidation avec diagnostic typé et revue indépendante (attribution initiale
-  du modèle non certifiée ; voir la correction dans [les validations](../research/rust-build-validation.md)). Une qualification120s et
-  un unique300s réussissent, sans reproduire ni résoudre l'ancien incident282s.
+- [rust-incomplete-diagnostic-followup.json](rust-incomplete-diagnostic-followup.json):
+  Consolidation with typed diagnostics and independent review (initial model attribution
+  not certified; see correction in [validation](../research/rust-build-validation.md)). A 120 s qualification and
+  a single 300 s trial pass, without reproducing or resolving the old 282 s incident.
   [Qualification](rust-diagnostic-endurance-120-public.json) ·
-  [essai long diagnostique](rust-diagnostic-endurance-300-public.json).
-  L'ancien lot reste failed_or_inconclusive ; aucun troisième succès rétroactif.
+  [long diagnostic trial](rust-diagnostic-endurance-300-public.json).
+  The old batch remains failed_or_inconclusive; no retroactive third success.
 
-- [rust-pcm-functional-public.json](rust-pcm-functional-public.json) : PCM natif
-  accéléré/progressif au même texte, réécriture intention3 et sélection avec emoji ;
-  quatre appels réels Windows, libopus statique, source/lock/binaire hashés.
-- [rust-endurance-120-public.json](rust-endurance-120-public.json) et
-  [rust-endurance-300-public.json](rust-endurance-300-public.json) :120s sain, puis
-  premier288s sain mais deuxième `incomplete` à282s, troisième non lancé.
-  Le rapport du lot long reste **failed_or_inconclusive**, pas corrigé en3/3.
-  Chaque session est un processus/canal neuf ; les mesures ne valident pas la
-  réutilisation du canal ni une absence générale de fuite. La catégorie
-  `incomplete` vient de l'inspection de la sortie CLI privée ; l'ancienne projection
-  ne conserve que son exit non nul. Cause exacte non établie par cette capture.
-- [rust-windows-ctrl-c.json](rust-windows-ctrl-c.json) : vrai signal Windows dans
-  une console isolée, client/RPC loopback annulé, exit130 ; aucun Google. Le premier
-  pilote a temporisé puis a été corrigé, sans changer le binaire.
+- [rust-pcm-functional-public.json](rust-pcm-functional-public.json): native PCM
+  accelerated/progressive with the same text, intent 3 rewrite and selection with emoji;
+  four real Windows calls, static libopus, source/lock/binary hashed.
+- [rust-endurance-120-public.json](rust-endurance-120-public.json) and
+  [rust-endurance-300-public.json](rust-endurance-300-public.json): healthy 120 s, then
+  first 288 s healthy but second `incomplete` at 282 s, third not started.
+  The long-batch report remains **failed_or_inconclusive**, not corrected to 3/3.
+  Each session is a new process/channel; the measurements validate neither channel
+  reuse nor general absence of leaks. The `incomplete` category comes from inspection
+  of private CLI output; the old projection retains only its nonzero exit. Exact cause
+  not established by this capture.
+- [rust-windows-ctrl-c.json](rust-windows-ctrl-c.json): real Windows signal in
+  an isolated console, loopback client/RPC cancelled, exit 130; no Google. The first
+  driver timed out then was corrected, without changing the binary.
 
-- [rust-first-slice-public.json](rust-first-slice-public.json) : trois sessions
-  réelles d'une CLI release **Rust** sur Windows, Ogg/Opus déjà encodé : anglais,
-  édition sur contexte et français. Le binaire fonctionne avec un PATH système
-  sans Python/FFmpeg ; Python ne sert que de lanceur de développement. TLS vérifié,
-  END S3 et gRPC OK, sortie après nettoyage, zéro retry. Hashes exacts du binaire,
-  du lock et des fichiers sources avant leur premier commit d'intégration.
-  Les textes synthétiques connus ont été inspectés ; pas de nouvelle inspection
-  binaire indépendante, ni preuve d'endurance/PCM natif ou de gain de vitesse Rust.
-  Les captures stdout/stderr originales restent dans `artifacts/`, hors git.
+- [rust-first-slice-public.json](rust-first-slice-public.json): three real sessions
+  of a **Rust** release CLI on Windows, already encoded Ogg/Opus: English,
+  context editing and French. The binary works with a system PATH without
+  Python/FFmpeg; Python is only a development launcher. TLS verified,
+  S3 END and gRPC OK, exit after cleanup, zero retries. Exact hashes of the binary,
+  lock and source files before their first integration commit.
+  Known synthetic texts were inspected; no new independent binary inspection,
+  proof of endurance/native PCM or Rust speedup. Original stdout/stderr captures
+  remain in `artifacts/`, outside git.
 
-Ce répertoire distingue les diagnostics de transport des véritables réponses
-Rambler. Les deux premiers fichiers ci-dessous n'envoyaient aucun audio ni
-identifiant utilisateur. Les fichiers fonctionnels ajoutés ensuite utilisent
-des phrases synthétiques contrôlées et des extraits naturels publics licenciés,
-et des métadonnées applicatives en mémoire, dont les valeurs ne sont jamais
-enregistrées ici. Les limites et
-conditions de comparaison sont dans [performance.md](../performance.md).
+This directory distinguishes transport diagnostics from actual Rambler responses.
+The first two files below sent no audio or user identifier. Functional files added
+later use controlled synthetic sentences and licensed public natural excerpts,
+and in-memory application metadata whose values are never recorded here. Limits and
+comparison conditions are in [performance.md](../performance.md).
 
 ## `connectivity.json`
 
-Une connexion TCP puis TLS vérifiée vers `speechs3proto2-pa.googleapis.com:443`
-a négocié TLS 1.3 / ALPN `h2`. `dns_plus_tcp_ms` englobe résolution DNS et TCP ;
-`tls_handshake_ms` couvre seulement le handshake TLS après TCP. Échantillon unique.
-Aucun échange HTTP/gRPC lors de ce contrôle.
+A TCP connection followed by verified TLS to `speechs3proto2-pa.googleapis.com:443`
+negotiated TLS 1.3 / ALPN `h2`. `dns_plus_tcp_ms` includes DNS resolution and TCP;
+`tls_handshake_ms` covers only the TLS handshake after TCP. Single sample.
+No HTTP/gRPC exchange during this check.
 
-Reproduction de principe en Python standard : `socket.create_connection` puis
-`ssl.create_default_context().wrap_socket(..., server_hostname=host)`, avec
-`set_alpn_protocols(["h2"])` et `time.perf_counter` de part et d'autre. Ne pas
-désactiver la vérification du certificat.
+Reproduction in principle with standard Python: `socket.create_connection` then
+`ssl.create_default_context().wrap_socket(..., server_hostname=host)`, with
+`set_alpn_protocols(["h2"])` and `time.perf_counter` on either side. Do not
+turn off certificate verification.
 
 ## `anonymous-empty-rpc.json`
 
-Un message protobuf vide, puis half-close, sans métadonnées applicatives ni
-identifiants : statut gRPC `PERMISSION_DENIED`, « Permission denied on the service. ».
-Aucune réponse protobuf reçue. Ceci **ne prouve pas** qu'une requête conforme au
-client réel serait refusée, ni qu'Android est requis.
+An empty protobuf message, then half-close, without application metadata or
+credentials: gRPC status `PERMISSION_DENIED`, “Permission denied on the service.”
+No protobuf response received. This **does not prove** that a request conforming to
+the real client would be refused, or that Android is required.
 
-Reproduction (réseau réel, une seule tentative, aucune donnée audio) :
+Reproduction (real network, one attempt, no audio data):
 
 ```sh
 python tools/probe_empty_request.py --timeout 10 --output local/anonymous-probe.json
 ```
 
-Le script refuse d'écraser un fichier de résultat existant. Installer `grpcio`
-dans l'environnement virtuel au préalable. Version Python/gRPC, endpoint,
-paramètres et durée figurent dans l'observation. L'absence de champs d'une requête
-réelle et des métadonnées d'identification du client limite fortement ce test.
+The script refuses to overwrite an existing result file. Install `grpcio` in the
+virtual environment beforehand. Python/gRPC version, endpoint, parameters and
+duration appear in the observation. The absence of fields from a real request and
+client identification metadata greatly limits this test.
 
-## Réponses fonctionnelles réelles
+## Real functional responses
 
-- `reconstructed-default-session.json` : premier flux complet Ogg/Opus depuis
-  Windows, service/routage Agentic, texte attendu, VoiceEditingResult2, fin S3 puis
-  gRPC OK, sans compte/Zwieback. Durée audio6,665s envoyée en accéléré.
-- `functional-cases.json` : correction orale, contexte avant curseur et français,
-  via l'API publique `RamblerEngine` sur un canal réutilisé. Vérification SHA-256
-  de l'entrée réellement consommée. Les33 payloads réponses ont été redécodés
-  indépendamment, sans importer notre moteur/codec.
-- `native-pcm-cli.json` : CLI PCM avec PyAV/libopus, sans binaire FFmpeg à
-  l'exécution, dans un nouveau processus ; exit0 et texte correct. Le rapport
-  enregistre les hashes des sources propres utilisées.
-- `performance-baseline.json` :21 sessions séquentielles dont warmup, comparaisons
-  blocs224/8192 et canaux API neufs/réutilisés. Toutes réussies ; mêmes textes et
-  hashes audio, aucune preuve de handshake physique neuf pour chaque canal API.
-- `realtime-paging.json` :6 sessions à source FFmpeg `-re`, pages1000/20ms, mêmes
-  PCM décodés et textes, métriques producteur et fins séparées.
-- `native-realtime.json` : six sessions natives sur le code0814813, profil20/1000ms,
-  source PCM intégrale, Ogg redécodé identique entre pages, aucun FFmpeg à l'exécution,
-  provenance du code et des dépendances enregistrée.
-- `lifecycle.json` : sélection/contexte différé, annulation volontaire, fermeture
-  source puis deux sessions concurrentes isolées sur le même canal.
-- `installed-wheel-smoke.json` : vraie dictée depuis la roue installée dans un venv
-  vierge sans PyAV, configuration locale, aucun APK/JADX lu à l'exécution.
-- `ci-0814813.json` : succès des quatre jobs Windows/Linux × Python3.11/3.14 au
-  jalon correspondant ; CI offline/loopback, pas preuve réseau Google sur Linux.
-- `environment.json` : environnement non sensible et conditions non contrôlées ;
-  snapshot après premiers essais, pas provenance de code rétroactive.
+- `reconstructed-default-session.json`: first complete Ogg/Opus stream from
+  Windows, Agentic service/routing, expected text, VoiceEditingResult2, S3 END then
+  gRPC OK, without account/Zwieback. Audio duration 6.665 s sent accelerated.
+- `functional-cases.json`: spoken correction, context before the cursor and French,
+  through the public `RamblerEngine` API on a reused channel. SHA-256 verification
+  of input actually consumed. The 33 response payloads were decoded again
+  independently, without importing our engine/codec.
+- `native-pcm-cli.json`: PCM CLI with PyAV/libopus, without an FFmpeg binary at
+  runtime, in a new process; exit 0 and correct text. The report records hashes
+  of the clean sources used.
+- `performance-baseline.json`: 21 sequential sessions including warmup, comparisons
+  of 224/8192 blocks and new/reused API channels. All successful; same texts and
+  audio hashes, no proof of a new physical handshake for each API channel.
+- `realtime-paging.json`: 6 sessions with FFmpeg `-re` source, 1000/20 ms pages,
+  same decoded PCM and texts, separate producer and ending metrics.
+- `native-realtime.json`: six native sessions on code 0814813, 20/1000 ms profile,
+  complete PCM source, identical re-decoded Ogg across pages, no FFmpeg at runtime,
+  code and dependency provenance recorded.
+- `lifecycle.json`: selection/deferred context, voluntary cancellation, source
+  closure then two isolated concurrent sessions on the same channel.
+- `installed-wheel-smoke.json`: real dictation from the installed wheel in a clean
+  venv without PyAV, local configuration, no APK/JADX read at runtime.
+- `ci-0814813.json`: success of all four Windows/Linux × Python 3.11/3.14 jobs at
+  the corresponding milestone; offline/loopback CI, not proof of Google network on Linux.
+- `environment.json`: non-sensitive environment and uncontrolled conditions;
+  snapshot after first trials, not retroactive code provenance.
 
-Trois réponses finales **originales** inspectées (pas reconstruites) sont publiques
-comme [fixtures](../../tests/fixtures/live_synthetic_responses.json), avec SHA exact,
-hex et phrases de synthèse. Les tests offline vérifient le décodage et le maintien
-des champs inconnus. Ces fixtures n'incluent aucun header, credential, cookie,
-identifiant de compte ou texte personnel. Les autres captures et audios restent
-ignorés par git. Les rapports textuels publics sont réservés aux corpus contrôlés
-ou explicitement publiables avec leur licence, pas à des dictées personnelles.
+Three **original** inspected final responses (not reconstructed) are public as
+[fixtures](../../tests/fixtures/live_synthetic_responses.json), with exact SHA,
+hex and synthetic sentences. Offline tests verify decoding and retention of unknown
+fields. These fixtures contain no headers, credentials, cookies, account identifiers
+or personal text. Other captures and audio remain ignored by git. Public text reports
+are reserved for controlled corpora or material explicitly publishable under its
+license, not personal dictations.
 
-## Raffinement du 2026-11-13
+## 2026-11-13 refinement
 
-- `refinement-page-grid.json` : 20 transports réussis, cinq par page 20/40/60/100 ms,
-  source native, politique `muxer`, toutes les mises à jour finales ordonnées et PCM
-  décodés identiques. Pas de capture protobuf brute. Défaut 20 ms conservé ; données
-  et outlier à interpréter selon [performance.md](../performance.md).
-- `natural-corpus-inputs.json` : provenance, hashes et attribution CC BY 4.0 de
-  l'extrait anglais LibriSpeech du premier corpus. Audio non versionné.
-- `refinement-capabilities-public.json` : projection expurgée du premier corpus
-  de cinq cas. Cinq transports réussis, mais **4/5 rendus** dans le code d'alors :
-  intention 3 non encore interprétée. Ce bilan historique reste inchangé.
-- `refinement-long-realtime-public.json` : une dictée de 40,564 s PCM à débit simulé,
-  intégralement consommée, texte corrigé et référence finale conservés, collecte
-  complète 41,454 s. Même texte que le cas accéléré, pas preuve d'endurance prolongée.
-- `refinement-rewrite-public.json` : nouveau test réel après extension du rendu,
-  texte réécrit intention 3/champ 3 rendu avec succès ; pas de remplacement d'éditeur.
-- `refinement-wheel-smoke.json` : roue 0.2.0 finale construite, installée dans un venv
-  vierge sans PyAV ; imports, égalité des modules avec le source et rendu de la fixture
-  dérivée vérifiés. Offline uniquement, aucun appel Google supplémentaire.
-- [`live_rewrite_response.json`](../../tests/fixtures/live_rewrite_response.json) :
-  **fixture dérivée/expurgée**, et non quatrième payload original. Composants sûrs
-  conservés, wrapper reconstruit, source et composants hashés, extension 74956225
-  retirée. Inspection indépendante du source : intention 3/champ 3 confirmée ;
-  portée générale de remplacement inconnue.
+- `refinement-page-grid.json`: 20 successful transports, five per 20/40/60/100 ms page,
+  native source, `muxer` policy, all ordered final updates and decoded PCM identical.
+  No raw protobuf capture. Default 20 ms retained; data and outlier to be interpreted
+  according to [performance.md](../performance.md).
+- `natural-corpus-inputs.json`: provenance, hashes and CC BY 4.0 attribution for
+  the first corpus's English LibriSpeech excerpt. Audio not versioned.
+- `refinement-capabilities-public.json`: redacted projection of the first five-case
+  corpus. Five successful transports, but **4/5 renderings** in the code at the time:
+  intent 3 not yet interpreted. This historical result remains unchanged.
+- `refinement-long-realtime-public.json`: one 40.564 s PCM dictation at simulated rate,
+  fully consumed, corrected text and final reference retained, complete collection
+  41.454 s. Same text as accelerated case, not proof of extended endurance.
+- `refinement-rewrite-public.json`: new real test after rendering extension,
+  intent 3/field 3 rewritten text rendered successfully; no editor replacement.
+- `refinement-wheel-smoke.json`: final 0.2.0 wheel built, installed in a clean venv
+  without PyAV; imports, module equality with source and derived fixture rendering
+  verified. Offline only, no additional Google call.
+- [`live_rewrite_response.json`](../../tests/fixtures/live_rewrite_response.json):
+  **derived/redacted fixture**, not a fourth original payload. Safe components
+  retained, wrapper reconstructed, source and components hashed, extension 74956225
+  removed. Independent source inspection: intent 3/field 3 confirmed;
+  general replacement scope unknown.
 
-Les trois copies `*-public.json` indiquent hash/longueur du rapport privé source,
-hash de l'outil de projection et résumés des payloads. Les octets bruts, valeurs
-inconnues et identifiants opaques de service/session ne sont pas publiés ; la
-bibliothèque, elle, les préserve pour l'appelant. Le hash du code SDK utilisé figure
-dans les versions ; le seul HEAD ne suffit pas pour l'essai réécriture sur arbre modifié.
+The three `*-public.json` copies identify the source private report's hash/length,
+projection tool hash and payload summaries. Raw bytes, unknown values and opaque
+service/session identifiers are not published; the library preserves them for the
+caller. The SDK code hash used appears in the versions; HEAD alone is insufficient
+for the rewrite trial on a modified tree.
 
-## Continuation : corpus naturel, endurance et hints
+## Continuation: natural corpus, endurance and hints
 
-- [reference-0.3-wheel-smoke.json](reference-0.3-wheel-smoke.json) : roue 0.3.0
-  construite et installée dans un venv vierge sans PyAV ; imports publics, modules
-  identiques au source, fixture dérivée et émission des hints/locales secondaires
-  vérifiés offline. Aucun appel Google dans ce smoke.
+- [reference-0.3-wheel-smoke.json](reference-0.3-wheel-smoke.json): 0.3.0 wheel
+  built and installed in a clean venv without PyAV; public imports, modules
+  identical to source, derived fixture and emission of hints/secondary locales
+  verified offline. No Google call in this smoke test.
 
-- [natural-expansion-inputs.json](natural-expansion-inputs.json) : provenance et
-  licences des dix extraits supplémentaires, sept anglais et trois français.
-- [natural-expansion-public.json](natural-expansion-public.json) : dix transports
-  réussis en accéléré ; [natural-expansion-quality.json](natural-expansion-quality.json)
-  résume WER 3/109 EN et 3/79 FR, avec limites de référence et de normalisation.
-- [natural-expansion-realtime-public.json](natural-expansion-realtime-public.json) :
-  trois sessions à débit simulé, textes identiques aux essais accélérés.
-- [endurance-120-public.json](endurance-120-public.json) et
-  [endurance-300-public.json](endurance-300-public.json) : une session de 118,682 s
-  puis trois de 288,352 s ; source intégrale, marqueurs et finales ordonnées
-  contrôlés. RSS courant échantillonné, CPU/wall et hashes de modules sont indiqués ;
-  mesures sur base 0.2 avant hints, sans preuve d'absence de fuite.
-- [input-hints-public.json](input-hints-public.json) : dix transports réussis avec
-  manifeste hashé et résumés ; effets des biais, préférences et langues secondaires
-  bornés aux observations décrites dans [raffinement](../refinement.md).
+- [natural-expansion-inputs.json](natural-expansion-inputs.json): provenance and
+  licenses for the ten additional excerpts, seven English and three French.
+- [natural-expansion-public.json](natural-expansion-public.json): ten successful
+  accelerated transports; [natural-expansion-quality.json](natural-expansion-quality.json)
+  summarizes WER 3/109 EN and 3/79 FR, with reference and normalization limits.
+- [natural-expansion-realtime-public.json](natural-expansion-realtime-public.json):
+  three sessions at simulated rate, texts identical to accelerated trials.
+- [endurance-120-public.json](endurance-120-public.json) and
+  [endurance-300-public.json](endurance-300-public.json): one 118.682 s session
+  then three of 288.352 s; complete source, markers and ordered finals checked.
+  Sampled current RSS, CPU/wall and module hashes are reported; measurements
+  on 0.2 baseline before hints, without proof of absence of leaks.
+- [input-hints-public.json](input-hints-public.json): ten successful transports with
+  hashed manifest and summaries; effects of biases, preferences and secondary languages
+  limited to observations described in [refinement](../refinement.md).
 
-Ces 13 + 4 + 10 transports, plus huit essais de composition décrits dans
-[composition](../research/composition.md), font 35 transports de continuation ;
-ce n'est ni une liste de 35 capacités validées ni un ajout aux comptes historiques.
-Les rapports structurés d'endurance ne contiennent ni raw protobuf, ni valeurs
-inconnues, ni identifiants de service ; les captures privées de continuation restent
-sous `artifacts/continuation-private/`, hors git. Les textes de corpus contrôlés
-publiés restent soumis à leur provenance et à une revue de confidentialité.
+These 13 + 4 + 10 transports, plus eight composition trials described in
+[composition](../research/composition.md), make 35 continuation transports;
+this is neither a list of 35 validated capabilities nor an addition to historical counts.
+Structured endurance reports contain no raw protobuf, unknown values or service
+identifiers; private continuation captures remain under `artifacts/continuation-private/`,
+outside git. Published controlled-corpus texts remain subject to their provenance
+and privacy review.
 
-L'outil offline `tools/sanitize_corpus_report.py` utilise une allowlist fermée et
-refuse toute sortie existante. Les textes sont hachés par défaut ; `--include-text`
-sert uniquement après revue d'un corpus contrôlé. L'outil n'est pas une garantie
-universelle d'anonymisation : texte, labels locaux, métadonnées machine et même hashes
-peuvent nécessiter une revue. Ne pas publier directement les rapports complets de
-`validate_corpus.py --include-results`, même pour de l'audio synthétique.
+The offline tool `tools/sanitize_corpus_report.py` uses a closed allowlist and
+refuses any existing output. Text is hashed by default; `--include-text` is used
+only after review of a controlled corpus. The tool is not a universal anonymization
+guarantee: text, local labels, machine metadata and even hashes may require review.
+Do not publish complete reports from `validate_corpus.py --include-results` directly,
+even for synthetic audio.

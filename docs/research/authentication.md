@@ -1,66 +1,40 @@
-# Authentification et dépendances d'accès Rambler / PixelBoard
+# Rambler / PixelBoard authentication and access dependencies
 
-Date de l'analyse : 2026-11-12. Portée : client PixelBoard 1.3.4, transport S3 utilisé par la dictée agentique/Jetson. Cette note ne documente pas une API Gemini publique et ne propose pas de la substituer au service observé.
+Analysis date: 2026-11-12. Scope: PixelBoard 1.3.4 client, S3 transport used by agentic dictation/Jetson. This note does not document a public Gemini API or propose substituting it for the observed service.
 
-**Mise à jour expérimentale du même jour :** le coordinateur a obtenu42 sessions
-complètes depuis Windows avec les trois métadonnées applicatives observées, sans
-compte, OAuth, Zwieback, téléphone ni relais Android. Voir
-[preuves](../evidence/README.md), dont les corrections, l'édition et le codec PCM
-natif. Cela valide ce profil et ces credentials/configurations à la date du test,
-pas toute restriction future ni les autres branches d'authentification.
+**Experimental update on the same day:** the coordinator obtained 42 complete sessions from Windows with the three observed application metadata fields, without an account, OAuth, Zwieback, phone, or Android relay. See [evidence](../evidence/README.md), including corrections, editing, and native PCM codec. This validates this profile and these credentials/configurations on the test date, not all future restrictions or other authentication branches.
 
-## Complément documentaire — 17 novembre 2026
+## Documentation supplement — November 17, 2026
 
-Les pages Google Cloud sur les [clés API](https://docs.cloud.google.com/docs/authentication/api-keys)
-et leurs [restrictions](https://docs.cloud.google.com/api-keys/docs/add-restrictions-api-keys)
-ont été consultées sans appel au service. Une clé **standard** rattache une requête
-à un projet pour la facturation et les quotas ; elle n'identifie pas un principal
-utilisateur. Les clés liées à un compte de service sont une catégorie distincte,
-pas un mécanisme démontré pour S3/Rambler. Les restrictions Android désignent les
-applications autorisées par package et empreinte de signature ; les restrictions
-d'API limitent les services utilisables.
+Google Cloud pages on [API keys](https://docs.cloud.google.com/docs/authentication/api-keys) and their [restrictions](https://docs.cloud.google.com/api-keys/docs/add-restrictions-api-keys) were consulted without calling the service. A **standard** key associates a request with a project for billing and quotas; it does not identify a user principal. Keys bound to a service account are a separate category, not a mechanism demonstrated for S3/Rambler. Android restrictions identify permitted applications by package and signing fingerprint; API restrictions limit the services that can be used.
 
-Ces pages ne documentent ni un accès tiers au service interne Rambler, ni un droit
-de réutiliser dans un client natif une clé embarquée dans une autre application.
-Elles ne démontrent pas non plus qu'une configuration particulière est interdite :
-**l'autorisation de cette configuration reste à établir séparément**. Posséder un
-fichier de configuration, observer des headers ou obtenir une réponse du serveur
-ne constitue pas à lui seul un contrat de provisionnement, de réutilisation native
-ou de renouvellement. Aucune extraction de nouveaux credentials tiers, usurpation
-d'identité applicative pour franchir une restriction ou variante d'authentification
-au hasard n'est une voie de provisionnement acceptable.
+These pages document neither third-party access to the internal Rambler service nor a right to reuse a key embedded in another application in a native client. Nor do they demonstrate that a particular configuration is prohibited: **authorization for that configuration remains to be established separately**. Possessing a configuration file, observing headers, or obtaining a server response does not by itself constitute a provisioning, native reuse, or renewal contract. Extracting new third-party credentials, impersonating an application to cross a restriction, or trying random authentication variants is not an acceptable provisioning route.
 
-La qualification technique du producteur, du garde public ou des lanceurs ne
-fournit donc pas cette autorisation. Un nouvel essai réel nécessite une
-configuration dont l'utilisation native est légitimement autorisée, sans
-contournement ; sa provenance doit pouvoir être établie sans publier ses valeurs.
-La présence des trois champs dans un fichier local ne suffit pas à fermer ce gate.
-Aucun flux OAuth, identifiant GMS fabriqué, remplacement par une API publique ou
-renouvellement automatique de clé n'est déduit de ces sources générales.
+Technical qualification of the producer, public guard, or launchers therefore does not provide that authorization. A new live trial requires a configuration legitimately authorized for native use, without circumvention; its provenance must be establishable without publishing its values. The presence of the three fields in a local file is not enough to close this gate. No OAuth flow, fabricated GMS identifier, substitution with a public API, or automatic key renewal follows from these general sources.
 
-## Conclusions déterminantes
+## Key conclusions
 
-1. **L'accès anonyme n'est pas suffisant pour caractériser l'authentification.** Un appel gRPC sans metadata, avec un message vide et half-close, a reçu `PERMISSION_DENIED` (« Permission denied on the service. ») en environ 80 ms. Cela établit seulement le refus de cet appel incomplet, pas qu'un compte Google est obligatoire ni qu'une requête conforme serait refusée (`docs/evidence/anonymous-empty-rpc.json`).
-2. **Le client attache systématiquement trois métadonnées d'application au canal S3** : `X-Goog-Api-Key`, `X-Android-Package` et `X-Android-Cert`. La valeur du package est `com.google.android.googlequicksearchbox`. La clé et l'empreinte sont des valeurs applicatives embarquées ; leurs valeurs ne sont volontairement ni reproduites ici ni enregistrées dans les logs. Ces éléments identifient/restringent potentiellement le client et son quota ; **ce ne sont pas, à eux seuls, une preuve d'authentification d'un compte utilisateur**.
-3. **Le `auth_token` lié à Zwieback est un champ protobuf conditionnel, pas le header gRPC `Authorization`.** Dans le mutator observé, le gate est `jetsonVoiceInput` **et** `jetson_send_zb=true`. L'identifiant applicatif S3 séparé (`agentic_dictation_use_separate_s3_application_id`) ne conditionne pas ce gate : lorsqu'il est vide, le client utilise `gboard` tout en conservant la possibilité d'ajouter Zwieback. Les défauts dans cet APK sont `jetson_send_zb=false` et identifiant séparé vide.
-4. **Le mécanisme Zwieback observé n'est ni OAuth ni un cookie.** Gboard demande à GMS Core un `PseudonymousIdToken`, puis calcule localement `hex_minuscule(SHA-256(identifiant_en_UTF-8))` et place ce résultat dans le champ d'authentification. Aucun endpoint Web d'émission de jeton, expiration, refresh token ou délai de renouvellement n'apparaît dans ce chemin.
-5. **PixelBoard ne fournit pas de mécanisme d'authentification autonome.** Ses patches publics activent des capacités et des routes de l'application ; ils n'implémentent ni émission OAuth, ni cookies, ni compte, ni attestation, et ne modifient ni `jetson_send_zb` ni les flags de routing S3 examinés.
-6. **Le profil testé fonctionne réellement sans Android.** Les sessions natives ont réussi sans Zwieback. En revanche, si une autre configuration serveur légitime active la branche Zwieback et que le service l'exige, l'acquisition initiale observée dépend de GMS Core sur l'appareil de l'utilisateur. Aucun moyen public documenté et équivalent d'émettre cet identifiant hors Android/GMS n'a été trouvé. Il ne faut ni fabriquer un identifiant, ni emprunter celui d'un tiers.
-7. **Aucune preuve de compte, cookie, OAuth ou Play Integrity n'a été trouvée dans le chemin S3 concret examiné.** Cette absence de preuve est limitée à ce chemin et à cette version ; elle ne prouve pas que le service n'imposera jamais un contrôle supplémentaire.
+1. **Anonymous access is not sufficient to characterize authentication.** A gRPC call without metadata, with an empty message and half-close, received `PERMISSION_DENIED` (“Permission denied on the service.”) in about 80 ms. This establishes only the rejection of that incomplete call, not that a Google account is mandatory or that a conforming request would be rejected (`docs/evidence/anonymous-empty-rpc.json`).
+2. **The client consistently attaches three application metadata fields to the S3 channel**: `X-Goog-Api-Key`, `X-Android-Package`, and `X-Android-Cert`. The package value is `com.google.android.googlequicksearchbox`. The key and fingerprint are embedded application values; their values are deliberately neither reproduced here nor recorded in logs. These elements potentially identify/restrict the client and its quota; **they are not, on their own, proof of user account authentication**.
+3. **The Zwieback-related `auth_token` is a conditional protobuf field, not the gRPC `Authorization` header.** In the observed mutator, the gate is `jetsonVoiceInput` **and** `jetson_send_zb=true`. The separate S3 application identifier (`agentic_dictation_use_separate_s3_application_id`) does not condition this gate: when empty, the client uses `gboard` while retaining the ability to add Zwieback. The defaults in this APK are `jetson_send_zb=false` and an empty separate identifier.
+4. **The observed Zwieback mechanism is neither OAuth nor a cookie.** Gboard requests a `PseudonymousIdToken` from GMS Core, then locally computes `hex_minuscule(SHA-256(identifiant_en_UTF-8))` and places the result in the authentication field. No Web token-issuance endpoint, expiration, refresh token, or renewal interval appears on this path.
+5. **PixelBoard does not provide a standalone authentication mechanism.** Its public patches enable application capabilities and routes; they implement neither OAuth issuance, cookies, accounts, nor attestation, and change neither `jetson_send_zb` nor the examined S3 routing flags.
+6. **The tested profile actually works without Android.** Native sessions succeeded without Zwieback. However, if another legitimate server configuration activates the Zwieback branch and the service requires it, the observed initial acquisition depends on GMS Core on the user's device. No documented equivalent public way to issue this identifier outside Android/GMS was found. An identifier must not be fabricated or borrowed from a third party.
+7. **No evidence of an account, cookie, OAuth, or Play Integrity was found in the specific S3 path examined.** This absence of evidence is limited to that path and version; it does not prove that the service will never impose an additional check.
 
-## Artefacts et références reproductibles
+## Artifacts and reproducible references
 
-### Sources publiques PixelBoard
+### Public PixelBoard sources
 
-- Dépôt : <https://github.com/Akshayykadam/PixelBoard>
-- Révision de travail inspectée : `80974b4614d15b4e80398f5400867aed366998bc`.
-- Tag `1.3.4` : `9a81f8b03d1d26b2ebac07355362865f72452137` (« Bump version to 1.3.4 and update changelog », 2026-11-10).
-- APK analysé : <https://github.com/Akshayykadam/PixelBoard/releases/download/1.3.4/PixelBoard-1.3.4.apk>
-- SHA-256 de l'APK : `a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`.
-- Politique Rambler publique : [`GboardRambler1803StockPolicy.java`](https://github.com/Akshayykadam/PixelBoard/blob/9a81f8b03d1d26b2ebac07355362865f72452137/pixelboard-patches/extensions/extension/src/main/java/com/akshaykadam/pixelboard/extension/rambler/GboardRambler1803StockPolicy.java), notamment lignes 38-41 et 52-110.
-- Sélection Rambler publique : [`GboardRambler1803OfficialSelectionRuntime.java`](https://github.com/Akshayykadam/PixelBoard/blob/9a81f8b03d1d26b2ebac07355362865f72452137/pixelboard-patches/extensions/extension/src/main/java/com/akshaykadam/pixelboard/extension/rambler/GboardRambler1803OfficialSelectionRuntime.java).
+- Repository: <https://github.com/Akshayykadam/PixelBoard>
+- Working revision inspected: `80974b4614d15b4e80398f5400867aed366998bc`.
+- Tag `1.3.4`: `9a81f8b03d1d26b2ebac07355362865f72452137` (“Bump version to 1.3.4 and update changelog”, 2026-11-10).
+- Analyzed APK: <https://github.com/Akshayykadam/PixelBoard/releases/download/1.3.4/PixelBoard-1.3.4.apk>
+- APK SHA-256: `a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`.
+- Public Rambler policy: [`GboardRambler1803StockPolicy.java`](https://github.com/Akshayykadam/PixelBoard/blob/9a81f8b03d1d26b2ebac07355362865f72452137/pixelboard-patches/extensions/extension/src/main/java/com/akshaykadam/pixelboard/extension/rambler/GboardRambler1803StockPolicy.java), especially lines 38-41 and 52-110.
+- Public Rambler selection: [`GboardRambler1803OfficialSelectionRuntime.java`](https://github.com/Akshayykadam/PixelBoard/blob/9a81f8b03d1d26b2ebac07355362865f72452137/pixelboard-patches/extensions/extension/src/main/java/com/akshaykadam/pixelboard/extension/rambler/GboardRambler1803OfficialSelectionRuntime.java).
 
-Commandes de rattachement, sans exécution de code du dépôt :
+Commands for establishing provenance, without executing repository code:
 
 ```bash
 git clone --no-tags https://github.com/Akshayykadam/PixelBoard.git
@@ -68,155 +42,151 @@ git ls-remote --tags https://github.com/Akshayykadam/PixelBoard.git refs/tags/1.
 sha256sum PixelBoard-1.3.4.apk
 ```
 
-Sous Windows, le checkout du dépôt a nécessité `core.longpaths=true` dans la copie locale du scratchpad. Aucun script tiers n'a été exécuté.
+On Windows, repository checkout required `core.longpaths=true` in the local scratchpad copy. No third-party script was executed.
 
-### Sorties JADX partagées par l'analyse protocole
+### JADX output shared by the protocol analysis
 
-L'APK n'a pas été retéléchargé ni redécompilé pour cette note. Les chemins ci-dessous désignent la décompilation existante fournie par l'agent protocole ; les noms non obfusqués proviennent des chaînes de source conservées dans le bytecode.
+The APK was not downloaded or decompiled again for this note. The paths below refer to the existing decompilation supplied by the protocol agent; unobfuscated names come from source strings retained in the bytecode.
 
-- `pixelboard-jadx/sources/defpackage/iha.java` — `S3ConnectionUtil`, lignes 8-20 : création des trois headers et attachement au stub avec `abtq`.
-- `pixelboard-jadx/sources/defpackage/abtq.java`, lignes 17-22, et `abtp.java`, lignes 17-21 : insertion des metadata dans les appels.
-- `pixelboard-jadx/sources/defpackage/aams.java`, lignes 5-16 et 182-214 : hôte de production, méthodes et scopes déclarés.
-- `pixelboard-jadx/sources/defpackage/aamk.java`, lignes 16-35 : méthode bidirectionnelle `S3Bidi`.
-- `pixelboard-jadx/sources/defpackage/aamr.java`, lignes 25-29 : association de `S3Bidi` aux scopes déclarés.
-- `pixelboard-jadx-knv-simple/sources/defpackage/knv.java` — reconstruction simple vérifiée : `L36`/`L40-L43` (lignes 132-137 et 316-324) établissent le gate Jetson, y compris lorsque l'identifiant séparé est vide et que l'application vaut `gboard` ; `L95` (lignes 229-254) vérifie `muq.D`, exige un future terminé avec succès, puis dérive et ajoute le jeton. La sortie `pixelboard-jadx-knv/sources/defpackage/knv.java` avec `--show-bad-code`, dont les branches étaient contradictoires, n'est plus utilisée pour déduire les conditions.
-- `pixelboard-jadx/sources/defpackage/muq.java`, lignes 35-39 : flags et valeurs par défaut.
-- `pixelboard-jadx/sources/defpackage/tjj.java`, lignes 8-58 : `ZwiebackFetcher`, client GMS, cache du future et timeout d'une seconde.
-- `pixelboard-jadx/sources/defpackage/lwa.java`, lignes 10-16 : `PseudonymousId.API`.
-- `pixelboard-jadx/sources/defpackage/lwc.java`, lignes 17-22 et 77-83 : appel GMS feature `3901`.
-- `pixelboard-jadx/sources/defpackage/lfo.java`, lignes 72-82 : Binder `IPseudonymousIdService`.
-- `pixelboard-jadx/sources/defpackage/lwd.java`, lignes 9-42 : `PseudonymousIdToken` contenant une chaîne.
-- `pixelboard-jadx/sources/defpackage/tji.java`, lignes 7-24 : wrapper dont `toString()` vaut `Zwieback`.
-- `pixelboard-jadx/sources/defpackage/wuh.java`, `wul.java` lignes 71-77 et `wue.java` lignes 45-53 : SHA-256 et encodage hexadécimal minuscule.
-- `pixelboard-jadx/sources/defpackage/aalv.java`, lignes 25-33 : champs protobuf du jeton ; `aamc.java`, lignes 15-20 et 28-36 : liste d'authentifications dans l'extension de requête.
-- `pixelboard-jadx/sources/defpackage/igz.java`, lignes 7-10 : hôte par défaut et flag `s3_auth_token_for_debugging` vide par défaut.
+- `pixelboard-jadx/sources/defpackage/iha.java` — `S3ConnectionUtil`, lines 8-20: creation of the three headers and attachment to the stub with `abtq`.
+- `pixelboard-jadx/sources/defpackage/abtq.java`, lines 17-22, and `abtp.java`, lines 17-21: insertion of metadata into calls.
+- `pixelboard-jadx/sources/defpackage/aams.java`, lines 5-16 and 182-214: production host, declared methods and scopes.
+- `pixelboard-jadx/sources/defpackage/aamk.java`, lines 16-35: bidirectional `S3Bidi` method.
+- `pixelboard-jadx/sources/defpackage/aamr.java`, lines 25-29: association of `S3Bidi` with declared scopes.
+- `pixelboard-jadx-knv-simple/sources/defpackage/knv.java` — verified simple reconstruction: `L36`/`L40-L43` (lines 132-137 and 316-324) establish the Jetson gate, including when the separate identifier is empty and the application is `gboard`; `L95` (lines 229-254) checks `muq.D`, requires a successfully completed future, then derives and adds the token. The `pixelboard-jadx-knv/sources/defpackage/knv.java` output with `--show-bad-code`, whose branches were contradictory, is no longer used to infer the conditions.
+- `pixelboard-jadx/sources/defpackage/muq.java`, lines 35-39: flags and default values.
+- `pixelboard-jadx/sources/defpackage/tjj.java`, lines 8-58: `ZwiebackFetcher`, GMS client, cached future, and one-second timeout.
+- `pixelboard-jadx/sources/defpackage/lwa.java`, lines 10-16: `PseudonymousId.API`.
+- `pixelboard-jadx/sources/defpackage/lwc.java`, lines 17-22 and 77-83: GMS feature `3901` call.
+- `pixelboard-jadx/sources/defpackage/lfo.java`, lines 72-82: Binder `IPseudonymousIdService`.
+- `pixelboard-jadx/sources/defpackage/lwd.java`, lines 9-42: `PseudonymousIdToken` containing a string.
+- `pixelboard-jadx/sources/defpackage/tji.java`, lines 7-24: wrapper whose `toString()` is `Zwieback`.
+- `pixelboard-jadx/sources/defpackage/wuh.java`, `wul.java` lines 71-77 and `wue.java` lines 45-53: SHA-256 and lowercase hexadecimal encoding.
+- `pixelboard-jadx/sources/defpackage/aalv.java`, lines 25-33: token protobuf fields; `aamc.java`, lines 15-20 and 28-36: authentication list in the request extension.
+- `pixelboard-jadx/sources/defpackage/igz.java`, lines 7-10: default host and `s3_auth_token_for_debugging` flag, empty by default.
 
-Préfixe absolu des sorties dans cette session :
+Absolute output prefix in this session:
 
 ```text
 C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad/
 ```
 
-### Source publique indépendante sur Zwieback
+### Independent public source on Zwieback
 
-Le proto Chromium antérieur au commit `7b9af2142151fbb4f38f3abd23ec87541492cf81` définit Zwieback comme « the signed-out session identifier » et précise que certains clients le transportent dans la bande plutôt que dans un cookie HTTP :
+The Chromium proto preceding commit `7b9af2142151fbb4f38f3abd23ec87541492cf81` defines Zwieback as “the signed-out session identifier” and notes that some clients carry it in-band rather than in an HTTP cookie:
 
-- Fichier à la révision `f9f096edfd9a3020626bc2fac9a351c91c150f20` : <https://chromium.googlesource.com/chromium/src/+/f9f096edfd9a3020626bc2fac9a351c91c150f20/components/feed/core/proto/v2/wire/chrome_client_info.proto>
-- Diff qui retire ce commentaire : <https://chromium.googlesource.com/chromium/src/+/7b9af2142151fbb4f38f3abd23ec87541492cf81%5E%21/>
+- File at revision `f9f096edfd9a3020626bc2fac9a351c91c150f20`: <https://chromium.googlesource.com/chromium/src/+/f9f096edfd9a3020626bc2fac9a351c91c150f20/components/feed/core/proto/v2/wire/chrome_client_info.proto>
+- Diff removing that comment: <https://chromium.googlesource.com/chromium/src/+/7b9af2142151fbb4f38f3abd23ec87541492cf81%5E%21/>
 
-Cette source définit la nature générale de l'identifiant ; elle ne documente pas le serveur S3, son autorisation ou son acquisition par GMS.
+This source defines the general nature of the identifier; it does not document the S3 server, its authorization, or its acquisition by GMS.
 
-## Chaîne d'accès observée
+## Observed access chain
 
-### 1. Transport et identification applicative
+### 1. Transport and application identification
 
-Cible de production observée :
+Observed production target:
 
 ```text
 speechs3proto2-pa.googleapis.com:443
 /speech.s3.S3StubbyClientConnectorService/S3Bidi
 ```
 
-`iha.a()` construit les trois headers suivants, puis `iha.b()` les attache au stub :
+`iha.a()` constructs the following three headers, then `iha.b()` attaches them to the stub:
 
-| Élément | Observation | Ce qui n'est pas démontré |
+| Element | Observation | What is not demonstrated |
 |---|---|---|
-| `X-Goog-Api-Key` | Valeur applicative embarquée, présente dans le canal S3 | Identité d'un utilisateur, consentement OAuth, accès illimité |
-| `X-Android-Package` | `com.google.android.googlequicksearchbox` | Package réel de PixelBoard ou compte connecté |
-| `X-Android-Cert` | Empreinte applicative embarquée | Attestation Play Integrity ou preuve fraîche de l'appareil |
+| `X-Goog-Api-Key` | Embedded application value, present in the S3 channel | User identity, OAuth consent, unlimited access |
+| `X-Android-Package` | `com.google.android.googlequicksearchbox` | PixelBoard's actual package or signed-in account |
+| `X-Android-Cert` | Embedded application fingerprint | Play Integrity attestation or fresh device proof |
 
-La présence conjointe package/certificat est compatible avec une restriction d'API Android classique. Ce n'est pas une attestation générée à chaque session : les valeurs sont statiques dans le client analysé. Pour une interopérabilité autorisée, un client fidèle doit pouvoir fournir ces metadata sans les journaliser. Leur injection doit rester une configuration locale secrète, jamais une valeur copiée dans git. Si leur réutilisation n'est pas autorisée, il faut obtenir des credentials officiels propres à l'utilisateur plutôt que contourner la restriction.
+The combined package/certificate presence is compatible with a conventional Android API restriction. It is not an attestation generated for each session: values are static in the analyzed client. For authorized interoperability, a faithful client must be able to provide this metadata without logging it. Injection must remain secret local configuration, never a value copied into git. If reuse is not authorized, official credentials belonging to the user must be obtained rather than bypassing the restriction.
 
-### 2. `auth_token` Zwieback : émission locale conditionnelle
+### 2. Zwieback `auth_token`: conditional local issuance
 
-Le code récupéré effectue conceptuellement :
+The recovered code conceptually does:
 
 ```text
-si jetsonVoiceInput
-et si jetson_send_zb == true
-et si le future Zwieback est terminé avec succès :
-    zb = GMS_Core.PseudonymousIdToken       # acquisition Android/GMS
-    token = lower_hex(SHA-256(UTF8(zb)))     # dérivation locale
-    authentication.type = 2                  # sémantique du nombre non établie
+if jetsonVoiceInput
+and if jetson_send_zb == true
+and if the Zwieback future completed successfully:
+    zb = GMS_Core.PseudonymousIdToken       # Android/GMS acquisition
+    token = lower_hex(SHA-256(UTF8(zb)))     # local derivation
+    authentication.type = 2                  # numeric meaning not established
     authentication.auth_token = token
     request.user_info.auth.append(authentication)
 ```
 
-Les noms `user_info` et `type` ci-dessus sont descriptifs, pas des noms proto confirmés. Le champ 2 (`aalv.f`) reçoit le hash ; le champ 4 (`aalv.c`) reçoit `2` ; l'objet est ajouté au champ répété 9 (`aamc.c`) de l'extension `UserInfo` numéro 293000 (`aamc.g`). Si le future n'est pas terminé, le client journalise « Zwieback ID not ready yet, skipping auth_token » et poursuit sans ce champ ; une exception mène au même comportement. Le code ne construit pas `Authorization: Bearer ...` et ne place pas ce hash dans un cookie.
+The names `user_info` and `type` above are descriptive, not confirmed proto names. Field 2 (`aalv.f`) receives the hash; field 4 (`aalv.c`) receives `2`; the object is added to repeated field 9 (`aamc.c`) of the `UserInfo` extension number 293000 (`aamc.g`). If the future is not complete, the client logs “Zwieback ID not ready yet, skipping auth_token” and continues without this field; an exception produces the same behavior. The code does not construct `Authorization: Bearer ...` or place this hash in a cookie.
 
-**Point de configuration important :** lorsque l'identifiant S3 séparé est vide, le mutator utilise l'identifiant applicatif `gboard`, mais le gate Zwieback reste `jetsonVoiceInput && jetson_send_zb`. La condition supplémentaire « Jetson et identifiant séparé non vide et `muq.E` » concerne l'expérience de quota, pas l'ajout du jeton. Les patches PixelBoard ne forcent ni `agentic_dictation_use_separate_s3_application_id` ni `jetson_send_zb`. Les valeurs Phenotype/serveur effectivement reçues au runtime restent toutefois inconnues : les défauts locaux ne suffisent pas à exclure une configuration distante différente.
+**Important configuration point:** when the separate S3 identifier is empty, the mutator uses the application identifier `gboard`, but the Zwieback gate remains `jetsonVoiceInput && jetson_send_zb`. The additional condition “Jetson and nonempty separate identifier and `muq.E`” concerns the quota experiment, not addition of the token. PixelBoard patches force neither `agentic_dictation_use_separate_s3_application_id` nor `jetson_send_zb`. The Phenotype/server values actually received at runtime nevertheless remain unknown: local defaults are insufficient to rule out a different remote configuration.
 
-Le flag `s3_auth_token_for_debugging` existe, vide par défaut, mais la recherche JADX n'a trouvé aucun consommateur explicite hors sa déclaration. Il ne faut pas en déduire qu'il permet de remplacer le jeton ni l'utiliser comme mécanisme d'accès sans preuve.
+The `s3_auth_token_for_debugging` flag exists, empty by default, but the JADX search found no explicit consumer outside its declaration. It must not be inferred to allow replacement of the token or used as an access mechanism without evidence.
 
-### 3. Renouvellement et durée de vie
+### 3. Renewal and lifetime
 
-- La clé API et l'empreinte sont statiques : aucun renouvellement n'est associé dans le code observé.
-- `ZwiebackFetcher` conserve un future de résultat et applique un timeout d'une seconde à l'appel GMS. Ce timeout est une borne d'attente locale, **pas une durée de validité du jeton**.
-- La dérivation SHA-256 est déterministe : pour un même Zwieback, le hash est identique. Aucun timestamp, nonce, `expires_in`, refresh token ou rotation planifiée n'apparaît dans `knv`/`tjj`.
-- La fréquence exacte de réacquisition GMS et les événements qui changent le Zwieback restent inconnus. Le hash et l'identifiant source doivent tous deux être traités comme des identifiants pseudonymes sensibles et ne doivent pas être journalisés.
+- The API key and fingerprint are static: no renewal is associated with them in the observed code.
+- `ZwiebackFetcher` retains a result future and applies a one-second timeout to the GMS call. This timeout bounds the local wait, **not the token's validity period**.
+- SHA-256 derivation is deterministic: for the same Zwieback, the hash is identical. No timestamp, nonce, `expires_in`, refresh token, or scheduled rotation appears in `knv`/`tjj`.
+- The exact frequency of GMS reacquisition and events that change Zwieback remain unknown. Both the hash and source identifier must be treated as sensitive pseudonymous identifiers and must not be logged.
 
-### 4. Compte, OAuth, cookies et attestation : observations négatives bornées
+### 4. Account, OAuth, cookies, and attestation: bounded negative observations
 
-`S3Bidi` déclare quatre scopes génériques : `assistant`, `assistant-sdk-prototype`, `googlenow` et `googleit`. Cette déclaration ne prouve pas qu'un flux OAuth ou un `AccountManager` est exécuté. Dans les classes du chemin concret (`iha`, `abtq`, `aamj`, `aamk`, `aamr`, `knv`, `tjj`), aucune acquisition de compte, cookie, bearer token ou attestation n'a été identifiée. Les occurrences génériques `authorization`/`cookie` dans des tables HTTP partagées ne sont pas des preuves d'usage.
+`S3Bidi` declares four generic scopes: `assistant`, `assistant-sdk-prototype`, `googlenow`, and `googleit`. This declaration does not prove that an OAuth flow or `AccountManager` is executed. In the classes on the specific path (`iha`, `abtq`, `aamj`, `aamk`, `aamr`, `knv`, `tjj`), no account acquisition, cookie, bearer token, or attestation was identified. Generic `authorization`/`cookie` occurrences in shared HTTP tables are not evidence of use.
 
-Il n'a été trouvé ni endpoint d'émission/renouvellement Web, ni callback OAuth, ni appel Play Integrity/SafetyNet dans ce chemin. Une autre couche de GMS Core ou du serveur peut avoir ses propres contrôles, invisibles dans ce code client.
+No Web issuance/renewal endpoint, OAuth callback, or Play Integrity/SafetyNet call was found on this path. Another GMS Core or server layer may have its own controls, invisible in this client code.
 
-## État des questions d'accès
+## Status of access questions
 
-| Question | État | Preuve nécessaire |
+| Question | Status | Evidence needed |
 |---|---|---|
-| Les trois metadata applicatives suffisent-elles avec une requête Rambler conforme ? | **Oui, observé pour le profil testé** |42 sessions complètes, fin S3 + gRPC OK ; pas une garantie d'accès universel ou permanent |
-| Un compte Google connecté est-il nécessaire ? | **Non pour les sessions natives testées** | Aucun compte/OAuth fourni ; ne pas généraliser aux autres configurations |
-| Les flags distants activent-ils Zwieback ? | Inconnu | Valeur runtime de `jetsonVoiceInput` (`kmy.n`) et valeur expurgée de `muq.D`, ou trace du mutator sans valeur d'identifiant ; `muq.C` renseigne seulement l'identifiant applicatif |
-| Le serveur exige-t-il `auth_token` lorsque la branche est active ? | Inconnu | Réponse à une requête valide dans cette configuration, sans fabriquer de jeton |
-| Le champ d'authentification est-il accepté hors GMS après provisionnement légitime ? | Inconnu | Réutilisation contrôlée du seul identifiant de l'utilisateur, si autorisée, sans relais Android à l'exécution |
-| Une attestation supplémentaire est-elle exigée côté serveur ? | Non observée côté client | Erreur serveur explicite ou capture autorisée d'une session légitime ; aucune tentative de contournement |
-| Quelle est la sémantique de `aalv.c = 2` ? | Inconnue | Proto source ou enum correspondant ; ne pas inventer « OAuth » ou « Zwieback » sans preuve |
+| Are the three application metadata fields sufficient with a conforming Rambler request? | **Yes, observed for the tested profile** | 42 complete sessions, S3 end + gRPC OK; not a guarantee of universal or permanent access |
+| Is a signed-in Google account necessary? | **Not for the native sessions tested** | No account/OAuth supplied; do not generalize to other configurations |
+| Do remote flags activate Zwieback? | Unknown | Runtime value of `jetsonVoiceInput` (`kmy.n`) and redacted value of `muq.D`, or mutator trace without identifier value; `muq.C` only reports the application identifier |
+| Does the server require `auth_token` when the branch is active? | Unknown | Response to a valid request in that configuration, without fabricating a token |
+| Is the authentication field accepted outside GMS after legitimate provisioning? | Unknown | Controlled reuse of only the user's own identifier, if authorized, without an Android relay at runtime |
+| Is additional attestation required server-side? | Not observed client-side | Explicit server error or authorized capture of a legitimate session; no circumvention attempt |
+| What is the meaning of `aalv.c = 2`? | Unknown | Corresponding source proto or enum; do not invent “OAuth” or “Zwieback” without evidence |
 
-## Accès requis pour reproduire et branches non exercées
+## Access required to reproduce and unexercised branches
 
-- **Essais réels réalisés :** corpus synthétique contrôlé et appels bornés, sans intervention de l'utilisateur, compte ou téléphone. Les outils publics exigent `--live` pour un endpoint non local ; n'envoyer de contenu que si son traitement est autorisé.
-- **Pour les credentials applicatifs :** une configuration locale autorisée, injectée sans affichage ni commit. Ne pas copier de jeton privé ou de credentials d'un tiers.
-- **Seulement si Zwieback est réellement actif :** le PseudonymousIdToken du propre appareil GMS de l'utilisateur, obtenu par le mécanisme normal du client, potentiellement comme provisionnement initial ponctuel. Le besoin d'un appareil Android dans ce cas ne doit pas être généralisé au mode par défaut. Ne pas extraire la base de comptes Android et ne pas utiliser l'identifiant d'une autre personne.
-- **Si une session PixelBoard de référence devient nécessaire :** utiliser le Xiaomi proposé uniquement lorsqu'il est libre, avec action et preuve attendue définies à l'avance. Le téléphone servirait à observer une session de développement, jamais de relais obligatoire pour le moteur final.
+- **Live trials performed:** controlled synthetic corpus and bounded calls, without user intervention, account, or phone. Public tools require `--live` for a non-local endpoint; send content only if its processing is authorized.
+- **For application credentials:** an authorized local configuration, injected without display or commit. Do not copy a private token or third-party credentials.
+- **Only if Zwieback is actually active:** the PseudonymousIdToken from the user's own GMS device, obtained through the client's normal mechanism, potentially as one-time initial provisioning. The need for an Android device in this case must not be generalized to the default mode. Do not extract the Android accounts database or use another person's identifier.
+- **If a PixelBoard reference session becomes necessary:** use the proposed Xiaomi only when available, with the action and expected evidence defined in advance. The phone would serve to observe a development session, never as a mandatory relay for the final engine.
 
-## Mini-expériences réseau non destructives
+## Non-destructive network mini-experiments
 
-Ces étapes conservent le plan initial d'investigation. **L'étape1 a été réalisée
-avec succès puis répliquée** ; les étapes2/3 n'ont pas été nécessaires et n'ont pas
-été exécutées. La branche Zwieback n'est pas provisionnée/implémentée par le
-moteur actuel. Les suites éventuelles restent à faible volume, sans rafales ni
-variantes d'authentification au hasard.
+These steps retain the initial investigation plan. **Step 1 was completed successfully and then replicated**; steps 2/3 were unnecessary and were not executed. The Zwieback branch is not provisioned/implemented by the current engine. Any follow-up remains low-volume, without bursts or random authentication variants.
 
-### Étape 0 — test local sans réseau
+### Step 0 — local test without network
 
-Avec une valeur factice publique telle que `zwieback-test-fixture`, vérifier que l'implémentation produit exactement le SHA-256 UTF-8 hexadécimal minuscule et sérialise `aalv.c = 2`, `aalv.f = hash` dans le bon champ. Ne jamais utiliser une vraie valeur dans une fixture ou un test commité.
+With a public dummy value such as `zwieback-test-fixture`, verify that the implementation produces exactly the lowercase hexadecimal UTF-8 SHA-256 and serializes `aalv.c = 2`, `aalv.f = hash` in the correct field. Never use a real value in a fixture or committed test.
 
-### Étape 1 — requête valide par défaut (réalisée, puis répliquée)
+### Step 1 — valid default request (completed, then replicated)
 
-Construire la requête Rambler minimale complète selon le schéma confirmé, avec :
+Build the complete minimal Rambler request according to the confirmed schema, with:
 
-- les trois metadata applicatives légitimement configurées ;
-- l'identifiant applicatif `gboard` si l'identifiant séparé est vide ;
-- les routing keys et paramètres réellement observés pour Jetson ;
-- aucun `auth_token` si `jetson_send_zb` est faux ;
-- un court audio de test autorisé, puis half-close ; aucun retry automatique.
+- the three legitimately configured application metadata fields;
+- application identifier `gboard` if the separate identifier is empty;
+- routing keys and parameters actually observed for Jetson;
+- no `auth_token` if `jetson_send_zb` is false;
+- short authorized test audio, then half-close; no automatic retry.
 
-Consigner uniquement statut, détail non sensible, latence, nombres de messages/octets et hash de configuration expurgée. **Preuve attendue :** distinguer un refus d'accès d'une erreur de schéma et déterminer si le chemin par défaut fonctionne sans compte/Zwieback. Un nouveau `PERMISSION_DENIED` après requête valide serait significativement plus informatif que le test anonyme vide, mais ne justifierait toujours pas une tentative de contournement.
+Record only status, non-sensitive detail, latency, message/byte counts, and redacted configuration hash. **Expected evidence:** distinguish an access denial from a schema error and determine whether the default path works without an account/Zwieback. A new `PERMISSION_DENIED` after a valid request would be significantly more informative than the empty anonymous test, but would still not justify an attempt to circumvent restrictions.
 
-### Étape 2 — référence PixelBoard seulement si l'étape 1 échoue
+### Step 2 — PixelBoard reference only if step 1 fails
 
-Sur l'appareil utilisateur libre et avec son accord, exécuter une seule dictée Rambler connue dans PixelBoard, sans proxy TLS ni affaiblissement de sécurité. Collecter les événements `GboardS3RMutator`/`NewS3Recognizer` expurgés et le résultat fonctionnel ; ne pas enregistrer audio, texte, clé API, certificat, Zwieback ou hash. **Preuve attendue :** établir si cette version/config précise fonctionne et si la branche « skipping auth_token » est empruntée. Cela ne remplace pas une capture autorisée des metadata si le désaccord persiste.
+On the available user device and with their consent, run one known Rambler dictation in PixelBoard, without a TLS proxy or security weakening. Collect redacted `GboardS3RMutator`/`NewS3Recognizer` events and the functional result; do not record audio, text, API key, certificate, Zwieback, or hash. **Expected evidence:** establish whether this exact version/configuration works and whether the “skipping auth_token” branch is taken. This does not replace an authorized metadata capture if disagreement persists.
 
-### Étape 3 — branche Zwieback uniquement sur configuration légitimement observée
+### Step 3 — Zwieback branch only on a legitimately observed configuration
 
-Ne pas activer artificiellement `jetson_send_zb` pour explorer le serveur. Si la configuration normale de l'utilisateur montre déjà `jetsonVoiceInput=true` et `jetson_send_zb=true`, reproduire une requête valide avec son propre jeton dérivé, injecté en mémoire, que l'identifiant applicatif soit `gboard` ou un identifiant séparé. Comparer au plus une session à la référence légitime et arrêter après un refus explicite. **Preuve attendue :** validité de la dérivation et caractère suffisant/insuffisant du champ ; aucune rotation ou expiration ne doit être supposée sans réponse ou observation temporelle.
+Do not artificially enable `jetson_send_zb` to explore the server. If the user's normal configuration already shows `jetsonVoiceInput=true` and `jetson_send_zb=true`, reproduce a valid request with their own derived token, injected in memory, whether the application identifier is `gboard` or a separate identifier. Compare at most one session to the legitimate reference and stop after an explicit denial. **Expected evidence:** derivation validity and field sufficiency/insufficiency; no rotation or expiration should be assumed without a response or observation over time.
 
-## Critères d'arrêt et règles de confidentialité
+## Stop criteria and privacy rules
 
-- Ne pas tester des clés, comptes, cookies, tokens ou empreintes provenant de logs publics ou d'autres utilisateurs.
-- Ne pas substituer l'API Gemini publique au protocole S3/Rambler observé.
-- Ne pas transformer les flags PixelBoard qui court-circuitent des vérifications client de quota en prétendue autorisation serveur.
-- Ne pas désactiver de vérification TLS, attestation ou contrôle d'accès.
-- Ne pas journaliser les trois valeurs de credentials, le Zwieback source, son hash, l'audio ou le texte utilisateur. Les erreurs doivent être expurgées avant stockage.
-- Après un refus d'accès sur requête conforme, privilégier une voie d'accès officielle/autorisée et l'analyse de configuration ; ne pas lancer de fuzzing d'authentification.
+- Do not test keys, accounts, cookies, tokens, or fingerprints from public logs or other users.
+- Do not substitute the public Gemini API for the observed S3/Rambler protocol.
+- Do not turn PixelBoard flags that bypass client quota checks into purported server authorization.
+- Do not disable TLS verification, attestation, or access controls.
+- Do not log the three credential values, source Zwieback, its hash, audio, or user text. Errors must be redacted before storage.
+- After access denial on a conforming request, favor an official/authorized access route and configuration analysis; do not launch authentication fuzzing.

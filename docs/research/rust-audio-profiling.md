@@ -1,111 +1,111 @@
-# Profilage offline Rust PCM → Opus/Ogg
+# Offline Rust PCM → Opus/Ogg profiling
 
-Mesure du 2026-11-13, indépendante du réseau et du service. Aucun `.env`,
-credential, audio privé, corpus externe ou appel distant n'est utilisé. Les trois
-entrées sont synthétiques et générées en mémoire par le banc versionné.
+Measurement from 2026-11-13, independent of the network and service. No `.env`,
+credentials, private audio, external corpus or remote call is used. The three
+inputs are synthetic and generated in memory by the versioned benchmark.
 
-## Protocole
+## Protocol
 
-Banc : `crates/rambler-audio/examples/profile_pipeline.rs`, exécutable uniquement
-avec `--release`. Trois signaux PCM16LE mono16k déterministes : silence,
-combinaison de triangles périodiques avec silences, bruit xorshift32 de seed
-`0x12345678`. L'arithmétique du générateur est entière. Ces signaux ne sont pas
-un corpus de voix naturelles et ne mesurent pas la qualité de reconnaissance.
+Benchmark: `crates/rambler-audio/examples/profile_pipeline.rs`, executable only
+with `--release`. Three deterministic mono 16k PCM16LE signals: silence, a
+combination of periodic triangles with silence, and xorshift32 noise with seed
+`0x12345678`. The generator uses integer arithmetic. These signals are not a
+natural speech corpus and do not measure recognition quality.
 
-Paramètres de cette campagne : `7 5 100 80017` : 7 répétitions, 5 opérations
-encodeur/total par répétition, 100 opérations mux, 80017 échantillons
-(5,0010625 s, 160034 octets PCM) par entrée ; pages 20 et 1000 ms. Les pages
-1000 ms sont un contrôle, **pas** une proposition de changer le défaut 20 ms.
-Un warmup par étape/configuration est exclu. L'ordre des trois étapes tourne
-entre répétitions ; l'ordre des signaux/pages reste fixe et est une limite.
+Campaign parameters: `7 5 100 80017`: 7 repetitions, 5 encoder/total operations
+per repetition, 100 mux operations, 80017 samples (5.0010625 s, 160034 PCM
+bytes) per input; 20 and 1000 ms pages. The 1000 ms pages are a control, **not**
+a proposal to change the 20 ms default. One warmup per stage/configuration is
+excluded. The three stages rotate between repetitions; signal/page order remains
+fixed, which is a limitation.
 
-- **Encodeur** : création du même libopus natif, `Application::Voip`, mono16k,
-  VBR 24000 bit/s, trames 320 échantillons/20 ms, conversion PCM LE, encodage,
-  padding jusqu'à couvrir input + lookahead, collecte de tous les paquets et
-  destruction de l'encodeur. Aucun réglage de complexité/qualité n'est changé.
-- **Mux** : création du vrai mux privé compilé depuis `src/ogg.rs`, en-têtes,
-  paquets préencodés, granules/EOS, collecte de chaque page dans un `Vec<u8>`,
-  destruction. Il ne réencode pas l'audio.
-- **Total** : véritable `Pcm16Opus` public, source mémoire par chunks 640 octets,
-  runtime Tokio current-thread, yields coopératifs conservés, drainage complet,
-  collecte des pages et `close().await`. Runtime créé hors mesure ; setup du codec
-  inclus. Pas de lecteur WAV, pacing, disque ou transport.
+- **Encoder**: create the same native libopus, `Application::Voip`, mono16k,
+  VBR 24000 bit/s, 320-sample/20 ms frames, PCM LE conversion, encoding, padding
+  to cover input + lookahead, collection of all packets and encoder destruction.
+  No complexity/quality setting is changed.
+- **Mux**: create the actual private mux compiled from `src/ogg.rs`, headers,
+  pre-encoded packets, granules/EOS, collect each page in a `Vec<u8>`, destroy.
+  It does not re-encode audio.
+- **Total**: actual public `Pcm16Opus`, memory source in 640-byte chunks,
+  current-thread Tokio runtime, cooperative yields retained, full drain, page
+  collection and `close().await`. Runtime created outside measurement; codec
+  setup included. No WAV reader, pacing, disk or transport.
 
-Chaque opération est chronométrée avec `Instant`, puis son résultat est validé
-**hors chronomètre**. `batch_ns` est la **somme** des durées des opérations de la
-répétition, pas la durée continue incluant validations. Chaque résultat est
-consommé dans des vecteurs et passé à `black_box` ; pas de paquet/page ignoré.
-Allocations et copies des sorties sont incluses, libération du vecteur résultat
-après retour exclue. Hashing, décodage et assertions de fidélité sont exclus.
-Les trois temps ne sont pas des composants additifs exacts : notamment le banc
-encodeur garde des vecteurs de paquets, le total travaille en streaming.
+Each operation is timed with `Instant`, then its result is validated **outside the
+timer**. `batch_ns` is the **sum** of operation durations for the repetition,
+not continuous duration including validation. Each result is consumed in vectors
+and passed to `black_box`; no packet/page is ignored. Output allocations and
+copies are included, freeing the result vector after return excluded. Hashing,
+decoding and fidelity assertions are excluded. The three times are not exact
+additive components: in particular the encoder benchmark keeps packet vectors,
+while total works in streaming mode.
 
-Les horloges sont des **temps écoulés offline**, pas des compteurs de cycles,
-ni du CPU processus isolé. Il n'existe aucune inférence de latence réseau,
-service, microphone ou de reconnaissance depuis ces mesures.
+The clocks measure **offline elapsed time**, not cycle counters or isolated
+process CPU. No network, service, microphone or recognition latency can be
+inferred from these measurements.
 
-## Conditions et provenance
+## Conditions and provenance
 
-Révision de départ : `4fdf29e8197e76d4ea9fdf004ff74bbc7dd35be1`.
-Windows 11, version hôte fournie 10.0.26300, `x86_64-pc-windows-msvc` ;
+Starting revision: `4fdf29e8197e76d4ea9fdf004ff74bbc7dd35be1`.
+Windows 11, supplied host version 10.0.26300, `x86_64-pc-windows-msvc`;
 `PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 154 Stepping 3, GenuineIntel`,
-12 processeurs logiques annoncés par l'environnement. Rust 1.99.1
+12 logical processors reported by the environment. Rust 1.99.1
 (`58cf8f9c35b355199727627d07ae34a4e2846d67`, LLVM 23.1.1), Cargo 1.99.1
-(`5f94df478`), CMake 3.31.10, générateur Visual Studio 17 2022/x64,
-libopus 1.6.1 bundled statique (`OPUS_BUILD_SHARED_LIBRARY=OFF`, Release).
-Aucun override de profil Cargo : profil release optimisé standard du workspace.
-Répertoire Cargo propre à ce worktree ; aucune réutilisation du target parent.
-Le plan d'alimentation, affinité et fréquences CPU ne sont pas contrôlés.
+(`5f94df478`), CMake 3.31.10, Visual Studio 17 2022/x64 generator,
+libopus 1.6.1 statically bundled (`OPUS_BUILD_SHARED_LIBRARY=OFF`, Release).
+No Cargo profile override: standard optimized workspace release profile. Cargo
+directory specific to this worktree; no reuse of the parent target. Power plan,
+CPU affinity and frequencies are not controlled.
 
-Les fenêtres de mesure sont réservées auprès du coordinateur après compilation,
-sans compilation concurrente annoncée. Cela ne garantit pas l'absence de toute
-activité OS/éditeur/antivirus. Caches non purgés, warmups explicites : ce n'est
-pas une mesure de démarrage froid.
+Measurement windows were reserved with the coordinator after compilation, with
+no concurrent compilation announced. This does not guarantee absence of all
+OS/editor/antivirus activity. Caches were not cleared, explicit warmups used:
+this is not a cold-start measurement.
 
-SHA-256 de provenance :
+Provenance SHA-256:
 
 ```text
 Cargo.lock       0fcd2757af343aeebabd8797a9a22771fb09ecb20d86853a15c3036d051d1628
 encode.rs        5db989fa18b3a1126108d961d6baa638a6f2fdbd16d5095c7d223940c986a424
-banc mesuré      f8319c6dcdd787b873d5ebe620b30ec292b2ac29f637f4575c4ccee4ef393194
-banc livré       58ecc07212914d66bcd2bb621e13f172459c9586fdf86e79e8d8515fa79bf053
-ogg.rs avant     9581bd5655771e39fd40f649954499ea529cddbac7555b31d37af6b360f9e63e
-ogg.rs candidat  3733f05758211fc59899f0f51e95ca6741d337792cf37135d5ebc149f8a0d93e
+measured bench      f8319c6dcdd787b873d5ebe620b30ec292b2ac29f637f4575c4ccee4ef393194
+delivered bench       58ecc07212914d66bcd2bb621e13f172459c9586fdf86e79e8d8515fa79bf053
+ogg.rs before     9581bd5655771e39fd40f649954499ea529cddbac7555b31d37af6b360f9e63e
+ogg.rs candidate  3733f05758211fc59899f0f51e95ca6741d337792cf37135d5ebc149f8a0d93e
 baseline.exe     79a550592f3982e8964231f2e7e2100fc9aea9489749862f494ba4e43ddde1b1
 candidate.exe    7adeb1404a051075892caaee78e6e252b135eb2db4e9007e47ddab92222e8e7e
 ```
 
-Hashes des octets réels : `ogg.rs` et `encode.rs` utilisent CRLF dans ce
-worktree, le banc LF. Le bloc candidat de l'annexe C, réinséré avec CRLF dans
-le `ogg.rs` initial, reproduit exactement le hash source candidat ci-dessus.
+Hashes of actual bytes: `ogg.rs` and `encode.rs` use CRLF in this worktree,
+the benchmark LF. The appendix C candidate block, reinserted with CRLF into the
+initial `ogg.rs`, exactly reproduces the candidate source hash above.
 
-## Mesures et décision
+## Measurements and decision
 
-**Aucune optimisation de production retenue.** Le candidat remplaçait uniquement
-les huit pas bit-à-bit du CRC Ogg par une table constante de 256 u32 (1 KiB).
-La fidélité est identique, mais le gain mux n'est ni robuste ni uniforme ; le
-coût total ne justifie pas un refactor. `src/ogg.rs` et `src/ogg_tests.rs` ont été
-restaurés exactement à la révision de départ. Le profil codec, qualité, VBR,
-bitrate, trames/pages par défaut, EOF, cleanup et bornes sont inchangés.
+**No production optimization retained.** The candidate only replaced the eight
+bitwise Ogg CRC steps with a constant table of 256 u32 (1 KiB). Fidelity is
+identical, but the mux gain is neither robust nor uniform; total cost does not
+justify a refactor. `src/ogg.rs` and `src/ogg_tests.rs` were restored exactly to
+the starting revision. Codec profile, quality, VBR, bitrate, default frames/pages,
+EOF, cleanup and bounds are unchanged.
 
-Ordre réel A1 → compilation candidate (1,81 s, hors mesure) → B1 → B2 → A2.
-A = binaire original préservé, B = candidat CRC ; A2 réexécute exactement A1,
-pas une recompilation. Horaires UTC du 2026-11-13 :
+Actual order A1 → candidate compilation (1.81 s, outside measurement) → B1 → B2
+→ A2. A = preserved original binary, B = CRC candidate; A2 reruns exactly A1,
+not a recompilation. UTC times on 2026-11-13:
 
-| Run | Début | Fin |
+| Run | Start | End |
 |---|---|---|
 | A1 | 21:46:04 | 21:46:46 |
 | B1 | 21:47:54 | 21:48:34 |
 | B2 | 21:48:34 | 21:49:16 |
 | A2 | 21:49:16 | 21:49:55 |
 
-Chaque colonne par run est la médiane des 7 moyennes par répétition. Les colonnes
-groupées réunissent 14 répétitions, **pas** la moyenne des deux médianes ; elles
-incluent minimum et maximum de ces moyennes. Unité ms par clip/opération.
-Arrondis à six décimales ; cette présentation n'est pas une revendication de
-précision nanoseconde. Valeurs brutes entières conservées en annexe.
+Each per-run column is the median of the 7 per-repetition averages. Grouped
+columns combine 14 repetitions, **not** the average of the two medians; they
+include minimum and maximum of those averages. Unit: ms per clip/operation.
+Rounded to six decimal places; this presentation does not claim nanosecond
+precision. Raw integer values are retained in the appendix.
 
-| Signal | Pages ms | Étape | A1 ms | B1 ms | B2 ms | A2 ms | A groupé ms (min–max) | B groupé ms (min–max) |
+| Signal | Pages ms | Stage | A1 ms | B1 ms | B2 ms | A2 ms | A grouped ms (min–max) | B grouped ms (min–max) |
 |---|---:|---|---:|---:|---:|---:|---:|---:|
 | silence | 20 | encode | 104.024680 | 88.722660 | 99.603820 | 88.821280 | 90.367790 (87.628160–116.908060) | 92.770420 (87.330860–109.822060) |
 | silence | 20 | mux | 0.053154 | 0.050643 | 0.061088 | 0.050492 | 0.051553 (0.047738–0.078135) | 0.059595 (0.047330–0.071049) |
@@ -126,88 +126,83 @@ précision nanoseconde. Valeurs brutes entières conservées en annexe.
 | noise | 1000 | mux | 0.043189 | 0.039980 | 0.042384 | 0.045549 | 0.044047 (0.038397–0.052948) | 0.042170 (0.038415–0.045333) |
 | noise | 1000 | total | 128.504320 | 122.568120 | 126.154740 | 126.450540 | 128.082200 (121.511380–146.178560) | 124.559670 (120.329900–157.959320) |
 
-Pages20ms : mux groupé A→B = 51,553→59,595 µs (silence, **+15,6 %**),
-77,1845→81,5675 µs (harmonique, **+5,7 %**), 80,816→80,231 µs
-(bruit, −0,7 %). Aux pages1000ms : −3,7 %, +2,5 %, −4,3 % ; distributions
-recouvrantes. Aucun cas ne permet une affirmation générale d'amélioration.
-L'encodeur **inchangé** varie lui-même d'environ −2,6 % à +13,2 % entre groupes :
-les variations totales (−7,9 % à +9,7 %) ne sont pas attribuables au CRC.
+20 ms pages: grouped mux A→B = 51.553→59.595 µs (silence, **+15.6%**),
+77.1845→81.5675 µs (harmonic, **+5.7%**), 80.816→80.231 µs (noise, −0.7%).
+At 1000 ms pages: −3.7%, +2.5%, −4.3%; overlapping distributions. No case
+supports a general claim of improvement. The **unchanged** encoder itself varies
+by approximately −2.6% to +13.2% between groups: total variations (−7.9% to
++9.7%) cannot be attributed to CRC.
 
-Sur A, le mux est de l'ordre de 14–81 µs, contre environ 45–134 ms pour le total
-(médianes groupées). Le ratio de ces mesures séparées reste inférieur à0,2 % ;
-ce n'est pas une décomposition additive exacte. Pas de changement de qualité ou
-de complexité du codec pour chercher un gain artificiel. Aucun autre refactor
-spéculatif n'a été tenté. Aucun pourcentage de gain CPU processus, réseau ou
-Rust/Python n'est établi.
+On A, mux is approximately 14–81 µs versus about 45–134 ms for total (grouped
+medians). The ratio of these separate measurements remains below 0.2%; this is
+not an exact additive decomposition. No codec quality or complexity change was
+made to seek an artificial gain. No other speculative refactor was attempted.
+No percentage gain in process CPU, network or Rust/Python is established.
 
-Après mesure, seuls deux attributs `allow` Clippy et leurs commentaires ont été
-ajoutés au banc (itérateur `chunks_exact` mesuré et rejet runtime du mode debug).
-Aucun énoncé exécuté, générateur ni boucle chronométrée n'a été modifié. Les
-hashes du banc mesuré et livré sont distincts et explicités ci-dessus ; les
-résultats ne sont pas présentés comme un nouveau run après lint.
+After measurement, only two Clippy `allow` attributes and their comments were
+added to the benchmark (measured `chunks_exact` iterator and runtime rejection
+of debug mode). No executed statement, generator or timed loop was changed. The
+measured and delivered benchmark hashes differ and are stated above; results are
+not presented as a new post-lint run.
 
-### Tests et vérification finale
+### Tests and final verification
 
-- Candidat : `cargo test --release --locked -p rambler-audio` : **30 passés,
-  1 ignoré**, 7 suites. Le test temporaire supplémentaire comparait le CRC table
-  au CRC original, les 256 octets possibles, des préfixes déterministes jusqu'à
-  64 KiB, vide et vecteur `123456789 → 0x89a1897f` ; retiré avec le candidat.
-- Arbre final restauré : même commande : **29 passés, 1 ignoré**, 7 suites,
-  1,00 s d'exécution des suites (hors compilation).
-- `cargo clippy --release --locked -p rambler-audio --all-targets -- -D warnings` :
-  réussi ; `cargo fmt -p rambler-audio -- --check` : réussi.
-- Une première passe Clippy a signalé deux lints du nouveau banc, ensuite corrigés
-  par attributs locaux sans changer le workload. Aucun échec de test fonctionnel.
-- Les tests existants couvrent fragmentation/EOF, granules, CRC indépendant,
-  limites, cancellation et fermeture idempotente. L'oracle PyAV indépendant
-  ignoré n'a **pas** été lancé pour cette tâche ; aucun Python/PyAV/FFmpeg n'est
-  impliqué dans l'encodage mesuré.
+- Candidate: `cargo test --release --locked -p rambler-audio`: **30 passed,
+  1 ignored**, 7 suites. The additional temporary test compared table CRC to the
+  original CRC, all 256 possible bytes, deterministic prefixes up to 64 KiB,
+  empty input and vector `123456789 → 0x89a1897f`; removed with the candidate.
+- Restored final tree: same command: **29 passed, 1 ignored**, 7 suites,
+  1.00 s suite execution (excluding compilation).
+- `cargo clippy --release --locked -p rambler-audio --all-targets -- -D warnings`:
+  passed; `cargo fmt -p rambler-audio -- --check`: passed.
+- An initial Clippy pass flagged two lints in the new benchmark, then corrected
+  with local attributes without changing the workload. No functional test failure.
+- Existing tests cover fragmentation/EOF, granules, independent CRC, limits,
+  cancellation and idempotent closure. The ignored independent PyAV oracle was
+  **not** run for this task; no Python/PyAV/FFmpeg is involved in measured encoding.
 
+## Fidelity checks
 
-## Contrôles de fidélité
+For **each** timed encoder operation: exact equality of every packet with the
+deterministic reference. For **each** mux/total operation: reading by the
+independent `ogg` crate (actual CRC and framing validation), equality of all Opus
+packets, page sequence and serial uniqueness, BOS/EOS flags, final granule,
+canonical Ogg hash. Only serial and CRC field are zeroed in the canonical hash,
+**after** validating the actual CRC; serial variations between streams do not
+represent an audio change.
 
-Pour **chaque** opération encodeur chronométrée : égalité exacte de tous les
-paquets avec la référence déterministe. Pour **chaque** opération mux/total :
-lecture par le crate indépendant `ogg` (validation du CRC réel et du framing),
-égalité de tous les paquets Opus, séquence des pages et unicité du serial,
-flags BOS/EOS, granule final, hash Ogg canonique. Seuls serial et champ CRC
-sont mis à zéro dans le hash canonique, **après** validation du CRC réel ; les
-variations de serial entre streams ne représentent pas un changement audio.
-
-Les paquets sont hashés avec chaque longueur préfixée en u32 LE ; le PCM décodé
-à 48k est hashé après retrait du pre-skip et trim au granule final, soit exactement
-`80017 * 3 = 240051` échantillons. Le PCM Opus est lossy : sa fidélité est vérifiée
-**avant/après optimisation**, jamais déclarée identique à l'entrée originale.
+Packets are hashed with each length prefixed as u32 LE; 48k decoded PCM is hashed
+after removing pre-skip and trimming to the final granule, exactly
+`80017 * 3 = 240051` samples. Opus PCM is lossy: fidelity is checked **before/after
+optimization**, never declared identical to original input.
 
 ## Reproduction
 
-Depuis un checkout/worktree propre au build, avec toolchain C/CMake disponible :
+From a clean build checkout/worktree with C/CMake toolchain available:
 
 ```sh
-# target sous ce checkout uniquement ; ne pas partager avec un build concurrent.
+# target under this checkout only; do not share with a concurrent build.
 export CARGO_TARGET_DIR="$PWD/target/audio-profile"
-# Windows si CMake n'est pas sur PATH : export CMAKE='/chemin/absolu/cmake.exe'
+# Windows if CMake is not on PATH: export CMAKE='/chemin/absolu/cmake.exe'
 cargo build --release --locked -p rambler-audio --example profile_pipeline
-# Attendre la fin de TOUTE compilation, puis lancer directement le binaire.
+# Wait for ALL compilation to finish, then run the binary directly.
 "$CARGO_TARGET_DIR/release/examples/profile_pipeline.exe" 7 5 100 80017 > baseline.csv
-# Sur Unix, retirer seulement le suffixe .exe.
-# Conserver/copier ce binaire AVANT de compiler un candidat.
-# Recompiler le candidat, attendre de nouveau la fin de toutes compilations.
-# Exécuter les binaires préservés séquentiellement, jamais en concurrence.
+# On Unix, remove only the .exe suffix.
+# Preserve/copy this binary BEFORE compiling a candidate.
+# Recompile the candidate, again wait for all compilation to finish.
+# Run the preserved binaries sequentially, never concurrently.
 ```
 
-Comparer toutes les lignes `proof,` entre les sorties, pas seulement les temps.
-Les lignes `timing,` contiennent compte d'opérations, somme de nanosecondes et
-moyenne par opération. Conserver les valeurs aberrantes ; petits n et ordre fixe
-ne permettent pas d'estimer une longue traîne de production.
+Compare all `proof,` lines between outputs, not just times. `timing,` lines contain
+operation count, nanosecond sum and average per operation. Retain outliers; small
+n and fixed order do not permit estimating a production long tail.
 
+## Appendix A — exact evidence common to all four runs
 
-## Annexe A — preuves exactes communes aux quatre runs
-
-Les six lignes ci-dessous ont été comparées automatiquement entre A1/B1/B2/A2 :
-égalité stricte, aucune ligne omise. Par configuration/version : 35 encodages,
-700 mux et 35 totaux chronométrés ; sur deux runs par version, respectivement
-70, 1400 et 70 sorties entièrement vérifiées. Aucun échantillon exclu.
+The six lines below were automatically compared between A1/B1/B2/A2: strict
+equality, no line omitted. Per configuration/version: 35 encodes, 700 muxes and
+35 totals timed; over two runs per version, respectively 70, 1400 and 70 fully
+verified outputs. No sample excluded.
 
 ```csv
 proof,kind=silence,page_ms=20,pcm_bytes=160034,pcm_sha256=b5e0410caf0728b0a46afb14c1eb4935d2cd0ae6fb5cd350d2df8818ec80b201,audio_packets=251,packet_bytes=2009,packet_sha256=5b2cd5e02bf347600031a29d8762ff7fa1e2bc685becf3ad192ca2efe94da518,ogg_bytes=9141,pages=253,pre_skip=312,final_granule=240363,canonical_ogg_sha256=0cc292f0ceeed3354055fe42f1995cd395af483a519eb9f84c7271d096a9e87e,decoded_pcm48k_sha256=9271e177675df2fcdbcb2d44fbb9e21a74382b36f3d5b6cf9829c1fc9e8dce40
@@ -218,15 +213,15 @@ proof,kind=noise,page_ms=20,pcm_bytes=160034,pcm_sha256=8afee5c59bf517ab814636fb
 proof,kind=noise,page_ms=1000,pcm_bytes=160034,pcm_sha256=8afee5c59bf517ab814636fb6e8b2c7d8925f81a6f902ce9193a7c2041f89107,audio_packets=251,packet_bytes=13460,packet_sha256=7be0bfc5488dfd66a19ec08d14351978dc08dff5e4f44fd056308bd22929ec02,ogg_bytes=13977,pages=8,pre_skip=312,final_granule=240363,canonical_ogg_sha256=8bd05ef6cb0f949de9e4582d6c4011c5482ae8e07ae98fa418091d59883c662d,decoded_pcm48k_sha256=643f3c1d92f2c40f5c1254b6eca5c72c4670e34b59fe687dfb3a178d8b811dfd
 ```
 
-## Annexe B — sommes brutes de nanosecondes par répétition
+## Appendix B — raw nanosecond sums per repetition
 
-Une ligne fournit les sept `batch_ns` entiers dans l'ordre repeat0..6. Diviser
-chaque somme par `iterations`, puis par 1e6 pour obtenir les ms/opération.
-Chaque run contient 126 lignes timing et six lignes proof (134 lignes avec
-metadata et en-tête). Cette annexe conserve toutes les répétitions, pas uniquement
-leurs médianes. Les sommes sont des durées écoulées mesurées, pas un CPU processus.
+Each line provides the seven integer `batch_ns` values in repeat0..6 order. Divide
+each sum by `iterations`, then by 1e6 for ms/operation. Each run contains 126
+timing lines and six proof lines (134 lines with metadata and header). This appendix
+retains every repetition, not just medians. Sums are measured elapsed durations,
+not process CPU.
 
-SHA-256 des CSV originaux, sorties stdout sans modification :
+SHA-256 of original CSVs, unmodified stdout output:
 
 ```text
 a1.csv e0486fc5893391e9226f70889d0c5c741c986238796ea1efceddcfd0cd1ecec0
@@ -311,12 +306,12 @@ a2,noise,1000,mux,100,4554900,4185700,4023100,4397500,4757600,4908100,4738200
 a2,noise,1000,total,5,621428400,622407800,607556900,632252700,679152900,727623900,730892800
 ```
 
-## Annexe C — candidat CRC testé puis rejeté
+## Appendix C — CRC candidate tested then rejected
 
-Pour reproduire l'expérience rejetée, remplacer **seulement** la fonction `crc`
-de `src/ogg.rs` par ce bloc, garder absolument tous les réglages codec et le même
-banc, puis reconstruire un deuxième binaire et le préserver. Ce bloc n'est pas
-appliqué dans l'arbre final. Table construite à la compilation, pas à l'exécution.
+To reproduce the rejected experiment, replace **only** the `crc` function in
+`src/ogg.rs` with this block, keep absolutely all codec settings and the same
+benchmark, then rebuild and preserve a second binary. This block is not applied
+in the final tree. The table is built at compile time, not runtime.
 
 ```rust
 // Ogg uses the non-reflected 0x04c11db7 polynomial, initial value zero,
@@ -351,66 +346,63 @@ fn crc(bytes: &[u8]) -> u32 {
 }
 ```
 
-Ne pas déduire de ce résultat que tout CRC table est intrinsèquement plus lent
-ou qu'une autre architecture aurait les mêmes résultats. Il suffit ici pour
-**ne pas conserver** cette optimisation sans preuve d'un gain utile. Une future
-campagne pourrait instrumenter séparément setup/encode natif ou CPU processus,
-avec profilage d'échantillonnage ; aucune telle attribution n'est inventée ici.
+Do not infer from this result that every table CRC is intrinsically slower or
+that another architecture would have the same results. Here it suffices to
+**not retain** this optimization without evidence of a useful gain. A future
+campaign could instrument native setup/encode or process CPU separately, with
+sampling profiling; no such attribution is invented here.
 
-> Suite distincte du 16 novembre : [Opus Release Windows](rust-opus-release-build.md),
-> baseline fraîche, fidélité inter-build et budget de quatre runs. Les gains locaux
-> et la qualification VS17 ne réécrivent ni le rejet CRC ni les mesures historiques ci-dessus.
+> Separate follow-up of November 16: [Opus Release Windows](rust-opus-release-build.md),
+> fresh baseline, cross-build fidelity and a four-run budget. Local gains and VS17
+> qualification do not rewrite the CRC rejection or historical measurements above.
 
-## Qualification complémentaire — attribution codec synthétique du 2026-11-15
+## Additional qualification — synthetic codec attribution of 2026-11-15
 
-Le jeu [de preuves typées et mesures brutes](../evidence/rust-codec-attribution-20261115.json)
-concerne Windows, hors ligne, uniquement les trois signaux synthétiques ci-dessus.
-Source mesurée : base `781ae03` et modification non commitée du seul banc ; le
-manifeste de 174 fichiers est identique avant/après. Le gate CI ajouté ensuite
-est distinct, hors de ce manifeste ; CI distante en attente. Le binaire CLI réel
-est inchangé ; aucun appel service ou appareil, credential ou audio réel.
+The [typed evidence and raw measurements](../evidence/rust-codec-attribution-20261115.json)
+cover Windows, offline, only the three synthetic signals above. Measured source:
+base `781ae03` and an uncommitted change to the benchmark alone; the 174-file
+manifest is identical before/after. The subsequently added CI gate is separate,
+outside this manifest; remote CI pending. The real CLI binary is unchanged; no
+service or device call, credentials or real audio.
 
-Les 13 phases locales ont réussi : format, 8 tests de l'exemple sur Rust stable
-local 1.99.1 et sur 1.88.0 (5 tests du banc et 3 tests Ogg inclus), 61 tests
-`rambler-audio` réussis et 1 ignoré sur stable, Clippy audio strict et build
-release. Les six preuves legacy ont été validées ; les trois preuves de chacun
-des deux runs d'attribution sont égales aux preuves 20 ms du même build et aux
-trois lignes historiques 20 ms ci-dessus. Les assertions couvrent tous les
-paquets, CRC, séquence et granules, hash décodé après trim, progrès PCM réel,
-EOF source, fermeture et destruction. Le décodeur utilise le même libopus : il
-n'est pas indépendant. Ce n'est pas une preuve ASR, qualité naturelle, WAN,
-endurance ou parité générale.
+All 13 local phases passed: format, 8 example tests on local Rust stable 1.99.1
+and 1.88.0 (including 5 benchmark and 3 Ogg tests), 61 `rambler-audio` tests
+passed and 1 ignored on stable, strict audio Clippy and release build. The six
+legacy proofs were validated; the three proofs of each attribution run equal the
+20 ms proofs of the same build and the three historical 20 ms lines above.
+Assertions cover all packets, CRC, sequence and granules, decoded hash after trim,
+actual PCM progress, source EOF, closure and destruction. The decoder uses the
+same libopus: it is not independent. This is not evidence of ASR, natural quality,
+WAN, endurance or general parity.
 
-Chaque run comporte 7 répétitions de 5 opérations pour chacun des 3 signaux ;
-les 14 sommes entières `batch_ns` par signal et étape sont conservées dans le
-JSON. Médiane, minimum et maximum portent sur les 14 moyennes par opération,
-sans exclusion d'outliers ni affirmation de significativité. Un warmup validé
-précède chaque signal ; ordre des lots tournant, ordre des signaux fixe. Les
-validations hors chronomètre influencent les caches ; alimentation, fréquence et
-affinité ne sont pas contrôlées ; les fenêtres très courtes peuvent être dominées
-par l'horloge.
+Each run has 7 repetitions of 5 operations for each of the 3 signals; the 14
+integer `batch_ns` sums per signal and stage are retained in JSON. Median, minimum
+and maximum cover the 14 per-operation averages, without excluding outliers or
+claiming significance. A validated warmup precedes each signal; batch order
+rotates, signal order is fixed. Untimed validations influence caches; power,
+frequency and affinity are uncontrolled; very short windows may be dominated by
+the clock.
 
-Cinq fenêtres **autonomes** mesurent setup natif, conversion hôte et padding,
-ensemble des appels d'encodage natif avec boucles/wrapper, collecte hôte des
-paquets, puis destruction native. Buffers préalloués et certaines destructions
-hôte sont exclus. Elles ne sont pas additives aux deux totaux du pipeline public,
-qui incluent drainage, yields, collecte, fermeture et sondes de cycle de vie,
-avec observateur de progrès désactivé ou activé. Pas de soustraction résiduelle,
-CPU processus, cycles, nombre d'allocations ou ratio de composants de production.
-Les plages off/on se recouvrent : le surcoût d'observation ne peut pas être
-isolé du bruit.
+Five **standalone** windows measure native setup, host conversion and padding,
+all native encoding calls with loops/wrapper, host packet collection, then native
+destruction. Preallocated buffers and some host destruction are excluded. They
+are not additive to the two public pipeline totals, which include draining, yields,
+collection, closure and lifecycle probes, with progress observer disabled or
+enabled. No residual subtraction, process CPU, cycles, allocation count or
+production component ratio. Off/on ranges overlap: observation overhead cannot
+be isolated from noise.
 
-Pour un clip de 5,0010625 s, les médianes groupées elapsed off sont 103,40125 ms
-(silence), 53,53518 ms (harmonique), 140,80281 ms (bruit) ; les fenêtres
-`native_frames` autonomes correspondantes sont 102,16344, 50,68323 et
-141,12359 ms. Le setup natif autonome est environ 0,017 ms. Ces mesures ne
-justifient aucun changement de production : **NO_CANDIDATE**. Les sources et
-un cache CMake Windows antérieur indiquent une configuration d'accélération,
-mais n'attestent ni l'ISA effectivement liée ni le dispatch exécuté.
+For a 5.0010625 s clip, grouped elapsed off medians are 103.40125 ms (silence),
+53.53518 ms (harmonic), 140.80281 ms (noise); corresponding standalone
+`native_frames` windows are 102.16344, 50.68323 and 141.12359 ms. Standalone
+native setup is about 0.017 ms. These measurements justify no production change:
+**NO_CANDIDATE**. Sources and an earlier Windows CMake cache indicate an
+acceleration configuration, but attest neither the ISA actually linked nor the
+dispatch executed.
 
-Reproduction indicative, hors compilation concurrente, avec dépendances déjà
-disponibles localement ; attendre la fin du build avant les deux exécutions
-séquentielles et conserver leurs sorties pour comparer les preuves et temps :
+Indicative reproduction, without concurrent compilation, with dependencies
+already available locally; wait for the build to finish before the two sequential
+runs and retain their outputs to compare proofs and times:
 
 ```sh
 cargo +stable test --offline --locked -p rambler-audio --example profile_pipeline
@@ -420,32 +412,29 @@ cargo +stable build --offline --locked --release -p rambler-audio --example prof
 ./target/release/examples/profile_pipeline.exe --codec-attribution --repeats 7 --iterations 5 --samples 80017
 ```
 
-Sur Unix, omettre `.exe` ; le chemin du binaire suppose le target Cargo par
-défaut. Utiliser `cargo +1.88.0 test` pour la vérification MSRV correspondante.
+On Unix, omit `.exe`; the binary path assumes the default Cargo target. Use
+`cargo +1.88.0 test` for the corresponding MSRV check.
 
-## Qualification CI distante du banc — 2026-11-15
+## Remote CI qualification of the benchmark — 2026-11-15
 
-Depuis le snapshot local ci-dessus, les deux workflows du commit source
-`72fd4affa561619745e9d642500467d41364458f` ont terminé avec succès : huit
-jobs Rust natifs (Windows, Linux, macOS ARM et Intel × 1.88/stable), un lint
-Rust et quatre jobs Python. Les huit étapes du nouveau gate exécutent chacune
-les huit tests de l'exemple (cinq du banc et trois Ogg) ; elles ne lancent pas
-la campagne de chronométrage. Chaque workspace rapporte 402 tests réussis sous
-Windows, 403 ailleurs, zéro échec et deux ignorés. Les groupes rejoués comptent
-par job 10, 8, 1, 3 et 38 réussites, sans les additionner aux tests distincts.
-Les quatre pytest rapportent 663/71 ignorés sur Python 3.11 ou 733/1 sur 3.14,
-avec 335 sous-tests rapportés séparément.
+Since the local snapshot above, both workflows for source commit
+`72fd4affa561619745e9d642500467d41364458f` completed successfully: eight native
+Rust jobs (Windows, Linux, macOS ARM and Intel × 1.88/stable), one Rust lint and
+four Python jobs. Each of the eight steps of the new gate runs the eight example
+tests (five benchmark and three Ogg); they do not run the timing campaign. Each
+workspace reports 402 tests passed on Windows, 403 elsewhere, zero failed and two
+ignored. Replayed groups count 10, 8, 1, 3 and 38 passes per job, without adding
+them to distinct tests. The four pytest runs report 663/71 ignored on Python 3.11
+or 733/1 on 3.14, with 335 subtests reported separately.
 
-[Preuve CI, étapes, comptes et empreintes](../evidence/rust-codec-attribution-ci-20261115.json) ·
-[mesures Windows locales distinctes](../evidence/rust-codec-attribution-20261115.json).
-La mention « CI distante en attente » ci-dessus décrit le moment de publication
-historique du jeu local. Cette CI qualifie seulement tests, builds et contrôles
-de cette source ; elle ne prouve ni gain de vitesse ou précision, ni ASR réel,
-parité générale ou autorisation live. Pas d'optimisation de production ; les
-fonctionnalités de production sont inchangées et l'ISA native liée n'est pas
-attestée. Le refus historique du préflight reste conservé. Une
-[remédiation locale distincte](../evidence/rust-private-capture-root-20261115.json)
-a créé un répertoire privé accepté par le contrôle d'origine, sans modifier les
-permissions existantes : 30 tests synthétiques et le contrôle de verrouillage
-réel passent. Cela ne qualifie aucun nouvel appel ; intégration du lanceur et
-budgets natifs restent distincts.
+[CI evidence, steps, counts and hashes](../evidence/rust-codec-attribution-ci-20261115.json) ·
+[separate local Windows measurements](../evidence/rust-codec-attribution-20261115.json).
+The “remote CI pending” statement above describes the historical publication time
+of the local set. This CI qualifies only tests, builds and checks of this source;
+it proves neither speed or accuracy gain, real ASR, general parity nor live
+authorization. No production optimization; production functionality is unchanged
+and the linked native ISA is not attested. The historical preflight rejection is
+retained. A [separate local remediation](../evidence/rust-private-capture-root-20261115.json)
+created a private directory accepted by the original check, without changing
+existing permissions: 30 synthetic tests and the real locking check pass. This
+qualifies no new call; launcher integration and native budgets remain separate.

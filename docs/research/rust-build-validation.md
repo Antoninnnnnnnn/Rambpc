@@ -223,140 +223,135 @@ source and harness hashes are in the [public summary](../evidence/rust-backend-d
 The scripts/corpus/source snapshots remain local development artifacts; the
 checked-in `decode_capacity` tests reproduce the focused regression cases.
 
-## Provenance des revues : correction du modèle
+## Review provenance: model attribution correction
 
-Le2026-11-14, les métadonnées `assistant.message.model` des agents récents demandés
-avec `model: opus` indiquent `gpt-6.1-sol`, y compris la revue des buffers partagés
-et les travaux transport/ledger concernés. Ces lectures comptent comme contextes
-indépendants Sol, **pas comme validations Opus**. L'ancienne attribution nominative
-ne doit pas renforcer artificiellement le niveau de preuve. Les tests et mesures
-réellement exécutés restent inchangés. Les nouvelles tentatives de revue Opus ont
-été arrêtées avant analyse ; aucune erreur de quota n'a été constatée. **À cette
-date du14 novembre**, le routage Opus restait à rétablir ; aucune substitution de
-cette revue n'était annoncée. La lecture sans authentification du catalogue du
-proxy local confirmait alors qu'il annonçait GPT et Kimi, mais aucun modèle
-Claude/Opus. Les variables usuelles de sélection/forçage de sous-agent étaient
-absentes de l'environnement contrôlé ; aucune inférence supplémentaire ni
-modification de configuration n'avait été tentée dans ce contrôle.
+On 2026-11-14, the `assistant.message.model` metadata for recent agents requested
+with `model: opus` indicated `gpt-6.1-sol`, including the shared-buffer review
+and the relevant transport/ledger work. These readings count as independent Sol
+contexts, **not Opus validations**. The earlier named attribution must not
+artificially strengthen the evidence. Tests and measurements actually performed
+remain unchanged. New attempts at an Opus review were stopped before analysis;
+no quota error was observed. **As of November 14**, Opus routing remained to be
+restored; no substitute for that review was announced. An unauthenticated read of
+the local proxy catalog then confirmed that it advertised GPT and Kimi but no
+Claude/Opus model. The usual subagent selection/forcing variables were absent
+from the controlled environment; no further inference or configuration change
+was attempted in that check.
 
-### Routage rétabli et revue réelle — 15 novembre 2026
+### Routing restored and actual review — November 15, 2026
 
-Après la correction du routage par l'utilisateur, le pilote d'intégration a
-vérifié le modèle effectivement livré par l'hôte :
-`message.model=claude-opus-5-5`. Cette vérification du15 novembre permet d'attribuer
-la **nouvelle** revue architecturale et ses conseils à Opus. Elle ne requalifie
-aucune demande antérieure au correctif : celles dont les métadonnées indiquaient
-Sol restent des revues Sol. L'historique du14 novembre ci-dessus est conservé.
+After the user corrected routing, the integration driver verified the model
+actually delivered by the host: `message.model=claude-opus-5-5`. This November 15
+verification permits attribution of the **new** architectural review and advice
+to Opus. It does not reclassify any request before the fix: those whose metadata
+indicated Sol remain Sol reviews. The November 14 history above is preserved.
 
-Cette revue/advice est **statique** : le reviewer n'a pas exécuté les tests. Ses
-constats ont fait l'objet de contre-tests locaux par les contributeurs ; cela ne
-constitue ni qualification du service réel ni essai téléphone/réseau réel. Les
-micro-optimisations CPU oneof, OggScratch et mutex ont été écartées comme peu
-prioritaires et non mesurées face aux risques de fiabilité. Aucun gain de vitesse,
-de latence ou de débit WAN n'est attribué à ces propositions non retenues.
+This review/advice is **static**: the reviewer did not run tests. Contributors
+locally retested its findings; this does not qualify the real service or constitute
+a real phone/network test. The oneof, OggScratch and mutex CPU micro-optimizations
+were rejected as low priority and unmeasured against reliability risks. No speed,
+latency or WAN throughput gain is attributed to these rejected proposals.
 
-### Lot de fiabilité du 15 novembre
+### November 15 reliability batch
 
-Les 310 tests de la base commitée `90a773a` restent historiques. Le lot local
-(admission, erreurs audio sticky, premier poll TCP, fenêtre h2, finalisation)
-dispose désormais de ces résultats sur un même manifeste sélectionné :
+The 310 tests of the committed baseline `90a773a` remain historical. The local
+batch (admission, sticky audio errors, first TCP poll, h2 window, finalization)
+now has these results on the same selected manifest:
 
-| Exécution locale | Workspace | Exemple reuse | CLI sans audio | Statut |
+| Local execution | Workspace | Reuse example | CLI without audio | Status |
 |---|---:|---:|---:|---|
-| Windows R3, MSVC / stable 1.99.1 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|Qualifié Windows seulement|
-| Windows R3, MSVC / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|Non relancé séparément|Non relancé séparément|Workspace MSRV réussi|
-| Linux R2, WSL2 x86_64 / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|**FAILED** : test CLI release de finalisation|
-| Linux R3, WSL2 x86_64 / 1.88.0 |376 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|Qualifié localement avec exclusions ci-dessous|
+| Windows R3, MSVC / stable 1.99.1 |376 passed, 0 failed, 1 ignored|10 passed|31 passed|Qualified on Windows only|
+| Windows R3, MSVC / 1.88.0 |376 passed, 0 failed, 1 ignored|Not separately rerun|Not separately rerun|MSRV workspace passed|
+| Linux R2, WSL2 x86_64 / 1.88.0 |376 passed, 0 failed, 1 ignored|10 passed|31 passed|**FAILED**: release CLI finalization test|
+| Linux R3, WSL2 x86_64 / 1.88.0 |376 passed, 0 failed, 1 ignored|10 passed|31 passed|Locally qualified with exclusions below|
 
-Windows R3 termine ses 26 étapes avec sortie 0 : Clippy strict all-target/all-feature,
-formatage, rustdoc strict, 716 tests Python, frontière audio normal/build avec
-contrôle positif, builds release CLI avec/sans audio et exemple PCM. Le test PyAV
-ignoré par défaut est activé séparément (un test, 57 conteneurs). Le smoke PCM
-release donne 1017 échantillons d'entrée, 3051 après trim à 48 kHz, un EOS et zéro
-appel service. Le test `s3_end_without_grpc_trailers_exits_with_finalize_timeout`
-passe aussi avec le véritable exécutable release audio, conservé séparément avant
-son remplacement par le build minimal. Ces groupes et les deux toolchains ne
-s'additionnent pas en tests distincts.
+Windows R3 completed its 26 steps with exit 0: strict all-target/all-feature
+Clippy, formatting, strict rustdoc, 716 Python tests, normal/build audio boundary
+with positive control, release CLI builds with/without audio and PCM example. The
+PyAV test ignored by default was enabled separately (one test, 57 containers).
+The release PCM smoke yielded 1017 input samples, 3051 after trim at 48 kHz, one
+EOS and zero service calls. The test
+`s3_end_without_grpc_trailers_exits_with_finalize_timeout` also passed with the
+actual release audio executable, retained separately before replacement by the
+minimal build. These groups and the two toolchains do not add up to distinct tests.
 
-La commande de build release audio Linux R2 sort avec succès, mais son test
-`release-finalization-cli` termine en sortie **101**, avec une assertion
-`peer upload was not complete` (0 réussi, 1 échoué). Le diagnostic séparé,
-contre-vérifié, montre que Cargo a réutilisé un **ancien exécutable release** sans
-`--finalize-timeout` : celui-ci rejette les arguments avant tout upload (sortie 2,
-catégorie `arguments`). Le nettoyage par paquet sans `--release` ne couvrait que
-le profil dev ; les dry-runs des deux profils le confirment. Le même test avec
-le binaire debug reconstruit passe, sans qualifier le release. La réparation du
-pilote ajoute le nettoyage des cinq mêmes paquets dans les deux profils, sans
-modifier le moteur ni les caches de dépendances natives.
+The Linux R2 release audio build command exited successfully, but its
+`release-finalization-cli` test exited **101**, with a `peer upload was not complete`
+assertion (0 passed, 1 failed). Separate, cross-checked diagnosis shows that Cargo
+reused an **old release executable** without `--finalize-timeout`: it rejected the
+arguments before any upload (exit 2, `arguments` category). Package cleanup without
+`--release` covered only the dev profile; dry runs of both profiles confirm this.
+The same test passed with the rebuilt debug binary, without qualifying release.
+The driver fix adds cleanup of the same five packages in both profiles, without
+changing the engine or native dependency caches.
 
-Les phases release exemple PCM, smoke PCM et hashes binaires finaux de R2 sont
-`not_run` ; R2 reste **FAILED**, même après diagnostic. Les deux groupes Python
-ciblés passent (17 tests frontière audio, 38 tests dex-methods), pas la suite Python
-complète. PyAV, Clippy, fmt et rustdoc n'ont pas été exécutés dans ce lot Linux.
-Linux R3 applique les deux nettoyages, reconstruit le véritable release puis passe
-les **16 phases**, dont le test CLI de finalisation (1 réussi), le build exemple
-PCM, son smoke (1017 échantillons vers 3051 à 48 kHz, un EOS), les hashes binaires
-finaux et la vérification des sources après exécution. Le report indique
-`completed_with_explicit_ignored_tests`, sortie 0 : le test PyAV ignoré reste une
-exclusion Linux, pas un succès implicite. Les deux groupes Python ciblés passent
-à nouveau ; la suite Python complète, Clippy, fmt et rustdoc restent exécutés sous
-Windows seulement pour ce lot. Aucun code du moteur n'a changé pour réparer cette
-qualification ; R1/R2 restent des échecs historiques.
+The release PCM example, PCM smoke and final binary hash phases of R2 were
+`not_run`; R2 remains **FAILED**, even after diagnosis. Both targeted Python groups
+passed (17 audio boundary tests, 38 dex-methods tests), not the full Python suite.
+PyAV, Clippy, fmt and rustdoc were not run in this Linux batch. Linux R3 applies
+both cleanups, rebuilds the actual release and then passes all **16 phases**,
+including the finalization CLI test (1 passed), PCM example build, its smoke
+(1017 samples to 3051 at 48 kHz, one EOS), final binary hashes and post-run source
+verification. The report states `completed_with_explicit_ignored_tests`, exit 0:
+the ignored PyAV test remains a Linux exclusion, not an implicit success. Both
+targeted Python groups pass again; the full Python suite, Clippy, fmt and rustdoc
+remain run on Windows only for this batch. No engine code changed to repair this
+qualification; R1/R2 remain historical failures.
 
-Les rapports locaux Windows R3 (`qualified=true`), Linux R2 (`status=failed`) et
-Linux R3 (`completed_with_explicit_ignored_tests`, sortie 0) conservent les codes de
-sortie et le même digest canonique avant/après des **167 fichiers sélectionnés**,
-hors docs/evidence :
+The local Windows R3 (`qualified=true`), Linux R2 (`status=failed`) and Linux R3
+(`completed_with_explicit_ignored_tests`, exit 0) reports retain exit codes and the
+same canonical before/after digest of the **167 selected files**, excluding
+docs/evidence:
 `3059408291b04f4cf79c518b5e6d49cadcb87de5d04e4a5aa78f93679546f87e`.
-Ce sélecteur ne couvre pas toutes les dépendances de build. La
-[preuve Windows R3](../evidence/rust-reliability-windows-r3.json) publie les résultats
-courants ; la [preuve Windows R2](../evidence/rust-reliability-windows.json) reste
-historique. Le [premier échec Windows](../evidence/rust-reliability-r1-failed.json)
-et les [échecs Linux R1/R2](../evidence/rust-reliability-linux-attempts.json) sont
-conservés sans les réétiqueter en succès. La
-[preuve Linux R3](../evidence/rust-reliability-linux-r3.json) complète la
-qualification locale de ce snapshot avec les exclusions explicites ci-dessus,
-sans qualification macOS, CI distante ni service réel.
+This selector does not cover all build dependencies. The
+[Windows R3 proof](../evidence/rust-reliability-windows-r3.json) publishes current
+results; the [Windows R2 proof](../evidence/rust-reliability-windows.json) remains
+historical. The [first Windows failure](../evidence/rust-reliability-r1-failed.json)
+and [Linux R1/R2 failures](../evidence/rust-reliability-linux-attempts.json) are
+preserved without relabelling them as successes. The
+[Linux R3 proof](../evidence/rust-reliability-linux-r3.json) completes local
+qualification of this snapshot with the explicit exclusions above, without macOS,
+remote CI or real-service qualification.
 
-Le commit terminal place les attentes fallibles avant la publication irréversible
-du succès ; les régressions dédiées passent dans Windows R3. Le
-[contrat de fiabilité](rust-reliability-lifecycle.md) sépare ces preuves finies des
-anciens 12 scénarios et de l'échec transitoire de compilation `tcp-test-final.log`.
-Les limites Android/ART, authentification/provisionnement/révocation, COMPOSE,
-macOS, CI distante et service/WAN restent inchangées. Aucun gain de performance,
-détail propriétaire d'APK, journal privé ou secret n'est publié ici.
+The terminal commit puts fallible waits before irreversible publication of success;
+the dedicated regressions pass in Windows R3. The
+[reliability contract](rust-reliability-lifecycle.md) separates this finite evidence
+from the older 12 scenarios and the transient `tcp-test-final.log` compilation
+failure. Android/ART, authentication/provisioning/revocation, COMPOSE, macOS,
+remote CI and service/WAN limitations remain unchanged. No performance gain,
+proprietary APK detail, private log or secret is published here.
 
-### Setup TLS déporté — R4
+### Offloaded TLS setup — R4
 
-Après `99c5ff4`, seul `connection.rs` change dans le sélecteur de sources :
-chargement/analyse des racines natives et construction TLS passent dans un unique
-travail bloquant attendu, après le gagnant TCP. Le socket reste hors du travail,
-les racines restent fraîches et les paramètres TLS inchangés. L'annulation peut
-empêcher un travail encore en file de démarrer, pas interrompre un loader OS déjà
-lancé. La revue statique Opus 5.5 accepte le source, dont les limites de pool,
-shutdown et panic hook sont décrites dans le [contrat de connexion](rust-connection-lifecycle.md#setup-tls-hors-du-runtime--qualification-locale-du-15-novembre).
+After `99c5ff4`, only `connection.rs` changes in the source selector: native-root
+loading/parsing and TLS construction move to a single awaited blocking job after
+the TCP winner. The socket stays outside the job, roots remain fresh and TLS
+settings unchanged. Cancellation can prevent a queued job from starting, but
+cannot interrupt an already running OS loader. The static Opus 5.5 review accepts
+the source, whose pool, shutdown and panic hook limits are described in the
+[connection contract](rust-connection-lifecycle.md#tls-setup-outside-the-runtime--november-15-local-qualification).
 
-| Exécution R4 locale | Workspace | Exemple reuse | CLI sans audio | CLI release finalisation |
+| Local R4 execution | Workspace | Reuse example | CLI without audio | Release CLI finalization |
 |---|---:|---:|---:|---:|
-| Windows MSVC / stable 1.99.1 |382 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|1 réussi|
-| Windows MSVC / 1.88.0 |382 réussis, 0 échoué, 1 ignoré|Non relancé séparément|Non relancé séparément|Non relancé séparément|
-| Linux WSL2 x86_64 / 1.88.0 |382 réussis, 0 échoué, 1 ignoré|10 réussis|31 réussis|1 réussi|
+| Windows MSVC / stable 1.99.1 |382 passed, 0 failed, 1 ignored|10 passed|31 passed|1 passed|
+| Windows MSVC / 1.88.0 |382 passed, 0 failed, 1 ignored|Not separately rerun|Not separately rerun|Not separately rerun|
+| Linux WSL2 x86_64 / 1.88.0 |382 passed, 0 failed, 1 ignored|10 passed|31 passed|1 passed|
 
-Windows termine ses 26 étapes avec sortie 0, dont Clippy/fmt/rustdoc stricts,
-716 tests Python, le test PyAV séparé (57 conteneurs), frontière de dépendances
-avec contrôle positif, builds release audio/minimal et smoke PCM. Linux termine
-ses 16 phases avec sortie 0, dont les deux groupes Python ciblés (17 et 38 tests),
-le release audio reconstruit, son test CLI et le smoke PCM. PyAV, suite Python
-complète, Clippy, fmt et rustdoc restent exclus de cette exécution Linux. Aucun
-magasin de certificats OS ni handshake TLS réel n'est exercé par les six nouveaux
-tests injectés ; le smoke PCM ne fait aucun appel service.
+Windows completed its 26 steps with exit 0, including strict Clippy/fmt/rustdoc,
+716 Python tests, the separate PyAV test (57 containers), dependency boundary with
+positive control, audio/minimal release builds and PCM smoke. Linux completed its
+16 phases with exit 0, including both targeted Python groups (17 and 38 tests),
+the rebuilt audio release, its CLI test and PCM smoke. PyAV, the full Python
+suite, Clippy, fmt and rustdoc remain excluded from this Linux run. No OS
+certificate store or real TLS handshake is exercised by the six new injected
+tests; the PCM smoke makes no service call.
 
-Les sources avant/après et entre plateformes correspondent aux mêmes 167 fichiers :
+Sources before/after and across platforms match the same 167 files:
 `b04990f230464b9926a407b58143ec80b4f5ac6a413b0dd309808718743f7a84`.
-La [preuve TLS R4](../evidence/rust-tls-setup-offload.json) distingue rapports,
-contrôles négatifs et revue statique, sans réétiqueter les preuves R3. Ce résultat
-local ne prouve ni performance WAN, parité Android/service, rotation réelle des
-certificats, macOS ni CI distante.
+The [TLS R4 proof](../evidence/rust-tls-setup-offload.json) distinguishes reports,
+negative controls and static review without relabelling R3 evidence. This local
+result proves neither WAN performance, Android/service parity, actual certificate
+rotation, macOS nor remote CI.
 
 ## macOS read-only scout — 2026-11-15
 
@@ -572,19 +567,18 @@ outside this evidence. Hosted images/actions and stable toolchains move; setup/f
 needs network, and offline tests may open loopback sockets. No bit-for-bit
 reproducibility claim or new build/test execution accompanies this consolidation.
 
-## Suivi CI 7327f51 : erreur indépendante à la fermeture
+## CI 7327f51 follow-up: independent close error
 
-La CI Rust `43744193442` échoue sur trois jobs macOS ; Python `43744193492`
-réussit. Le panic de `lifecycle.rs:514` vient du premier `transport.close()`,
-pas de la connexion initiale : le premier echo et les quatre nettoyages de
-sessions acceptées avaient déjà réussi. Après une coupure volontaire du pair,
-le driver peut rapporter `Connect` selon la plateforme. Le test exigeait à tort
-`Ok` systématiquement, contrairement au contrat de conservation de cette faute.
+Rust CI `43744193442` failed on three macOS jobs; Python `43744193492` passed.
+The panic at `lifecycle.rs:514` came from the first `transport.close()`, not the
+initial connection: the first echo and all four accepted-session cleanups had
+already succeeded. After an intentional peer disconnect, the driver can report
+`Connect` depending on the platform. The test incorrectly required `Ok` every
+time, contrary to the contract for preserving that fault.
 
-Le correctif du test accepte seulement `Ok` ou `Connect`, puis exige un second
-close borné réussi, sans modifier la production ni retirer les assertions
-de propriété, non-rejeu et remplacement explicite. La suite lifecycle passe
-localement sur Windows (14 tests par toolchain stable/1.88), ainsi que fmt et
-Clippy strict transport. La nouvelle qualification macOS reste en attente de
-la CI corrigée ; les trois échecs initiaux restent conservés dans
-[la preuve et ses limites](../evidence/rust-macos-close-ledger-fix-20261115.json).
+The test fix accepts only `Ok` or `Connect`, then requires a successful bounded
+second close, without changing production or removing ownership, no-replay and
+explicit replacement assertions. The lifecycle suite passes locally on Windows
+(14 tests per stable/1.88 toolchain), as do fmt and strict transport Clippy. New
+macOS qualification remains pending corrected CI; the three initial failures
+remain preserved in [the proof and its limitations](../evidence/rust-macos-close-ledger-fix-20261115.json).

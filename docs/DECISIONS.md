@@ -1,80 +1,85 @@
-# Décisions
+# Decisions
 
-## D001 — preuves avant optimisation (2026-11-12)
+## D001 — Evidence before optimization (2026-11-12)
 
-**Décidé.** Séparer quatre niveaux : transport accessible, requête S3 comprise,
-reconnaissance vocale S3 exploitable, comportement Rambler identifié. Aucun niveau
-ne prouve automatiquement le suivant. Pas de chiffre de performance distante
-sans requête réussie et conditions enregistrées.
+**Decision.** Track four levels separately: reachable transport, a service
+that understands the S3 request, usable S3 speech recognition, and observed
+Rambler behavior. Each level requires its own evidence. Report remote
+performance only for successful requests with recorded test conditions.
 
-## D002 — confinement des artefacts tiers (2026-11-12)
+## D002 — Isolate third-party artifacts (2026-11-12)
 
-**Décidé.** APK et sources tiers téléchargés dans de nouveaux dossiers du
-scratchpad ; aucun code extrait exécuté. Analyses Python isolées (`-I`). Seuls
-notes, schémas reconstruits nécessaires à l'interopérabilité, scripts propres et
-résultats expurgés entrent dans git. Ne pas redistribuer de code décompilé.
+**Decision.** Download third-party APKs and sources to new directories in the
+scratchpad. Run Python analysis in isolation (`-I`) and leave extracted code
+unexecuted. Keep only notes, reconstructed schemas needed for
+interoperability, original scripts, and redacted results in Git. Keep
+decompiled code out of redistributed material.
 
-## D003 — authentification explicite (2026-11-12)
+## D003 — Explicit authentication (2026-11-12)
 
-**Décidé.** Ne pas prétendre à une authentification autonome si elle repose sur
-un jeton copié. Documenter émission, expiration, renouvellement et dépendances
-observées. Ne pas emprunter des identifiants tiers ni contourner un refus d'accès.
+**Decision.** A copied token does not establish independent authentication.
+Document observed issuance, expiry, renewal, and dependencies. Use authorized
+credentials and respect access denials.
 
-## D004 — langage et architecture (2026-11-12)
+## D004 — Language and architecture (2026-11-12)
 
-**Décidé pour le premier client de preuve.** Python >= 3.11 et `grpc.aio`
-(gRPC C-core natif), sans Android. Les numéros de champs restent à reconstruire ;
-la possibilité de modifier et inspecter rapidement les messages prime à ce stade.
-Rust est disponible et reste une possibilité si un coût local mesuré le justifie,
-mais aucun langage n'est déclaré optimal sans comparaison. Le transport de bytes
-est séparé du codec, de l'authentification et de l'API audio/résultats. Une connexion
-peut être réutilisée ; les streams et leur état ne sont pas partagés. Pas de retry
-qui rejouerait automatiquement une dictée.
+**Decision for the first proof-of-concept client.** Use Python >= 3.11 and
+`grpc.aio` (native gRPC C-core), with no Android dependency. Field numbers
+still need to be reconstructed, so the ability to change and inspect messages
+quickly takes priority. Consider Rust if measured local costs justify it.
+Compare alternatives before claiming optimal performance. Keep byte transport
+separate from the codec, authentication, and audio/result API. Connections can
+be reused. Streams have isolated state. Retries must never replay dictation
+automatically.
 
-## D005 — sécurité et confidentialité des diagnostics (2026-11-12)
+## D005 — Diagnostic security and privacy (2026-11-12)
 
-**Décidé.** Ne pas journaliser de secrets ni de contenu utilisateur par défaut.
-Les tests de service réel sont explicites, limités, et distincts des tests locaux.
-Aucun rejeu automatique d'audio après erreur ambiguë : éviter les doublons et
-la confusion entre sessions.
+**Decision.** Keep secrets and user content out of default logs. Run live
+service tests explicitly, with limits and separately from local tests.
+Avoid automatic audio replay after ambiguous errors to prevent duplicates and
+keep sessions distinct.
 
-## D006 — préserver la sémantique des éditions (2026-11-12)
+## D006 — Preserve editing semantics (2026-11-12)
 
-**Décidé et validé sur trois réponses réelles inspectées.** Les résultats peuvent
-contenir l'historique complet modifié ; même le champ nommé `transcript` n'est pas
-nécessairement le verbatim de la commande. Exposer texte, intention et contexte
-édité séparément. Ne pas convertir automatiquement une réponse en insertion,
-ni appliquer des ranges Java UTF-16 à des indices de caractères Python. Le moteur
-ne remplace pas silencieusement Rambler par une politique de rendu PixelBoard.
+**Decision verified against three inspected live responses.** Results can
+contain the entire edited history. Even the field named `transcript` may
+differ from a verbatim transcript of the command. Expose text, intent, and
+edited context separately. Require an explicit edit decision before inserting a
+response. Convert Java UTF-16 ranges before using them as Python indices.
+Preserve Rambler behavior by default and make any PixelBoard rendering policy
+explicit.
 
-## D007 — fin explicite et erreurs tardives (2026-11-12)
+## D007 — Explicit completion and late errors (2026-11-12)
 
-**Décidé.** Un résultat partiel ne constitue pas une réussite. Attendre fin S3 et
-statut terminal gRPC ; conserver la priorité d'une erreur gRPC tardive. Une fin
-serveur avant épuisement de l'upload ne valide pas le contenu tronqué. Annuler et
-fermer les ressources de la session, sans fermer un canal injecté appartenant à
-un autre composant. Les producteurs doivent coopérer avec l'annulation asyncio.
+**Decision.** Treat partial results as provisional. Wait for S3 completion
+and the terminal gRPC status. Give late gRPC errors priority. A server that
+closes before the upload finishes cannot confirm the truncated input.
+Cancel and close session resources while leaving injected channels owned by
+other components available. Producers must cooperate with asyncio cancellation.
 
-## D008 — optimisations distinctes batch et direct (2026-11-12)
+## D008 — Distinct optimizations for batch and live input (2026-11-12)
 
-**Mesuré, portée limitée au corpus synthétique.** Blocs8192 au lieu de224 pour
-un fichier disponible : 67→5 requêtes et environ6,5% de payload protobuf économisé,
-aucun gain net de latence finale établi. Ne pas accumuler8192 octets en attendant
-sur une source en direct : cela ajouterait du délai.
+**Measured on the synthetic corpus.** With an available file, 8,192-byte
+blocks instead of 224-byte blocks reduced requests from 67 to 5 and saved
+about 6.5% of the protobuf payload. The test did not establish a clear gain
+in final response latency. Waiting for 8,192 bytes on a live source would
+add delay.
 
-Pages Ogg20ms au lieu de1000ms, source FFmpeg `-re` identique : délai médian texte
-après épuisement de source935→325ms sur trois essais par réglage. PCM redécodé
-identique, mais volume Ogg accru. Ce gain de tamponnement d'entrée n'est pas un
-gain de calcul serveur. Retenir un profil faible latence20ms pour l'encodeur natif
-optionnel ; conserver les comparaisons, limites et contreparties dans la doc.
+With the same FFmpeg `-re` source, reducing Ogg pages from 1,000 ms to 20 ms
+reduced the median time from source exhaustion to text from 935 ms to 325 ms
+over three trials per setting. Decoded PCM was identical and the Ogg payload
+grew. The measurement captures input buffering. Use the 20 ms low-latency
+profile for the optional native encoder. Keep the comparisons, limitations,
+and trade-offs in the documentation.
 
-## D009 — encodeur PCM facultatif et natif (2026-11-12)
+## D009 — Optional native PCM encoder (2026-11-12)
 
-**Implémenté et validé.** PyAV/libopus embarqué en dépendance optionnelle,
-importé à la demande, pour PCM16LE mono16k→Ogg/Opus24kbps. Pas de processus FFmpeg
-à l'exécution du moteur. Python>=3.12 pour l'extra PyAV19 ; le chemin déjà encodé
-reste Python>=3.11. Les tests contrôlent les derniers échantillons et la fin Ogg,
-les bornes mémoire et la fermeture après annulation. Une CLI PCM réelle a obtenu
-le texte attendu, VoiceEditingResult, fin S3 puis gRPC OK ; la preuve se trouve
-dans `evidence/native-pcm-cli.json`. La mesure FFmpeg et cette validation native
-restent distinctes ; elles ne sont pas interchangeables.
+**Implemented and validated.** An optional PyAV dependency with bundled
+libopus loads on demand and converts mono 16 kHz PCM16LE to Ogg/Opus at
+24 kbps. The engine runs without an FFmpeg process. PyAV 19 needs
+Python >= 3.12 and the pre-encoded input path supports Python >= 3.11.
+Tests check the last samples and Ogg end marker, memory limits, and cleanup
+after cancellation. A live PCM CLI run returned the expected text and
+`VoiceEditingResult`, followed by S3 completion and gRPC OK. See
+`evidence/native-pcm-cli.json`. The FFmpeg measurements and the native
+encoder validation cover different setups.

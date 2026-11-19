@@ -1,160 +1,160 @@
-# Sambler — moteur de dictée multiplateforme
+# Sambler — cross-platform dictation engine
 
-Sambler est un moteur de dictée et d’édition reconstruit à partir de PixelBoard
-1.3.4. Il parle **directement au service Rambler/Jetson** en gRPC. Aucun Android,
-téléphone, émulateur ni API Gemini publique n'est requis à l'exécution.
-L’interface graphique, la capture micro et l’insertion dans un éditeur
-appartiennent à l’application.
+Sambler is a dictation and text editing engine reconstructed from PixelBoard
+1.3.4. It communicates directly with the **Rambler/Jetson service** over gRPC.
+It runs without Android, a phone, an emulator, or the public Gemini API. The
+application handles the interface, microphone capture, and text insertion.
 
-- **Cœur Rust** (crates `rambler-*`, CLI `rambler`) : chemin à utiliser pour une
-  application. SDK et CLI fichier.
-- **Python 0.3** est la référence de conformité. La distribution `sambler-engine`
-  expose le module `rambler`.
+- The **Rust core** includes the SDK (`rambler-*` crates) and the `rambler` CLI
+  for file input. Use it as the foundation for an application.
+- **Python 0.3** serves as the conformance reference. The `sambler-engine`
+  distribution provides the `rambler` module.
 
-## En bref
+## At a glance
 
-| Sujet | État | Détails |
+| Area | Status | Details |
 |---|---|---|
-| Cœur Rust, SDK et CLI fichier | Tests hors ligne sur Windows, Linux et macOS. Compilation pour Android ARM64 et iPhone, tests sur simulateur iOS. | [Guide de démarrage](app/README.md), [rust.md](docs/rust.md) |
-| Service réel | Réponses observées sur de petits corpus synthétiques et naturels (12 au 18 novembre 2026) | [Observations](#ce-qui-a-été-observé-sur-le-service-réel) |
-| Édition | Préparation d'un remplacement avec contrôle de contexte, validation avant application | [Guide SDK](docs/research/sdk-integration-guide.md) |
-| Parité PixelBoard | **Non complète** ; les modes avancés restent à qualifier | [Matrice de parité](docs/research/rust-feature-parity.md) |
-| Vitesse | Gains locaux mesurés seulement ; aucun gain WAN revendiqué | [Mesures](docs/performance.md) |
+| Rust core, SDK, and file-based CLI | Offline tests on Windows, Linux, and macOS. Cross-compilation for Android ARM64 and iPhone, with tests on an iOS simulator. | [Getting started](app/README.md), [Rust guide](docs/rust.md) |
+| Live service | Responses observed on small synthetic and natural speech datasets from November 12 to 18, 2026. | [Observations](#live-service-observations) |
+| Editing | Prepare a replacement, check its context, then validate it before applying it. | [SDK guide](docs/research/sdk-integration-guide.md) |
+| PixelBoard parity | Partial. Advanced modes need further validation. | [Parity matrix](docs/research/rust-feature-parity.md) |
+| Performance | Speed improvements measured locally. | [Measurements](docs/performance.md) |
 
-## Démarrage rapide (Rust)
+## Rust quick start
 
-Prérequis : Rust/Cargo 1.88 (validé), compilateur natif de la plateforme (MSVC sur
-Windows, compilateur C pour `ring` et libopus), CMake pour la feature audio.
-Détails et toolchain : [construire et vérifier](docs/rust.md#construire-et-vérifier-hors-service-réel).
+Install Rust and Cargo 1.88 (the validated version) and the platform's native
+compiler. On Windows, use MSVC. The build uses a C compiler for `ring` and
+libopus, and the audio feature also requires CMake. See the
+[build and test instructions](docs/rust.md#build-and-test-offline).
 
 ```sh
-# Tests hors ligne : sans microphone ni service réel
+# Offline tests without a microphone or live service
 cargo test --workspace --all-features --locked
 
-# Binaire CLI, avec entrée WAV/PCM optionnelle
+# CLI binary with optional WAV/PCM input
 cargo build --release --locked -p rambler-cli --features audio
 ```
 
-Le binaire est `target/release/rambler.exe` sur Windows et `target/release/rambler`
-sur Linux/macOS. Pour appeler le service, fournir les métadonnées décrites dans
-[Accès au service](#accès-au-service) (la CLI ne lit pas `.env` seule) :
+The binary is `target/release/rambler.exe` on Windows and
+`target/release/rambler` on Linux and macOS. To run the following example, load
+the environment variables described in the
+[authentication notes](docs/research/authentication.md). The CLI reads these
+variables from its environment.
 
 ```sh
-# Windows / Git Bash ; retirer .exe sur Linux/macOS
+# Windows with Git Bash. Drop .exe on Linux and macOS.
 set -a; source .env; set +a
 target/release/rambler.exe dictate input.ogg --language fr-FR
 ```
 
-`dictate` attend un flux Ogg/Opus continu, mono, source 16 kHz. Pour le préparer
-avec FFmpeg (outil hors du moteur) :
+`dictate` expects a continuous mono Ogg/Opus stream with a 16 kHz source. FFmpeg
+can prepare an input file:
 
 ```sh
 ffmpeg -i input.wav -ac 1 -ar 16000 -c:a libopus -b:a 24k -application voip input.ogg
 ```
 
-## Intégrer le SDK dans une application
+## Integrate the SDK into an application
 
-Commencer par le [guide de démarrage dans `app/`](app/README.md) pour lancer
-l'exemple hors ligne et voir ce qui est vérifié sur chaque plateforme.
+The [getting started guide in `app/`](app/README.md) shows how to run the
+offline example and what the test suite covers on each platform.
 
-Dépendances par chemin, depuis un checkout de ce dépôt (ajuster les chemins) :
+Add the dependencies by path, adjusting the paths to match the location of the
+Sambler checkout:
 
 ```toml
 [dependencies]
 rambler-engine = { path = "../Sambler/crates/rambler-engine" }
 rambler-transport = { path = "../Sambler/crates/rambler-transport" }
-rambler-audio = { path = "../Sambler/crates/rambler-audio" } # omettre pour de l'Ogg déjà encodé
+rambler-audio = { path = "../Sambler/crates/rambler-audio" } # Omit for pre-encoded Ogg.
 bytes = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-Parcours minimal :
+1. Create an `Engine` with `Engine::connect`, or use `Engine::new` to reuse a
+   transport. Supply the language and credentials per session.
+2. Supply audio in order. Use `OggAudio::open` for an Ogg/Opus file, or an
+   `AudioSource`. Use `rambler-audio` to encode PCM (see [Audio inputs](#audio-inputs)).
+3. Call `collect_dictation` or its observer variant. Read the result after the
+   call returns `Ok`.
+4. For an edit, call `replacement_proposal` on the result and obtain explicit
+   user approval. Call `validate_current` within the same editor transaction
+   as the replacement.
 
-1. Créer un `Engine` (`Engine::connect` ou `Engine::new` pour un transport partagé),
-   puis fournir la langue et les credentials par session.
-2. Fournir l'audio ordonné : `OggAudio::open` pour un fichier Ogg/Opus, ou un
-   `AudioSource` ; le PCM passe par `rambler-audio` (voir [Entrées audio](#entrées-audio)).
-3. Collecter avec `collect_dictation` (ou sa variante avec observateur) et lire le
-   résultat **seulement après `Ok`**.
-4. Pour une édition : `replacement_proposal` sur le résultat, approbation explicite
-   de l'utilisateur, puis `validate_current` dans la même transaction d'éditeur.
+[`crates/rambler-engine/src/lib.rs`](crates/rambler-engine/src/lib.rs)
+contains a compiled example. The
+[SDK integration guide](docs/research/sdk-integration-guide.md) covers each step.
 
-Un exemple compilé est dans [`crates/rambler-engine/src/lib.rs`](crates/rambler-engine/src/lib.rs).
-Le [guide d'intégration SDK](docs/research/sdk-integration-guide.md) détaille chaque étape.
-Pour une [dictée longue](docs/research/sdk-integration-guide.md#opt-in-to-long-dictation),
-le collecteur PCM découpe l'audio en sessions successives, de préférence sur une pause.
-Pour un callback de capture fourni par l'app, [`capture_channel`](docs/research/rust-pcm-capture.md)
-accepte les blocs sans attendre et signale explicitement tout débordement.
-[`stream_long_pcm_dictation`](docs/research/recoverable-segment-delivery.md) remet
-chaque segment validé à l'app avant le suivant ; une panne ou une annulation ne
-retire pas les résultats déjà remis. Aucun audio n'est rejoué et aucun contexte
-d'éditeur ne passe entre segments.
+For [long dictation](docs/research/sdk-integration-guide.md#opt-in-to-long-dictation),
+the PCM collector splits audio across sessions, preferably at pauses. For
+application capture callbacks, [`capture_channel`](docs/research/rust-pcm-capture.md)
+accepts blocks without waiting and explicitly reports overflow.
+[`stream_long_pcm_dictation`](docs/research/recoverable-segment-delivery.md)
+delivers each validated segment to the app before the next one. Segments
+already delivered remain available if a later session fails or is cancelled.
+Audio replay and sharing editor context across segments are disabled.
 
-Règles à respecter :
+- `Ok` marks the end of a session. Inspect the result before displaying text as final.
+- Keep errors separate from `finish()`. The engine never replays audio automatically.
+- Use previews for display only. Exclude them from edits, submissions, and deletions.
+- Keep audio, text, context, raw responses, and metadata out of logs.
+- Treat edit results as possible replacements for the full history. Appending
+  them to existing text can duplicate content.
+- Reserve `Engine::close()` for application shutdown. Use the session controls
+  to dismiss a preview.
 
-- `Ok` signifie que la session est terminée, pas qu'un texte est définitif à afficher.
-- Aucun audio n'est rejoué automatiquement après une erreur ; ne jamais convertir un
-  échec en `finish()`.
-- Les aperçus ne servent ni à une édition, ni à un envoi, ni à un effacement.
-- Ne journaliser ni audio, ni texte, ni contexte, ni réponses brutes, ni métadonnées.
-- Un résultat d'édition peut contenir l'historique complet : ne pas l'ajouter au texte existant.
-- Fermer l'engine uniquement à l'arrêt de l'application (`Engine::close()`), jamais pour
-  écarter un aperçu.
+## Audio inputs
 
-## Entrées audio
-
-| Entrée | Chemin | Remarques |
+| Input | Entry point | Notes |
 |---|---|---|
-| Ogg/Opus continu, mono, 16 kHz | `dictate` ; `OggAudio` | Chemin validé principal. Lecteur sans codec natif : pages validées au fil de la lecture, sans cadence temps réel. |
-| WAV PCM16LE mono 16 ou 48 kHz | `dictate-wav` (feature `audio`) | Le 48 kHz est converti en continu vers 16 kHz avant l'encodage ou le découpage `--interactive`. Encodage Opus 24 kbit/s, pages de 20 ms par défaut, flush final. `--realtime` simule une arrivée progressive depuis un fichier, pas un microphone. |
-| PCM 48 kHz mono PCM16LE | `pcm_channel` → `Pcm48kTo16k` → `Pcm16Opus`, puis `collect_dictation` (SDK) | Optionnel, sans changer le chemin 16 kHz. Voir [le guide, section 2](docs/research/sdk-integration-guide.md) et [BUILDING](crates/rambler-audio/BUILDING.md). |
+| Continuous mono Ogg/Opus, 16 kHz | `dictate` or `OggAudio` | Primary validated input. The reader validates pages as it reads them without a native codec or real-time pacing. |
+| Mono PCM16LE WAV at 16 or 48 kHz | `dictate-wav` with the `audio` feature | The engine resamples 48 kHz to 16 kHz continuously before encoding or `--interactive` segmentation. Opus uses 24 kbit/s, 20 ms pages by default, and a final flush. `--realtime` simulates progressive input from a file. |
+| Mono PCM16LE at 48 kHz | `pcm_channel` → `Pcm48kTo16k` → `Pcm16Opus`, then `collect_dictation` (SDK) | Optional. The 16 kHz input path remains available. See [section 2 of the guide](docs/research/sdk-integration-guide.md) and [BUILDING](crates/rambler-audio/BUILDING.md). |
 
-`dictate-wav` rejette le stéréo, le PCM flottant et les autres fréquences,
-notamment 44,1 kHz. Les compteurs `pcm.input_bytes` et `pcm.encoded_input_samples`
-se rapportent à l'entrée PCM16LE 16 kHz de l'encodeur, pas au fichier WAV.
-Les plages `sample_range` en mode interactif sont aussi exprimées en échantillons
-à 16 kHz, après conversion le cas échéant.
+`dictate-wav` rejects stereo, floating-point PCM, and other sample rates,
+including 44.1 kHz. The `pcm.input_bytes` and `pcm.encoded_input_samples`
+counters refer to the encoder's 16 kHz PCM16LE input. In interactive mode,
+`sample_range` also uses 16 kHz sample indices after any resampling.
 
-Ne pas passer du PCM arbitraire étiqueté Opus, ni concaténer des clips encodés
-séparément : l'entrée doit être **un seul flux Ogg/Opus continu**.
+Provide **a single continuous Ogg/Opus stream**. Raw PCM labelled as Opus and
+concatenated clips encoded separately are invalid inputs.
 
-## Résultats et édition
+## Results and editing
 
-`--result-policy` choisit la projection du résultat final :
+`--result-policy` selects how the final result is interpreted.
 
-| Valeur | Effet |
+| Value | Effect |
 |---|---|
-| `strict` (défaut) | Projection SDK conservatrice. |
-| `asr-only` | Texte de reconnaissance uniquement. |
-| `s3-client-compatible` | Accepte aussi la réécriture d'une fenêtre capturée (intention 3, champ 7). |
+| `strict` (default) | Conservative SDK projection. |
+| `asr-only` | Returns recognition text only. |
+| `s3-client-compatible` | Also accepts a rewrite of a captured window (intent 3, field 7). |
 
-Les choix explicites ajoutent `provenance` à une projection acceptée
-(`hypothesis_text`, `voice_edit_text` ou `voice_edit_context`).
+An explicit choice adds `provenance` to an accepted projection
+(`hypothesis_text`, `voice_edit_text`, or `voice_edit_context`).
 
-`DictationResult::interpret(policy)` distingue `UsableText`, `NoResult`,
-`NeedsReview`, `VerifiedDeletion`, `SafetyBlocked` et `UnrecognizedSafety`.
-`NoResult` couvre notamment l’absence de finale ou de texte et une hypothèse
-explicitement vide ; cela ne prouve pas un silence acoustique. Les projections
-historiques `render(policy)` et `text()` restent inchangées. Une suppression
-vérifiée exige une édition explicitement vide, admissible comme remplacement
-de la fenêtre capturée non vide. Elle n’autorise aucune mutation : utiliser
-une proposition bornée à cette fenêtre et revalider le contexte et la révision.
+`DictationResult::interpret(policy)` distinguishes `UsableText`, `NoResult`,
+`NeedsReview`, `VerifiedDeletion`, `SafetyBlocked`, and `UnrecognizedSafety`.
+`NoResult` can mean there is no final response or text, or that the hypothesis
+is explicitly empty. This alone cannot establish whether the input was silent.
+The older `render(policy)` and `text()` methods keep their existing behavior.
+A verified deletion requires an explicitly empty edit eligible to replace a
+nonempty captured window. To apply it, prepare a proposal bounded to that window
+and revalidate the context and revision.
 
-La CLI ajoute `outcome` au JSON : `usable_text` et `verified_deletion` ont le
-code 0 pour une session seule (`type: result`). `no_result` et `needs_review`
-renvoient le code 1 (`type: ambiguous`, `text: null`) ; `no_result_reason`
-précise le motif par segment (`no_finals`, `missing_text` ou `empty_text`).
-Les issues `safety_blocked` et `unrecognized_safety` restent des erreurs
-sans texte, contexte ni finale de la session concernée.
+In the CLI JSON, `outcome` is `usable_text` or `verified_deletion` with exit
+code 0 for a single session (`type: result`). `no_result` and `needs_review`
+exit with code 1 (`type: ambiguous`, `text: null`). `no_result_reason`
+identifies the reason per segment (`no_finals`, `missing_text`, or
+`empty_text`). The `safety_blocked` and `unrecognized_safety` errors omit
+text, context, and final responses for the affected session.
 
-En mode `--interactive`, seules des sessions avec du texte utilisable forment
-le texte global. Si un segment manque ou exige une révision, le code est
-non nul et `text` reste `null`, mais `completed_segments` conserve les sessions
-terminées dans l’ordre, chacune avec sa `sample_range` (intervalle semi-ouvert
-d’échantillons PCM 16 kHz). Si aucune session n’a été ouverte, le motif est
-`no_segments`. De même, `LongDictationResult::text()` refuse la jointure si
-un segment présent ne contient pas de texte utilisable ; chaque résultat
-reste disponible séparément.
+In `--interactive` mode, the combined text requires usable text from every
+session. If a segment is missing or needs review, the CLI exits with a nonzero
+code and `text` is `null`. `completed_segments` still contains completed
+sessions in order, each with its own `sample_range`, a half-open range of
+16 kHz PCM samples. If no session opened, the reason is `no_segments`.
+Likewise, `LongDictationResult::text()` only joins segments when each has usable
+text. Individual results remain available.
 
 ```sh
 target/release/rambler.exe dictate instruction.ogg --language en-US \
@@ -165,72 +165,60 @@ target/release/rambler.exe dictate instruction.ogg --language en-US \
   --selected 'Send me the report now.' --cursor-aware --result-policy s3-client-compatible
 ```
 
-Pour un remplacement ponctuel, `derive_scalar_splice` dérive depuis la proposition
-stricte non modifiée une plage UTF-16 locale et son texte, après revalidation de la
-fenêtre et de la révision. Détails et limites (scalaires, pas graphèmes) :
-[guide, section 5](docs/research/sdk-integration-guide.md#opt-in-to-a-single-local-text-splice).
-Les réécritures sont décrites dans [raffinement](docs/refinement.md) et dans le
-[guide, section sur les réécritures](docs/research/sdk-integration-guide.md#opt-in-to-selection-rewrites).
+For a single local replacement, `derive_scalar_splice` derives a local UTF-16
+range and replacement text from an unmodified strict proposal after
+revalidating the window and revision. See
+[section 5 of the SDK guide](docs/research/sdk-integration-guide.md#opt-in-to-a-single-local-text-splice)
+for its scalar boundary rules. See [result handling](docs/refinement.md) and the
+[rewrite section](docs/research/sdk-integration-guide.md#opt-in-to-selection-rewrites)
+for how to apply rewrites.
 
-## Accès au service
+## Live service observations
 
-Le service attend trois métadonnées applicatives, fournies par l'environnement :
-`RAMBLER_API_KEY`, `RAMBLER_ANDROID_PACKAGE` et `RAMBLER_ANDROID_CERT`.
-**Aucune valeur n'est embarquée dans ce dépôt.** Les noms « Android » désignent les
-headers du protocole observé, pas une dépendance d'exécution.
+These results come from small synthetic and natural speech datasets.
 
-Pour Git Bash, remplir un fichier `.env` (ignoré par git, modèle `.env.example`)
-avec des métadonnées dont l'usage est autorisé pour votre application, puis le
-charger avant la commande (voir l'exemple ci-dessus). Les essais historiques
-avec un autre profil ne démontrent pas un droit d'accès, un approvisionnement
-ou un renouvellement pour une application distribuée. Une révocation ne se
-résout pas par un retry. Voir [authentification et limites](docs/research/authentication.md).
-
-## Ce qui a été observé sur le service réel
-
-Petits corpus synthétiques et naturels ; ces résultats ne mesurent pas la qualité générale.
-
-| Date | Essai | Résultat |
+| Date | Test | Result |
 |---|---|---|
-| 12 nov. | Dictée anglaise | Texte ponctué, extension `VoiceEditingResult`, fin S3 et gRPC OK |
-| 12 nov. | « …at ten. No, make that eleven. » | `The meeting is tomorrow at 11.` |
-| 12 nov. | Contexte `The meeting is tomorrow at ten.` + « Change ten to eleven. » | `The meeting is tomorrow at eleven.` |
-| 12 nov. | Sélection `ten`, contexte différé avant/sélection/après | Sélection remplacée par `eleven`, retour structuré en trois parties |
-| 12 nov. | Dictée française | `Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.` |
-| 13 nov. | Réécriture « Send me the report now. » | « Could you please send me the report at your earliest convenience? » |
-| 13 nov. | [Référence Python : dix extraits lus](docs/evidence/natural-expansion-quality.json), 7 EN et 3 FR | Écarts de 3/109 mots (EN) et 3/79 (FR) après normalisation. Aucun résultat Rust déduit de ce chiffre. |
-| 18 nov. | [Moteur Rust : trois extraits lus](docs/evidence/rust-native-natural-public.json), 18,885 s au total | Trois dictées terminées. Échantillon distinct, non représentatif de la parole spontanée. |
-| 18 nov. | Dictée de deux phrases et « Change blue to green » (voix synthétique) | Exacts : `The kite is blue. Marker stays.` puis `The kite is green. Marker stays.` |
-| 18 nov. | Une phrase dans 13 langues (DE, ES, IT, PT, RU, AR, HI, TA, JA, KO, ZH, NL, PL) | [13 résultats finaux](docs/evidence/rust-native-multilingual-real-20261118.json) ; hindi et tamoul renvoyés en alphabet latin |
-| 18 nov. | Sélection « Send me the report now. » + « Make this more polite. » | Réécriture polie (intention 3, champ 7) acceptée avec `--result-policy s3-client-compatible` ; PixelBoard 1.3.5 ne l'a pas produite sur le téléphone de test (Xiaomi, pas un Pixel) |
+| Nov 12 | English dictation | Punctuated text, `VoiceEditingResult` extension, successful S3 and gRPC completion |
+| Nov 12 | “...at ten. No, make that eleven.” | `The meeting is tomorrow at 11.` |
+| Nov 12 | Context `The meeting is tomorrow at ten.` with “Change ten to eleven.” | `The meeting is tomorrow at eleven.` |
+| Nov 12 | Selected `ten`, with the before, selection, and after context supplied later | Selection replaced with `eleven` in a structured three-part response |
+| Nov 12 | French dictation | `Bonjour. Ceci est un essai de dictée intelligente. La réunion aura lieu demain à 11h.` |
+| Nov 13 | Rewrite of “Send me the report now.” | “Could you please send me the report at your earliest convenience?” |
+| Nov 13 | [Python reference with ten read excerpts](docs/evidence/natural-expansion-quality.json), 7 English and 3 French | Differences of 3/109 English words and 3/79 French words after normalization. The figures apply to Python. |
+| Nov 18 | [Rust engine with three read excerpts](docs/evidence/rust-native-natural-public.json), 18.885 s total | Three complete dictations from a separate sample of read speech |
+| Nov 18 | Dictation of two sentences and “Change blue to green” (synthetic voice) | Exact results `The kite is blue. Marker stays.`, then `The kite is green. Marker stays.` |
+| Nov 18 | One sentence in 13 languages (DE, ES, IT, PT, RU, AR, HI, TA, JA, KO, ZH, NL, PL) | [13 final results](docs/evidence/rust-native-multilingual-real-20261118.json). Hindi and Tamil came back in Latin script. |
+| Nov 18 | Selected “Send me the report now.” with “Make this more polite.” | A polite rewrite (intent 3, field 7) was accepted with `--result-policy s3-client-compatible`. PixelBoard 1.3.5 did not produce it on the Xiaomi test phone. |
 
-Certains essais ont vérifié les octets audio par SHA-256 ; le périmètre et les
-incidents figurent dans leurs rapports. Preuves expurgées : [docs/evidence/](docs/evidence/), notamment
-[premier appel Rust](docs/evidence/rust-first-slice-public.json),
-[PCM](docs/evidence/rust-pcm-functional-public.json),
-[voix naturelles](docs/evidence/rust-native-natural-public.json) et
-[comparaison PixelBoard](docs/evidence/pixelboard-vs-native-real-20261118.json).
-La composition (intention 4) n'a pas été observée dans les essais ciblés ; ce n'est pas une
-preuve d'impossibilité. Voir [l'analyse](docs/research/composition.md) et le
-[protocole reconstruit](docs/research/protocol.md).
+Some tests verified the audio bytes by SHA-256. The reports document the scope
+and incidents of those tests. See the [redacted evidence](docs/evidence/),
+including the [first Rust call](docs/evidence/rust-first-slice-public.json),
+[PCM path](docs/evidence/rust-pcm-functional-public.json),
+[natural voices](docs/evidence/rust-native-natural-public.json), and
+[PixelBoard comparison](docs/evidence/pixelboard-vs-native-real-20261118.json).
+The targeted tests did not observe composition (intent 4). See the
+[composition analysis](docs/research/composition.md) and the
+[reconstructed protocol](docs/research/protocol.md).
 
-## Limites
+## Limitations
 
-- Pas de microphone, d'interface, d'insertion système ni de portage Tauri dans ce lot :
-  voir le [contrat de portage](docs/architecture/portage-rust.md) et la
-  [recommandation desktop](docs/architecture/application-desktop-multiplateforme.md).
-- Accès réel au service depuis Linux non revendiqué comme testé.
-- Une endurance conserve un échec intermittent ; sa cause n'est pas établie (voir
-  [l'état détaillé](docs/STATUS.md) et le [diagnostic](docs/evidence/rust-incomplete-diagnostic-followup.json)).
-- Aucune parité complète revendiquée ; les capacités du schéma ne sont pas des
-  capacités validées en production. Le service et ses formats internes peuvent évoluer.
-- Les optimisations sont mesurées localement (voir [mesures](docs/performance.md)).
-- Métadonnées applicatives : provisionnement et révocation hors du moteur.
+- A future application will handle microphone capture, the interface, and
+  system-level text insertion. See the [Rust port contract](docs/architecture/portage-rust.md)
+  and the [desktop architecture recommendation](docs/architecture/application-desktop-multiplateforme.md).
+- Linux validation covers offline behavior.
+- An endurance test recorded an intermittent failure with an undetermined
+  cause. See the [status log](docs/STATUS.md) and the
+  [diagnostic](docs/evidence/rust-incomplete-diagnostic-followup.json).
+- [PixelBoard parity](docs/research/rust-feature-parity.md) is partial and the
+  service's internal formats can change.
+- [Performance improvements](docs/performance.md) are measured locally.
+- The application is responsible for provisioning and revoking its metadata.
 
-## Référence Python 0.3 : installer et tester
+## Install and test the Python 0.3 reference
 
-Python **3.11 ou plus récent**. Exemple Windows / Git Bash (Linux/macOS : remplacer
-`.venv/Scripts/python` par `.venv/bin/python`) :
+Use Python **3.11 or later**. The example uses Git Bash on Windows. On Linux
+and macOS, replace `.venv/Scripts/python` with `.venv/bin/python`.
 
 ```sh
 python -m venv .venv
@@ -239,11 +227,11 @@ python -m venv .venv
 .venv/Scripts/python -m rambler.cli --help
 ```
 
-La suite locale utilise des serveurs gRPC loopback et ne contacte pas Google. La CI
-offline/loopback et la construction passent sur Windows et Linux, Python 3.11/3.14.
-Pour construire une roue : `python -m pip wheel --no-deps . -w dist`.
+The tests use local loopback gRPC servers. Offline and loopback checks and
+builds pass in CI on Windows and Linux with Python 3.11 and 3.14. To build a
+wheel, run `python -m pip wheel --no-deps . -w dist`.
 
-L'extra audio (Python **>=3.12**) ajoute PyAV/libopus embarqué :
+The audio extra requires Python **3.12 or later** and adds PyAV with libopus.
 
 ```sh
 .venv/Scripts/python -m pip install -c constraints-tested.txt -e '.[audio,test]'
@@ -251,13 +239,11 @@ L'extra audio (Python **>=3.12**) ajoute PyAV/libopus embarqué :
 .venv/Scripts/python -m rambler.cli dictate-wav input-16k-mono.wav --language fr-FR --realtime
 ```
 
-La CLI Python émet du NDJSON (Unicode échappé sans perte, indépendant de la page de
-codes Windows) et sépare résultats, erreurs et métriques. Les résultats d'édition peuvent
-être du texte d'historique complet : ne pas les ajouter au texte existant.
-L'import du codec a un coût de démarrage ; préparer le processus avant la capture si ce
-délai est critique.
-
-Intégration Python minimale :
+The Python CLI emits NDJSON, with lossless Unicode escaping independent of the
+Windows code page. It separates results, errors, and metrics. Edit results
+can contain a full replacement history. Apply them as replacements after
+validation. The codec import adds startup time, so initialize the process
+before capture if startup latency matters.
 
 ```python
 from contextlib import aclosing
@@ -275,33 +261,33 @@ async def dictate(path):
         async with aclosing(engine.stream(
             ogg_chunks(path),
             config=ProtocolConfig(language='fr-FR'),
-            context=EditingContext(),  # envoyé après l'audio, avant la fin
+            context=EditingContext(),  # Sent after audio, before the end.
             timeout=30,
         )) as events:
             async for event in events:
                 if event.response is not None:
                     for hypothesis in event.response.hypotheses:
-                        # Préserver aussi voice_edit : intention et texte/contexte édité.
+                        # Also retain voice_edit for the intent and edited text or context.
                         print(hypothesis)
 ```
 
-Un producteur audio doit coopérer avec l'annulation asyncio ; utiliser `aclosing` ou
-consommer jusqu'à la fin, car `break` seul ne ferme pas un générateur asynchrone.
-`MetadataProvider` est injectable et rappelé à chaque session. Pour un PCM asynchrone,
-passer `pcm16_to_ogg(source_pcm)` de `rambler.encoding` à `engine.stream`. Le contexte
-peut être un callback asynchrone (`context_timeout=2.0`) ; une erreur de contexte n'est
-jamais silencieusement remplacée par une requête sans contexte. Les biais, préférences
-et langues secondaires sont dans `ProtocolConfig`. Pour le résultat final, la fonction
-`collect_dictation` et les contrôles de `replacement_proposal` sont décrits dans
-[raffinement](docs/refinement.md).
+Audio producers must cooperate with asyncio cancellation. Use `aclosing` or
+consume the stream to completion. Breaking out of the loop leaves an
+asynchronous generator open. Inject `MetadataProvider` to supply metadata per
+session. For asynchronous PCM, pass `pcm16_to_ogg(source_pcm)` from
+`rambler.encoding` to `engine.stream`. The context can come from an async
+callback (`context_timeout=2.0`). Context errors propagate to the caller.
+`ProtocolConfig` holds biases, preferences, and secondary languages. See
+[result handling](docs/refinement.md) for `collect_dictation` and
+`replacement_proposal` validation.
 
 ## Documentation
 
-- État et journal : [STATUS](docs/STATUS.md) · priorités : [ROADMAP](docs/ROADMAP.md) · décisions : [DECISIONS](docs/DECISIONS.md)
-- Rust : [moteur et CLI](docs/rust.md) · [guide d'intégration SDK](docs/research/sdk-integration-guide.md) · [parité](docs/research/rust-feature-parity.md)
-- Protocole et accès : [protocole](docs/research/protocol.md) · [authentification](docs/research/authentication.md) · [raffinement et résultat](docs/refinement.md)
-- Preuves et mesures : [preuves réelles](docs/evidence/) · [performance](docs/performance.md) · [critères de validation actuels](docs/ROADMAP.md)
-- [Contribuer](CONTRIBUTING.md)
+- [Status and work log](docs/STATUS.md) · [Roadmap](docs/ROADMAP.md) · [Decisions](docs/DECISIONS.md)
+- [Rust engine and CLI](docs/rust.md) · [SDK integration](docs/research/sdk-integration-guide.md) · [Feature parity](docs/research/rust-feature-parity.md)
+- [Protocol](docs/research/protocol.md) · [Authentication](docs/research/authentication.md) · [Text editing and results](docs/refinement.md)
+- [Test evidence](docs/evidence/) · [Performance](docs/performance.md) · [Validation criteria](docs/ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
 
-Ne pas committer de clés, tokens, audio personnel, captures brutes, APK ou sources
-décompilées.
+Keep keys, tokens, personal audio, raw captures, APK files, and decompiled
+sources out of the repository.

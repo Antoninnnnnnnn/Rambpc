@@ -1,191 +1,98 @@
-# Allocations privées du décodeur Rust : prototype compatible
+# Rust decoder private allocations: compatible prototype
 
-> **Historique — variante V2 non bornée rejetée après revue défensive.**
-> Les décisions, chiffres « finaux », capacités exactes des grandes listes et
-> validations ci-dessous concernent uniquement cette ancienne variante mesurée.
-> Ils ne décrivent pas le code finalement retenu. Les données A/B restent
-> intégralement conservées, mais une erreur au premier enfant peut demander
-> 33,84 Mo de stockage modèle spéculatif. Voir le
-> [correctif final à hint borné avant filtrage](rust-backend-decode-defensive-capacity.md)
-> et sa nouvelle preuve distincte. Aucun gain historique de V2 ne vaut mesure
-> du correctif final.
+> **Historical — unbounded V2 variant rejected after defensive review.**
+> The decisions, “final” figures, exact capacities of large lists and validations below concern only this older measured variant. They do not describe the code ultimately retained. The A/B data remains fully preserved, but an error on the first child can request 33.84 MB of speculative model storage. See the [final fix with a bounded hint before filtering](rust-backend-decode-defensive-capacity.md) and its separate new evidence. No historical V2 gain measures the final fix.
 
-## Périmètre et décision
+## Scope and decision
 
-Baseline **`67ac9a5`**, Windows x86_64, 2026-11-14. Prototype dans le seul
-worktree de travail, **sans commit ni modification de `main`**. La précédente
-optimisation `Bytes` est déjà dans cette baseline ; son gain historique de
-70,82 % n'est pas réattribué à ce travail.
+Baseline **`67ac9a5`**, Windows x86_64, 2026-11-14. Prototype only in the working worktree, **without a commit or change to `main`**. The previous `Bytes` optimization is already in this baseline; its historical gain of 70.82% is not reattributed to this work.
 
-[Preuve structurée et sources mesurées](../evidence/rust-backend-decode-allocations-profile.json)
-: **420 lignes A/B finales**, **630 lignes initiales trois-voies intégralement
-conservées**, 42 lignes de diagnostic, SHA256 des trois binaires/sources,
-patchs des variantes et du harness commun, résumés, rapports appariés et logs de
-validation. Aucune suppression d'échantillon lent.
+[Structured evidence and measured sources](../evidence/rust-backend-decode-allocations-profile.json): **420 final A/B rows**, **630 initial three-way rows fully preserved**, 42 diagnostic rows, SHA256 of the three binaries/sources, variant and common harness patches, summaries, paired reports and validation logs. No slow sample removed.
 
-**Retenu :** capacités exactes des vecteurs répétés, lookup privés paresseux,
-parts à occurrence unique sur la pile, réutilisation du premier vecteur produit
-par `parse_ref`. Aucun nouveau type public, changement de `Bytes`, `String`,
-`wire::Field`/`Value`, dépendance, `unsafe` ou code transport/engine de production.
-L'allocateur instrumenté préexistant du profiler est réutilisé sans modification.
+**Retained:** exact capacities for repeated vectors, lazy private lookups, single-occurrence parts on the stack, reuse of the first vector produced by `parse_ref`. No new public type, change to `Bytes`, `String`, `wire::Field`/`Value`, dependency, `unsafe` or production transport/engine code. The profiler's existing instrumented allocator is reused unchanged.
 
-## Diagnostic et changements
+## Diagnosis and changes
 
-Le recensement effectif de cette cible donne `size_of::<Hypothesis>() = 376` et
-`size_of::<S3Response>() = 1984` octets, **avant et après**. Les estimations
-initiales 384/1952 ne sont donc pas les valeurs de ces exécutables.
+Actual inventory for this target gives `size_of::<Hypothesis>() = 376` and `size_of::<S3Response>() = 1984` bytes, **before and after**. Initial estimates of 384/1952 are therefore not the values for these executables.
 
-- Un seul candidat dans `HypothesisResult` retenait une capacité de quatre,
-  soit **1504 octets**. Préallouer à partir du nombre de champs déjà parsés de
-  bon numéro **et bon wire type** ramène cette allocation à **376 octets**.
-  Deux candidats : capacité 4→2 ; 257 : 512→257. Zéro reste sans allocation.
-  Même traitement pour `PartialResult`, indépendamment pour chaque conteneur.
-- Le comptage parcourt une seconde fois **les références déjà validées**, pas
-  les octets protobuf ; il ne charge jamais une seconde fois le budget.
-  Travail linéaire borné par 100 000 champs, aucune arithmétique issue d'une
-  longueur wire non validée. La préallocation peut précéder le rejet d'un enfant
-  malformé : ce n'est pas une nouvelle garantie de borne heap.
-- `Message::data` renvoie un itérateur clonable plutôt qu'un `Vec` temporaire.
-  Toutes les occurrences des chaînes restent validées en ordre avant copie de
-  la dernière. Les fixed32/64 ont déjà tous été validés par `parse_ref` ; le
-  lookup final peut donc parcourir les références depuis la fin.
-- Les parseurs privés empruntent une slice de parts. Racine et enfant répété
-  n'allouent plus un `vec![part]`. Pour un sous-message singulier, zéro occurrence
-  reste absent, une utilise une slice sur la pile, plusieurs conservent un
-  vecteur temporaire puis la fusion existante.
-- `Message::new` reprend directement le premier `Vec<RefField>` ; les autres
-  occurrences sont toujours parsées séparément puis étendues. Pas de double
-  vecteur/copieur de champs pour le cas commun à occurrence unique.
+- A single candidate in `HypothesisResult` retained capacity for four, or **1504 bytes**. Preallocating from the number of already parsed fields with the correct number **and wire type** reduces this allocation to **376 bytes**. Two candidates: capacity 4→2; 257: 512→257. Zero remains allocation-free. Same treatment for `PartialResult`, independently for each container.
+- Counting traverses **already validated references** a second time, not protobuf bytes; it never charges the budget a second time. Linear work bounded by 100,000 fields, no arithmetic from an unvalidated wire length. Preallocation may precede rejection of a malformed child: this is not a new heap-bound guarantee.
+- `Message::data` returns a clonable iterator rather than a temporary `Vec`. All string occurrences remain validated in order before copying the last. Fixed32/64 values have all already been validated by `parse_ref`; the final lookup can therefore traverse references from the end.
+- Private parsers borrow a slice of parts. Root and repeated child no longer allocate a `vec![part]`. For a singular submessage, zero occurrences remains absent, one uses a stack slice, several retain a temporary vector and then the existing merge.
+- `Message::new` directly reuses the first `Vec<RefField>`; other occurrences are still parsed separately then extended. No double vector/field copy for the common single-occurrence case.
 
-Les **1984 octets inline de racine** et les layouts publics restent inchangés.
-Les vecteurs de runs oneof, les parts des vraies fusions et les capacités des
-inconnus restent présents ; il ne s'agit pas d'une suppression de provenance.
+The **1984 inline root bytes** and public layouts remain unchanged. Oneof run vectors, parts of actual merges and unknown-field capacities remain present; this does not remove provenance.
 
-## Méthode A/B
+## A/B method
 
-Même harness/fixtures dans les trois exécutables release, seule `decode.rs`
-diffère. Première comparaison : cinq passes à 20 000 opérations demandées,
-ordre tournant baseline / capacité seule / candidat complet. Elle isole le
-fait que la capacité seule donne déjà la baisse de rétention, mais laisse
-**39 allocations** par réponse contre **24** pour le candidat complet.
-Elle n'est pas retenue comme variante finale, sans être un échec de fidélité.
+Same harness/fixtures in the three release executables, only `decode.rs` differs. First comparison: five passes with 20,000 requested operations, rotating order baseline / capacity only / full candidate. It isolates the fact that capacity alone already gives the retention reduction, but leaves **39 allocations** per response versus **24** for the full candidate. It is not retained as the final variant, without being a fidelity failure.
 
-Une paire oneof initiale était **+27,0 %**, une paire de rétention grosse
-**+1,3 %**. Cela a déclenché **une seule répétition bornée plus longue**,
-annoncée au coordinateur, sans compilation/benchmark concurrent : cinq paires
-strictement alternées **AB / BA / AB / BA / AB**, 100 000 opérations demandées,
-128 échauffements par cas. Les anciennes valeurs ne sont ni exclues ni mélangées
-aux finales. Aucune nouvelle répétition après cette fenêtre.
+One initial oneof pair was **+27.0%**, one large-retention pair **+1.3%**. This triggered **one longer bounded repetition**, announced to the coordinator, without concurrent compilation/benchmark: five strictly alternating pairs **AB / BA / AB / BA / AB**, 100,000 requested operations, 128 warmups per case. Old values are neither excluded nor mixed with the final ones. No further repetition after this window.
 
-Rétention : 781 lots de 128 réponses, mouvement réel vers un `Vec` croissant
-inchangé, puis destruction. Formes répétées : nombre d'itérations adapté au
-nombre de candidats ; 6250 pour partiels/fusions/oneof, 100 pour 100 000 champs.
-Les nombres exacts sont dans chaque ligne. Compteurs d'allocation désactivés
-pendant le wall, puis passe séparée ; `black_box` observe le modèle entier.
-Construction des fixtures, assertions préalables, JSON et sorties sont exclus.
-Le vivant retrouve exactement sa valeur initiale après chaque passe comptée.
+Retention: 781 batches of 128 responses, actual movement into an unchanged growing `Vec`, then destruction. Repeated shapes: iteration count adapted to candidate count; 6250 for partials/merges/oneof, 100 for 100,000 fields. Exact counts are in each row. Allocation counters disabled during wall timing, then separate pass; `black_box` observes the entire model. Fixture construction, preliminary assertions, JSON and output are excluded. Live bytes return exactly to their initial value after each counted pass.
 
-Windows 11 Pro 10.0.26300, `rustc 1.99.1`, cible `x86_64-pc-windows-msvc`,
-profil release Cargo, incrémental désactivé. Pas d'affinité CPU ni de verrouillage
-de fréquence. L'allocateur délègue à `System` ; son branchement reste dans les
-passes wall. Les reallocs chargent toute leur nouvelle taille. Ce sont des
-octets logiques au contrat `GlobalAlloc`, **pas du RSS ni du trafic de copies**.
+Windows 11 Pro 10.0.26300, `rustc 1.99.1`, target `x86_64-pc-windows-msvc`, Cargo release profile, incremental disabled. No CPU affinity or frequency locking. The allocator delegates to `System`; its branch remains in wall passes. Reallocations charge their entire new size. These are logical bytes under the `GlobalAlloc` contract, **not RSS or copy traffic**.
 
-## Résultats finaux
+## Final results
 
-Temps **ns par réponse**, médiane (minimum–maximum), cinq paires.
+Time **ns per response**, median (minimum–maximum), five pairs.
 
-| Cas | Baseline | Candidat |
+| Case | Baseline | Candidate |
 |---|---:|---:|
-| decode petit (526 octets wire) | 2119,05 (2025,25–2834,80) | 1579,65 (1480,99–2097,11) |
-| decode gros (12 430 octets wire) | 2996,11 (2819,39–4238,29) | 2376,04 (2318,86–3392,03) |
-| rétention 128 × petit | 3786,18 (3583,75–5074,69) | 2884,33 (2813,37–3710,83) |
-| rétention 128 × gros | 4173,90 (3835,01–4902,14) | 3175,88 (3090,30–5722,55) |
-| 1 candidat court | 1271,24 (1245,53–1673,22) | 846,91 (807,51–1723,64) |
-| 16 candidats courts | 6368,62 (6191,09–8900,00) | 3480,38 (3303,50–4548,43) |
-| 257 candidats courts | 142757,07 (125493,83–178908,23) | 84091,52 (81762,72–113678,92) |
-| 16 partiels | 5662,62 (5431,49–8945,06) | 2855,25 (2764,35–4059,18) |
-| fusion de 16 conteneurs | 7647,62 (7453,30–12172,88) | 4482,21 (4321,57–6646,67) |
-| 16 runs oneof | 4345,65 (3816,50–7770,80) | 3367,22 (3188,50–4527,97) |
-| racine 100 000 champs | 3526607 (3395157–4285408) | 2652096 (2624928–3517055) |
+| small decode (526 wire bytes) | 2119.05 (2025.25–2834.80) | 1579.65 (1480.99–2097.11) |
+| large decode (12 430 wire bytes) | 2996.11 (2819.39–4238.29) | 2376.04 (2318.86–3392.03) |
+| retention 128 × small | 3786.18 (3583.75–5074.69) | 2884.33 (2813.37–3710.83) |
+| retention 128 × large | 4173.90 (3835.01–4902.14) | 3175.88 (3090.30–5722.55) |
+| 1 short candidate | 1271.24 (1245.53–1673.22) | 846.91 (807.51–1723.64) |
+| 16 short candidates | 6368.62 (6191.09–8900.00) | 3480.38 (3303.50–4548.43) |
+| 257 short candidates | 142757.07 (125493.83–178908.23) | 84091.52 (81762.72–113678.92) |
+| 16 partials | 5662.62 (5431.49–8945.06) | 2855.25 (2764.35–4059.18) |
+| merge of 16 containers | 7647.62 (7453.30–12172.88) | 4482.21 (4321.57–6646.67) |
+| 16 oneof runs | 4345.65 (3816.50–7770.80) | 3367.22 (3188.50–4527.97) |
+| root 100,000 fields | 3526607 (3395157–4285408) | 2652096 (2624928–3517055) |
 
-Les 17 médianes, y compris vide/status/speech et listes de 0/2/4 éléments, sont
-favorables. **Ce n'est pas une preuve d'absence de régression CPU** : une paire
-finale oneof est encore +14,7 %, une paire de rétention grosse +42,4 % ; quatre
-paires sur cinq sont meilleures pour ces deux cas, avec recouvrement des
-intervalles. Les rapports appariés de tous les cas sont dans la preuve.
+All 17 medians, including empty/status/speech and lists of 0/2/4 elements, are favorable. **This is not proof of absence of CPU regression**: one final oneof pair is still +14.7%, one large-retention pair +42.4%; four of five pairs are better for both cases, with overlapping intervals. Paired reports for all cases are in the evidence.
 
-Analyse spécifique oneof : son regroupement et ses vecteurs sont inchangés,
-aucune passe `count()` de liste répétée n'est exercée dans cette fixture.
-Les lookup d'absence font toujours un scan ; les deux `next()` du singulier
-partagent un itérateur, pas deux parcours complets. La copie du premier vecteur
-de champs et des matérialisations de lookup sont supprimées, sans nouvelle
-complexité asymptotique. On retient donc une **tendance wall favorable de ce
-microbenchmark**, pas un gain CPU universel garanti, et aucune accélération
-h2/service distant n'est revendiquée.
+Oneof-specific analysis: its grouping and vectors are unchanged, and no repeated-list `count()` pass is exercised in this fixture. Absence lookups still scan; the two singular `next()` calls share an iterator, not two full traversals. Copying the first field vector and lookup materializations are removed, without new asymptotic complexity. Thus a **favorable wall-time trend in this microbenchmark** is retained, not a guaranteed universal CPU gain, and no remote h2/service acceleration is claimed.
 
-### Allocations déterministes
+### Deterministic allocations
 
-| Mesure | Baseline | Candidat |
+| Measure | Baseline | Candidate |
 |---|---:|---:|
-| Allocations, réponse imbriquée isolée petit/gros | 39 | 24 |
-| Octets demandés, petit | 5703 | 3135 |
-| Octets demandés, gros | 29511 | 26943 |
-| Vivant du lot 128 × petit | 639488 | 495104 |
-| Pic logique, lot petit | 640320 | 496336 |
-| Vivant du lot 128 × gros | 3686912 | 3542528 |
-| Pic logique, lot gros | 3687744 | 3543760 |
+| Allocations, isolated nested small/large response | 39 | 24 |
+| Requested bytes, small | 5703 | 3135 |
+| Requested bytes, large | 29511 | 26943 |
+| Live bytes, batch 128 × small | 639488 | 495104 |
+| Logical peak, small batch | 640320 | 496336 |
+| Live bytes, batch 128 × large | 3686912 | 3542528 |
+| Logical peak, large batch | 3687744 | 3543760 |
 
-Le lot gros transporte toujours **1 591 040 octets** protobuf et économise
-**144 384 octets vivants, soit 3,92 %** de la baseline `Bytes` actuelle.
-Le lot petit économise les mêmes 144 384 octets, soit **22,58 %**.
-L'explication est exacte : **3 × 376 × 128** de capacité excédentaire supprimée.
-Les chaînes (456/12360 octets par réponse), inconnus (502), raw exacts et
-métadonnées de partage sont inchangés. Le vecteur de lot garde une allocation
-initiale et sept reallocations ; les réponses isolées n'en font aucune.
+The large batch still carries **1 591 040 bytes** of protobuf and saves **144 384 live bytes, or 3.92%** of the current `Bytes` baseline. The small batch saves the same 144 384 bytes, or **22.58%**. The explanation is exact: **3 × 376 × 128** of excess capacity removed. Strings (456/12360 bytes per response), unknowns (502), exact raw and sharing metadata are unchanged. The batch vector retains one initial allocation and seven reallocations; isolated responses make none.
 
-À 257 candidats : allocations **1302→523**, reallocs **21→7**, octets demandés
-**564256→188464**. À 100 000 champs racine : pic logique **9442896→5442904**.
-Ces volumes temporaires ne sont pas assimilés à de la mémoire retenue ni au RSS.
+At 257 candidates: allocations **1302→523**, reallocations **21→7**, requested bytes **564256→188464**. At 100,000 root fields: logical peak **9442896→5442904**. These temporary volumes are not equated with retained memory or RSS.
 
-## Invariants et validation réellement exécutée
+## Invariants and validation actually performed
 
-- **154 tests protocol + engine `--all-targets`** passent sur Windows stable
-  1.99.1 et sur **MSRV 1.88.0** ; **2 doctests** passent sur chacun.
-- **Clippy stable `-D warnings` passe**. Clippy 1.88 a été tenté mais son
-  composant est absent ; aucun téléchargement/install ni succès inventé.
-- Trois tests ciblés ajoutés : capacités et ordre/duplicates pour 0/1/2/3/4/5/16/
-  257 éléments dans les trois conteneurs et les partiels, wrong-wire/inconnus,
-  fusions/vides avec présence, **100 000 champs exactement** et rejet du suivant.
-- Les tests existants gardent leurs oracles : root exact 8 MiB/copied hors framer,
-  raw partagé et enfants survivants, fragments qui ne guérissent pas, UTF-8
-  écrasé toujours rejeté, proto2 merges, oneofs, sécurité fermée, noncanonique,
-  inconnus opaques ordonnés, et chaque champ interprété compté une seule fois.
+- **154 protocol + engine `--all-targets` tests** pass on Windows stable 1.99.1 and **MSRV 1.88.0**; **2 doctests** pass on each.
+- **Stable Clippy `-D warnings` passes**. Clippy 1.88 was attempted but its component is absent; no download/install or invented success.
+- Three targeted tests added: capacities and order/duplicates for 0/1/2/3/4/5/16/257 elements in the three containers and partials, wrong-wire/unknowns, merges/empty with presence, **exactly 100,000 fields** and rejection of the next.
+- Existing tests retain their oracles: exact 8 MiB root/copied outside framer, shared raw and surviving children, fragments that do not heal, overwritten UTF-8 still rejected, proto2 merges, oneofs, fail-closed safety, noncanonical, ordered opaque unknowns, and each interpreted field counted only once.
 
-Aucune concaténation des textes candidats, application d'edit, changement
-collecteur/limite, partage entre sessions ou perte de champ. Pas de nouveau
-profil h2, Linux, codec/Opus/CMake, Android, réseau externe ni corpus privé.
-Aucune revue indépendante n'est revendiquée.
+No candidate text concatenation, edit application, collector/limit change, sharing across sessions or field loss. No new h2, Linux, codec/Opus/CMake, Android, external network or private corpus profile. No independent review is claimed.
 
-## Options non retenues
+## Options not retained
 
-- **Capacité seule** : mesurée séparément, conserve le gain mémoire mais garde
-  les allocations temporaires ; dominée ici par la variante complète pour les
-  objectifs communs. Ses sources/binaires/630 lignes restent dans la preuve.
-- `shrink_to_fit` après collecte : non prototypé, pas de mesure inventée ; imposer
-  potentiellement un realloc/copie évitable n'est pas nécessaire quand le compte
-  valide est déjà disponible avant allocation.
-- Boxing/changement de layout pour réduire les 1984 octets de racine : hors
-  contrainte API publique ; aucun gain revendiqué.
-- Suppression/compactage des inconnus, partage intersessions et réécriture des
-  runs oneof : non appliqués. Les gains chiffrés ne reposent pas sur ces pistes.
+- **Capacity only**: measured separately, retains the memory gain but keeps temporary allocations; dominated here by the full variant for common goals. Its sources/binaries/630 rows remain in the evidence.
+- `shrink_to_fit` after collection: not prototyped, no invented measurement; potentially imposing an avoidable reallocation/copy is unnecessary when the valid count is already available before allocation.
+- Boxing/layout change to reduce the 1984 root bytes: outside public API constraint; no gain claimed.
+- Removal/compaction of unknowns, inter-session sharing and oneof run rewriting: not applied. Quantified gains do not depend on these approaches.
 
 ## Reproduction
 
 ```sh
 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 \
   CARGO_TARGET_DIR=t cargo test --locked -p rambler-protocol -p rambler-engine --all-targets
-# Refaire avec cargo +1.88.0 ; --doc séparément pour les deux toolchains.
+# Repeat with cargo +1.88.0; --doc separately for both toolchains.
 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 \
   CARGO_TARGET_DIR=t cargo clippy --locked -p rambler-protocol -p rambler-engine --all-targets -- -D warnings
 CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=t \
@@ -194,13 +101,4 @@ CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=t \
 ./t/release/examples/backend_cpu_profile.exe --decode-shapes --iterations 100000 --repeats 1
 ```
 
-Construire baseline/candidat **avant** la fenêtre de timing, préserver chaque
-exécutable puis alterner cinq paires ; jamais compiler dans les mesures. Le
-patch baseline/harness et celui de la variante capacité seule sont inclus dans
-la preuve pour reconstruire les trois sources sans toucher `main`.
-Cible courte `t`, dev/test debug=0, incremental=0 ; maximum observé **1,1 Gio**.
-Le cache debug stable a été supprimé avant le build MSRV pour rester sous la
-borne de disque ; les preuves structurées sont indépendantes de ces caches.
-Après auto-revue et vérification des hashes, le cache `t` restant (851 Mio) a été
-supprimé. Seuls les trois petits binaires/sources mesurés et les scripts de
-preuve sont préservés dans le scratchpad dédié (environ 1,7 Mio) pour revue.
+Build baseline/candidate **before** the timing window, preserve each executable then alternate five pairs; never compile during measurements. The baseline/harness patch and capacity-only variant patch are included in the evidence to reconstruct all three sources without touching `main`. Short target `t`, dev/test debug=0, incremental=0; maximum observed **1.1 GiB**. The stable debug cache was removed before the MSRV build to stay within the disk bound; structured evidence is independent of these caches. After self-review and hash verification, the remaining `t` cache (851 MiB) was removed. Only the three small measured binaries/sources and evidence scripts are preserved in the dedicated scratchpad (approximately 1.7 MiB) for review.

@@ -1,17 +1,17 @@
-# Validation Windows des corrections de capture et d’intégration
+# Windows validation of capture and integration fixes
 
-18 novembre 2026 · Source testée : `72d79fc793411fa65d2703d61e0e65cef31a7420` · Windows/MSVC. Les tests utilisent des échantillons, textes et réponses de test inventés, avec des pairs HTTP/2 contrôlés sur loopback. Aucun appareil ni microphone, aucun appel fournisseur et aucune métadonnée d’accès.
+18 November 2026 · Tested source: `72d79fc793411fa65d2703d61e0e65cef31a7420` · Windows/MSVC. Tests use invented samples, texts and test responses, with controlled HTTP/2 loopback peers. No device or microphone, provider call or access metadata.
 
-| Cas | Observation vérifiée |
+| Case | Verified observation |
 | --- | --- |
-| [Tampon de capture](../../crates/rambler-cli/tests/capture_rollover.rs) | Le pair retient la finale pendant l’offre de blocs représentant 60, 600 ou 900 ms. Les paquets et granules correspondent au PCM attendu. Le chemin continu 48 → 16 kHz est également couvert. Le débordement au-delà de 54 places et l’abandon sont des échecs distincts, pas des EOF normaux : les segments antérieurs restent disponibles. |
-| [Parcours capture et livraison ensemble](../../crates/rambler-cli/tests/capture_rollover_delivery.rs) | 90 blocs de 20 ms, deux transitions avec finale retenue, trois RPC sur un même TCP. Trois flux Ogg indépendants avec numéros de série distincts, paquets Opus et granules identiques à l’encodage séparé des trois tranches attendues. Le sink reçoit les plages `[0,9600)`, `[9600,19200)`, `[19200,28800)` dans l’ordre, après validation seulement. |
-| [Interruption et fin normale](../../crates/rambler-cli/src/tests.rs) | La branche Ctrl-C est exercée via le même mécanisme de supervision que le binaire. Pendant le deuxième RPC, un signal injecté rend la première plage en JSON, aucun texte global ni texte non validé ou bloqué, et le code 130. Les [tests du SDK](../../crates/rambler-cli/tests/long_pcm_dictation.rs) couvrent aussi la fin normale avec un reliquat de cinq échantillons et une panne gRPC tardive, sans rejeu. |
-| [Raccord CLI et SDK](../../crates/rambler-cli/tests/interactive_join_fidelity.rs) | Les deux entrées publiques conservent les finales individuelles et produisent le même rendu pour `L’` + `équipe arrive.`, `明天` + `开会。`, un saut de paragraphe ou un espace déjà fourni. Des tests d’unité couvrent aussi les guillemets, les accents et les graphèmes Unicode. Sur 4 096 raccords d’indicateurs régionaux, le témoin instrumenté examine 8 193 scalaires nouvellement ajoutés et n’interroge jamais le curseur sur le préfixe entier. |
-| [Édition avec styles](../../crates/rambler-engine/tests/splice.rs) | Dans `oui oui`, le remplacement structuré du premier `oui ` produit la plage UTF-16 `0..4` et conserve le lien du deuxième `oui`. Une ancre non démontrée, une révision périmée ou une frontière de graphème invalide ne donnent pas de proposition ciblée. |
-| [Trois vraies coupures TCP locales](../../crates/rambler-engine/tests/app_tcp_recovery.rs) | Pendant l’attente de PCM, l’attente de contexte ou l’attente du statut gRPC après demi-fermeture : aucun texte incomplet validé, aucun nouveau PCM lu par le moteur déconnecté, aucune reconnexion implicite. Après ouverture explicite, la dictée suivante traite uniquement sa nouvelle source. |
+| [Capture buffer](../../crates/rambler-cli/tests/capture_rollover.rs) | The peer withholds the final while blocks representing 60, 600 or 900 ms are offered. Packets and granules match the expected PCM. The continuous 48 → 16 kHz path is also covered. Overflow beyond 54 slots and abandonment are distinct failures, not normal EOFs: previous segments remain available. |
+| [Combined capture and delivery path](../../crates/rambler-cli/tests/capture_rollover_delivery.rs) | 90 blocks of 20 ms, two transitions with the final withheld, three RPCs on one TCP connection. Three independent Ogg streams with distinct serial numbers, Opus packets and granules identical to separate encoding of the three expected slices. The sink receives ranges `[0,9600)`, `[9600,19200)`, `[19200,28800)` in order, only after validation. |
+| [Interruption and normal completion](../../crates/rambler-cli/src/tests.rs) | The Ctrl-C branch is exercised through the same supervision mechanism as the binary. During the second RPC, an injected signal returns the first range in JSON, no global text or unvalidated or blocked text, and code 130. The [SDK tests](../../crates/rambler-cli/tests/long_pcm_dictation.rs) also cover normal completion with five leftover samples and a late gRPC failure, without replay. |
+| [CLI and SDK joining](../../crates/rambler-cli/tests/interactive_join_fidelity.rs) | Both public entry points retain individual finals and produce the same rendering for `L’` + `équipe arrive.`, `明天` + `开会。`, a paragraph break or an already supplied space. Unit tests also cover quotation marks, accents and Unicode graphemes. Across 4,096 regional-indicator joins, the instrumented check examines 8,193 newly added scalars and never queries the cursor over the entire prefix. |
+| [Styled editing](../../crates/rambler-engine/tests/splice.rs) | In `oui oui`, structured replacement of the first `oui ` produces UTF-16 range `0..4` and retains the link on the second `oui`. An unproven anchor, stale revision or invalid grapheme boundary produces no targeted proposal. |
+| [Three real local TCP cuts](../../crates/rambler-engine/tests/app_tcp_recovery.rs) | While waiting for PCM, waiting for context or waiting for gRPC status after half-close: no incomplete text validated, no new PCM read by the disconnected engine, no implicit reconnection. After explicit opening, the next dictation processes only its new source. |
 
-## Vérifications reproductibles
+## Reproducible checks
 
 ```sh
 cargo fmt --all -- --check
@@ -20,24 +20,24 @@ cargo test --workspace --all-features --locked --offline
 cargo test -p rambler-cli --no-default-features --locked --offline
 ```
 
-| Toolchain | Workspace avec audio (doctests inclus) | CLI sans audio |
+| Toolchain | Workspace with audio (including doctests) | CLI without audio |
 | --- | --- | --- |
-| Stable | 559 réussis, 2 ignorés | 24 réussis |
-| 1.88.0 | 559 réussis, 2 ignorés | 24 réussis |
+| Stable | 559 passed, 2 ignored | 24 passed |
+| 1.88.0 | 559 passed, 2 ignored | 24 passed |
 
-Formatage, Clippy strict et contrôle du graphe de dépendances audio réussis. Les tests avec les deux toolchains ont tourné sous des Jobs Windows possédés et vides après chaque commande. Un passage Clippy préliminaire a signalé un `chunks_exact` à taille constante dans le nouveau témoin ; le remplacement par `as_chunks` vérifie aussi que la tranche n’a aucun reliquat.
+Formatting, strict Clippy and the audio dependency graph check passed. Tests with both toolchains ran under owned Windows Jobs that were empty after each command. A preliminary Clippy pass flagged a constant-size `chunks_exact` in the new check; replacing it with `as_chunks` also verifies that the slice has no remainder.
 
-Les intervalles de production simulés ne mesurent pas le matériel, le délai réel d’un callback ou la consommation sur batterie. La suite ne démontre ni l’exactitude d’une transcription de part et d’autre d’une coupure, ni la latence sur le WAN, ni la parité Gboard. Cette preuve Windows ne remplace pas la CI multiplateforme. Voir le [second audit](../research/audit-parite-integration-20261118.md), le [guide SDK](../research/sdk-integration-guide.md) et les [limites du tampon](../research/rust-pcm-capture.md).
+The simulated production intervals do not measure hardware, actual callback delay or battery consumption. The suite demonstrates neither transcription accuracy on either side of a cut, WAN latency nor Gboard parity. This Windows evidence does not replace cross-platform CI. See the [second audit](../research/audit-parite-integration-20261118.md), [SDK guide](../research/sdk-integration-guide.md) and [buffer limits](../research/rust-pcm-capture.md).
 
-## Compilation croisée Android ARM64 du lot publié
+## Android ARM64 cross-compilation of the published batch
 
-Source exacte : `9120decab7df7b2ecb277445ef24ff8fb66aa1aa`. Hôte Windows/MSVC, Rust 1.88.0, NDK `27.1.12297006` et cible `aarch64-linux-android`, API 24. La commande suivante construit la CLI et le test qui lie ensemble `capture_channel` et `stream_long_pcm_dictation`, **sans les exécuter** :
+Exact source: `9120decab7df7b2ecb277445ef24ff8fb66aa1aa`. Windows/MSVC host, Rust 1.88.0, NDK `27.1.12297006` and target `aarch64-linux-android`, API 24. The following command builds the CLI and the test linking `capture_channel` and `stream_long_pcm_dictation` together, **without running them**:
 
 ```sh
 cargo +1.88.0-x86_64-pc-windows-msvc test -p rambler-cli --features audio \
   --test capture_rollover_delivery --target aarch64-linux-android --no-run --locked --offline
 ```
 
-Utiliser les [réglages du compilateur et de l’éditeur de liens NDK](../../crates/rambler-transport/ANDROID_TLS.md#validation), dont `-Wl,-z,max-page-size=16384`. Pour Opus statique, ce build utilisait aussi la toolchain CMake du NDK avec `arm64-v8a`, `ANDROID_PLATFORM=android-24` et `ANDROID_STL=none`, CMake 3.31.10 et Ninja 1.12.1. La commande a terminé en 228,7 s sous un Job Windows vidé après la fin du build : c’est une durée de compilation, pas une mesure de performance du moteur.
+Use the [NDK compiler and linker settings](../../crates/rambler-transport/ANDROID_TLS.md#validation), including `-Wl,-z,max-page-size=16384`. For static Opus, this build also used the NDK CMake toolchain with `arm64-v8a`, `ANDROID_PLATFORM=android-24` and `ANDROID_STL=none`, CMake 3.31.10 and Ninja 1.12.1. The command completed in 228.7 s under a Windows Job emptied after the build: this is compilation time, not an engine performance measurement.
 
-`llvm-readelf -h -l -W` a confirmé deux ELF64 AArch64, chacun avec quatre segments `PT_LOAD` d’alignement `0x4000` et des offsets fichier/adresses virtuelles congruents modulo 16 Kio. Ni le conditionnement en APK, ni le chargement sur un noyau ARM64 à pages de 16 Kio, ni le comportement de la capture ou du TLS dans cette configuration ne sont vérifiés par ce contrôle. Les binaires de test temporaires ont été supprimés.
+`llvm-readelf -h -l -W` confirmed two ELF64 AArch64 binaries, each with four `PT_LOAD` segments aligned to `0x4000` and file offsets/virtual addresses congruent modulo 16 KiB. This check verifies neither APK packaging, loading on an ARM64 kernel with 16 KiB pages, nor capture or TLS behavior in that configuration. Temporary test binaries were removed.

@@ -1,131 +1,69 @@
-# Réduction des allocations de sérialisation protobuf
+# Reducing protobuf serialization allocations
 
-## CI multiplateforme — source `43e918d` qualifiée
+## Multiplatform CI — qualified source `43e918d`
 
-Les **13 jobs** Rust/Python du commit
-`43e918d44c4612cad46c3de4270d59bcf49ce35f` passent : huit jobs natifs
-Windows, Ubuntu, macOS ARM64 et Intel × Rust 1.88/stable, lint et quatre Python.
-Chaque workspace rapporte **411/0/2** sous Windows, **412/0/2** ailleurs. Les cinq
-nouveaux noms de fidélité/fixed32 et les trois tests du banc sont vérifiés dans
-les huit jobs ; le nouveau gate donne **3/0/0** partout. Les neuf tests SDK gardés
-et les refus d'authentification existants restent présents et passent.
+All **13 Rust/Python jobs** on commit `43e918d44c4612cad46c3de4270d59bcf49ce35f` pass: eight native Windows, Ubuntu, macOS ARM64 and Intel × Rust 1.88/stable jobs, lint and four Python jobs. Each workspace reports **411/0/2** on Windows, **412/0/2** elsewhere. The five new fidelity/fixed32 names and three benchmark tests are verified in all eight jobs; the new gate reports **3/0/0** everywhere. The nine guarded SDK tests and existing authentication rejections remain present and pass.
 
-Les 64 groupes de commandes et **1 545 494 octets** de logs ont été recomptés avec
-provenance API run/job/step, HEAD, hashes et lignes de host du compilateur. Un seul
-attempt par run, aucun rejeu de CI. Les comptes sont par commande/job, pas des tests
-distincts à additionner. Les builds/gates release, PCM et racines publiques passent
-également ; le smoke des racines reste une configuration, pas un handshake TLS.
-[Preuve CI séparée liée au commit exact](../evidence/rust-wire-encoding-allocation-ci-20261116.json).
+The 64 command groups and **1,545,494 bytes** of logs were recounted with API run/job/step provenance, HEAD, hashes and compiler host lines. One attempt per run, no CI replay. Counts are per command/job, not distinct tests to add together. Release builds/gates, PCM and public roots also pass; the roots smoke test remains a configuration, not a TLS handshake. [Separate CI evidence linked to the exact commit](../evidence/rust-wire-encoding-allocation-ci-20261116.json).
 
-Cette CI exécute les **invariants**, pas la campagne d'allocations/temps. Elle ne
-rend pas les timings Windows représentatifs du moteur, du réseau ou des autres
-OS. Le checkpoint local et sa preuve « CI en attente » ci-dessous sont conservés
-comme historique ; leur identité de build et leurs limites ne sont pas réécrites.
-Aucune nouvelle dictée, parité Android, admission Linux live ou levée de G1.
+This CI runs the **invariants**, not the allocation/timing campaign. It does not make Windows timings representative of the engine, network or other OSes. The local checkpoint and its “CI pending” evidence below are preserved as history; their build identity and limits are not rewritten. No new dictation, Android parity, Linux live admission or lifting of G1.
 
-## Décision locale — 16 novembre 2026 (checkpoint historique)
+## Local decision — November 16, 2026 (historical checkpoint)
 
-**Optimisation de production retenue localement, CI distante encore en attente.**
-Les encodeurs de `crates/rambler-protocol/src/wire.rs` écrivent désormais clé,
-longueur et valeur dans un seul vecteur dimensionné avant allocation, sans vecteur
-temporaire de varint. Les octets, signatures, limites et précédences d'erreur sont
-conservés ; le décodeur, les assembleurs de requêtes, `audio_request`, le codec et
-les dépendances sont inchangés. Aucun `unsafe` n'est ajouté à la bibliothèque.
+**Production optimization selected locally, remote CI still pending.** The encoders in `crates/rambler-protocol/src/wire.rs` now write key, length and value into one vector sized before allocation, without a temporary varint vector. Bytes, signatures, limits and error precedence are preserved; decoder, request assemblers, `audio_request`, codec and dependencies are unchanged. No `unsafe` is added to the library.
 
-Les 149 cas synthétiques ont des sorties exactement identiques avant/après dans
-les deux runs. Le nombre d'appels `alloc + alloc_zeroed + realloc` et la somme des
-tailles demandées n'augmentent dans aucun cas ; les 108 cas de champs varint/bytes
-utilisent strictement moins d'appels. Les 30 varints seuls restent à un appel.
+The 149 synthetic cases have exactly identical before/after outputs in both runs. The count of `alloc + alloc_zeroed + realloc` calls and sum of requested sizes do not increase in any case; the 108 varint/bytes field cases use strictly fewer calls. The 30 standalone varints remain at one call.
 
-[Preuve typée et toutes les mesures brutes](../evidence/rust-wire-encoding-allocation-windows-20261116.json).
-La source mesurée est le candidat non committé sur `d9af4f5`, identifié par ses
-six hashes de fichiers et le manifeste sélectionné de 182 fichiers. Ce n'est pas
-une qualification rétroactive de tout futur commit ni une attestation de TCB.
+[Typed evidence and all raw measurements](../evidence/rust-wire-encoding-allocation-windows-20261116.json). The measured source is the uncommitted candidate on `d9af4f5`, identified by its six file hashes and selected 182-file manifest. This is not retrospective qualification of every future commit or a TCB attestation.
 
-## Vérification des requêtes complètes
+## Complete request verification
 
-Une revue ciblée a signalé un risque réel à mesurer : supprimer la capacité libre
-des petits vecteurs peut ajouter des réallocations lors des `append` successifs.
-Avant toute mesure, le banc a donc été étendu avec 11 cas d'assemblage complet,
-en plus des 138 petits encodeurs. Les corps init/contexte sont copiés exactement
-du baseline et utilisent ses anciens encodeurs ; types et validation de config
-sont partagés, inchangés. Les fixtures/configs sont préparées hors mesure, mais
-validation, assemblage et destruction du résultat sont inclus.
+A targeted review identified a real risk to measure: removing spare capacity from small vectors can add reallocations during successive `append` operations. Before any measurement, the benchmark was therefore extended with 11 complete assembly cases in addition to the 138 small encoders. Init/context bodies are copied exactly from the baseline and use its old encoders; types and config validation are shared and unchanged. Fixtures/configs are prepared outside measurement, but validation, assembly and result destruction are included.
 
-Comptes **par opération**, observés identiquement dans les deux runs ; les octets
-sont des sommes de tailles demandées aux hooks, **pas** de la mémoire vive ou un pic.
+Counts **per operation**, observed identically in both runs; bytes are sums of sizes requested from hooks, **not** live or peak memory.
 
-| Cas synthétique | Appels avant → après | Octets demandés avant → après |
+| Synthetic case | Calls before → after | Requested bytes before → after |
 |---|---:|---:|
-| Init par défaut | 60 → 34 | 1102 → 741 |
-| Init avec hints 128 octets | 102 → 59 | 4232 → 3674 |
-| Init avec hints 1024 octets | 102 → 59 | 15616 → 15058 |
-| Contexte simple, 0 octet | 4 → 2 | 40 → 7 |
-| Contexte simple, 128 octets | 6 → 2 | 306 → 266 |
-| Contexte simple, 1024 octets | 6 → 2 | 2098 → 2058 |
-| Contexte simple, 65536 octets | 6 → 2 | 131125 → 131085 |
-| Contexte curseur, 0 octet avant | 13 → 7 | 160 → 76 |
-| Contexte curseur, 128 octets avant | 14 → 6 | 787 → 698 |
-| Contexte curseur, 1024 octets avant | 14 → 6 | 5267 → 5178 |
-| Contexte curseur, 65536 octets avant | 14 → 6 | 327835 → 327746 |
+| Default init | 60 → 34 | 1102 → 741 |
+| Init with 128-byte hints | 102 → 59 | 4232 → 3674 |
+| Init with 1024-byte hints | 102 → 59 | 15616 → 15058 |
+| Simple context, 0 bytes | 4 → 2 | 40 → 7 |
+| Simple context, 128 bytes | 6 → 2 | 306 → 266 |
+| Simple context, 1024 bytes | 6 → 2 | 2098 → 2058 |
+| Simple context, 65536 bytes | 6 → 2 | 131125 → 131085 |
+| Cursor context, 0 bytes before | 13 → 7 | 160 → 76 |
+| Cursor context, 128 bytes before | 14 → 6 | 787 → 698 |
+| Cursor context, 1024 bytes before | 14 → 6 | 5267 → 5178 |
+| Cursor context, 65536 bytes before | 14 → 6 | 327835 → 327746 |
 
-Les cas init avec hints ajoutent deux biais, deux préférences, deux langues
-secondaires et les trois options de reconnaisseur. Le contexte curseur comporte
-aussi une sélection Unicode et un après contenant NUL ; aucun texte réel n'est lu.
-Un champ bytes de 1024 octets au numéro 1 passe séparément de 3 à 1 appels.
+Init cases with hints add two biases, two preferences, two secondary languages and the three recognizer options. Cursor context also includes a Unicode selection and an after portion containing NUL; no real text is read. A 1024-byte bytes field at number 1 separately goes from 3 to 1 calls.
 
-## Qualification et historique
+## Qualification and history
 
-- Windows stable local 1.99.1 et Rust 1.88 : **75/0/0** au protocole chacun,
-  **3/0/0** pour les invariants du banc chacun. Les noms des quatre nouveaux tests
-  différentiels, du test fixed32 et du golden init existant sont confirmés.
-- Workspace stable toutes features : **411/0/2** ; CLI sans audio **38/0/0**.
-  Fmt global, Clippy protocole tous targets strict et build release du banc passent.
-  Ces groupes se recouvrent : ne pas les sommer comme tests distincts.
-- Les 14 commandes de qualification et leurs logs sont vérifiés ; sources
-  identiques avant/après. Les cinq lancements du banc (trois no-op, deux mesures)
-  terminent à zéro avec jobs vides, sorties et hashes contrôlés.
-- Le premier lot QA a échoué **à la compilation**, avant les tests : ma fixture
-  de contexte complète omettait les champs de provenance `raw/unknown_fields`.
-  Ajout de leurs valeurs par défaut, sans correction du moteur ; échec conservé,
-  second lot séparé réussi. Aucune mesure supplémentaire ou exclusion cachée.
-- CLI release historique inchangée et non invoquée ; aucun credential, service,
-  téléphone, réservation, réglage global ou changement du profil audio. Son ancien
-  résultat distant ne qualifie pas ce nouvel encodeur. G1/Linux live inchangés.
-- Un gate CI explicite exécute les trois tests du banc, pas la campagne de temps.
+- Local Windows stable 1.99.1 and Rust 1.88: **75/0/0** for protocol each, **3/0/0** for benchmark invariants each. The names of the four new differential tests, fixed32 test and existing golden init are confirmed.
+- Stable workspace all features: **411/0/2**; CLI without audio **38/0/0**. Global fmt, strict protocol Clippy all targets and release benchmark build pass. These groups overlap: do not sum them as distinct tests.
+- The 14 qualification commands and their logs are verified; sources identical before/after. Five benchmark launches (three no-op, two measurements) exit zero with empty jobs, checked outputs and hashes.
+- The first QA batch failed **at compilation**, before tests: my complete context fixture omitted provenance fields `raw/unknown_fields`. Their default values were added, without an engine fix; failure preserved, separate second batch passed. No additional measurement or hidden exclusion.
+- Historical release CLI unchanged and not invoked; no credential, service, phone, reservation, global setting or audio profile change. Its old remote result does not qualify this new encoder. G1/Linux live unchanged.
+- An explicit CI gate runs the three benchmark tests, not the timing campaign.
 
-## Mesure et limites
+## Measurement and limits
 
-Un seul exécutable release contient baseline et candidat. Par cas et par version,
-128 opérations sont comptées, puis une passe **séparée** mesure six répétitions,
-avec 8 warmups et ordre A/B–B/A alterné. Deux runs séquentiels, toutes compilations
-terminées ; les 3576 durées entières et tous les compteurs sont conservés.
+One release executable contains baseline and candidate. Per case and version, 128 operations are counted, then a **separate** pass measures six repetitions, with 8 warmups and alternating A/B–B/A order. Two sequential runs, all compilation finished; the 3576 integer durations and all counters are retained.
 
-Les médianes instrumentées des 11 requêtes complètes sont plus basses dans les
-deux runs. **Cela n'est pas un gain chiffré du moteur normal** : les hooks de
-l'allocateur du banc exécutent encore un chargement atomique quand le comptage
-est désactivé. Les nombres d'appels diffèrent, donc ce coût ne s'annule pas entre
-versions. Dispatch opaque, destruction des vecteurs, caches et bruit OS restent
-inclus ; fréquence, alimentation et affinité ne sont pas contrôlées. Aucun outlier
-retiré, aucune significativité, CPU processus, RSS, latence WAN, qualité ASR,
-parité Android ou optimum global affirmé. Le gain retenu est la réduction des
-appels/tailles d'allocation observée sur ces chemins, avec fidélité inchangée.
+Instrumented medians for all 11 complete requests are lower in both runs. **This is not a quantified gain for the normal engine**: the benchmark allocator hooks still execute an atomic load when counting is disabled. Call counts differ, so this cost does not cancel between versions. Opaque dispatch, vector destruction, caches and OS noise remain included; frequency, power and affinity are uncontrolled. No outlier removed, significance, process CPU, RSS, WAN latency, ASR quality, Android parity or global optimum claimed. The retained gain is the observed reduction in allocation calls/sizes on these paths, with unchanged fidelity.
 
 ## Reproduction
 
-Depuis la racine, dépendances verrouillées déjà disponibles ; aucune clé ni
-entrée externe requise :
+From the root, locked dependencies already available; no key or external input required:
 
 ```sh
 cargo +1.88.0 test -p rambler-protocol --locked --offline
 cargo +1.88.0 test -p rambler-protocol --example profile_wire_encoding --locked --offline
 cargo +stable build --release -p rambler-protocol --example profile_wire_encoding --locked --offline
-# Attendre la fin de toute compilation, puis exécuter deux fois séquentiellement.
+# Wait for all compilation to finish, then run twice sequentially.
 ./target/release/examples/profile_wire_encoding.exe --benchmark-wire-encoding
 ./target/release/examples/profile_wire_encoding.exe --benchmark-wire-encoding
 ```
 
-Omettre `.exe` sur Unix. Le chemin suppose le target Cargo par défaut. Sans le
-flag exact, avec argument supplémentaire ou en build debug standard, le banc
-reste silencieux et ne mesure rien. Comparer les 149 sorties déclarées égales,
-tous les compteurs et toutes les durées ; ne pas sélectionner les seuls bons cas.
+Omit `.exe` on Unix. The path assumes the default Cargo target. Without the exact flag, with an additional argument or in a standard debug build, the benchmark remains silent and measures nothing. Compare all 149 declared equal outputs, all counters and all durations; do not select only favorable cases.

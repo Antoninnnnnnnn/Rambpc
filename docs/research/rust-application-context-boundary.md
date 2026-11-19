@@ -1,59 +1,58 @@
-# Contexte applicatif Android : frontière S3 déjà encodable
+# Android application context: S3 boundary already encodable
 
-## Conclusion — 16 novembre 2026
+## Conclusion — November 16, 2026
 
-**Aucun champ S3 manquant établi.** Sur la chaîne statique examinée, le texte de
-contexte applicatif Android rejoint **S3Request → extension 1203 InputBoxInfo →
-champ 5, chaîne répétée**. Rust expose et encode déjà cette représentation par
-`ProtocolConfig::preferences`. Cela ne démontre ni activation runtime de cette
-branche, ni interprétation ou effet du texte côté serveur.
+**No missing S3 field established.** In the static chain examined, Android application
+context text reaches **S3Request → extension 1203 InputBoxInfo → field 5, repeated
+string**. Rust already exposes and encodes this representation through
+`ProtocolConfig::preferences`. This does not demonstrate runtime activation of
+this branch, or server-side interpretation or effect of the text.
 
-La collecte Android (`EditorInfo`, informations de l'application), ses gates et
-son formatage ne sont pas portés. Ce sont des intégrations de plateforme absentes,
-pas une capacité protobuf à ajouter. Aucun nouveau switch, champ, prompt envoyé
-ou essai distant n'est justifié par cette seule trace.
+Android collection (`EditorInfo`, application information), its gates and its
+formatting have not been ported. These are missing platform integrations, not a
+protobuf capability to add. This trace alone does not justify a new switch, field,
+sent prompt or remote test.
 
-## Chaîne statique vérifiable
+## Verifiable static chain
 
-Les noms concernent le build APK identifié dans la [matrice de parité](rust-feature-parity.md#sources-et-niveaux-de-preuve).
-Les fichiers décompilés sont des données locales non exécutées ; ils ne sont pas
-redistribués ici.
+The names refer to the APK build identified in the [parity matrix](rust-feature-parity.md#sources-and-levels-of-evidence).
+The decompiled files are unexecuted local data; they are not redistributed here.
 
-1. `ffh.u(kmx)`, extraction ciblée `ffh-simple`, lignes 2000–2077 : sous gate
-   `muq.X`, les informations applicatives alimentent un élément de la liste
-   `user_preferences` du Bundle. Le gate distinct `muq.Y` ajoute des instructions
-   personnalisées à la même liste, sans nouveau type de message réseau.
-2. `kla.java:207–219,234–250` lit cette liste, filtre les entrées nulles et la
-   transmet par `kmw.j`. `kmw.java:122–127` / `kmy.java:25–42,65–68` la nomment
-   `userPreferences` et la stockent dans `kmy.o`.
-3. `knt.java:78,98–110` transmet `kmy.o` par `iib.e` au constructeur `iic`, membre
-   `g`, puis à `iho`. `iho.java:280–304` appelle l'initialiseur `ihv.a`.
-4. Le flot d'instructions récupéré d'`ihv.a` sélectionne le reconnaisseur NewS3
-   aux lignes 15–27, copie `iic.g` dans `aamo.e` aux lignes 155–164 et attache
-   l'extension `aamo.f` aux lignes 205–212. La sortie JADX simplifiée avait une
-   branche d'attachement incomplète ; elle n'est pas utilisée comme preuve négative.
-5. `aamo.java:13–18` définit l'extension message **1203** du parent `aama` ; les
-   métadonnées aux lignes 27–31 situent `e` au **champ 5, repeated string**.
+1. `ffh.u(kmx)`, targeted `ffh-simple` extraction, lines 2000–2077: under gate
+   `muq.X`, application information feeds an element of the Bundle's
+   `user_preferences` list. The distinct gate `muq.Y` adds custom instructions
+   to the same list, without a new network message type.
+2. `kla.java:207–219,234–250` reads the list, filters null entries and passes it
+   through `kmw.j`. `kmw.java:122–127` / `kmy.java:25–42,65–68` call it
+   `userPreferences` and store it in `kmy.o`.
+3. `knt.java:78,98–110` passes `kmy.o` through `iib.e` to the `iic` constructor,
+   member `g`, then to `iho`. `iho.java:280–304` calls the `ihv.a` initializer.
+4. The instruction stream recovered from `ihv.a` selects the NewS3 recognizer
+   at lines 15–27, copies `iic.g` to `aamo.e` at lines 155–164 and attaches
+   extension `aamo.f` at lines 205–212. The simplified JADX output had an
+   incomplete attachment branch; it is not used as negative evidence.
+5. `aamo.java:13–18` defines message extension **1203** of parent `aama`; metadata
+   at lines 27–31 places `e` at **field 5, repeated string**.
 
-Il s'agit de la requête **initiale**, pas du contexte d'édition tardif. Une liste
-vide n'a pas de présence scalaire ; l'extension peut être omise si les autres
-contenus InputBox sont également absents. Le mutateur de requête reste appliqué
-après cet assemblage ; aucune observation dynamique de ses effets n'est déduite.
+This is the **initial** request, not late editing context. An empty list has no
+scalar presence; the extension can be omitted if the other InputBox contents are
+also absent. The request mutator is still applied after this assembly; no dynamic
+observation of its effects is inferred.
 
-## Rust existant et preuve de sérialisation
+## Existing Rust and serialization evidence
 
-- `crates/rambler-protocol/src/request.rs:11–31` expose `preferences: Vec<String>`.
-- `initial_request`, lignes 172–180, encode chaque préférence au champ 5, chaque
-  biais au champ 3, puis les enveloppe dans `INPUT_BOX_INFO` (1203).
-- Le golden existant `hint_goldens_empty_entries_unicode_order_duplicates`, dans
-  `crates/rambler-protocol/tests/requests.rs:191–221`, fixe la préférence `P` à
-  `2a 01 50` dans cette extension et couvre ordre, doublons et Unicode.
-- Les préférences restent séparées du contexte tardif. Aucun membre dédié
-  `application_context` n'est nécessaire pour représenter ces mêmes octets.
+- `crates/rambler-protocol/src/request.rs:11–31` exposes `preferences: Vec<String>`.
+- `initial_request`, lines 172–180, encodes each preference at field 5, each bias
+  at field 3, then wraps them in `INPUT_BOX_INFO` (1203).
+- The existing golden `hint_goldens_empty_entries_unicode_order_duplicates`, in
+  `crates/rambler-protocol/tests/requests.rs:191–221`, fixes preference `P` as
+  `2a 01 50` in this extension and covers order, duplicates and Unicode.
+- Preferences remain separate from late context. No dedicated
+  `application_context` member is needed to represent the same bytes.
 
-La vérification de cette frontière est une lecture statique ciblée, non un nouveau
-run de tests ou un appel serveur. Elle serait réfutée par une trace montrant que
-ce même élément rejoint un autre champ sur cette route, ou par un échec du golden
-à émettre extension 1203/champ 5. Les flags effectifs, la sélection runtime de la
-route et l'effet serveur restent inconnus. Aucune parité Android bout en bout,
-fonction COMPOSE, collecte OS automatique ou qualité supplémentaire n'est affirmée.
+Verification of this boundary is a targeted static reading, not a new test run or
+server call. It would be refuted by a trace showing that the same element reaches
+another field on this route, or by a failure of the golden to emit extension
+1203/field 5. Effective flags, runtime route selection and server effect remain
+unknown. No end-to-end Android parity, COMPOSE feature, automatic OS collection
+or additional quality is claimed.

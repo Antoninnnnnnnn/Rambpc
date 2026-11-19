@@ -1,59 +1,22 @@
-# Raffinement du moteur et API de résultat
+# Engine refinement and result API
 
-Ce document distingue les corrections vérifiées localement des capacités du service
-réel. Les 42 sessions natives historiques et leurs limites restent documentées dans
-[STATUS](STATUS.md) et les [preuves](evidence/README.md) ; elles ne constituent pas
-une validation des nouvelles options ou de toutes les situations ci-dessous.
+This document distinguishes locally verified fixes from real service capabilities. The 42 historical native sessions and their limits remain documented in [STATUS](STATUS.md) and the [evidence](evidence/README.md); they do not validate the new options or every situation below.
 
-## Corrections de robustesse
+## Robustness fixes
 
-- **Fusion protobuf proto2.** Les occurrences d'un même champ *message* singulier
-  doivent être fusionnées, et non remplacées en bloc par la dernière occurrence. Pour
-  un `oneof`, répéter le même membre message le fusionne ; changer de membre efface
-  l'ancien. Les scalaires singuliers restent « dernière valeur valide », les champs
-  répétés restent ordonnés et les octets originaux restent accessibles. Les tests
-  ciblés sont dans [`test_protocol.py`](../tests/test_protocol.py). Une vérification
-  indépendante contre l'implémentation protobuf officielle a également comparé 100
-  cas déterministes. Ce défaut n'a pas été identifié dans les 42 appels historiques ;
-  cette correction ne prouve pas qu'ils en étaient affectés.
-- **Nettoyage du transport asynchrone.** Le transport ferme l'itérateur de requêtes
-  dont il est responsable, y compris lors d'une annulation avant démarrage du writer,
-  et attend le nettoyage asynchrone ; les erreurs du producteur, du nettoyage et du
-  transport sont traitées par les chemins testés plutôt que perdues silencieusement.
-  Les tests loopback figurent dans [`test_transport.py`](../tests/test_transport.py).
-  Ce défaut n'a pas été observé dans les 42 appels historiques.
+- **Proto2 protobuf merging.** Occurrences of the same singular *message* field must be merged, not replaced wholesale by the last occurrence. For a `oneof`, repeating the same message member merges it; changing member clears the old one. Singular scalars remain “last valid value”, repeated fields remain ordered, and original bytes remain accessible. Targeted tests are in [`test_protocol.py`](../tests/test_protocol.py). An independent check against the official protobuf implementation also compared 100 deterministic cases. This defect was not identified in the 42 historical calls; this fix does not prove that they were affected.
+- **Asynchronous transport cleanup.** The transport closes the request iterator it owns, including on cancellation before the writer starts, and awaits asynchronous cleanup; producer, cleanup and transport errors are handled by the tested paths rather than silently lost. Loopback tests are in [`test_transport.py`](../tests/test_transport.py). This defect was not observed in the 42 historical calls.
 
-## Collecter un résultat sans appliquer d'édition
+## Collecting a result without applying an edit
 
-`collect_dictation` consomme entièrement le flux et ne renvoie un `DictationResult`
-qu'après la fin S3, la fin gRPC réussie et l'événement EOF du moteur. Les erreurs
-S3/gRPC tardives, l'annulation et les erreurs de production restent des erreurs ;
-un candidat reçu avant EOF ne devient pas un résultat confirmé. Le moteur reste la
-propriété de l'appelant. En cas d'erreur ou de dépassement de limite, le flux est
-fermé et les sources coopératives sont nettoyées.
+`collect_dictation` consumes the stream completely and returns a `DictationResult` only after S3 completion, successful gRPC completion and the engine EOF event. Late S3/gRPC errors, cancellation and production errors remain errors; a candidate received before EOF does not become a confirmed result. The engine remains owned by the caller. On error or limit exceedance, the stream is closed and cooperative sources are cleaned up.
 
-- `final_updates` conserve les **réponses S3 complètes** dont l'état de reconnaissance
-  est 1, dans leur ordre, avec hypothèses, scores présents, `VoiceEditResult`, octets
-  bruts et champs inconnus. Les mises à jour ne sont ni fusionnées, ni dédupliquées,
-  ni concaténées en segments selon une règle inventée.
-- `metrics` contient les métriques du dernier événement EOF ; son défaut est `None`
-  pour une construction manuelle. Ces métriques ne sont pas un nouveau benchmark.
-- `single_hypothesis` exige exactement une mise à jour finale et une hypothèse ;
-  sinon `AmbiguousResultError`. `text` exige aussi ce cas unique : sans voice edit,
-  il retourne le texte de l'hypothèse ; pour l'intention 2, il rend le champ édité 3
-  ou concatène les trois chaînes du champ 7. Pour l'intention 3, seul le champ 3
-  est rendu, sans en déduire une portée de remplacement. Les autres intentions,
-  l'intention 3/champ 7 et le champ 2 à sémantique inconnue restent ambigus.
-  L'appelant peut inspecter les réponses complètes si une politique différente
-  est nécessaire.
-- `max_final_updates` (128 par défaut) et `max_result_bytes` (8 MiB par défaut)
-  bornent les réponses finales conservées ; le second compte les octets protobuf
-  bruts, **pas** le surcoût mémoire des objets Python. Dépassement :
-  `ResultLimitError`, sans résultat partiel présenté comme réussi.
+- `final_updates` retains the **complete S3 responses** whose recognition state is 1, in order, with hypotheses, scores when present, `VoiceEditResult`, raw bytes and unknown fields. Updates are not merged, deduplicated or concatenated into segments according to an invented rule.
+- `metrics` contains metrics from the last EOF event; its default is `None` for manual construction. These metrics are not a new benchmark.
+- `single_hypothesis` requires exactly one final update and one hypothesis; otherwise `AmbiguousResultError`. `text` also requires this unique case: without voice edit, it returns the hypothesis text; for intention 2, it renders edited field 3 or concatenates the three strings in field 7. For intention 3, only field 3 is rendered, without inferring replacement scope. Other intentions, intention 3/field 7 and field 2 with unknown semantics remain ambiguous. The caller can inspect complete responses if a different policy is needed.
+- `max_final_updates` (128 by default) and `max_result_bytes` (8 MiB by default) bound retained final responses; the latter counts raw protobuf bytes, **not** Python object memory overhead. Exceeding a limit raises `ResultLimitError`, with no partial result presented as successful.
 
-Exemple autonome : fournir un fichier Ogg/Opus continu mono 16 kHz en argument et
-configurer les métadonnées applicatives autorisées comme dans le [README](../README.md#accès-au-service).
-L'exemple ne lit aucun fichier de configuration lui-même et ne modifie aucun texte.
+Standalone example: supply a continuous mono 16 kHz Ogg/Opus file as an argument and configure authorized application metadata as described in the [authentication notes](research/authentication.md). The example reads no configuration file itself and changes no text.
 
 ```python
 import asyncio
@@ -84,33 +47,15 @@ async def main(path):
 asyncio.run(main(sys.argv[1]))
 ```
 
-Le texte affiché peut représenter **toute la fenêtre d'historique**, pas un ajout
-ni une transcription verbatim. Ne pas l'ajouter au contexte existant.
+The displayed text may represent **the entire history window**, not an addition or verbatim transcript. Do not append it to existing context.
 
-## Proposer un remplacement, avec précondition
+## Proposing a replacement with a precondition
 
-`replacement_proposal(result, expected_revision=...)` n'accepte que le cas vérifié
-intention 2 avec champ édité 3 ou 7, un contexte capturé et une hypothèse finale
-unique. Les autres cas lèvent `UnsupportedEditError` ou `AmbiguousResultError`.
-La proposition décrit le remplacement de la **fenêtre complète capturée**, sans
-modifier d'interface ni de fichier. `replacement_text` est le texte de cette fenêtre ;
-`replacement_context` conserve les trois chaînes lorsqu'elles sont présentes.
-`selection_utf16_range` est une plage en unités UTF-16 **dans le texte de remplacement**
-pour le champ 7 ; elle vaut `None` pour le champ 3, qui ne fournit pas de curseur.
-Ne pas traiter ces nombres comme des indices Python. Les éventuels marqueurs texte
-ne sont pas arbitrairement supprimés.
+`replacement_proposal(result, expected_revision=...)` accepts only the verified intention 2 case with edited field 3 or 7, a captured context and a single final hypothesis. Other cases raise `UnsupportedEditError` or `AmbiguousResultError`. The proposal describes replacement of the **entire captured window**, without modifying an interface or file. `replacement_text` is the text of that window; `replacement_context` retains the three strings when present. `selection_utf16_range` is a range in UTF-16 units **within the replacement text** for field 7; it is `None` for field 3, which supplies no cursor. Do not treat these numbers as Python indices. Any text markers are not arbitrarily removed.
 
-`proposal.validate_current(current_context, revision=current_revision)` lève
-`ContextConflictError` si les trois chaînes ou la révision attendue ne correspondent
-plus. `expected_revision` est la révision **associée au snapshot capturé**, pas celle
-relue après la requête. Elle doit être un `str` ou `int` immuable. Pour détecter une
-séquence ABA, l'éditeur doit faire évoluer la révision à chaque modification ; une
-comparaison de texte seule ne le permet pas. Même après validation, l'application
-réelle doit vérifier et remplacer atomiquement côté éditeur : ce module ne le fait pas.
+`proposal.validate_current(current_context, revision=current_revision)` raises `ContextConflictError` if the three strings or expected revision no longer match. `expected_revision` is the revision **associated with the captured snapshot**, not the one reread after the request. It must be an immutable `str` or `int`. To detect an ABA sequence, the editor must advance the revision on every change; text comparison alone cannot do so. Even after validation, the actual application must check and replace atomically on the editor side: this module does not do that.
 
-Voici un patron autonome de capture différée ; dans une vraie intégration,
-`atomic_snapshot()` doit lire contexte et révision dans la même opération protégée
-par l'éditeur. L'exemple conserve la révision dans une fermeture, et ne remplace rien :
+Here is a standalone delayed-capture pattern; in a real integration, `atomic_snapshot()` must read context and revision in the same operation protected by the editor. The example keeps the revision in a closure and replaces nothing:
 
 ```python
 import asyncio
@@ -122,7 +67,7 @@ from rambler import (AmbiguousResultError, ContextConflictError, EditingContext,
 
 class ExampleEditor:
     def atomic_snapshot(self):
-        # Exemple sans concurrent ; un véritable éditeur fournit sa propre atomicité.
+        # Example without concurrency; a real editor provides its own atomicity.
         return EditingContext("The meeting is tomorrow at ten."), 1
 
 async def chunks(path):
@@ -156,140 +101,63 @@ async def main(path):
 asyncio.run(main(sys.argv[1]))
 ```
 
-## Validation réelle du 2026-11-13
+## Real validation on 2026-11-13
 
-Le premier [corpus fonctionnel expurgé](evidence/refinement-capabilities-public.json)
-conserve volontairement son bilan initial **4 rendus uniques sur 5**, malgré cinq
-transports réussis : la réécriture était alors refusée par la politique conservatrice
-`result.text`. Ce rapport historique n'a pas été réinterprété après modification du code.
+The first [redacted functional corpus](evidence/refinement-capabilities-public.json) deliberately retains its initial assessment of **4 unique renderings out of 5**, despite five successful transports: the rewrite was then rejected by the conservative `result.text` policy. This historical report was not reinterpreted after the code changed.
 
-| Cas | Observation réelle et limite |
+| Case | Real observation and limit |
 |---|---|
-| Anglais naturel LibriSpeech, 3,505 s | « Concord returned to its place amidst the tents. » ; WER normalisé 0/8 mots. Un seul clip, pas une évaluation générale. |
-| Notes de réunion, 40,56 s PCM | Source intégrale ; vendredi, 6 dossiers et 200 dollars corrigés ; dernière référence « Silver Meadow » conservée. |
-| Réécriture en contexte | Intention 3/champ 3, texte poli différent de l'hypothèse contexte + commande. Rendu désormais pris en charge ; aucun remplacement automatique autorisé. |
-| Demande de composition | « Write a short message to Alex saying I will arrive 20 minutes late. » : instruction dictée, pas message composé. Intention 4 non validée. |
-| Sélection `ten` avec contexte `🙂` | Retour en trois parties avec `eleven` ; emoji et contexte conservés, conflits de contexte/révision détectés. Les coordonnées UTF-16 restent calculées localement. |
+| Natural English LibriSpeech, 3.505 s | “Concord returned to its place amidst the tents.”; normalized WER 0/8 words. One clip, not a general evaluation. |
+| Meeting notes, 40.56 s PCM | Complete source; Friday, 6 files and 200 dollars corrected; final reference “Silver Meadow” retained. |
+| Rewrite in context | Intention 3/field 3, polite text different from the context + command hypothesis. Rendering now supported; no automatic replacement authorized. |
+| Composition request | “Write a short message to Alex saying I will arrive 20 minutes late.”: dictated instruction, not composed message. Intention 4 not validated. |
+| Selection `ten` with context `🙂` | Three-part return with `eleven`; emoji and context retained, context/revision conflicts detected. UTF-16 coordinates remain locally calculated. |
 
-Une [session supplémentaire à débit simulé](evidence/refinement-long-realtime-public.json)
-a consommé les **1 298 034 octets PCM** du cas long, en pages de 20 ms. La collecte
-complète a duré **41,454 s** pour 40,564 s audio, avec le même texte final que l'envoi
-accéléré. Ce total inclut encodage, streaming et EOF ; sa différence avec la durée
-audio n'isole pas un délai après arrêt du microphone. Une seule session de 40 s
-ne constitue pas un test d'endurance prolongée.
+An [additional simulated-rate session](evidence/refinement-long-realtime-public.json) consumed the **1,298,034 PCM bytes** of the long case, in 20 ms pages. Complete collection took **41.454 s** for 40.564 s of audio, with the same final text as accelerated upload. This total includes encoding, streaming and EOF; its difference from audio duration does not isolate a delay after stopping the microphone. One 40 s session is not an extended endurance test.
 
-Après extension du rendu, un [nouvel essai réécriture](evidence/refinement-rewrite-public.json)
-a réussi : `Could you please send me the report at your earliest convenience?`.
-L'hypothèse et le transcript contiennent le contexte et la commande ; ils ne doivent
-pas être confondus avec ce résultat édité. Une inspection binaire indépendante et
-le callsite `ihm.maybeGetVoiceEditedText` de l'APK concordent sur le choix du texte
-pour cette intention. Cela ne prouve toujours pas une portée générale de remplacement.
+After extending rendering, a [new rewrite test](evidence/refinement-rewrite-public.json) succeeded: `Could you please send me the report at your earliest convenience?`. The hypothesis and transcript contain the context and command; they must not be confused with this edited result. An independent binary inspection and the APK callsite `ihm.maybeGetVoiceEditedText` agree on the text choice for this intention. This still does not prove a general replacement scope.
 
-### Provenance et confidentialité
+### Provenance and privacy
 
-Les mesures initiales utilisent le checkpoint `4b96696` ; le suivi réécriture utilise
-ensuite le nouveau `results.py`, dont le hash exact figure dans son rapport. Les
-hashes par module priment sur le seul HEAD lorsque l'arbre est modifié. La suite
-locale stricte atteint **438 tests réussis** (asyncio debug, avertissements bloquants).
-La [roue finale 0.2.0](evidence/refinement-wheel-smoke.json) a été construite avec
-isolation standard puis installée dans un venv vierge sans PyAV ; les imports publics,
-l'égalité des modules avec le source et le rendu de la fixture dérivée passent.
-Ce smoke est offline, pas une nouvelle session Google. L'essai préalable de build
-sans isolation échouait parce que `setuptools` n'était pas installé dans le venv ;
-la procédure standard documentée n'en dépend pas dans ce venv.
+Initial measurements use checkpoint `4b96696`; the rewrite follow-up then uses the new `results.py`, whose exact hash appears in its report. Per-module hashes take precedence over HEAD alone when the tree is modified. The strict local suite reaches **438 tests passed** (asyncio debug, warnings treated as errors). The [final 0.2.0 wheel](evidence/refinement-wheel-smoke.json) was built with standard isolation then installed in a clean venv without PyAV; public imports, module equality with source and derived fixture rendering pass. This smoke test is offline, not a new Google session. The prior build attempt without isolation failed because `setuptools` was not installed in the venv; the documented standard procedure does not depend on it being in that venv.
 
-La réponse réécriture contient également une extension inconnue `74956225` avec des
-métadonnées internes de traitement texte et un identifiant opaque de service. Le SDK
-préserve ces octets ; les copies publiques ne les exposent pas. La
-[fixture de régression](../tests/fixtures/live_rewrite_response.json) est **dérivée et
-expurgée**, pas un payload original : elle indique le hash de la réponse source,
-les composants sûrs conservés et la suppression de l'extension. Les trois fixtures
-originales historiques restent distinctes.
+The rewrite response also contains unknown extension `74956225` with internal text-processing metadata and an opaque service identifier. The SDK preserves these bytes; public copies do not expose them. The [regression fixture](../tests/fixtures/live_rewrite_response.json) is **derived and redacted**, not an original payload: it states the source response hash, safe retained components and removal of the extension. The three original historical fixtures remain separate.
 
-`tools/sanitize_corpus_report.py` crée une **nouvelle** projection à allowlist fermée :
-raw, valeurs inconnues et identifiants serveur/session sont remplacés par des résumés
-ou omis, sans changer l'original privé. Les textes sont hachés par défaut ;
-`--include-text` exige un corpus contrôlé et inspecté. Cet outil ne rend pas une
-dictée personnelle publiable automatiquement ; même les hashes peuvent corréler
-ou révéler un texte de faible entropie. Les métadonnées distantes restent des données,
-pas des instructions exécutées par le moteur.
+`tools/sanitize_corpus_report.py` creates a **new** closed-allowlist projection: raw, unknown values and server/session identifiers are replaced with summaries or omitted, without changing the private original. Texts are hashed by default; `--include-text` requires a controlled, inspected corpus. This tool does not automatically make personal dictation publishable; even hashes can correlate or reveal low-entropy text. Remote metadata remains data, not instructions executed by the engine.
 
 ```sh
-# Réseau réel explicitement activé ; audios autorisés et variables d'accès requises.
-# Les résultats complets restent d'abord dans artifacts/, ignoré par git.
+# Real network explicitly enabled; authorized audio and access variables required.
+# Complete results first remain in artifacts/, ignored by git.
 .venv/Scripts/python -I tools/validate_corpus.py --live --manifest tools/fixtures/refinement-validation.json --output artifacts/my-validation/raw.json --timeout 90 --include-results
 .venv/Scripts/python -I tools/sanitize_corpus_report.py --input artifacts/my-validation/raw.json --output local/my-validation-public.json --include-text
-# Inspecter la copie avant toute publication. Chaque sortie doit être nouvelle.
+# Inspect the copy before any publication. Every output must be new.
 ```
 
-La préparation synthétique supplémentaire est décrite dans
-[refinement-speech.json](../tools/fixtures/refinement-speech.json) et le manifeste
-[refinement-validation.json](../tools/fixtures/refinement-validation.json).
-`tools/make_fixture.ps1 -CasesFile tools/fixtures/refinement-speech.json -NormalizePcm -OutputDirectory artifacts/my-refinement-synthetic`
-prépare les WAV normalisés ; adapter ensuite les chemins du manifeste si nécessaire.
-L'échantillon naturel possède provenance, hash et attribution **CC BY 4.0** dans
-[natural-corpus-inputs.json](evidence/natural-corpus-inputs.json) ; les audios restent
-hors git. Les accès français essayés étaient indisponibles sans authentification
-ou au-delà de la limite de scan ; aucun nouveau credential n'a été demandé.
+Additional synthetic preparation is described in [refinement-speech.json](../tools/fixtures/refinement-speech.json) and the [refinement-validation.json](../tools/fixtures/refinement-validation.json) manifest. `tools/make_fixture.ps1 -CasesFile tools/fixtures/refinement-speech.json -NormalizePcm -OutputDirectory artifacts/my-refinement-synthetic` prepares normalized WAVs; then adapt manifest paths if necessary. The natural sample has provenance, hash and **CC BY 4.0** attribution in [natural-corpus-inputs.json](evidence/natural-corpus-inputs.json); audio remains outside git. The French sources tried were unavailable without authentication or beyond the scan limit; no new credential was requested.
 
-## Performance et capacités encore ouvertes
+## Performance and remaining open capabilities
 
-La [grille de 20 sessions](evidence/refinement-page-grid.json), cinq par durée
-20/40/60/100 ms, conserve le PCM décodé et **toutes** les mises à jour finales
-ordonnées. Les pages de 20 ms restent le défaut ; 60 ms économise environ 26 %
-d'octets Ogg pour environ 17 ms de médiane finale supplémentaire dans ce petit banc.
-Ce n'est pas un nouveau gain de vitesse ni une preuve d'équivalence de latence.
-Distributions, outlier et limites CPU sont dans [performance.md](performance.md).
+The [20-session grid](evidence/refinement-page-grid.json), five per 20/40/60/100 ms duration, retains decoded PCM and **all** ordered final updates. 20 ms pages remain the default; 60 ms saves about 26% of Ogg bytes for about 17 ms additional final median in this small benchmark. This is not a new speed gain or proof of latency equivalence. Distributions, outlier and CPU limits are in [performance.md](performance.md).
 
-Les intentions 0 à 6 sont décodables, mais seules **2 et 3** ont été observées dans
-ces preuves fonctionnelles. Les hints sont désormais exposés comme indiqué ci-dessous ;
-leur encodage ne garantit pas leur effet serveur. Restent notamment une évaluation
-représentative des voix naturelles, l'endurance plus longue, les réseaux réellement
-dégradés, le démarrage à froid et la portée des autres intentions. Les observations
-supplémentaires ci-dessous ne remplacent pas les rapports historiques.
+Intentions 0 through 6 are decodable, but only **2 and 3** were observed in this functional evidence. Hints are now exposed as described below; their encoding does not guarantee their server effect. Remaining work includes representative natural voice evaluation, longer endurance, truly degraded networks, cold start and the scope of other intentions. The additional observations below do not replace historical reports.
 
-## Poursuite : corpus naturel, composition et endurance
+## Continuation: natural corpus, composition and endurance
 
-### Dix nouveaux extraits naturels et trois essais progressifs
+### Ten new natural clips and three progressive tests
 
-Les [entrées et licences](evidence/natural-expansion-inputs.json) couvrent **7 extraits
-anglais LibriSpeech et 3 français MLS**, chacun avec un identifiant de locuteur et
-de chapitre distinct dans sa langue. Les 72,825 s de lecture sont normalisées en
-PCM16 mono 16 kHz sans découpage. Les références sont celles des jeux de données,
-pas des transcriptions indépendamment corrigées.
+The [inputs and licenses](evidence/natural-expansion-inputs.json) cover **7 English LibriSpeech clips and 3 French MLS clips**, each with a distinct speaker and chapter identifier within its language. The 72.825 s of reading is normalized to mono 16 kHz PCM16 without trimming. References come from the datasets, not independently corrected transcripts.
 
-Les [dix sessions accélérées](evidence/natural-expansion-public.json) terminent avec
-source complète, fin S3/gRPC et rendu unique. Le [résumé qualité](evidence/natural-expansion-quality.json)
-compte 3/109 mots en anglais et 3/79 en français selon le WER ponctuation/casse/blancs
-normalisés, **sans** équivalence entre nombres et mots ni entre mots composés.
-`cannon balls`/`cannonballs`, `narwhale`/`narwhal` et `cinq`/`5` contribuent donc au
-score ; `eut achevé`/`achevait` est une véritable différence de temps par rapport à
-la référence, sans que l'audio ait été réannoté indépendamment. Ne pas présenter
-ces ratios comme une précision générale, ni toute différence comme une perte audio.
+The [ten accelerated sessions](evidence/natural-expansion-public.json) finish with complete source, S3/gRPC completion and unique rendering. The [quality summary](evidence/natural-expansion-quality.json) counts 3/109 words in English and 3/79 in French under punctuation/case/whitespace-normalized WER, **without** equivalence between numbers and words or between compound words. `cannon balls`/`cannonballs`, `narwhale`/`narwhal` and `cinq`/`5` therefore contribute to the score; `eut achevé`/`achevait` is a real tense difference from the reference, without independent audio reannotation. Do not present these ratios as general accuracy, or every difference as audio loss.
 
-[Trois sessions à débit simulé](evidence/natural-expansion-realtime-public.json),
-une anglaise et deux françaises, ont reçu les mêmes textes que leurs versions
-accélérées avec le même PCM source consommé. Ce sont encore de courts extraits
-lus, pas du bruit, du dialogue spontané ou un microphone réel.
+[Three simulated-rate sessions](evidence/natural-expansion-realtime-public.json), one English and two French, received the same texts as their accelerated versions with the same source PCM consumed. These are still short read clips, not noise, spontaneous dialogue or a real microphone.
 
-### Composition : recherche et observations, pas simple fonctionnalité oubliée
+### Composition: research and observations, not simply a forgotten feature
 
-L'[analyse dédiée](research/composition.md) distingue l'enum/mock `COMPOSE`, le
-câblage vide des alternatives MUSE, le chemin Android Lite et le service S3 natif.
-Les cinq essais sans invocation restent de la dictée pour les demandes de création,
-avec réécriture positive pour le témoin connu. Les essais d'invocation ultérieurs
-reconnaissent phonétiquement « Hey Gboard » mais le conservent littéralement avec et
-sans biais ; « Okay » complet avec biais reste aussi littéral. Ils ne valident pas
-COMPOSE 4. Aucune impossibilité universelle ni activation par flags n'est déduite.
+The [dedicated analysis](research/composition.md) distinguishes the `COMPOSE` enum/mock, empty wiring of MUSE alternatives, the Android Lite path and the native S3 service. The five tests without invocation remain dictation for creation requests, with a positive rewrite for the known control. Later invocation tests recognize “Hey Gboard” phonetically but retain it literally with and without bias; complete “Okay” with bias also remains literal. They do not validate COMPOSE 4. No universal impossibility or flag-based activation is inferred.
 
-### Hints au démarrage : SDK 0.3
+### Startup hints: SDK 0.3
 
-`ProtocolConfig` accepte des **tuples** optionnels `bias_terms`, `preferences` et
-`secondary_languages`, vides par défaut. Ils sont sérialisés dans l'initialisation :
-`InputBoxInfo` extension 1203, champs 3 et 5 répétés, puis `UserInfo` extension 293000,
-champ 4 répété pour les langues. Le contexte d'édition reste une requête distincte
-**après l'audio**, avant la fin. Sans options, les goldens restent identiques.
-Exemple :
+`ProtocolConfig` accepts optional **tuples** `bias_terms`, `preferences` and `secondary_languages`, empty by default. They are serialized in initialization: `InputBoxInfo` extension 1203, repeated fields 3 and 5, then `UserInfo` extension 293000, repeated field 4 for languages. Editing context remains a separate request **after audio**, before completion. Without options, goldens remain identical. Example:
 
 ```python
 from rambler import ProtocolConfig
@@ -298,64 +166,25 @@ config = ProtocolConfig(language='en-US', bias_terms=('Zunarel', 'Valmera'),
                         secondary_languages=('fr-FR',))
 ```
 
-Le SDK impose au plus 1 024 chaînes par catégorie biais/préférences, un budget
-UTF-8 total de 1 MiB pour ces deux catégories, et au plus 16 langues secondaires
-avec un budget total de 1 024 octets UTF-8 ; les tags secondaires sont non vides.
-Les autres limites de message restent applicables. Ce sont des bornes SDK, pas des
-quotas ni des limites serveur démontrées. Les contacts et consignes peuvent être
-sensibles : ne les envoyer qu'avec autorisation.
+The SDK imposes at most 1,024 strings per bias/preferences category, a total UTF-8 budget of 1 MiB for those two categories, and at most 16 secondary languages with a total budget of 1,024 UTF-8 bytes; secondary tags are nonempty. Other message limits still apply. These are SDK bounds, not demonstrated server quotas or limits. Contacts and instructions can be sensitive: send them only with authorization.
 
-L'[expérience bornée 10/10](evidence/input-hints-public.json) conserve hash du
-manifeste et résumés : avec biais, `Zunarell` devient `Zunarel`, mais `and` devient
-une virgule ; un seul cas ne démontre pas de gain global. La préférence d'orthographe
-britannique n'a pas d'effet démontré ; les deux configurations FR/EN donnent le même
-texte mixte correct, sans bénéfice isolé des langues secondaires. L'acceptation
-observée de ces requêtes ne démontre pas une prise en compte universelle des hints.
+The [bounded 10/10 experiment](evidence/input-hints-public.json) retains the manifest hash and summaries: with bias, `Zunarell` becomes `Zunarel`, but `and` becomes a comma; one case does not demonstrate an overall gain. British spelling preference has no demonstrated effect; both FR/EN configurations yield the same correct mixed text, without isolated benefit from secondary languages. Observed acceptance of these requests does not demonstrate universal use of hints.
 
-Le placement initial est appuyé par `ihv` lignes 153–211, `knv-simple` lignes
-259–309 et `zxh` lignes 243–255 dans les sorties statiques identifiées par
-[protocol.md](research/protocol.md). Le contexte tardif reste indépendant. Ne pas
-activer de flags, quotas ou chemins d'authentification par supposition.
+Initial placement is supported by `ihv` lines 153–211, `knv-simple` lines 259–309 and `zxh` lines 243–255 in the static outputs identified by [protocol.md](research/protocol.md). Late context remains independent. Do not activate flags, quotas or authentication paths by assumption.
 
-### Endurance progressive : premier palier réel
+### Progressive endurance: first real stage
 
-Le [palier 118,682 s](evidence/endurance-120-public.json) a consommé ses **3 797 836
-octets PCM**, reçu une finale unique et conservé «Amber Orchard», «Cobalt Lantern»
-et «Violet Harbor» dans cette finale, sans concaténation ni déduplication.
-Collecte/pipeline : 119,880 s, CPU processus 5,891 s ; ce CPU inclut encodage,
-hashing, instrumentation et moteur, pas le seul service distant.
+The [118.682 s stage](evidence/endurance-120-public.json) consumed its **3,797,836 PCM bytes**, received a single final and retained “Amber Orchard”, “Cobalt Lantern” and “Violet Harbor” in that final, without concatenation or deduplication. Collection/pipeline: 119.880 s, process CPU 5.891 s; this CPU includes encoding, hashing, instrumentation and engine, not just the remote service.
 
-RSS courant échantillonné : 58 511 360 octets au début, 60 723 200 à la fin,
-maximum échantillonné 60 907 520. L'écart maximal entre échantillons est 1,015 s,
-sous le plafond de couverture de 3 s. Ce n'est ni le pic exact, ni le high-water
-historique, ni une preuve d'absence de fuite. Le banc distingue succès transport,
-intégrité source, couverture mémoire et divergences sémantiques.
+Sampled current RSS: 58,511,360 bytes at the start, 60,723,200 at the end, sampled maximum 60,907,520. The maximum gap between samples is 1.015 s, below the 3 s coverage ceiling. This is neither the exact peak nor the historical high-water mark, nor proof of absence of leaks. The benchmark distinguishes transport success, source integrity, memory coverage and semantic divergences.
 
-`tools/validate_endurance.py` limite sa campagne à trois sessions séquentielles,
-300 s audio et 360 s de timeout par session ; **ce sont des garde-fous du banc,
-pas des limites serveur ou du SDK établies**. Le palier 300 exige un rapport
-120 complet et compatible, pas un simple booléen `healthy`. Le rapport local
-n'est toutefois pas une attestation infalsifiable. Une lacune de sampling rend le
-profil inconclusif sans transformer un transport réussi en échec.
+`tools/validate_endurance.py` limits its campaign to three sequential sessions, 300 s audio and 360 s timeout per session; **these are benchmark guardrails, not established server or SDK limits**. The 300 stage requires a complete compatible 120 report, not just a `healthy` boolean. The local report is nevertheless not a tamper-proof attestation. A sampling gap makes the profile inconclusive without turning a successful transport into a failure.
 
-Le [palier 300](evidence/endurance-300-public.json) comporte trois sessions saines
-séquentielles de **288,3515625 s** chacune, même canal et cadence simulée 20 ms ;
-chaque source PCM de **9 227 250 octets** est intégrale, les marqueurs sont présents
-et les ensembles finaux ordonnés identiques. Les trois durées pipeline sont environ
-291,238 / 290,908 / 290,747 s, avec CPU processus 17,094 / 14,469 / 14,672 s.
-Les maximums RSS échantillonnés sont 60 796 928 / 61 120 512 / 61 661 184 octets ;
-ce ne sont ni des pics exacts ni une preuve d'absence de fuite. Ces mesures utilisent
-la base SDK 0.2 **avant intégration des hints**, avec hashes de modules dans les
-rapports ; elles ne mesurent pas le nouveau code 0.3.
+The [300 stage](evidence/endurance-300-public.json) comprises three healthy sequential sessions of **288.3515625 s** each, same channel and simulated 20 ms cadence; each **9,227,250-byte** PCM source is complete, markers are present and ordered final sets are identical. The three pipeline durations are approximately 291.238 / 290.908 / 290.747 s, with process CPU 17.094 / 14.469 / 14.672 s. Sampled RSS maxima are 60,796,928 / 61,120,512 / 61,661,184 bytes; these are neither exact peaks nor proof of absence of leaks. These measurements use the SDK 0.2 baseline **before integration of hints**, with module hashes in the reports; they do not measure the new 0.3 code.
 
-Les rapports structurés du banc ne contiennent pas d'octets bruts, valeurs inconnues
-ou identifiants de service. `--include-text` exige toujours une revue d'un corpus
-contrôlé ; une dictée personnelle n'est pas automatiquement publiable. Les captures
-privées de continuation restent dans `artifacts/continuation-private/`, hors git.
+The benchmark's structured reports contain no raw bytes, unknown values or service identifiers. `--include-text` still requires review of a controlled corpus; personal dictation is not automatically publishable. Private continuation captures remain in `artifacts/continuation-private/`, outside git.
 
-Reproduction facultative avec les sources autorisées déjà préparées, variables d'accès
-environnementales autorisées et le répertoire `local/` existant ; cela contacte le
-service réel et consomme du temps audio, sans relance automatique :
+Optional reproduction with authorized sources already prepared, authorized environmental access variables and the existing `local/` directory; this contacts the real service and consumes audio time, without automatic retry:
 
 ```sh
 .venv/Scripts/python -I tools/validate_corpus.py --live --manifest tools/fixtures/input-hints-validation.json --output artifacts/my-hints/raw.json --timeout 90 --include-results
@@ -363,7 +192,4 @@ service réel et consomme du temps audio, sans relance automatique :
 .venv/Scripts/python -I tools/validate_endurance.py --live --manifest tools/fixtures/endurance-validation.json --id endurance-five-minute-en --stage 300 --previous-report local/endurance-120.json --sessions 3 --timeout 360 --output local/endurance-300.json
 ```
 
-Les fichiers de sortie doivent être nouveaux ; la préparation des audios est locale
-et doit respecter les manifestes. Les rapports `validate_corpus --include-results`
-contiennent des données brutes et exigent une projection expurgée et une revue avant
-publication ; ne pas les confondre avec les rapports structurés d'endurance.
+Output files must be new; audio preparation is local and must follow the manifests. `validate_corpus --include-results` reports contain raw data and require a redacted projection and review before publication; do not confuse them with structured endurance reports.

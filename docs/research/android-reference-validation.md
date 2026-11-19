@@ -1,303 +1,100 @@
-# Référence Android de développement : état des validations
+# Android development reference: validation status
 
-## Rôle et limites
+## Role and limits
 
-Ce téléphone de laboratoire est utilisé **uniquement comme référence de client**,
-avec autorisation explicite d'installation root et de tests isolés. Le moteur
-Rust continue de communiquer directement avec Rambler sans Android, téléphone ou
-relais pendant son utilisation. Cet outil n'ajoute aucun backend ASR de substitution.
+This laboratory phone is used **only as a client reference**, with explicit authorization for root installation and isolated tests. The Rust engine continues to communicate directly with Rambler without Android, a phone or relay during use. This tool adds no substitute ASR backend.
 
-L'état ci-dessous qualifie une préparation et des diagnostics, **pas une dictée
-Android ni une intention supplémentaire du service**. Les trois phrases prévues
-n'ont pas encore été armées/injectées dans les observations publiées ici.
+The status below qualifies preparation and diagnostics, **not Android dictation or an additional service intent**. The three planned sentences have not yet been armed/injected in the observations published here.
 
-## Préparation contrôlée
+## Controlled preparation
 
-- PixelBoard release officielle1.3.4, APK SHA256
-  `a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`,
-  digest GitHub et signature vérifiés avant installation. Sa version manifeste est
-  `18.6.3.1002251336-release-arm64-v8a`, distincte du tag de release.
-- Paquet `com.akshaykadam.pixelboard`, installé côte à côte avec Gboard via le
-  gestionnaire de paquets root normal : aucune suppression de Gboard/données,
-  aucun changement de Magisk, de signature, d'authentification ou d'attestation.
-- Android API34 / arm64-v8a. Aucun numéro de série, identifiant de compte, token,
-  clé API ou valeur de certificat d'authentification publié.
-- Préférence Rambler et sélection Jetson lues comme vraies, sans les modifier.
-  English(US) a été ajouté au profil PixelBoard seulement. Les deux premiers
-  diagnostics SDK conservaient le clavier d'origine ; leur sous-type framework
-  n'est donc **pas** une mesure de la langue d'une session vocale Rambler.
+- Official PixelBoard release 1.3.4, APK SHA256 `a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`, GitHub digest and signature verified before installation. Its manifest version is `18.6.3.1002251336-release-arm64-v8a`, distinct from the release tag.
+- Package `com.akshaykadam.pixelboard`, installed alongside Gboard through the normal root package manager: no deletion of Gboard/data, no change to Magisk, signature, authentication or attestation.
+- Android API 34 / arm64-v8a. No serial number, account identifier, token, API key or authentication certificate value published.
+- Rambler preference and Jetson selection read as true, without modifying them. English(US) was added only to the PixelBoard profile. The first two SDK diagnostics retained the original keyboard; their framework subtype is therefore **not** a measurement of a Rambler voice session's language.
 
-## Éditeur inerte reproductible
+## Reproducible inert editor
 
-Le [fixture original et son builder](../../tools/reference/android_editor/README.md)
-a zéro permission (réseau, micro et stockage compris). Il ne lit que son propre
-éditeur ; SEND incrémente un compteur local sans envoyer ni effacer quoi que ce soit.
-Les snapshots privés portent un run ID, une séquence, les sélections UTF-16 et
-les compteurs afin de rejeter les captures périmées. Pas d'intent texte arbitraire.
+The [original fixture and its builder](../../tools/reference/android_editor/README.md) has zero permissions (including network, microphone and storage). It reads only its own editor; SEND increments a local counter without sending or clearing anything. Private snapshots carry a run ID, sequence, UTF-16 selections and counters to reject stale captures. No arbitrary text intent.
 
-L'APK initial `c7e507…b912` a passé sept contrôles sur appareil : cas fixes,
-sélection entière, curseur final, relance simple/ID invalide sans reset, nouveaux
-runs et zéro callback d'envoi. Le nouvel APK
-`354e1c4363e399ea1978d21544983843b5a423eb6cee8f11f171b641960fb8fe`
-a passé ces mêmes contrôles, puis une saisie **non vocale** contrôlée `X` a vérifié
-le TextWatcher, la sélection en fin de tour UI et le reset sans écriture périmée.
-Il maintient seulement sa fenêtre de premier plan éveillée, sans réglage global.
-L'ancien APK mesuré a été conservé ; ces preuves ne sont pas réattribuées entre versions.
+The initial APK `c7e507…b912` passed seven device checks: fixed cases, whole selection, final cursor, simple restart/invalid ID without reset, new runs and zero send callbacks. The new APK `354e1c4363e399ea1978d21544983843b5a423eb6cee8f11f171b641960fb8fe` passed the same checks, then a controlled **non-voice** input `X` verified the TextWatcher, selection at the end of the UI turn and reset without stale writes. It keeps only its foreground window awake, without a global setting. The old measured APK was retained; this evidence is not reattributed between versions.
 
-Un transfert `adb push` vers un répertoire root privé a d'abord été refusé ; un
-transfert via shell/tee a ensuite échoué à la vérification SHA avant installation.
-Le transfert binaire `adb push` vers un staging shell, puis installation **root**
-avec contrôle SHA, a réussi sans contourner la vérification normale de signature.
-Sur cet appareil, la lecture imbriquée `su -c run-as …` rendait une sortie vide ;
-la lecture directe `adb exec-out run-as` des seuls fichiers du fixture fonctionne.
+An `adb push` transfer to a private root directory was initially refused; transfer through shell/tee then failed SHA verification before installation. Binary `adb push` transfer to shell staging, then **root** installation with SHA check, succeeded without bypassing normal signature verification. On this device, nested `su -c run-as …` reading returned empty output; direct `adb exec-out run-as` reading of the fixture's files alone works.
 
-## Préflight initial : échec/inconclusif préservé
+## Initial preflight: failure/inconclusive retained
 
-[Projection publique](../evidence/android-reference-preflight1-public.json).
-Le paquet, l'APK, les signatures de classe et l'installation de trois hooks ciblés
-ont passé les contrôles. Mais la session n'était plus disponible au premier RPC
-ultérieur en lecture seule (`InvalidOperationError`). Seuls `loaded` et `ready`
-ont été observés : **0 arm, 0 constructeur de capture, 0 EOF PCM**.
+[Public projection](../evidence/android-reference-preflight1-public.json). The package, APK, class signatures and installation of three targeted hooks passed checks. But the session was no longer available at the first subsequent read-only RPC (`InvalidOperationError`). Only `loaded` and `ready` were observed: **0 arm, 0 capture constructor, 0 PCM EOF**.
 
-La cause demeure inconnue : l'observation Android `UNKNOWN` ne démontre pas un
-crash natif. Settings et IME déclarent le même process par défaut ; le manifeste
-ne soutient pas l'hypothèse d'un mauvais process Settings distinct. Le contrôleur
-initial ne capturait pas le détachement et son erreur RPC empêchait l'arrêt HTTP.
-Le clavier initial, la permission micro et AppOps ont été restaurés ; le serveur
-propre au test et son forward ont été retirés avant arrêt du contrôleur hôte.
+The cause remains unknown: the Android `UNKNOWN` observation does not demonstrate a native crash. Settings and IME declare the same default process; the manifest does not support the hypothesis of a distinct wrong Settings process. The initial controller did not capture detachment and its RPC error prevented HTTP shutdown. The initial keyboard, microphone permission and AppOps were restored; the test-owned server and its forward were removed before the host controller stopped.
 
-## Diagnostics séparés : réussites limitées
+## Separate diagnostics: limited successes
 
-[Deux observations publiques](../evidence/android-reference-sdk-diagnostics-public.json) :
+[Two public observations](../evidence/android-reference-sdk-diagnostics-public.json):
 
-1. SDK en lecture seule, aucun hook : package/Java, préférence Rambler/Jetson et
-   getter de sous-type répondent ; pas de détachement inattendu pendant20s.
-2. Installation des trois hooks, **aucun arm** : même lecture immédiate disponible,
-   aucun constructeur appelé/refusé, pas de détachement inattendu pendant20s.
+1. Read-only SDK, no hooks: package/Java, Rambler/Jetson preference and subtype getter respond; no unexpected detachment for 20 s.
+2. Installation of three hooks, **no arm**: same immediate read available, no constructor called/refused, no unexpected detachment for 20 s.
 
-Chaque diagnostic a restauré l'état initial et retiré son serveur/forward. Ces
-réussites **ne résolvent pas rétroactivement** le premier échec. La construction
-ART avec initialisation du seul superclass InputStream n'a pas été exercée.
-Le contrôleur durci a passé53 tests hôte mockés (détachement, arrêt malgré RPC
-bloqué/échoué, délais, confidentialité, cap persistant et commandes UI bornées),
-sans validation appareil attribuée à ces tests. Les diagnostics/fixtures sont du
-travail Sol ; l'analyse statique complémentaire est Kimi, pas une revue Opus.
+Each diagnostic restored the initial state and removed its server/forward. These successes **do not retroactively resolve** the first failure. ART construction with initialization of only the InputStream superclass was not exercised. The hardened controller passed 53 mocked host tests (detachment, shutdown despite blocked/failed RPC, timeouts, privacy, persistent cap and bounded UI commands), without device validation attributed to these tests. Diagnostics/fixtures are Sol work; the additional static analysis is Kimi, not an Opus review.
 
-## Préflight actif durci et contrôles discriminants sans audio
+## Hardened active preflight and discriminating checks without audio
 
-Un second préflight, PixelBoard sélectionné comme IME devant l'éditeur inerte,
-atteint `ready` à2,282s puis observe `script.destroyed` et un détachement
-`process-terminated` avec objet crash à2,810s. Le contrôleur restaure automatiquement
-l'appareil et sort en erreur : **0 arm, 0 départ vocal, 0 constructeur, 0 EOF**.
-L'inspection filtrée du journal Android du seul PID cible a identifié SIGSEGV ;
-le journal brut n'a pas été conservé. Le signal n'était pas renseigné dans l'objet
-lifecycle publié : cette distinction de source reste explicite. Cela ne démontre
-ni la cause du premier échec, ni qu'un événement `script.destroyed` cause le crash.
+A second preflight, with PixelBoard selected as IME in front of the inert editor, reaches `ready` at 2.282 s then observes `script.destroyed` and a `process-terminated` detachment with crash object at 2.810 s. The controller automatically restores the device and exits with an error: **0 arm, 0 voice start, 0 constructor, 0 EOF**. Filtered inspection of the Android log for the target PID alone identified SIGSEGV; the raw log was not retained. The signal was not populated in the published lifecycle object: this distinction between sources remains explicit. This proves neither the cause of the first failure nor that a `script.destroyed` event causes the crash.
 
-Des études distinctes, devant le même éditeur et sans audio, passent ensuite :
+Separate studies, in front of the same editor and without audio, then pass:
 
-- IME actif **sans Frida**, permission micro révoquée et AppOp `ignore` : même
-  processus vivant après20s ; restauration réussie.
-- IME actif, permission micro accordée mais AppOp `ignore`, SDK en lecture seule
-  sans remplacement de méthode : getters Rambler/Jetson vrais, même processus
-  vivant après20s ; détachement demandé pendant notre nettoyage seulement.
-- Même confinement, création d'une classe de laboratoire inerte dans le process,
-  puis remplacement de sa seule méthode jamais appelée : aucun remplacement de
-  méthode PixelBoard, même processus vivant après20s, zéro appel du marqueur.
-- Même confinement, remplacement du seul `aaqe.read(byte[],int,int)` par un refus
-  sans lecture : même processus vivant après20s, zéro appel, aucun constructeur
-  remplacé ou exercé.
+- Active IME **without Frida**, microphone permission revoked and AppOp `ignore`: same process alive after 20 s; restoration successful.
+- Active IME, microphone permission granted but AppOp `ignore`, read-only SDK without method replacement: Rambler/Jetson getters true, same process alive after 20 s; detachment requested only during our cleanup.
+- Same containment, creation of an inert laboratory class in the process, then replacement of its only method, which is never called: no PixelBoard method replacement, same process alive after 20 s, zero marker calls.
+- Same containment, replacement of only `aaqe.read(byte[],int,int)` with a refusal without reading: same process alive after 20 s, zero calls, no constructor replaced or exercised.
 
-Un cinquième contrôle ajoute au hook de lecture le seul constructeur sans
-argument, tous deux remplacés par un refus : SIGSEGV après0,426s. L'objet crash
-permet d'en conserver uniquement le module `libart.so` et le PC relatif
-`0x270fd8`, sans rapport brut, mémoire, registres, chemin, ID ni symbole. La
-restauration réussit. Les compteurs d'entrée dans les handlers sont perdus à la
-mort du process : ce contrôle ne prouve pas zéro invocation de remplacement.
-L'initialisation ELF du module système a été lue comme données pour une recherche
-de symbole ; les symboles exportés ne résolvent pas ce PC. Aucun code de cette
-bibliothèque n'a été exécuté sur l'hôte.
+A fifth check adds only the no-argument constructor to the read hook, both replaced with a refusal: SIGSEGV after 0.426 s. The crash object permits retention only of module `libart.so` and relative PC `0x270fd8`, without raw report, memory, registers, path, ID or symbol. Restoration succeeds. Handler-entry counters are lost on process death: this check does not prove zero replacement invocations. System module ELF initialization was read as data for a symbol search; exported symbols do not resolve this PC. No code from this library was executed on the host.
 
-[Preuve d'isolation](../evidence/android-reference-active-ime-isolation-public.json).
-Ces contrôles réduisent les hypothèses mais n'établissent pas encore la cause du
-crash à trois hooks. Les corps et la portée des scripts minimaux diffèrent du
-préflight complet ; un succès de20s n'est pas une preuve de stabilité générale.
-La revue statique supplémentaire Sol ne trouve pas de mismatch de signature et
-rappelle que les mécanismes internes ART du bridge ont une portée plus large que
-les trois méthodes applicatives remplacées. Elle n'est pas une revue Opus.
+[Isolation evidence](../evidence/android-reference-active-ime-isolation-public.json). These checks narrow the hypotheses but do not yet establish the cause of the three-hook crash. Minimal script bodies and scopes differ from the full preflight; 20 s success is not proof of general stability. Additional Sol static review finds no signature mismatch and notes that internal ART bridge mechanisms have a broader scope than the three replaced application methods. It is not an Opus review.
 
-## Approches écartées avant tout nouvel audio
+## Approaches rejected before any new audio
 
-- Conserver le constructeur original et neutraliser `AudioRecord.startRecording`
-  n'est pas viable avec un état vrai STOPPED : `aaqe` exige immédiatement l'état3
-  puis jette une IOException sans libération déterministe sur cet échec. La
-  proposition est rejetée **avant implémentation et exécution** ; ni état simulé
-  ni postcondition modifiée. Deux lectures statiques indépendantes concordent.
-- `kmy.l` est explicitement `connectOnly`, pas un sélecteur d'audio externe.
-  `kmy.audioInputStream` est figé à null dans ce build. `knt.l` fournit seulement
-  `new aaqe()` ou null ; `iho.j(null, …)` initialise puis termine le réseau sans
-  upload audio. Cette branche modifie aussi le traitement du focus audio et
-  d'autres chemins : elle n'est ni activée ni présentée comme injection externe.
-  Source : `kmy.java:11,27–42,65–68`, `kmw.java:25–47,90–93`,
-  `kla.java:183–257`, `knt.java:318–344`, `iho.java:250–308` du même APK.
-- Une revue statique Kimi complémentaire ne trouve pas de couture normale pour
-  fournir un `InputStream` externe : le champ de session reste figé à null, le
-  builder n'a pas de setter et `kkv.java:10–13` lit puis abandonne cette valeur.
-  Le paramètre générique de `iho.j` n'est pas une configuration exposée : son
-  appelant S3 fournit uniquement `new aaqe()` ou null. Les variantes Jetson Lite
-  (`fom.java:68–89`) et on-device (`kme.java:52–69`) construisent également `aaqe` ;
-  la sélection de factory (`kki.java:63–111`) ne démontre aucune entrée externe.
-  Aucune action appareil. `klb.g`, `kjo.run` et `kml.a` restent non décompilés :
-  ce constat n'est pas une preuve exhaustive instruction par instruction, ni une
-  justification de contourner ces chemins ou de relancer les hooks constructeurs.
+- Retaining the original constructor and neutralizing `AudioRecord.startRecording` is not viable with a true STOPPED state: `aaqe` immediately requires state 3 then throws an IOException without deterministic release on this failure. The proposal is rejected **before implementation and execution**; no simulated state or modified postcondition. Two independent static readings agree.
+- `kmy.l` is explicitly `connectOnly`, not an external audio selector. `kmy.audioInputStream` is fixed to null in this build. `knt.l` supplies only `new aaqe()` or null; `iho.j(null, …)` initializes then terminates networking without audio upload. This branch also modifies audio focus handling and other paths: it is neither activated nor presented as external injection. Source: `kmy.java:11,27–42,65–68`, `kmw.java:25–47,90–93`, `kla.java:183–257`, `knt.java:318–344`, `iho.java:250–308` from the same APK.
+- Additional Kimi static review finds no normal seam for supplying an external `InputStream`: the session field remains fixed to null, the builder has no setter and `kkv.java:10–13` reads then discards this value. The generic parameter of `iho.j` is not exposed configuration: its S3 caller supplies only `new aaqe()` or null. Jetson Lite (`fom.java:68–89`) and on-device (`kme.java:52–69`) variants also construct `aaqe`; factory selection (`kki.java:63–111`) demonstrates no external input. No device action. `klb.g`, `kjo.run` and `kml.a` remain undecompiled: this finding is not exhaustive instruction-by-instruction proof, nor justification for bypassing these paths or rerunning constructor hooks.
 
-Les [sources originales du prototype audio/UI](../../tools/reference/android_audio/README.md)
-sont conservées avec29 tests Node offline passants et un assembleur local qui
-passe5 tests Python. Son build réel passe avec le bridge installé exactement
-haché, sans action appareil. L'assembleur ne fournit pas de contrôleur de dictée
-qualifié ; son nouveau SDK composé n'est pas réattribué aux essais passés.
-Le fragment source audio retenu est égal à celui du SDK de préflight observé.
-Le code tiers du bridge, les binaires/APK, clés et fichiers privés ne sont pas livrés.
+The [original audio/UI prototype sources](../../tools/reference/android_audio/README.md) are retained with 29 passing offline Node tests and a local assembler that passes 5 Python tests. Its actual build passes with the installed bridge exactly hashed, without device action. The assembler does not provide a qualified dictation controller; its new composed SDK is not reattributed to past trials. The retained audio source fragment equals that of the observed preflight SDK. Third-party bridge code, binaries/APKs, keys and private files are not distributed.
 
-## Inspection DEX ciblée : portée et correction des flags — 15 novembre 2026
+## Targeted DEX inspection: scope and flag correction — 15 November 2026
 
-Une extraction statique ciblée du même APK a inspecté la structure DEX de `aaqe`
-et revérifié les métadonnées ciblées de cycle de vie. La décompilation source de
-`klb.g`, `kjo.run` et `kml.a` reste incomplète : cette limite n'est plus une
-absence d'inspection structurelle DEX, mais ne devient pas une analyse exhaustive
-des instructions. Deux constructeurs et deux surcharges `read` sont déclarés ;
-les contrôles antérieurs ne visaient que le constructeur sans argument. Cela
-n'établit ni chemin audio externe utilisable ni cause du crash natif, toujours
-non observée.
+A targeted static extraction of the same APK inspected the DEX structure of `aaqe` and rechecked targeted lifecycle metadata. Source decompilation of `klb.g`, `kjo.run` and `kml.a` remains incomplete: this limitation is no longer a lack of structural DEX inspection, but does not become exhaustive instruction analysis. Two constructors and two `read` overloads are declared; previous checks targeted only the no-argument constructor. This establishes neither a usable external audio path nor the cause of the native crash, still unobserved.
 
-Le lecteur intermédiaire avait mal nommé les bits : `0x10000` est
-`ACC_CONSTRUCTOR`, pas declared-synchronized ; `0x20000` est
-`ACC_DECLARED_SYNCHRONIZED`, pas inconnu. Avec `ACC_PUBLIC=0x1`, les flags
-`0x10001` désignent donc public + constructeur. Le flag declared-synchronized
-porte sur la déclaration/réflexion, sans effet d'exécution par lui-même, selon la
-[référence officielle DEX](https://source.android.com/docs/core/runtime/dex-format#access-flags).
-L'extraction corrigée R2 a réussi ; les rapports intermédiaires erronés sont
-conservés comme tels, leurs interprétations retirées. La comparaison exacte des
-sorties initiales et corrigées confirme que seules trois listes de libellés de
-flags changent : valeurs numériques et hashes de code sont identiques. Les huit
-empreintes de code concordent avec le parseur ; aucune donnée DEX n'est modifiée.
-Les sorties privées ne constituent pas une preuve reproductible archivée dans le dépôt.
+The intermediate reader had mislabeled the bits: `0x10000` is `ACC_CONSTRUCTOR`, not declared-synchronized; `0x20000` is `ACC_DECLARED_SYNCHRONIZED`, not unknown. With `ACC_PUBLIC=0x1`, flags `0x10001` therefore mean public + constructor. The declared-synchronized flag concerns declaration/reflection and has no execution effect by itself, according to the [official DEX reference](https://source.android.com/docs/core/runtime/dex-format#access-flags). Corrected extraction R2 succeeded; erroneous intermediate reports are retained as such, their interpretations removed. Exact comparison of initial and corrected outputs confirms that only three flag-label lists change: numeric values and code hashes are identical. The eight code fingerprints match the parser; no DEX data is modified. Private outputs do not constitute reproducible evidence archived in the repository.
 
-Aucun état AOT/JIT/interpréteur ou présence sur pile n'est observé par ces
-métadonnées. Un petit laboratoire jouet reste **NO-GO** : il ne discriminerait pas
-l'état réel du runtime concerné. Aucun nouvel acte appareil, audio ou service :
-**0 armement PCM, 0 départ vocal, 0 phrase** ; le budget de trois phrases reste
-intact. Aucune parité ni capacité de service réel n'est établie ; aucun
-contournement n'est autorisé.
+No AOT/JIT/interpreter state or presence on stack is observed by this metadata. A small toy laboratory remains **NO-GO**: it would not discriminate the actual state of the relevant runtime. No new device, audio or service action: **0 PCM arming, 0 voice start, 0 sentences**; the three-sentence budget remains intact. No parity or real-service capability is established; no bypass is authorized.
 
-## Prochain essai borné, sans résultat anticipé
+## Next bounded trial, without anticipating a result
 
-**Bloqué à ce stade sur la construction instrumentée compatible ART et confinée.**
-Aucun nouvel armement n'est justifié par les contrôles actuels. Une autre méthode
-nécessite sa propre revue et son préflight sans audio ; ne pas contourner cet
-échec en démarrant le vrai micro, en falsifiant un état ou en appelant directement
-un backend à la place de la chaîne normale.
+**Blocked at this stage on compatible and contained ART instrumented construction.** No new arming is justified by current checks. Another method requires its own review and audio-free preflight; do not bypass this failure by starting the real microphone, falsifying a state or directly calling a backend instead of the normal chain.
 
-Au plus trois phrases synthétiques locales, PCM16LE mono16kHz, hashes fixés avant
-armement, aucune reprise automatique. Le remplacement audio est limité au client
-PixelBoard exact et à `aaqe` ; aucun changement auth/TLS, sécurité, réponse ou routage.
-AppOp `RECORD_AUDIO=ignore` doit rester imposé avant attache, pendant lecture et
-jusqu'au force-stop avant restauration, pour empêcher une capture ambiante non prévue.
-Une absence de hook attendu, erreur ART/Java, mismatch de hash/EOF ou perte de
-confinement termine l'essai, sans passer à un autre moteur ni au vrai microphone.
+At most three local synthetic sentences, PCM16LE mono 16 kHz, hashes fixed before arming, no automatic retry. Audio replacement is limited to the exact PixelBoard client and `aaqe`; no auth/TLS, safety, response or routing changes. AppOp `RECORD_AUDIO=ignore` must remain enforced before attachment, during reading and until force-stop before restoration, to prevent unintended ambient capture. A missing expected hook, ART/Java error, hash/EOF mismatch or loss of containment ends the trial, without switching to another engine or the real microphone.
 
-Le dispatch clavier normal a été établi statiquement : `kla.g("jetson", consumer)`
-vers l'instance LatinIME active, `dG(oak)` sur thread UI ; STOP emploie le même
-`oak.d(kla.c)` que `kla.h`. Le DEX confirme `Consumer.accept(Object):void` ; le
-`e(...)` de JADX est un artefact. Cela **ne qualifie pas** les branches non
-décompilées `ffh.m`/`klb.g`, l'onboarding/quota `ffh.z/y`, ni l'executor `kla.n`.
-Aucun flag ou gate n'est modifié. Toute proposition de parité doit garder ces limites.
+Normal keyboard dispatch was established statically: `kla.g("jetson", consumer)` to the active LatinIME instance, `dG(oak)` on the UI thread; STOP uses the same `oak.d(kla.c)` as `kla.h`. DEX confirms `Consumer.accept(Object):void`; JADX's `e(...)` is an artifact. This **does not qualify** undecompiled branches `ffh.m`/`klb.g`, onboarding/quota `ffh.z/y`, or executor `kla.n`. No flag or gate is modified. Any parity proposal must retain these limits.
 
-## Inventaire passif isolé des entrées Android — 16 novembre 2026
+## Isolated passive inventory of Android inputs — 16 November 2026
 
-[Projection publique de l'inventaire](../evidence/android-passive-input-inventory-20261116.json).
-Il s'agit d'une énumération unique sur Android API 34, pas d'une validation de
-routage, de dictée ou de référence appariée. Le fixture séparé
-`org.rambpc.audioinventoryprobe` lance une Activity sans affichage qui interroge
-`AudioManager.getDevices(GET_DEVICES_INPUTS)` et agrège uniquement type et
-`isSource`. Il écrit atomiquement un résultat privé, avec marqueurs de fraîcheur ;
-une ancienne sortie doit être rejetée si l'écriture échoue. Aucun nom de produit,
-adresse, ID ou texte d'exception n'est lu dans cet inventaire. La projection
-publique ne contient ni marqueurs privés, ni identifiants de l'appareil.
+[Public inventory projection](../evidence/android-passive-input-inventory-20261116.json). This is a single enumeration on Android API 34, not validation of routing, dictation or a matched reference. The separate fixture `org.rambpc.audioinventoryprobe` starts a non-displayed Activity that queries `AudioManager.getDevices(GET_DEVICES_INPUTS)` and aggregates only type and `isSource`. It atomically writes a private result with freshness markers; an old output must be rejected if writing fails. No product name, address, ID or exception text is read in this inventory. The public projection contains neither private markers nor device identifiers.
 
-Le build local initial de l'éditeur enrichi a réussi avec zéro permission, sans
-exécution sur appareil. Sa mise à jour a ensuite été refusée avec
-`INSTALL_FAILED_UPDATE_INCOMPATIBLE` : ni désinstallation ni effacement de données.
-Pour le paquet isolé, les deux premiers builds locaux ont échoué avant signature
-sur l'analyse du namespace et du format des attributs aapt2 ; le parseur a été
-corrigé d'après un dump de manifeste public réel et des tests de mutation. Le
-troisième build a réussi avec 16 tests Python purs, zéro permission et une seule
-Activity. Les empreintes individuelles des sources utilisées et le SHA-256 de
-l'APK sont dans la projection ; elles ne signifient pas que ces sources non
-commitées sont déjà intégrées au dépôt.
+The initial local build of the enhanced editor succeeded with zero permissions, without device execution. Its update was then refused with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`: no uninstall or data deletion. For the isolated package, the first two local builds failed before signing on parsing namespace and aapt2 attribute format; the parser was corrected based on a real public manifest dump and mutation tests. The third build succeeded with 16 pure Python tests, zero permissions and a single Activity. Individual source fingerprints and the APK SHA-256 are in the projection; they do not mean these uncommitted sources are already integrated into the repository.
 
-Une installation fraîche normale du paquet isolé a échoué avec
-`INSTALL_FAILED_USER_RESTRICTED`. Après la demande explicite de l'utilisateur
-« installe avec root », une installation root autorisée a réussi, limitée à cet
-APK, sans changement global ou de politique. Une seule Activity d'inventaire a
-ensuite été lancée ; la fraîcheur du résultat a été vérifiée. Le paquet éditeur
-original et l'IME sélectionné sont restés inchangés.
+A normal fresh installation of the isolated package failed with `INSTALL_FAILED_USER_RESTRICTED`. After the user's explicit request « installe avec root », an authorized root installation succeeded, limited to this APK, without global or policy change. A single inventory Activity was then launched; result freshness was verified. The original editor package and selected IME remained unchanged.
 
-Cinq entrées, toutes déclarées sources, ont été recensées : type 15 deux fois,
-types 16, 18 et 25 une fois chacun. La [référence officielle AudioDeviceInfo](https://developer.android.com/reference/android/media/AudioDeviceInfo)
-nomme ces constantes respectivement microphone intégré, tuner FM, téléphonie et
-remote submix. Aucun type USB 11, 12 ou 22 ni casque filaire type 3 n'apparaît
-dans cette observation. Ce sont des catégories statiques de l'API, **pas une
-preuve qu'un flux est routé ou reçu** ; cette observation n'établit ni une
-incapacité matérielle universelle ni l'impossibilité d'une injection logicielle.
+Five inputs, all declared sources, were inventoried: type 15 twice, types 16, 18 and 25 once each. The [official AudioDeviceInfo reference](https://developer.android.com/reference/android/media/AudioDeviceInfo) names these constants respectively built-in microphone, FM tuner, telephony and remote submix. No USB type 11, 12 or 22 or wired headset type 3 appears in this observation. These are static API categories, **not proof that a stream is routed or received**; this observation establishes neither universal hardware incapability nor impossibility of software injection.
 
-Aucun enregistrement, RPC backend ou véritable essai de référence appariée ;
-permission micro absente et `routing_proven=false`. Un prochain essai apparié
-nécessite une route d'entrée légitime et contrôlée, vérifiée de bout en bout :
-une simple liste, un fichier périmé ou du silence ne prouvent pas cette route.
-Aucun recours de repli à une modification root d'AudioPolicy ou du fournisseur,
-à des hooks, à une altération des états ou à une capture PCM n'est ici proposé.
+No recording, backend RPC or actual matched-reference trial; microphone permission absent and `routing_proven=false`. A future matched trial requires a legitimate controlled input route, verified end to end: a mere list, stale file or silence does not prove that route. No fallback to a root modification of AudioPolicy or the provider, hooks, state alteration or PCM capture is proposed here.
 
-## Voix publique supervisée dans un éditeur séparé — 16 novembre 2026
+## Supervised public voice in a separate editor — 16 November 2026
 
-[Projection publique et empreintes de build](../evidence/android-supervised-public-voice-20261116.json).
-Cette observation ultérieure est distincte du plan d'injection instrumentée et de
-l'inventaire passif ci-dessus : les mentions historiques « aucun audio » et le
-blocage de ce plan restent valables pour leurs essais respectifs, sans décrire ces
-nouveaux essais manuels. Les échecs antérieurs, les contraintes de signature et
-`INSTALL_FAILED_USER_RESTRICTED` ne sont ni effacés ni rétroactivement résolus.
+[Public projection and build fingerprints](../evidence/android-supervised-public-voice-20261116.json). This later observation is separate from the instrumented injection plan and passive inventory above: historical mentions of “no audio” and the blocking of that plan remain valid for their respective trials, without describing these new manual trials. Earlier failures, signature constraints and `INSTALL_FAILED_USER_RESTRICTED` are neither erased nor retroactively resolved.
 
-L'utilisateur a choisi PixelBoard et son micro à étoile par l'interface normale,
-sans hook ni altération, puis a tenu, démarré et arrêté lui-même la voix avec le
-micro intégré ; aucun repli automatisé vers l'audio ambiant. L'éditeur ordinaire
-séparé appartient au laboratoire, ne demande aucune permission et ne force pas
-l'incognito. La suppression de son propre flag `NO_PERSONALIZED_LEARNING` a levé
-une ambiguïté de l'interface incognito ; elle n'est pas établie comme cause unique
-et ne promet rien sur l'apprentissage du fournisseur. Le fixture original et
-l'inventaire restent préservés. Le nouvel APK et ses sources de build sont épinglés
-par SHA-256 dans la projection, sans prétendre intégrer les sources non commitées.
+The user selected PixelBoard and its starred microphone through the normal interface, without hooks or alteration, then personally held, started and stopped voice using the built-in microphone; no automated fallback to ambient audio. The separate ordinary editor belongs to the laboratory, requests no permissions and does not force incognito. Removing its own `NO_PERSONALIZED_LEARNING` flag resolved an incognito UI ambiguity; it is not established as the sole cause and promises nothing about provider learning. The original fixture and inventory remain preserved. The new APK and its build sources are pinned by SHA-256 in the projection, without claiming to integrate uncommitted sources.
 
-1. Après vérification d'une amorce initiale répétée, la phrase prévue « The draft
-   is ready. » donne `The draft is ready` : préfixe initial non conservé et
-   ponctuation absente. La cause n'est pas isolée ; ce n'est ni une preuve de
-   fidélité au contexte, ni un bug natif ou Android établi.
-2. Avec `Send me the report now.` entièrement sélectionné, « Rewrite politely. »
-   donne littéralement `Rewrite politely` : aucune reformulation polie dans cet
-   essai.
-3. Sur champ vide, l'utilisateur dit d'abord « Send » et ne perçoit aucun effet
-   visible ; il rapporte ensuite avoir essayé « salut, ça va » et « send the
-   message » et avoir vu cela fonctionner. Le seul snapshot final indique deux
-   callbacks SEND, deux actions d'éditeur au total, dernier action ID 4, longueur
-   de texte 28 unités UTF-16 et composition -1/-1. Le texte français obtenu est
-   retenu par la projection. Aucun snapshot intermédiaire ne permet d'attribuer
-   chaque callback à une phrase : ni échec du seul « Send », ni réussite générale
-   des commandes plus longues, ni causalité ne sont établis. SEND est consommé
-   localement et n'envoie rien.
+1. After checking a repeated initial prompt, the planned sentence « The draft is ready. » yields `The draft is ready`: initial prefix not retained and punctuation absent. The cause is not isolated; this is neither proof of context fidelity nor an established native or Android bug.
+2. With `Send me the report now.` fully selected, « Rewrite politely. » yields literally `Rewrite politely`: no polite rewrite in this trial.
+3. On an empty field, the user first says « Send » and perceives no visible effect; they then report having tried « salut, ça va » and « send the message » and seeing it work. The only final snapshot indicates two SEND callbacks, two editor actions total, last action ID 4, text length 28 UTF-16 units and composition -1/-1. The French text obtained is retained by the projection. No intermediate snapshot allows each callback to be attributed to a sentence: neither failure of « Send » alone, general success of longer commands nor causality is established. SEND is consumed locally and sends nothing.
 
-Ces observations ne constituent pas trois réussites sémantiques et ne comptent
-pas les appels ASR ou RPC distincts. Aucun trafic réseau ou filaire n'a été
-capturé : ni identité de route S3Bidi/ASR, ni parité Android complète, ni état
-terminal du backend ne sont prouvés. Le backend Rust natif reste Rambler, sans
-substitution ASR. Gboard et les restrictions initiales du micro ont été restaurés,
-la fenêtre de test propre placée en arrière-plan ; fixtures et captures sont
-conservés. La projection publique exclut les identifiants et captures privées.
+These observations do not constitute three semantic successes and do not count distinct ASR or RPC calls. No network or wire traffic was captured: neither S3Bidi/ASR route identity, complete Android parity nor backend terminal state is proven. The native Rust backend remains Rambler, without ASR substitution. Gboard and initial microphone restrictions were restored, the owned test window placed in the background; fixtures and captures are retained. The public projection excludes identifiers and private captures.

@@ -1,211 +1,102 @@
-# Parité Rambler / Gboard : matrice vérifiable
+# Rambler / Gboard parity: verifiable matrix
 
-État initial de l'analyse : 2026-11-14 ; frontières du contexte applicatif et des
-signaux d'état de compte précisées le 2026-11-16. Jalon sécurité initial : `e427fb1`, sur `4fdf29e` ;
-les API de rendu explicite et conteneurs décrites ici appartiennent au lot suivant.
-Il s'agit d'un **sous-ensemble du client Rambler S3**, pas d'un clone de toute
-l'application Gboard. Un enum décodé n'est pas une fonctionnalité distante validée,
-et un résultat distant n'est pas nécessairement le texte appliqué par Android.
+Initial analysis status: 2026-11-14; application-context and account-state signal boundaries clarified on 2026-11-16. Initial security milestone: `e427fb1`, on `4fdf29e`; the explicit rendering and container APIs described here belong to the following batch. This is a **subset of the Rambler S3 client**, not a clone of the entire Gboard application. A decoded enum is not a validated remote feature, and a remote result is not necessarily the text applied by Android.
 
-## Sources et niveaux de preuve
+## Sources and levels of evidence
 
-- APK analysé statiquement : SHA-256
-  `a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`,
-  rehaché pendant cette revue. Les noms obfusqués ci-dessous concernent **ce build**.
-- Extraits JADX locaux : `pixelboard-jadx/sources/defpackage/`, et extraction ciblée
-  `pixelboard-jadx-ihm/sources/defpackage/ihm.java`. Ils ne sont pas exécutés.
-  La récupération des métadonnées est décrite dans [protocol.md](protocol.md) et
-  utilise `tools/research/jadx_metadata.py` depuis un emplacement de confiance.
-- Sources PixelBoard analysées : révision `9a81f8b`, fichier
-  `GboardRamblerDictationRuntime.java`, lignes174–224 et232–264. Le filtre local
-  travaille sur une VoiceAction déjà créée ; son mock ne prouve pas une réponse S3.
-- **Rust réel** : [première tranche Ogg](../evidence/rust-first-slice-public.json),
-  [PCM, réécriture, sélection](../evidence/rust-pcm-functional-public.json),
-  [trois sessions sur un même moteur](../evidence/rust-native-session-reuse-public.json),
-  [observations Rust et PixelBoard du 18 novembre](../evidence/pixelboard-vs-native-real-20261118.json).
-- **Python réel seulement** : corpus/hints et réutilisation de canal documentés dans
-  [les observations](../evidence/README.md). Pas attribués rétrospectivement à Rust.
-- **Statique/offline** : schéma, branche client, test synthétique. Pas une activation
-  de fonction serveur ni une comparaison appariée avec un appareil.
+- Statically analyzed APK: SHA-256 `a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`, rehashed during this review. The obfuscated names below concern **this build**.
+- Local JADX extracts: `pixelboard-jadx/sources/defpackage/`, and targeted extract `pixelboard-jadx-ihm/sources/defpackage/ihm.java`. They are not executed. Metadata retrieval is described in [protocol.md](protocol.md) and uses `tools/research/jadx_metadata.py` from a trusted location.
+- Analyzed PixelBoard sources: revision `9a81f8b`, file `GboardRamblerDictationRuntime.java`, lines 174–224 and 232–264. The local filter operates on an already-created VoiceAction; its mock does not prove an S3 response.
+- **Real Rust**: [first Ogg slice](../evidence/rust-first-slice-public.json), [PCM, rewriting, selection](../evidence/rust-pcm-functional-public.json), [three sessions on one engine](../evidence/rust-native-session-reuse-public.json), [November 18 Rust and PixelBoard observations](../evidence/pixelboard-vs-native-real-20261118.json).
+- **Real Python only**: corpus/hints and channel reuse documented in [the observations](../evidence/README.md). Not retrospectively attributed to Rust.
+- **Static/offline**: schema, client branch, synthetic test. Not server feature activation or a matched comparison with a device.
 
-## Acceptation actuelle et reste à faire
+## Current acceptance and remaining work
 
-- **Acquis, sans parité globale prétendue** : sessions Rust natives historiques sur
-  le service Rambler, sans relais Android ; contrats clients établis et protections
-  conservatrices documentés ci-dessous. L'[audit avancé](rust-advanced-mode-contract-audit.md)
-  ne trouve aucun défaut de fidélité avancée déjà confirmé et corrigeable offline.
-- **Accès indispensable** : obtenir auprès du fournisseur ou d'un canal autorisé un
-  contrat/justificatif non secret couvrant le service exact, le client natif et son
-  droit d'usage, ainsi que l'émission, le renouvellement et la révocation légitimes.
-  La [recherche publique bornée](native-access-public-research.md) n'a pas trouvé
-  cette voie ; les succès historiques ne prouvent pas les droits ni l'accès durable
-  ([authentification](authentication.md)). Ne pas substituer un autre service.
-- **Modes avancés** : une référence Android autorisée, de version correspondante,
-  doit relier requête émise, réponse brute, contexte tardif, VoiceAction avant/après
-  filtre et résultat éditeur ; détails et discriminants dans l'[audit](rust-advanced-mode-contract-audit.md#precise-discriminators-needed-before-another-client-change).
-  Implémenter seulement les contrats observés, sans affaiblir les refus safety ni
-  inventer activation ou sémantique pour les intentions 4/5/6.
-- **Qualité et latence** : mesurer des entrées vocales naturelles représentatives et
-  la latence client/session, avec protocole et référence comparables ; les profils
-  synthétiques offline ne prouvent ni qualité naturelle ni performance WAN
-  ([état](../STATUS.md)). Les observations ci-dessous ne constituent pas un benchmark.
+- **Established, without claiming overall parity**: historical native Rust sessions on the Rambler service, without an Android relay; established client contracts and conservative safeguards documented below. The [advanced audit](rust-advanced-mode-contract-audit.md) finds no advanced fidelity defect already confirmed and correctable offline.
+- **Access required**: obtain from the provider or an authorized channel a non-secret contract or supporting evidence covering the exact service, the native client and its right of use, and legitimate issuance, renewal and revocation. The [bounded public research](native-access-public-research.md) did not find this route; historical successes do not prove rights or durable access ([authentication](authentication.md)). Do not substitute another service.
+- **Advanced modes**: an authorized, version-matched Android reference must connect the emitted request, raw response, late context, VoiceAction before/after filtering and editor result; details and discriminators in the [audit](rust-advanced-mode-contract-audit.md#precise-discriminators-needed-before-another-client-change). Implement only observed contracts, without weakening safety refusals or inventing activation or semantics for intentions 4/5/6.
+- **Quality and latency**: measure representative natural speech inputs and client/session latency, with comparable protocol and reference; offline synthetic profiles prove neither natural quality nor WAN performance ([status](../STATUS.md)). The observations below are not a benchmark.
 
-## Observations du 18 novembre 2026 sur le service réel
+## November 18, 2026 observations on the real service
 
-Le [relevé du 18 novembre](../evidence/pixelboard-vs-native-real-20261118.json)
-consigne trois sessions CLI natives avec voix synthétique :
+The [November 18 record](../evidence/pixelboard-vs-native-real-20261118.json) records three native CLI sessions with synthetic speech:
 
-- **Dictée** : `The kite is blue. Marker stays.` exactement, en un seul énoncé
-  (intention 2, champ 3).
-- **Remplacement ciblé** : `The kite is green. Marker stays.` exactement, avec
-  la phrase témoin conservée (intention 2, champ 7).
-- **Réécriture polie** : avec `Send me the report now.` sélectionné et la demande
-  `Make this more polite.`, le service a renvoyé `Could you please send me the report at your earliest convenience?`
-  dans `edited_context` (intention 3, champ 7). Le rendu `Strict` de cet essai
-  l’a refusé comme ambigu. Pour rendre le texte de ce type de réponse, la CLI
-  propose l’option explicite `--result-policy s3-client-compatible`
-  ([guide](sdk-integration-guide.md#opt-in-to-selection-rewrites)) ; le
-  relevé n’enregistre pas de second appel réel avec cette option.
+- **Dictation**: `The kite is blue. Marker stays.` exactly, in one utterance (intention 2, field 3).
+- **Targeted replacement**: `The kite is green. Marker stays.` exactly, with the control sentence preserved (intention 2, field 7).
+- **Polite rewrite**: with `Send me the report now.` selected and the request `Make this more polite.`, the service returned `Could you please send me the report at your earliest convenience?` in `edited_context` (intention 3, field 7). `Strict` rendering rejected it as ambiguous in this test. To render text from this type of response, the CLI offers the explicit `--result-policy s3-client-compatible` option ([guide](sdk-integration-guide.md#opt-in-to-selection-rewrites)); the record does not report a second real call with this option.
 
-Sur un Xiaomi 11 Lite 5G NE (Android 14, non-Pixel), **PixelBoard 1.3.5** a
-produit la dictée exacte lorsqu’elle était dite en deux parties avec une pause ;
-en un seul énoncé, les tentatives n’ont ajouté que `The kite is blue.`. Le
-remplacement ciblé était exact. Lors des essais de réécriture, l’instruction
-parlée a remplacé la sélection littéralement au lieu de la reformuler. Ce
-n’était pas Gboard officiel ; les voix, le réseau et les points de mesure
-n’étaient pas appariés.
+On a Xiaomi 11 Lite 5G NE (Android 14, non-Pixel), **PixelBoard 1.3.5** produced the exact dictation when spoken in two parts with a pause; in one utterance, attempts added only `The kite is blue.`. The targeted replacement was exact. In rewrite tests, the spoken instruction literally replaced the selection instead of rephrasing it. This was not official Gboard; voices, network and measurement points were not matched.
 
-## Intentions et politiques de résultat
+## Intentions and result policies
 
-Enum : `aamp.java:5`; VoiceEditingResult : `aamq.java:20`.
-Le helper S3 `ihm.java:192–212` accepte les intentions2/3 avec oneof3/7 ; les autres
-retombent dans son chemin ASR. Le rendu `Strict` reste volontairement plus prudent. `AsrOnly` et
-`S3ClientCompatible` exposent un choix textuel explicite avec provenance, sans
-inventer de fonctionnalité d'intention ni la sélection de candidat Android.
+Enum: `aamp.java:5`; VoiceEditingResult: `aamq.java:20`. The S3 helper `ihm.java:192–212` accepts intentions 2/3 with oneof 3/7; the others fall back to its ASR path. `Strict` rendering deliberately remains more cautious. `AsrOnly` and `S3ClientCompatible` expose an explicit text choice with provenance, without inventing intention functionality or Android candidate selection.
 
-| Valeur / fonction | API et politique Rust | Preuve et limite |
+| Value / feature | Rust API and policy | Evidence and limit |
 |---|---|---|
-|0 DICTATION|Intention conservée ; `Strict` refuse VoiceEdit0, modes opt-in projettent l'ASR|Enum statique. Pas de valeur wire0 démontrée dans les preuves publiées. Écart conservateur de façade avec le fallback Android.|
-|1 EDIT|Décodable ; `Strict` refuse, modes opt-in projettent l'ASR sans interpréter EDIT|Nom statique seulement ; ne signifie pas automatiquement suppression, envoi ou delta.|
-|2 EDIT_HISTORY|`DictationResult::text`, `replacement_proposal`, snapshot/révision ; champs3 et7|**Rust réel** : dictées EN/FR, correction, `ten→eleven`, sélection avec emoji dans le contexte. Fenêtre complète, pas ajout aveugle.|
-|3 REWRITE|`Strict` inchangé : champ3 rendu, champ7 ambigu. `S3ClientCompatible` opt-in : champs3/7 rendus ; pour une réécriture de sélection, utiliser `replacement_proposal_with_policy` (proposition de fenêtre au champ7), avec validation de la révision et de l'ancre.|**Rust réel** : réécriture polie au champ3, puis au champ7 avec sélection le [18 novembre](#observations-du-18-novembre-2026-sur-le-service-réel). Le helper Android accepte aussi ce cas statiquement ; l’observation ne qualifie pas l’application côté Android.|
-|4 COMPOSE|Décodable ; aucune implémentation COMPOSE. Strict/proposition refusent ; fallback ASR opt-in n'est pas une composition|**Non démontré**. Huit essais historiques restent distincts des mocks et prompts locaux ; voir [composition](composition.md). Aucun switch S3 vérifié.|
-|5 RAMBLE|Décodable ; pas de sémantique RAMBLE, fallback ASR opt-in seulement|Enum certaine, sémantique opérationnelle non établie par son nom ; non observé.|
-|6 RAMBLE_HISTORY|Décodable ; pas de sémantique RAMBLE_HISTORY, fallback ASR opt-in seulement|Même limite ; aucune preuve de résumé ou nettoyage de notes.|
-|VoiceEdit champ2|`alternative_text`, `active_field` ; Strict ambigu, compatible retombe sur ASR|Même oneof que3/7. Ni synonyme d'ASR ni fallback édité prouvé.|
-|Plusieurs finales/hypothèses|Conservées ordonnées ; pas de texte unique arbitraire|API structurée, collecte bornée ; aucune concaténation/déduplication inventée.|
+|0 DICTATION|Intention preserved; `Strict` rejects VoiceEdit 0, opt-in modes project ASR|Static enum. No wire value 0 demonstrated in published evidence. Conservative facade difference from Android fallback.|
+|1 EDIT|Decodable; `Strict` rejects, opt-in modes project ASR without interpreting EDIT|Static name only; does not automatically mean deletion, sending or delta.|
+|2 EDIT_HISTORY|`DictationResult::text`, `replacement_proposal`, snapshot/revision; fields 3 and 7|**Real Rust**: EN/FR dictations, correction, `ten→eleven`, selection with emoji in context. Complete window, not blind append.|
+|3 REWRITE|`Strict` unchanged: field 3 rendered, field 7 ambiguous. Opt-in `S3ClientCompatible`: fields 3/7 rendered; for a selection rewrite, use `replacement_proposal_with_policy` (window proposal for field 7), validating revision and anchor.|**Real Rust**: polite rewrite in field 3, then field 7 with selection on [November 18](#november-18-2026-observations-on-the-real-service). The Android helper also statically accepts this case; the observation does not qualify application on Android.|
+|4 COMPOSE|Decodable; no COMPOSE implementation. Strict/proposal reject; opt-in ASR fallback is not composition|**Not demonstrated**. Eight historical tests remain distinct from local mocks and prompts; see [composition](composition.md). No S3 switch verified.|
+|5 RAMBLE|Decodable; no RAMBLE semantics, opt-in ASR fallback only|Enum certain, operational semantics not established by its name; not observed.|
+|6 RAMBLE_HISTORY|Decodable; no RAMBLE_HISTORY semantics, opt-in ASR fallback only|Same limit; no evidence of summarizing or cleaning up notes.|
+|VoiceEdit field 2|`alternative_text`, `active_field`; Strict ambiguous, compatible falls back to ASR|Same oneof as 3/7. Neither an ASR synonym nor a proven edited fallback.|
+|Multiple finals/hypotheses|Preserved in order; no arbitrary single text|Structured API, bounded collection; no invented concatenation/deduplication.|
 
-Le filtre PixelBoard peut supprimer des diffs et convertir une action locale4
-avec transcript vers0 ; il préserve5 dans une branche où d'autres deviennent0.
-Cela **ne prouve pas** que le helper S3 crée une action4/5/6.
+The PixelBoard filter can remove diffs and convert a local action 4 with transcript to 0; it preserves 5 in a branch where others become 0. This **does not prove** that the S3 helper creates an action 4/5/6.
 
-## Marqueur de sécurité : écart corrigé dans ce lot
+## Safety marker: discrepancy fixed in this batch
 
-Chaîne statique précise :
+Precise static chain:
 
-1. `aalg.java:37`, RawMessageInfo : **hypothesis.field30 enum**, présence21,
-   membre Java `int e` (`aalg.java:11`). Pas un booléen wire.
-2. `ywl.java:12,36–41`, validateur `r`, case17 vers `a.aY` ;
-   `a.java:490–495,677–679` : seules les valeurs0/1 sont reconnues.
-3. `ihm.java:192–212` : pour le candidat VoiceEdit accepté, valeur1 devient
-   `iid.e=true`, puis `ihm.java:287–291` la copie dans `aakw.k`.
-   `aakw.java:33` situe ce **booléen local** au champ10 de VoiceText ; ce n'est
-   pas un second champ sécurité S3 à envoyer.
-4. `fga.java:11–15` et `ffh.java:703–708` : `SAFETY_BLOCKAGE` et retour **avant**
-   classification de commandes (`:767`), envoi IME (`:780`) et édition (`:804`).
+1. `aalg.java:37`, RawMessageInfo: **hypothesis.field30 enum**, presence 21, Java member `int e` (`aalg.java:11`). Not a wire boolean.
+2. `ywl.java:12,36–41`, validator `r`, case 17 to `a.aY`; `a.java:490–495,677–679`: only values 0/1 are recognized.
+3. `ihm.java:192–212`: for the accepted VoiceEdit candidate, value 1 becomes `iid.e=true`, then `ihm.java:287–291` copies it into `aakw.k`. `aakw.java:33` locates this **local boolean** at VoiceText field 10; it is not a second S3 safety field to send.
+4. `fga.java:11–15` and `ffh.java:703–708`: `SAFETY_BLOCKAGE` and return **before** command classification (`:767`), IME send (`:780`) and editing (`:804`).
 
-Avant ce lot, Rust conservait le champ30 comme inconnu, mais `text()` et
-`replacement_proposal()` l'ignoraient. Une finale intention2/champ3 avec valeur1
-pouvait donc être rendue/proposée contrairement à cette branche Android.
+Before this batch, Rust preserved field 30 as unknown, but `text()` and `replacement_proposal()` ignored it. A final intention 2/field 3 with value 1 could therefore be rendered/proposed contrary to this Android branch.
 
-Le portage décode maintenant `Hypothesis.safety_status` avec présence0/1.
-Les autres valeurs et mauvais wire types restent dans `unknown_fields` ; une
-occurrence inconnue ne supprime pas la dernière valeur reconnue (proto2).
-Les helpers de rendu/proposition refusent tout candidat bloqué et tout
-champ30 non interprété dans les réponses retenues, conteneurs3/5/7 et fallbacks
-compris. Ce parcours n'autorise pas le rendu des candidats secondaires. La CLI renvoie une erreur sans texte/contexte/finales.
-Les réponses structurées restent explicitement disponibles aux intégrateurs.
+The port now decodes `Hypothesis.safety_status` with presence 0/1. Other values and wrong wire types remain in `unknown_fields`; an unknown occurrence does not erase the last recognized value (proto2). Rendering/proposal helpers reject every blocked candidate and every uninterpreted field 30 in retained responses, including containers 3/5/7 and fallbacks. This path does not authorize rendering secondary candidates. The CLI returns an error without text/context/finals. Structured responses remain explicitly available to integrators.
 
-**Durcissements délibérés, pas parité Android prétendue** : refus hors VoiceEdit
-et sur valeurs inconnues ; valeurs numériques u64 autres que0/1 conservées
-opaques, sans troncature int32 susceptible de les faire passer pour0.
-Un varint long représentant effectivement0/1 reste reconnu. Aucun cas de blocage
-sécurité n'a été observé sur le service ; validation synthétique/offline seulement.
+**Deliberate hardening, not a claim of Android parity**: rejection outside VoiceEdit and on unknown values; u64 numeric values other than 0/1 are kept opaque, without int32 truncation that could make them appear as 0. A long varint actually representing 0/1 remains recognized. No safety blockage case was observed on the service; synthetic/offline validation only.
 
-## Paramètres S3 ajoutés après la consolidation initiale
+## S3 parameters added after initial consolidation
 
-Le mutateur `knv` est bien injecté sur le chemin Rambler NewS3, pas seulement sur
-un ASR générique. `ProtocolConfig` expose maintenant les champs RecognizerInfo7
-(INT32 0/2, préférence de mots offensants),40 (BOOL auto-punctuation),64 (STRING
-routage secondaire non vide). Ils sont opt-in et absents par défaut ; leurs effets
-serveur ne sont pas validés. La CLI les expose aussi. Aucun changement safety ni
-activation COMPOSE n'en est déduit. [Chaîne d'appel et schéma](rust-recognizer-options.md).
+The `knv` mutator is indeed injected on the Rambler NewS3 path, not just a generic ASR. `ProtocolConfig` now exposes RecognizerInfo fields 7 (INT32 0/2, offensive word preference), 40 (BOOL auto-punctuation), 64 (STRING nonempty secondary routing). They are opt-in and absent by default; their server effects are not validated. The CLI exposes them too. No safety change or COMPOSE activation is inferred. [Call chain and schema](rust-recognizer-options.md).
 
-La projection legacy d'une sélection seule est déjà encodable via
-`EditingContext { before: selection, ..Default::default() }` ; elle ne constitue
-pas une capacité wire manquante. Ne pas assimiler ce contexte projeté au snapshot
-original complet pour remplacer la fenêtre : portée et révision doivent rester
-contrôlées par l'intégrateur.
+Legacy projection of a selection alone is already encodable via `EditingContext { before: selection, ..Default::default() }`; it is not a missing wire capability. Do not treat this projected context as the complete original snapshot when replacing the window: scope and revision must remain under integrator control.
 
-## Autres capacités et frontières
+## Other capabilities and boundaries
 
-| Capacité | Preuve statique / API Rust | Qualification |
+| Capability | Static evidence / Rust API | Qualification |
 |---|---|---|
-|Session, audio, stop normal|`ihv.a`, `iho.java:40` ; `Engine`, `AudioSource`, init/audio/contexte/END puis half-close|**Rust réel** Ogg et PCM natif. Fin exige END S3 + upload complet + cleanup + gRPC OK ; pas une finale précoce.|
-|Annulation / délais|`EngineSession::{request_cancel,close}`, transport h2 par flux|Loopback/backpressure/concurrence et vrai Ctrl-C Windows ; pas de rejeu automatique.|
-|Contexte tardif|`iho.a/b/g`, `iho.java:96` ; `ContextInput`, `ContextProvider`|Édition réelle Rust ; ordre callback/cleanup borné testé offline. Pas de comparaison sur appareil.|
-|Sélection UTF-16|`ffq.java:64–74,84–105` ; `selection_utf16_range`, `validate_current`|Sélection `ten` après emoji déjà observée en Rust réel ; [un cas natif supplémentaire](../evidence/rust-native-non-bmp-selection-public.json) sélectionne U+1F642 et renvoie U+1F60E, tous deux non-BMP (2 unités UTF-16). Interop structurée observée, sémantique non confirmée ; plages dérivées offline, pas de validation des API de proposition ni de parité Android appariée.|
-|Partiels|`ihm.java:310–355`, test score<0,9 ; `PartialTranscript`, parties empruntées et flag nonfini|Décodage/projection offline. [Un essai natif dédié](rust-native-partials.md) :20 réponses,0 field4, finale saine ; rendu partiel réel et progression pré-state1 restent inconclusifs. `first_text`/première réponse ne suffisent pas.|
-|Segments vs fin globale|`aaln.field3/4/5/7` indépendants ; `RecognitionCompletion`, événements, `collect_segments`|Collecteur strict state1 ; collecteur segments retient3/5/7 et marqueurs state1 sans finalité universelle. Pas d'assemblage implicite.|
-|Autres résultats oneof|`aapd.java:34` :1/2,5–13,15,16,18–21 ; champs3/4 indépendants|`active_field`, `active_raw`, inconnus préservés ; **pas de prise en charge sémantique** des variantes opaques.|
-|Extensions futures|Inconnus, fallback aalo, conteneurs5/7 et extension74956225|Raw/inconnus et bornes préservés. Pas de garantie de sémantique d'un futur oneof non connu.|
-|Biais, préférences, langues secondaires|InputBox1203 champs3/5, UserInfo4 ; `ProtocolConfig`|Encodage Rust testé ; dix transports **Python** acceptés, effets limités. Aucun gain général ni activation COMPOSE établi.|
-|Contexte applicatif Android|`ffh.u` → `user_preferences` → `kmy.o`/`iic.g` → InputBox1203 champ5 ; `ProtocolConfig::preferences` l'encode déjà|[Trace statique jusqu'au sérialiseur](rust-application-context-boundary.md), pas de champ wire manquant établi. Collecte OS/gates/formatage non portés ; activation runtime et effet serveur non observés.|
-|Commandes SEND/CLEAR|`fgc.java:13–30` regex ; `ffh.java:767–781` prend seulement SEND avec IME_ACTION_SEND|`classify_command(S3DefaultPatternsV1, ime_action)` sans effet. SEND exige IME4 ; CLEAR/CLEAR ALL reconnus mais rejetés par la branche. Regex distantes arbitraires non interprétées.|
-|Diffs, espaces, curseur, application|`ffh.E`, AgenticDictationTextEditor|Proposition native sans effet ; pas de copie des heuristiques/fallbacks Android. Contrôle snapshot/révision plus prudent qu'un remplacement concurrent forcé.|
-|MUSE/MUSE_LITE|`ffi.java:21–30`, injection `erz:1895`, `wmr.b` carte vide|Pas d'autre backend distant manquant établi ; changement d'enum peut revenir au fournisseur S3.|
-|Jetson Lite / génération locale|`kkj.a`, `ohq.java:69` Binder Speech Services, `enm.java:38` Binder AICore|Chemin Android distinct, services/modèles/gates requis. Non porté ; prompts embarqués ≠ activation S3. Aucun autre ASR/API Gemini substitué.|
-|Authentification / cycle de vie accès|Métadonnées applicatives injectées, branche Zwieback conditionnelle|Profil réel sans compte/Zwieback. Pas de provisionnement automatique, renouvellement/révocation ni garantie d'accès durable.|
-|Signaux d'état de compte : ClientInfo22 / RecognizerInfo91.2 / UserInfo20|**Non portés volontairement** : aucun fournisseur légitime d'état de compte, aucune API d'assertion true/false|[Schéma et chaîne statique](protocol.md) : supervision liée à MinorsChecker ; Android émet true si UnsupervisedAccount n'est pas prêt. L'omission native n'est ni false ni la reproduction de ce défaut Android ; sémantique serveur inconnue. Aucun nouveau test distant ni changement de politique de sécurité.|
-|Microphone, GUI, insertion OS|Non implémentés|Hors périmètre moteur initial ; pas présentés comme fonctions cloud manquantes.|
+|Session, audio, normal stop|`ihv.a`, `iho.java:40`; `Engine`, `AudioSource`, init/audio/context/END then half-close|**Real Rust** Ogg and native PCM. Completion requires S3 END + complete upload + cleanup + gRPC OK; not an early final.|
+|Cancellation / timeouts|`EngineSession::{request_cancel,close}`, per-stream h2 transport|Loopback/backpressure/concurrency and real Windows Ctrl-C; no automatic replay.|
+|Late context|`iho.a/b/g`, `iho.java:96`; `ContextInput`, `ContextProvider`|Real Rust editing; bounded callback/cleanup order tested offline. No on-device comparison.|
+|UTF-16 selection|`ffq.java:64–74,84–105`; `selection_utf16_range`, `validate_current`|Selection of `ten` after emoji already observed in real Rust; [one additional native case](../evidence/rust-native-non-bmp-selection-public.json) selects U+1F642 and returns U+1F60E, both non-BMP (2 UTF-16 units). Structured interoperability observed, semantics unconfirmed; ranges derived offline, no validation of proposal APIs or matched Android parity.|
+|Partials|`ihm.java:310–355`, score<0.9 test; `PartialTranscript`, borrowed parts and unfinished flag|Offline decoding/projection. [One dedicated native test](rust-native-partials.md): 20 responses, 0 field4, healthy final; real partial rendering and pre-state1 progress remain inconclusive. `first_text`/first response are insufficient.|
+|Segments vs overall completion|Independent `aaln.field3/4/5/7`; `RecognitionCompletion`, events, `collect_segments`|Strict state1 collector; segments collector retains 3/5/7 and state1 markers without universal finality. No implicit assembly.|
+|Other oneof results|`aapd.java:34`: 1/2, 5–13, 15, 16, 18–21; independent fields 3/4|`active_field`, `active_raw`, unknowns preserved; **no semantic support** for opaque variants.|
+|Future extensions|Unknowns, aalo fallback, containers 5/7 and extension 74956225|Raw/unknowns and limits preserved. No guarantee of semantics of a future unknown oneof.|
+|Biases, preferences, secondary languages|InputBox1203 fields 3/5, UserInfo4; `ProtocolConfig`|Rust encoding tested; ten **Python** transports accepted, limited effects. No general gain or COMPOSE activation established.|
+|Android application context|`ffh.u` → `user_preferences` → `kmy.o`/`iic.g` → InputBox1203 field 5; `ProtocolConfig::preferences` already encodes it|[Static trace to the serializer](rust-application-context-boundary.md), no missing wire field established. OS collection/gates/formatting not ported; runtime activation and server effect not observed.|
+|SEND/CLEAR commands|`fgc.java:13–30` regex; `ffh.java:767–781` accepts only SEND with IME_ACTION_SEND|`classify_command(S3DefaultPatternsV1, ime_action)` without side effects. SEND requires IME 4; CLEAR/CLEAR ALL recognized but rejected by the branch. Arbitrary remote regexes not interpreted.|
+|Diffs, spaces, cursor, application|`ffh.E`, AgenticDictationTextEditor|Native proposal without side effects; no copy of Android heuristics/fallbacks. Snapshot/revision check more cautious than forced concurrent replacement.|
+|MUSE/MUSE_LITE|`ffi.java:21–30`, injection `erz:1895`, `wmr.b` empty map|No other missing remote backend established; changing enum may return to the S3 provider.|
+|Jetson Lite / local generation|`kkj.a`, `ohq.java:69` Binder Speech Services, `enm.java:38` Binder AICore|Distinct Android path, required services/models/gates. Not ported; embedded prompts ≠ S3 activation. No other ASR/Gemini API substituted.|
+|Authentication / access lifecycle|Injected application metadata, conditional Zwieback branch|Real profile without account/Zwieback. No automatic provisioning, renewal/revocation or durable access guarantee.|
+|Account-state signals: ClientInfo22 / RecognizerInfo91.2 / UserInfo20|**Deliberately not ported**: no legitimate account-state provider, no true/false assertion API|[Schema and static chain](protocol.md): supervision linked to MinorsChecker; Android emits true if UnsupervisedAccount is not ready. Native omission is neither false nor reproduction of this Android default; server semantics unknown. No new remote test or safety policy change.|
+|Microphone, GUI, OS insertion|Not implemented|Outside initial engine scope; not presented as missing cloud features.|
 
-Observation non-BMP du 2026-11-15 : un seul appel synthétique natif, sans rejeu,
-CLI0,4581 octets jusqu'à EOF et cleanup réussi ; intention2/champ7, frontières
-`Answer: ` et `.` et indicateur `cursor_aware` préservés. Les plages d'entrée et de
-remplacement `[8,10)` sont **dérivées offline**, pas retournées sur le wire ni par
-une API de proposition. La CLI n'a exercé ni proposition, ni validation de révision,
-ni application éditeur. Le même audio avait donné `eleven` dans l'ancien contexte
-`ten` ; ici le remplacement est U+1F60E, ni `eleven` ni `11`. Cette différence
-inattendue reste publiée : `structured_unicode_interop_observed_semantics_unconfirmed`,
-`asr_matches_prior_known_word_variant=false`, `prior_result_word_reproduced=false`.
-C'est une observation contextuelle, pas une comparaison contrôlée de qualité ASR
-ni la preuve d'un bug client. Référence source qualifiée :
-`1561f878a0b8714af669771fc7bd091784b1f3d9`, binaire inchangé (SHA-256 dans la preuve) ;
-aucune qualification d'un futur commit documentaire n'en découle.
+Non-BMP observation from 2026-11-15: one synthetic native call, without replay, CLI 0, 4581 bytes until EOF and successful cleanup; intention 2/field 7, boundaries `Answer: ` and `.` and `cursor_aware` flag preserved. Input and replacement ranges `[8,10)` are **derived offline**, not returned on the wire or by a proposal API. The CLI exercised neither proposal, revision validation nor editor application. The same audio had yielded `eleven` in the old `ten` context; here the replacement is U+1F60E, neither `eleven` nor `11`. This unexpected difference remains published: `structured_unicode_interop_observed_semantics_unconfirmed`, `asr_matches_prior_known_word_variant=false`, `prior_result_word_reproduced=false`. This is a contextual observation, not a controlled ASR quality comparison or proof of a client bug. Qualified source reference: `1561f878a0b8714af669771fc7bd091784b1f3d9`, unchanged binary (SHA-256 in evidence); no qualification of a future documentation commit follows.
 
-## Suites utiles et véritables blocages
+## Useful next steps and actual blockers
 
-- Marqueur sécurité : correction et tests offline dans ce lot, pas d'audio sensible
-  envoyé pour déclencher artificiellement un blocage.
-- Présentation/partiels/collecte de candidats intégrés ; tests synthétiques, jamais
-  autorisation d'appliquer ou preuve de fin. [Conteneurs et branches clientes](rust-response-containers.md).
-- La comparaison exacte **service → helper S3 → filtre PixelBoard → IME** demanderait
-  une référence Android appariée avec backend effectif et éditeur de test inerte.
-  Au plus trois cas courts discriminants (répétition près d'un texte similaire,
-  réécriture connue, SEND) seraient préférables à de nouveaux essais COMPOSE aveugles.
-  La [préparation de référence Android](android-reference-validation.md) est maintenant
-  exécutée sur appareil autorisé (éditeur inerte/diagnostics SDK). Trois
-  [observations UI supervisées ultérieures](../evidence/android-supervised-public-voice-20261116.json)
-  ne sont ni trois succès sémantiques, ni une comparaison avec même PCM ou wire
-  apparié ; route et backend restent non prouvés. Le préflight initial reste
-  inconclusif ; un second préflight et un contrôle constructeur/lecture minimal
-  reproduisent un SIGSEGV ART avant armement, avec restauration réussie. Le hook de
-  lecture seul tient20s, mais aucune construction contrôlée compatible n'est
-  qualifiée. `connectOnly` termine sans audio. Les appels natifs distincts ne
-  comparent pas la chaîne Android/IME.
+- Safety marker: fix and offline tests in this batch, no sensitive audio sent to artificially trigger a blockage.
+- Presentation/partials/candidate collection integrated; synthetic tests, never authorization to apply or proof of completion. [Containers and client branches](rust-response-containers.md).
+- The exact **service → S3 helper → PixelBoard filter → IME** comparison would require a matched Android reference with effective backend and inert test editor. At most three short discriminating cases (repetition near similar text, known rewrite, SEND) would be preferable to new blind COMPOSE tests. [Android reference preparation](android-reference-validation.md) is now executed on an authorized device (inert editor/SDK diagnostics). Three [subsequent supervised UI observations](../evidence/android-supervised-public-voice-20261116.json) are neither three semantic successes nor a comparison with matched same PCM or wire; route and backend remain unproven. Initial preflight remains inconclusive; a second preflight and minimal construction/read control reproduce an ART SIGSEGV before arming, with successful restoration. The read hook alone holds for 20s, but no compatible controlled construction is qualified. `connectOnly` completes without audio. Separate native calls do not compare the Android/IME chain.
 
-Les traces absentes de l'incident long historique ne peuvent pas être recréées
-par une série de succès. Sa cause reste indéterminée ; les nouveaux compteurs
-audio améliorent un futur diagnostic sans prétendre résoudre cet ancien incident.
+Missing traces from the historical long incident cannot be recreated by a series of successes. Its cause remains undetermined; new audio counters improve future diagnosis without claiming to resolve that old incident.
 
-Mise à jour 2026-11-18 : la [trace statique de la requête](advanced-mode-request-trace.md) ne montre aucun sélecteur de mode côté client ; l’intention est décidée par le serveur. Le seul champ manquant, ClientInfo 16 (`--trigger-application-id`), est maintenant pris en charge mais [n’a pas déclenché de composition](../evidence/rust-trigger-application-id-real-20261118.json).
+Update 2026-11-18: the [static request trace](advanced-mode-request-trace.md) shows no client-side mode selector; intention is decided by the server. The only missing field, ClientInfo 16 (`--trigger-application-id`), is now supported but [did not trigger composition](../evidence/rust-trigger-application-id-real-20261118.json).

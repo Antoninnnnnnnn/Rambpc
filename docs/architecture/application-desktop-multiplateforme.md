@@ -1,214 +1,214 @@
-# Application desktop multiplateforme — recommandation d’architecture
+# Cross-platform desktop application — architecture recommendation
 
-Date : 13 novembre 2026.
+Date: November 13, 2026.
 
-**Statut : recommandation, pas décision de migration ni engagement de réalisation.**
+**Status: recommendation, not a migration decision or implementation commitment.**
 
-## 1. Objectif
+## 1. Goal
 
-Faire évoluer Sambler vers une application de dictée pour **Windows d’abord, puis macOS et Linux**, avec une majorité de code partagée.
+Evolve Sambler into a dictation application for **Windows first, then macOS and Linux**, with most code shared.
 
-Les usages envisagés sont :
+The envisioned uses are:
 
-- application résidente avec indicateur d’état ;
-- capture microphone déclenchée depuis l’interface ou un raccourci global ;
-- reconnaissance et édition via le moteur Rambler ;
-- affichage, copie et, lorsque cela est possible, insertion du résultat dans une autre application ;
-- installation et utilisation sans environnement Python à configurer.
+- resident application with a status indicator;
+- microphone capture triggered from the interface or a global shortcut;
+- recognition and editing through the Rambler engine;
+- displaying, copying and, where possible, inserting the result into another application;
+- installation and use without a Python environment to configure.
 
-Ces usages sont des objectifs de conception, pas des capacités déjà implémentées ou validées dans le dépôt.
+These uses are design goals, not capabilities already implemented or validated in the repository.
 
-## 2. Recommandation
+## 2. Recommendation
 
-**Rust pour le moteur, Tauri 2 pour l’application desktop, TypeScript + React pour l’interface.**
+**Rust for the engine, Tauri 2 for the desktop application, TypeScript + React for the interface.**
 
-| Couche | Choix recommandé | Responsabilité |
+| Layer | Recommended choice | Responsibility |
 |---|---|---|
-| Moteur indépendant | Rust | Protocole, sessions, résultats, annulation et limites de ressources |
-| Concurrence et réseau | Tokio + tonic, à valider sur le protocole actuel | Transport gRPC bidirectionnel et orchestration |
-| Audio natif | CPAL, conversion explicite, libopus et muxage Ogg | Microphone, adaptation du format et encodage progressif |
-| Enveloppe desktop | Tauri 2 | Fenêtres, commandes natives, distribution et intégration de l’interface |
-| Interface | TypeScript + React, avec Vite | Paramètres, état de dictée, erreurs et historique facultatif |
-| Adaptateurs système | Rust et API propres à chaque OS | Raccourcis, permissions, application active et insertion |
-| Recherche et conformité | Python existant | Fixtures, exploration du service et comparaison des implémentations |
+| Independent engine | Rust | Protocol, sessions, results, cancellation and resource limits |
+| Concurrency and networking | Tokio + tonic, to be validated against the current protocol | Bidirectional gRPC transport and orchestration |
+| Native audio | CPAL, explicit conversion, libopus and Ogg muxing | Microphone, format adaptation and progressive encoding |
+| Desktop shell | Tauri 2 | Windows, native commands, distribution and interface integration |
+| Interface | TypeScript + React, with Vite | Settings, dictation state, errors and optional history |
+| System adapters | Rust and OS-specific APIs | Shortcuts, permissions, active application and insertion |
+| Research and conformance | Existing Python | Fixtures, service exploration and implementation comparison |
 
-Les bibliothèques précises restent à confirmer par un prototype. Le protocole reconstruit peut nécessiter un codec ou un traitement des champs inconnus adapté : ne pas supposer qu’une génération protobuf standard préservera automatiquement tous les comportements utiles.
+The precise libraries remain to be confirmed by a prototype. The reconstructed protocol may require a suitable codec or unknown-field handling: do not assume standard protobuf generation will automatically preserve every useful behavior.
 
-React est un choix pratique d’écosystème, pas une contrainte fondamentale. Svelte serait également envisageable. Le choix structurant est la séparation entre moteur natif, adaptateurs système et interface.
+React is a practical ecosystem choice, not a fundamental constraint. Svelte would also be feasible. The structural choice is separation between native engine, system adapters and interface.
 
-## 3. Pourquoi cette stack
+## 3. Why this stack
 
-### Un moteur natif adapté à une application résidente
+### A native engine suited to a resident application
 
-Rust permet de contrôler les ressources, les buffers et la durée de vie des tâches. Il convient à un pipeline qui coordonne capture, encodage, émission réseau, réception et annulation.
+Rust allows control over resources, buffers and task lifetimes. It suits a pipeline coordinating capture, encoding, network transmission, reception and cancellation.
 
-Les bénéfices attendus concernent surtout la distribution, la consommation de ressources et la robustesse du moteur. Ils devront être mesurés ; le langage ne garantit pas à lui seul une application légère ou correcte.
+Expected benefits primarily concern distribution, resource consumption and engine robustness. They must be measured; the language alone does not guarantee a lightweight or correct application.
 
-### Une interface productive sans tout développer en Rust
+### A productive interface without developing everything in Rust
 
-TypeScript et React facilitent la construction et l’évolution des écrans. Tauri relie cette interface au moteur natif et s’appuie sur les WebViews système.
+TypeScript and React make screens easier to build and evolve. Tauri connects this interface to the native engine and uses system WebViews.
 
-Cela évite d’embarquer systématiquement une distribution complète de Chromium, mais impose des tests entre WebViews et plateformes. La taille finale dépendra aussi des bibliothèques natives et du packaging.
+This avoids always bundling a complete Chromium distribution, but requires tests across WebViews and platforms. Final size will also depend on native libraries and packaging.
 
-### Un produit sans Python installé par la personne utilisatrice
+### A product without Python installed by the user
 
-L’application finale peut fonctionner sans runtime Python embarqué. Python resterait utile dans le dépôt pour la recherche et les outils de validation.
+The final application can run without an embedded Python runtime. Python would remain useful in the repository for research and validation tools.
 
-Ce choix n’implique pas nécessairement un unique exécutable autonome : codecs, composants système et formats d’installation doivent être traités par plateforme.
+This choice does not necessarily imply a single standalone executable: codecs, system components and installation formats must be handled per platform.
 
-## 4. Ce que Rust ne résout pas
+## 4. What Rust does not solve
 
-### Pas de gain de reconnaissance garanti
+### No guaranteed recognition gain
 
-Sambler est un client d’un service distant. Rust n’accélérera pas le modèle exécuté sur le serveur.
+Sambler is a client of a remote service. Rust will not speed up the model running on the server.
 
-Le moteur Python utilise déjà des composants natifs pour le transport gRPC et l’encodage audio. Les mesures existantes ont surtout identifié un levier de tamponnement du pipeline audio, pas un goulot d’étranglement démontré dans le langage Python.
+The Python engine already uses native components for gRPC transport and audio encoding. Existing measurements primarily identified audio pipeline buffering as a lever, not a demonstrated Python language bottleneck.
 
-Voir [les mesures et leurs limites](../performance.md).
+See [measurements and their limits](../performance.md).
 
-### Pas de correction automatique du protocole
+### No automatic protocol fix
 
-Le portage devra préserver notamment :
+The port must preserve, among other things:
 
-- les messages et champs utiles du protocole ;
-- l’envoi du contexte au bon moment ;
-- le flush des derniers échantillons ;
-- la distinction entre arrêt normal et annulation ;
-- les erreurs tardives après réception de résultats ;
-- la validation de la fin applicative et de la fin gRPC ;
-- l’interprétation prudente des résultats d’édition.
+- useful protocol messages and fields;
+- sending context at the right time;
+- flushing the last samples;
+- the distinction between normal stop and cancellation;
+- late errors after receiving results;
+- validation of application completion and gRPC completion;
+- cautious interpretation of editing results.
 
-La sécurité mémoire et le typage ne garantissent pas ces propriétés fonctionnelles.
+Memory safety and typing do not guarantee these functional properties.
 
-### Pas de garantie de pérennité du service
+### No guarantee of service longevity
 
-Le service Rambler interne reste susceptible d’évoluer ou de devenir inaccessible. Prévoir une interface de fournisseur remplaçable dès le départ, sans construire prématurément plusieurs intégrations.
+The internal Rambler service may still change or become inaccessible. Provide a replaceable provider interface from the outset, without prematurely building multiple integrations.
 
-Le choix technique n’autorise pas la redistribution de métadonnées d’accès. Les conditions d’accès et de distribution doivent être vérifiées séparément.
+The technical choice does not authorize redistribution of access metadata. Access and distribution terms must be checked separately.
 
-## 5. Architecture proposée
+## 5. Proposed architecture
 
-### Cœur portable, indépendant de Tauri
+### Portable core independent of Tauri
 
-- Modèle de session et événements.
-- Protocole et transport.
-- Encodage et traitement des résultats.
-- Délais, annulation et erreurs.
-- Interface de fournisseur de reconnaissance.
+- Session model and events.
+- Protocol and transport.
+- Encoding and result processing.
+- Deadlines, cancellation and errors.
+- Recognition provider interface.
 
-Le cœur doit pouvoir être exercé depuis une CLI de diagnostic et des tests, sans interface graphique.
+The core must be exercisable from a diagnostic CLI and tests, without a graphical interface.
 
-### Adaptateurs système
+### System adapters
 
-- Acquisition microphone et changements de périphérique.
+- Microphone acquisition and device changes.
 - Permissions.
-- Raccourcis globaux.
-- Identification de l’application cible.
-- Lecture éventuelle de sélection et de contexte.
-- Insertion ou proposition de remplacement.
+- Global shortcuts.
+- Target application identification.
+- Optional reading of selection and context.
+- Insertion or replacement proposal.
 
-Ces capacités doivent être exposées explicitement : une fonction indisponible sur un système ne doit pas être présentée comme universelle.
+These capabilities must be exposed explicitly: a function unavailable on one system must not be presented as universal.
 
-### Interface Tauri
+### Tauri interface
 
-L’interface affiche l’état et transmet les commandes. Le microphone, l’encodage, le réseau et l’insertion restent côté natif.
+The interface displays state and passes commands. Microphone, encoding, networking and insertion remain on the native side.
 
-Les échanges avec l’interface doivent être limités aux commandes et données nécessaires. Les credentials ne doivent pas être exposés au frontend ; le stockage natif sécurisé ne rend toutefois pas un secret partagé inviolable sur la machine cliente.
+Exchanges with the interface must be limited to necessary commands and data. Credentials must not be exposed to the frontend; however, secure native storage does not make a shared secret inviolable on the client machine.
 
-## 6. Contraintes propres aux systèmes
+## 6. System-specific constraints
 
-| Système | Points à anticiper |
+| System | Points to anticipate |
 |---|---|
-| Windows | Raccourcis, zone de notification, capture, applications élevées, restrictions de simulation clavier et accessibilité |
-| macOS | Permissions microphone/accessibilité, signature, notarisation et architectures matérielles ciblées |
-| Linux | Dépendances de distribution, différences entre bureaux, X11 et Wayland, portails et capacités du compositeur |
+| Windows | Shortcuts, notification area, capture, elevated applications, keyboard simulation restrictions and accessibility |
+| macOS | Microphone/accessibility permissions, signing, notarization and target hardware architectures |
+| Linux | Distribution dependencies, desktop differences, X11 and Wayland, portals and compositor capabilities |
 
-**La fenêtre est multiplateforme ; l’interaction avec les autres applications ne l’est pas automatiquement.**
+**The window is cross-platform; interaction with other applications is not automatically so.**
 
-Sous Wayland notamment, ne pas promettre une insertion ou une lecture de contexte universelle. Prévoir une copie dans le presse-papiers ou une copie manuelle lorsque l’intégration automatique est indisponible.
+On Wayland in particular, do not promise universal insertion or context reading. Provide clipboard copying or manual copying when automatic integration is unavailable.
 
-Chaque système nécessite ses propres builds et tests. Prévoir signature et vérification des mises à jour ; la notarisation est spécifique à macOS.
+Each system needs its own builds and tests. Plan for signing and update verification; notarization is specific to macOS.
 
-## 7. Insertion et édition : deux niveaux distincts
+## 7. Insertion and editing: two distinct levels
 
-### Insertion simple
+### Simple insertion
 
-Insérer une nouvelle dictée au curseur est une première cible raisonnable. Les mécanismes possibles, comme le presse-papiers ou la simulation clavier, ont leurs propres limites et effets de bord.
+Inserting a new dictation at the cursor is a reasonable first target. Possible mechanisms, such as the clipboard or keyboard simulation, have their own limits and side effects.
 
-Une solution utilisant temporairement le presse-papiers doit respecter son contenu autant que possible et gérer les modifications concurrentes, plutôt que restaurer aveuglément une ancienne valeur.
+A solution temporarily using the clipboard should respect its contents as far as possible and handle concurrent changes, rather than blindly restore an old value.
 
-### Modification d’un texte existant
+### Modifying existing text
 
-Un résultat Rambler peut contenir une fenêtre de contexte entière. Il ne doit pas être ajouté systématiquement au texte existant.
+A Rambler result may contain an entire context window. It must not automatically be appended to existing text.
 
-Préserver les contrôles de contexte et de révision déjà prévus dans le moteur. Une vérification avant écriture ne rend pas nécessairement atomique une modification dans une application externe.
+Preserve the context and revision checks already planned in the engine. Checking before writing does not necessarily make a change in an external application atomic.
 
-**En cas d’ambiguïté ou de contexte modifié : prévisualisation ou copie, pas remplacement automatique.**
+**If ambiguous or context has changed: preview or copy, not automatic replacement.**
 
-Voir [l’API de résultat et ses limites](../refinement.md).
+See [the result API and its limits](../refinement.md).
 
-## 8. Alternatives considérées
+## 8. Alternatives considered
 
-| Alternative | Quand elle serait préférable | Compromis pour Sambler |
+| Alternative | When preferable | Tradeoff for Sambler |
 |---|---|---|
-| C# + Avalonia | Forte maîtrise de .NET ou priorité Windows durable | Très crédible ; les intégrations macOS/Linux restent spécifiques |
-| Flutter + Dart | Interface homogène et éventuelle extension mobile | Plugins et code natif toujours nécessaires pour les fonctions système avancées |
-| Electron + TypeScript | Priorité à la vitesse de développement d’une interface riche | Chromium embarqué, distribution généralement plus volumineuse et intégrations natives à maintenir |
-| Python + PySide6 | Ajouter rapidement une interface au moteur existant | Empaquetage du runtime et des dépendances natives à maintenir |
-| C++ + Qt | Forte expérience Qt et besoin de son écosystème mature | Complexité de maintenance et conditions de licence/distribution à examiner |
-| Interface entièrement Rust | Besoin particulier ou expérience de l’équipe | Pas nécessairement le meilleur compromis pour une interface soignée et accessible |
+| C# + Avalonia | Strong .NET expertise or lasting Windows priority | Very credible; macOS/Linux integrations remain specific |
+| Flutter + Dart | Consistent interface and potential mobile extension | Plugins and native code still needed for advanced system functions |
+| Electron + TypeScript | Priority on rapid development of a rich interface | Bundled Chromium, generally larger distribution and native integrations to maintain |
+| Python + PySide6 | Quickly add an interface to the existing engine | Runtime and native dependency packaging to maintain |
+| C++ + Qt | Strong Qt experience and need for its mature ecosystem | Maintenance complexity and licensing/distribution terms to examine |
+| Entirely Rust interface | Particular need or team experience | Not necessarily the best tradeoff for a polished and accessible interface |
 
-Il n’existe pas de meilleur langage universel. À compétences comparables, Rust/Tauri est la recommandation pour l’utilitaire de dictée multiplateforme envisagé. Une forte expérience préalable dans une autre stack peut modifier ce choix.
+There is no universally best language. With comparable skills, Rust/Tauri is recommended for the envisioned cross-platform dictation utility. Strong prior experience in another stack may change this choice.
 
-## 9. Transition progressive
+## 9. Gradual transition
 
-### Étape 1 — Établir la référence de conformité
+### Step 1 — Establish the conformance reference
 
-Conserver Python et ses tests. Définir les comportements à préserver, notamment protocole, Unicode, positions UTF-16, résultats ambigus, erreurs tardives et annulation.
+Keep Python and its tests. Define behaviors to preserve, particularly protocol, Unicode, UTF-16 positions, ambiguous results, late errors and cancellation.
 
-Les fixtures et tests loopback doivent permettre de vérifier le portage sans dépendre constamment du service réel.
+Fixtures and loopback tests should verify the port without constantly depending on the real service.
 
-### Étape 2 — Porter une tranche minimale en Rust
+### Step 2 — Port a minimal slice to Rust
 
-Valider d’abord : **fichier audio → service → résultat final confirmé**, depuis une CLI.
+First validate: **audio file → service → confirmed final result**, from a CLI.
 
-Comparer les comportements à Python avant d’ajouter le microphone. Mesurer démarrage, RAM, CPU et latence avec les mêmes entrées, sans attribuer au langage des variations réseau.
+Compare behavior with Python before adding the microphone. Measure startup, RAM, CPU and latency with the same inputs, without attributing network variation to the language.
 
-### Étape 3 — Valider le pipeline microphone Windows
+### Step 3 — Validate the Windows microphone pipeline
 
-Construire la chaîne complète : **raccourci → microphone → adaptation audio → Opus/Ogg → service → résultat confirmé → insertion contrôlée**.
+Build the complete chain: **shortcut → microphone → audio adaptation → Opus/Ogg → service → confirmed result → controlled insertion**.
 
-Ne pas supposer que tous les périphériques produisent directement du PCM mono 16 kHz. Tester les formats disponibles, le rééchantillonnage et le changement de périphérique.
+Do not assume all devices directly produce mono 16 kHz PCM. Test available formats, resampling and device changes.
 
-Inclure les scénarios de débranchement, veille, perte réseau, arrêt immédiat et changement de fenêtre active. Ne pas rejouer automatiquement un audio après erreur.
+Include disconnection, sleep, network loss, immediate stop and active-window change scenarios. Do not automatically replay audio after an error.
 
-### Étape 4 — Construire l’interface et la distribution
+### Step 4 — Build the interface and distribution
 
-Ajouter paramètres, choix du microphone, indicateur d’état, raccourcis, erreurs compréhensibles et installateur. Prévoir les permissions, la signature et les mises à jour.
+Add settings, microphone selection, status indicator, shortcuts, understandable errors and installer. Plan for permissions, signing and updates.
 
-Ne conserver ni audio ni historique textuel par défaut sans besoin explicite ; traiter ces données comme sensibles.
+Do not retain audio or text history by default without an explicit need; treat this data as sensitive.
 
-### Étape 5 — Compléter macOS et Linux
+### Step 5 — Complete macOS and Linux
 
-Prévoir les interfaces système dès le début et compiler/tester tôt sur les trois OS. Finaliser ensuite les adaptateurs macOS, puis Linux avec une matrice de capacités explicite X11/Wayland.
+Plan system interfaces from the beginning and build/test early on all three OSes. Then finalize macOS adapters, followed by Linux with an explicit X11/Wayland capability matrix.
 
-Ne pas attendre la fin du développement Windows pour vérifier la portabilité des dépendances.
+Do not wait until Windows development is complete to check dependency portability.
 
-## 10. Avis indépendant et conclusion
+## 10. Independent opinion and conclusion
 
-Un agent Opus a été sollicité avec une demande neutre de recommandation, sans lui transmettre le choix proposé initialement. Après examen du dépôt et consultation de documentations officielles, il a également recommandé **Rust + Tauri 2 + TypeScript/React**.
+An Opus agent was asked for a recommendation with a neutral request, without being told the initially proposed choice. After examining the repository and consulting official documentation, it also recommended **Rust + Tauri 2 + TypeScript/React**.
 
-Les avis convergent sur le moteur indépendant, le maintien de Python comme référence, les adaptateurs propres à chaque OS et l’absence de promesse de gain de latence par simple changement de langage.
+The opinions converge on the independent engine, keeping Python as a reference, OS-specific adapters and no promise of latency gain from changing language alone.
 
-Cette convergence constitue un avis architectural, pas un benchmark comparatif ni une validation de faisabilité de toutes les intégrations système.
+This convergence is an architectural opinion, not a comparative benchmark or feasibility validation of every system integration.
 
-**Conclusion : privilégier cette stack pour le produit envisagé, mais valider une petite tranche fonctionnelle avant d’engager une réécriture complète.** Le budget, les compétences disponibles et les fonctionnalités exactes de la première version restent à préciser.
+**Conclusion: favor this stack for the envisioned product, but validate a small functional slice before committing to a complete rewrite.** Budget, available skills and exact first-version features remain to be specified.
 
-## Références
+## References
 
-- [README du projet](../../README.md)
-- [Mesures de performance](../performance.md)
-- [Résultats et propositions d’édition](../refinement.md)
-- [Documentation Tauri 2](https://v2.tauri.app/start/)
-- [Restrictions de SendInput sous Windows](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput)
-- [Portail RemoteDesktop sous Linux](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html)
+- [Project README](../../README.md)
+- [Performance measurements](../performance.md)
+- [Results and editing proposals](../refinement.md)
+- [Tauri 2 documentation](https://v2.tauri.app/start/)
+- [Windows SendInput restrictions](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput)
+- [Linux RemoteDesktop portal](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html)

@@ -1,21 +1,29 @@
-# Démarrer les applications Sambler
+# Getting started with Sambler applications
 
-`app/` accueille les futures interfaces. Tous les projets utilisent le même moteur de dictée Rust dans `crates/`. L’outil en ligne de commande et les tests se lancent depuis la racine du dépôt.
+Use `app/` for application interfaces. Each project uses the same Rust
+dictation engine in `crates/`. Run the command-line tool and the tests from
+the repository root.
 
-Commence avec un projet dans `app/` si l’interface est commune. Un même projet peut produire des versions pour plusieurs systèmes. Si tu développes des interfaces indépendantes, crée un sous-dossier par projet sous `app/`. Chaque projet déclare les mêmes bibliothèques Rust comme dépendances.
+Start with one project in `app/` if the platforms share an interface. A single
+project can produce builds for multiple operating systems. If you develop
+independent interfaces, create a subdirectory under `app/` for each project and
+declare the shared Rust crates as dependencies.
 
-## Vérifier le moteur
+## Test the engine
 
-Depuis la racine du dépôt, avec [Rust, CMake et le compilateur natif](../crates/rambler-audio/BUILDING.md) installés, lance ce test avec un fichier audio généré et un serveur simulé sur ta machine.
+Install [Rust, CMake, and a native compiler](../crates/rambler-audio/BUILDING.md).
+From the repository root, run this test with a generated audio file and a
+simulated server on your machine.
 
 ```sh
 cargo fetch --locked
 cargo test --locked --offline -p rambler-cli --features audio --example minimal_app
 ```
 
-## Brancher la future application
+## Connect your application
 
-Si le `Cargo.toml` de l’application se trouve dans `app/`, ajoute `app` aux `members` du `Cargo.toml` racine et utilise ces dépendances.
+If the application's `Cargo.toml` is in `app/`, add `app` to `members` in the
+root `Cargo.toml` and specify these dependencies.
 
 ```toml
 [dependencies]
@@ -26,16 +34,24 @@ bytes.workspace = true
 tokio.workspace = true
 ```
 
-Avec un manifeste un niveau plus bas, par exemple `app/src-tauri/Cargo.toml`, ajoute `app/src-tauri` aux membres et utilise `../../crates/` au début des chemins.
+For a manifest one level deeper, such as `app/src-tauri/Cargo.toml`, add
+`app/src-tauri` to the workspace members and start the paths with `../../crates/`.
 
-Pour le premier écran, vise **Démarrer → Terminer → afficher le texte → Copier**. Utilise d’abord un WAV, comme dans [l’exemple Rust](../crates/rambler-cli/examples/minimal_app.rs), puis branche le micro. L’app fournit de l’audio PCM signé 16 bits, mono, à 16 ou 48 kHz. Le moteur l’encode en Opus. Termine la source quand l’utilisateur arrête de dicter. Traite séparément l’annulation, les erreurs et les aperçus pendant la dictée. [Guide du SDK](../docs/research/sdk-integration-guide.md)
+For the first screen, start with **Start → Finish → Show text → Copy**. Begin
+with a WAV file as in the [Rust example](../crates/rambler-cli/examples/minimal_app.rs),
+then connect the microphone. The application supplies signed 16-bit mono PCM
+at 16 or 48 kHz, and the engine encodes it as Opus. Close the audio source
+when the user finishes dictating. Handle cancellation, errors, and live
+previews separately as described in the [SDK guide](../docs/research/sdk-integration-guide.md).
 
-## Ce que vérifie GitHub
+## What GitHub checks
 
-| Plateforme | Vérification du moteur |
+| Platform | Engine checks |
 | --- | --- |
-| Windows, Linux et macOS | Tests Rust hors ligne et compilation de la CLI avec Opus. macOS couvre Intel et Apple Silicon. |
-| Android | Compilation du moteur avec Opus pour ARM64 et contrôle de l’alignement 16 Kio du binaire d’exemple. [Intégration Android](../crates/rambler-transport/ANDROID_TLS.md) |
-| iOS | Compilation pour iPhone et tests locaux sur simulateur Apple Silicon, dont le rejet d’un certificat non approuvé. |
+| Windows, Linux, and macOS | Offline Rust tests and a CLI build with Opus. macOS coverage includes Intel and Apple Silicon. |
+| Android | ARM64 engine build with Opus and a 16 KiB alignment check on the example binary. See [Android integration](../crates/rambler-transport/ANDROID_TLS.md). |
+| iOS | iPhone build and local tests on an Apple Silicon simulator, including rejection of an untrusted certificate. |
 
-Le micro, les interruptions de capture et l’insertion dans une autre application seront à tester avec la future app sur de vrais appareils. [Workflow Rust](../.github/workflows/rust.yml)
+Test microphone capture, interruptions, and insertion into another application
+on physical devices once the app exists. See the
+[Rust workflow](../.github/workflows/rust.yml).

@@ -1,130 +1,71 @@
-# Préfixes gRPC courts sans allocation par message
+# Short gRPC prefixes without per-message allocation
 
-**Portée historique du banc : constructeur de préfixe uniquement.** Une
-[coalescence ultérieure du writer](rust-grpc-envelope-coalescing.md) regroupe
-préfixe et payload dans un buffer chaîné. Les mesures ci-dessous ne qualifient
-pas ce nouveau chemin complet et ne sont pas rejouées ou réattribuées.
+**Historical benchmark scope: prefix constructor only.** A [later writer coalescing change](rust-grpc-envelope-coalescing.md) groups prefix and payload in a chained buffer. The measurements below do not qualify that new complete path and are not replayed or reattributed.
 
-## Décision locale — 16 novembre 2026
+## Local decision — November 16, 2026
 
-**Au point de contrôle local : candidat retenu ; CI distante encore en attente.** Le payload était
-déjà envoyé sans copie de framing. Le seul changement est son préfixe gRPC de
-cinq octets : `grpc_prefix` emprunte une table statique immuable pour les longueurs
-0–255, puis reprend exactement l'ancien constructeur pour les autres longueurs.
-La table contient **1 280 octets de données source** ; ce n'est pas une mesure de
-la taille liée, de mémoire physique ou de RSS.
+**At the local checkpoint: candidate selected; remote CI still pending.** The payload was already sent without a framing copy. The only change is its five-byte gRPC prefix: `grpc_prefix` borrows an immutable static table for lengths 0–255, then uses exactly the old constructor for other lengths. The table contains **1,280 bytes of source data**; this is not a measurement of linked size, physical memory or RSS.
 
-La conversion fallible de la taille vers u32 reste au même endroit. `send_bytes`,
-capacité/flow-control, attentes, source, reset, EOF, progrès et réception sont
-inchangés. Aucune copie de payload supprimée, aucun regroupement HTTP/2 ajouté,
-aucun `unsafe` dans la bibliothèque, dépendance ou réglage audio supplémentaire.
+Fallible size conversion to u32 remains in the same place. `send_bytes`, capacity/flow control, waits, source, reset, EOF, progress and reception are unchanged. No payload copy removed, HTTP/2 coalescing added, library `unsafe`, dependency or additional audio setting.
 
-[Preuve typée, compteurs, tailles natives et toutes les durées brutes](../evidence/rust-grpc-prefix-allocation-windows-20261116.json).
-Source mesurée : candidat non committé sur `7a03f38`, identifié par sept hashes et
-le manifeste sélectionné de 186 fichiers. Ce n'est pas une attestation du TCB ni
-une qualification rétrospective d'un futur commit.
+[Typed evidence, counters, native sizes and all raw timings](../evidence/rust-grpc-prefix-allocation-windows-20261116.json). Measured source: uncommitted candidate on `7a03f38`, identified by seven hashes and the selected 186-file manifest. This is not a TCB attestation or retrospective qualification of a future commit.
 
-## Qualification CI distante ultérieure
+## Later remote CI qualification
 
-La CI hors ligne a depuis réussi sur la source exacte `98d46590ec708c7e1ae6157323a07b8eaa41ddd7` : [run Rust](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43832001772) et [run Python](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43832001623). La [preuve CI](../evidence/rust-grpc-prefix-allocation-ci-20261116.json) relève 13 jobs, dont 8 natifs, et 72 groupes de commandes Rust : ce ne sont pas des tests distincts à sommer. Pour chaque toolchain, le workspace donne **418/0/2** sous Windows et **419/0/2** sous Linux et macOS ; les architectures macOS ARM et Intel sont confirmées. Dans chaque job natif, banc préfixe **7/0/0**, SDK gardé **9/0/0** et banc wire **3/0/0**, groupes non additionnables.
+Offline CI has since passed on exact source `98d46590ec708c7e1ae6157323a07b8eaa41ddd7`: [Rust run](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43832001772) and [Python run](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43832001623). The [CI evidence](../evidence/rust-grpc-prefix-allocation-ci-20261116.json) records 13 jobs, including 8 native, and 72 Rust command groups: these are not distinct tests to sum. For each toolchain, the workspace reports **418/0/2** on Windows and **419/0/2** on Linux and macOS; macOS ARM and Intel architectures are confirmed. In each native job, prefix benchmark **7/0/0**, guarded SDK **9/0/0** and wire benchmark **3/0/0**, groups not to be added together.
 
-Cette CI vérifie les invariants, la matrice H2 brute, la fragmentation forcée et les tailles PCM/Opus synthétiques. Elle ne reproduit pas la campagne locale d'allocations ou de temps et n'établit ni distribution de voix réelle ni performance ou hits du service. La preuve locale reste inchangée et décrit son propre point de contrôle. G1 reste non satisfait et Linux live NO_GO ; aucune nouvelle qualification des credentials, du téléphone, du core ou du provisioning.
+This CI checks invariants, the raw H2 matrix, forced fragmentation and synthetic PCM/Opus sizes. It does not reproduce the local allocation or timing campaign and establishes neither a real voice distribution nor service performance or hits. Local evidence remains unchanged and describes its own checkpoint. G1 remains unmet and Linux live NO_GO; no new qualification of credentials, phone, core or provisioning.
 
-## Allocation effectivement observée
+## Allocation actually observed
 
-Un exécutable release contient les constructeurs ancien et candidat. Deux runs
-séquentiels, 16 longueurs fixes, 4096 opérations comptées par version/cas :
+A release executable contains old and candidate constructors. Two sequential runs, 16 fixed lengths, 4096 counted operations per version/case:
 
-| Domaine mesuré | Avant, par constructeur | Après, par constructeur |
+| Measured domain | Before, per constructor | After, per constructor |
 |---|---|---|
-| 11 longueurs courtes de 0 à 255 | 1 allocation + 1 libération, 5 octets demandés | **0 allocation, 0 libération, 0 octet demandé** |
-| 256, 1024, 65535, 65536, u32::MAX | 1 allocation + 1 libération, 5 octets demandés | Identique |
+| 11 short lengths from 0 to 255 | 1 allocation + 1 deallocation, 5 bytes requested | **0 allocations, 0 deallocations, 0 bytes requested** |
+| 256, 1024, 65535, 65536, u32::MAX | 1 allocation + 1 deallocation, 5 bytes requested | Identical |
 
-Les compteurs sont identiques entre les deux runs. Les 256 petites longueurs
-sont aussi vérifiées fonctionnellement et par identité de pointeur vers la table,
-mais seules les 11 longueurs indiquées sont instrumentées pour leurs allocations.
-Le cas u32::MAX ne construit que cinq octets de préfixe, jamais un payload géant.
+Counters are identical across both runs. All 256 short lengths are also checked functionally and by pointer identity to the table, but only the 11 indicated lengths are instrumented for allocations. The u32::MAX case constructs only five prefix bytes, never a giant payload.
 
-Les cinq contrôles de repli ne déclenchent pas le seuil prédéfini d'une médiane
-instrumentée plus lente de >10 % **dans les deux runs**. Cela ne démontre pas une
-absence universelle de ralentissement ni une accélération du transport complet.
+The five fallback controls do not trigger the predefined threshold of an instrumented median more than 10% slower **in both runs**. This does not demonstrate a universal absence of slowdown or acceleration of the complete transport.
 
-## Pertinence pour le pipeline audio par défaut
+## Relevance to the default audio pipeline
 
-Pour ne pas déduire la taille d'un message de son seul bitrate, un test utilise
-le vrai `Pcm16Opus`, puis le vrai `audio_request` pour chaque chunk non vide,
-comme `Engine`. Trois signaux synthétiques non vocaux de 80017 échantillons,
-source par chunks de 640 octets, profil natif mono16k/24kbps/VoIP/VBR inchangé.
-Chaque signal est encodé avec pages20ms et contrôle1000ms ; chaque chunk est
-ensuite enveloppé pour elapsed0/128/i64::MAX. Cela donne 18 relevés, pas 18
-encodages indépendants. Tous les échantillons, EOF naturels, fermeture unique,
-destruction et cleanup idempotent sont vérifiés.
+To avoid inferring message size from bitrate alone, a test uses the real `Pcm16Opus`, then the real `audio_request` for each nonempty chunk, like `Engine`. Three synthetic non-speech signals of 80017 samples, source in 640-byte chunks, unchanged native mono16k/24kbps/VoIP/VBR profile. Each signal is encoded with 20ms pages and a 1000ms control; each chunk is then wrapped for elapsed 0/128/i64::MAX. This gives 18 observations, not 18 independent encodings. All samples, natural EOFs, single close, destruction and idempotent cleanup are checked.
 
-Comptes **par signal/config**, aux tailles maximales de l'horodatage testé :
+Counts **per signal/config**, at the maximum tested timestamp sizes:
 
-| Signal | Pages20ms : éligibles / messages | Message max | Pages1000ms : éligibles / messages | Message max |
+| Signal | 20ms pages: eligible / messages | Max message | 1000ms pages: eligible / messages | Max message |
 |---|---:|---:|---:|---:|
-| Silence | 253 / 253 | 79 octets | 3 / 8 | 502 octets |
-| Triangles harmoniques | 253 / 253 | 142 octets | 3 / 8 | 2859 octets |
-| Bruit déterministe | 253 / 253 | 115 octets | 3 / 8 | 2873 octets |
+| Silence | 253 / 253 | 79 bytes | 3 / 8 | 502 bytes |
+| Harmonic triangles | 253 / 253 | 142 bytes | 3 / 8 | 2859 bytes |
+| Deterministic noise | 253 / 253 | 115 bytes | 3 / 8 | 2873 bytes |
 
-La majorité requise avant mesure est donc établie pour chacune des neuf lignes
-20ms. Les autres largeurs d'elapsed ne sont pas mesurées séparément : l'arithmétique
-inchangée de `audio_request` les borne entre les extrêmes testés. **Éligibilité**
-seulement : pas une trace de hits sur le service, de voix représentative, de
-qualité ASR ou de tailles init/contexte/END. Les pages1000ms restent un contrôle,
-ni un nouveau défaut ni une proposition de batching.
+The majority required before measurement is therefore established for each of the nine 20ms rows. Other elapsed widths are not measured separately: unchanged `audio_request` arithmetic bounds them between the tested extremes. **Eligibility** only: not a trace of service hits, representative speech, ASR quality or init/context/END sizes. The 1000ms pages remain a control, neither a new defect nor a batching proposal.
 
-## Framing, backpressure et qualification
+## Framing, backpressure and qualification
 
-- Oracle indépendant sur un unique RPC/TCP numérique loopback : **260 messages**,
-  tous les payloads0–256 puis1024/16384/65536, 115840 octets de payload et
-  117140 octets wire. Flag0, longueur big-endian, payload/ordre exacts, message
-  vide, EOF stable, statut OK seulement après drainage et fermeture sont vérifiés.
-- Autre petit RPC de quatre octets : fenêtre distante3, source retenue jusqu'au
-  Ping/Pong du pair après SETTINGS. **Première DATA de trois octets observée**,
-  préfixe fragmenté correctement, neuf octets totaux vérifiés avant OK. Seul ce
-  petit fixture utilise la fenêtre3, pas le grand corpus.
-- Windows stable1.99.1 et Rust1.88 : transport **115/0/1** chacun, banc **7/0/0**
-  chacun. Les six nouveaux noms de tests et quatre refus d'authentification
-  existants sont confirmés par commande. Workspace stable **418/0/2**, SDK gardé
-  **9/0/0**, CLI feature-off **38/0/0** ; format/Clippy strict/build réussis.
-  Ne pas sommer les groupes rejoués comme des tests distincts.
-- Les 16 commandes QA, le build debug préalable et six captures supervisées
-  (quatre no-op, deux mesures) passent ; jobs vides, sources et binaires inchangés.
-  Le binaire CLI release historique reste inchangé et n'est pas invoqué.
-- Première QA conservée : transport et banc passaient sur les deux versions, puis
-  Clippy refusait `% 2 == 0` dans l'ordre du banc. Remplacé par `is_multiple_of(2)`
-  compatible1.88, sans correction de production ; seconde QA séparée réussie.
-  Aucun résultat de mesure supplémentaire ou cas retiré.
-- Le gate CI explicite teste les invariants, pas la campagne de temps. Aucun
-  credential, vrai service, téléphone, réservation ou réglage global ; G1/Linux
-  live, accès durable et parité Android ne sont pas résolus par ce changement.
+- Independent oracle on a single numeric loopback RPC/TCP: **260 messages**, all payloads 0–256 then 1024/16384/65536, 115840 payload bytes and 117140 wire bytes. Flag 0, big-endian length, exact payload/order, empty message, stable EOF, OK status only after draining and closing are checked.
+- Another small four-byte RPC: remote window 3, source held until the peer's Ping/Pong after SETTINGS. **First DATA of three bytes observed**, prefix correctly fragmented, nine total bytes checked before OK. Only this small fixture uses window 3, not the large corpus.
+- Windows stable 1.99.1 and Rust 1.88: transport **115/0/1** each, benchmark **7/0/0** each. Six new test names and four existing authentication rejections are confirmed per command. Stable workspace **418/0/2**, guarded SDK **9/0/0**, feature-off CLI **38/0/0**; format/strict Clippy/build pass. Do not sum replayed groups as distinct tests.
+- The 16 QA commands, preliminary debug build and six supervised captures (four no-op, two measurements) pass; jobs empty, sources and binaries unchanged. The historical release CLI binary remains unchanged and is not invoked.
+- First QA retained: transport and benchmark passed on both versions, then Clippy rejected `% 2 == 0` in benchmark ordering. Replaced by `is_multiple_of(2)` compatible with 1.88, without a production fix; separate second QA passed. No additional measurement result or removed case.
+- The explicit CI gate tests invariants, not the timing campaign. No credential, real service, phone, reservation or global setting; G1/Linux live, durable access and Android parity are not resolved by this change.
 
-## Interprétation des temps et reproduction
+## Timing interpretation and reproduction
 
-Les huit répétitions de32768 opérations par version/cas suivent1024 warmups ;
-A/B–B/A tourne par cas/répétition. Les passes d'allocations et de temps sont
-séparées. Les 512 durées entières sont conservées ; les colonnes zéro de temps en
-phase0 et de compteurs en phase1 sont des **placeholders**, pas des observations.
+Eight repetitions of 32768 operations per version/case follow 1024 warmups; A/B–B/A rotates by case/repetition. Allocation and timing passes are separate. All 512 integer durations are retained; zero columns for time in phase 0 and counters in phase 1 are **placeholders**, not observations.
 
-La porte atomique de l'allocateur instrumenté reste exécutée même lorsque le
-comptage est éteint. Son coût ne s'annule pas quand les nombres d'appels diffèrent.
-Dispatch opaque et destruction de `Bytes` sont inclus ; fréquence/affinité/bruit
-OS ne sont pas contrôlés. Aucun outlier exclu, significativité, CPU processus,
-latence WAN, gain du moteur normal ou optimum global affirmé. Le gain retenu est
-**une allocation/libération évitée dans les préfixes courts observés**.
+The instrumented allocator's atomic gate still executes when counting is off. Its cost does not cancel out when call counts differ. Opaque dispatch and `Bytes` destruction are included; frequency/affinity/OS noise are uncontrolled. No outlier excluded, significance, process CPU, WAN latency, normal engine gain or global optimum claimed. The retained gain is **one allocation/deallocation avoided in the observed short prefixes**.
 
 ```sh
 cargo +1.88.0 test -p rambler-transport --locked --offline
 cargo +1.88.0 test -p rambler-transport --example profile_grpc_prefix --locked --offline
 cargo +stable test -p rambler-cli --features audio --test grpc_prefix_eligibility --locked --offline -- --nocapture
 cargo +stable build --release -p rambler-transport --example profile_grpc_prefix --locked --offline
-# Attendre la fin de toute compilation, puis deux exécutions séquentielles.
+# Wait for all compilation to finish, then run twice sequentially.
 ./target/release/examples/profile_grpc_prefix.exe --benchmark-grpc-prefix
 ./target/release/examples/profile_grpc_prefix.exe --benchmark-grpc-prefix
 ```
 
-Omettre `.exe` sur Unix. Le chemin suppose le target par défaut. Sans le flag exact,
-avec argument supplémentaire ou en build debug standard, le banc reste silencieux.
-Conserver toutes les 288 lignes numériques par run, leurs compteurs et leurs temps.
+Omit `.exe` on Unix. The path assumes the default target. Without the exact flag, with an additional argument or in a standard debug build, the benchmark remains silent. Retain all 288 numeric lines per run, their counters and times.

@@ -1,268 +1,122 @@
-# Composition Rambler : preuves et limites au 2026-11-13
+# Rambler composition: evidence and limitations as of 2026-11-13
 
-## Conclusion bornée
+## Bounded conclusion
 
-**La composition n'est pas démontrée sur le profil S3 natif testé.** Cinq sessions
-réelles du coordinateur ont terminé correctement : question directe et demande de
-message restent dictées littéralement, tandis que le contrôle de réécriture produit
-bien une phrase polie. Aucun de ces résultats ne contient `INTENT_COMPOSE=4`.
-Trois essais supplémentaires avec préfixe d'invocation restent également
-littéraux, mais le nom «Gboard» est mal reconnu («Hey board», «Hagbard») : ils
-**ne réfutent pas proprement** un éventuel déclencheur phonétique.
-Le suivi SDK0.3.0 ajoute quatre observations appariées : «Gboard» est cette fois
-reconnu dans les quatre sorties, et un préfixe complet «Hey Gboard» ou
-«Okay, Gboard» dans trois d'entre elles, mais les résultats restent littéraux,
-intention2 / oneof3. Ce suivi lève donc **partiellement** le confound antérieur,
-sans établir de composition ni d'intention4.
-Cela ne prouve ni l'absence universelle de composition dans Rambler, ni son
-impossibilité dans un autre profil ou une autre version du service.
+**Composition is not demonstrated on the tested native S3 profile.** Five real coordinator sessions completed successfully: a direct question and a message request remain literally dictated, while the rewrite control does produce a polite sentence. None of these results contains `INTENT_COMPOSE=4`. Three additional trials with an invocation prefix also remain literal, but the name «Gboard» is misrecognized («Hey board», «Hagbard»): they **do not cleanly disprove** a possible phonetic trigger. The SDK0.3.0 follow-up adds four paired observations: «Gboard» is now recognized in all four outputs, and a complete «Hey Gboard» or «Okay, Gboard» prefix in three of them, but the results remain literal, intent2 / oneof3. This follow-up therefore **partially** resolves the earlier confound, without establishing composition or intent4. This proves neither the universal absence of composition in Rambler nor its impossibility in another profile or service version.
 
-Trois éléments doivent rester distincts :
+Three things must remain distinct:
 
-1. L'enum `INTENT_COMPOSE=4` et un test **simulé** PixelBoard existent.
-2. Le sélecteur de backends de cet APK reçoit une **carte vide** pour les
-   alternatives MUSE/MUSE_LITE : changer leur enum ne suffit pas à les activer.
-3. Un véritable chemin **Jetson Lite sur Android** existe séparément comme
-   retombée, avec ASR lié à Speech Services et génération liée à AICore. Ses
-   prompts prévoient certaines générations, mais cela ne valide ni leur exécution
-   effective sur un appareil, ni une réponse wire S3 d'intention4. Ce chemin n'est
-   pas une API publique de remplacement pour le moteur natif.
+1. The `INTENT_COMPOSE=4` enum and a **mocked** PixelBoard test exist.
+2. This APK's backend selector receives an **empty map** for MUSE/MUSE_LITE alternatives: changing their enum is not enough to activate them.
+3. A real **Jetson Lite on Android** path exists separately as a fallback, with ASR connected to Speech Services and generation connected to AICore. Its prompts provide for certain generations, but this validates neither their actual execution on a device nor an S3 wire response with intent4. This path is not a public replacement API for the native engine.
 
-Aucune modification SDK, aucun changement de backend et aucun accès réseau n'ont
-été réalisés par l'analyste de cette passe. Les sessions réseau ci-dessous sont
-celles du coordinateur, relues dans leur rapport expurgé.
+The analyst for this pass made no SDK modification, backend change, or network access. The network sessions below are the coordinator's, reviewed in their redacted report.
 
-## Provenance et conventions des références
+## Provenance and reference conventions
 
-Autorité APK : PixelBoard1.3.4, SHA-256
-`a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`.
-Source PixelBoard consultée : tag extrait sous
-`Akshayykadam-PixelBoard-9a81f8b`. Aucun code APK ou source PixelBoard n'a été
-exécuté : lecture textuelle avec Python isolé, sans import des fichiers examinés.
+APK authority: PixelBoard1.3.4, SHA-256 `a4628c2e42d3f62028742ee1880c33ce5d96e2a034fcb72ad16a586320cc8fa8`. PixelBoard source consulted: tag extracted under `Akshayykadam-PixelBoard-9a81f8b`. No APK or PixelBoard source code was executed: textual reading with isolated Python, without importing the examined files.
 
-Les alias de sources suivants désignent les artefacts locaux de recherche déjà
-identifiés dans [protocol.md](protocol.md) :
+The following source aliases designate the local research artifacts already identified in [protocol.md](protocol.md):
 
-- `APK` : `scratchpad/pixelboard-jadx/sources`, notamment `defpackage`.
-- `IHM` : `scratchpad/pixelboard-jadx-ihm/sources/defpackage/ihm.java`.
-- `FFH-SIMPLE` : `scratchpad/pixelboard-jadx-ffh-simple/sources/defpackage/ffh.java`.
-- `TAG` : `scratchpad/pixelboard-source/Akshayykadam-PixelBoard-9a81f8b`.
+- `APK`: `scratchpad/pixelboard-jadx/sources`, especially `defpackage`.
+- `IHM`: `scratchpad/pixelboard-jadx-ihm/sources/defpackage/ihm.java`.
+- `FFH-SIMPLE`: `scratchpad/pixelboard-jadx-ffh-simple/sources/defpackage/ffh.java`.
+- `TAG`: `scratchpad/pixelboard-source/Akshayykadam-PixelBoard-9a81f8b`.
 
-Le scratchpad de cette analyse est
-`C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad`.
-Les numéros ci-dessous sont ceux des sorties JADX ou des sources citées, pas des
-lignes du code original Google. Les conditions manquantes des décompilations
-incomplètes ne sont pas considérées prouvées.
+The scratchpad for this analysis is `C:/Users/FSOS/AppData/Local/Temp/claude/C--Users-FSOS-Documents-project-Rambpc/6a88b7b9-7237-4fb1-9c07-58a4c0a8ca3e/scratchpad`. Numbers below are those of the JADX outputs or cited sources, not lines of original Google code. Missing conditions in incomplete decompilations are not considered proven.
 
-## Enum, sortie S3 et filtre PixelBoard
+## Enum, S3 output, and PixelBoard filter
 
-- `APK/defpackage/aamp.java:6-12,21-38` établit notamment
-  `2=INTENT_EDIT_HISTORY`, `3=INTENT_REWRITE`, `4=INTENT_COMPOSE`.
-- `IHM:192-219` accepte seulement les intentions2/3 dans le helper récupéré
-  `maybeGetVoiceEditedText`. Il sélectionne le texte édité field3 ou le contexte
-  field7 ; les autres intentions ne produisent pas ce candidat au callsite.
-  `IHM:224` revient alors au texte ASR et `IHM:255-285` ne construit une
-  `VoiceAction` que si ce candidat est présent. Une enum4 ne démontre donc pas
-  son exposition par ce processeur S3.
-- `APK/defpackage/ffh.java:670-695` appelle le filtre PixelBoard **avant** de
-  vérifier le span final et la présence d'une `VoiceAction`.
-- `TAG/pixelboard-patches/extensions/extension/src/main/java/com/akshaykadam/pixelboard/extension/rambler/GboardRamblerDictationRuntime.java:174-183`
-  remplace, pour une action locale4 avec transcript non vide, le texte produit par
-  ce transcript, remet l'intention à0 et efface le diff. C'est une transformation
-  **locale après résultat**, pas un déclencheur de composition transmis au serveur.
-  Le corps principal de cette méthode est manquant dans la décompilation générale
-  APK ; le détail de cette branche vient de la source taguée, et son appel effectif
-  est visible dans `ffh` de l'APK.
-- Le test tagué adjacent
-  `src/test/java/com/akshaykadam/pixelboard/extension/rambler/GboardRamblerDictationRuntimeTest.java:74-88`
-  injecte explicitement une **fausse action4**, la question « What is the capital
-  of France? » et une réponse sur Paris. Il vérifie le filtre client : ce n'est
-  **pas** une capture du backend.
+- `APK/defpackage/aamp.java:6-12,21-38` establishes, among others, `2=INTENT_EDIT_HISTORY`, `3=INTENT_REWRITE`, `4=INTENT_COMPOSE`.
+- `IHM:192-219` accepts only intents 2/3 in the recovered `maybeGetVoiceEditedText` helper. It selects edited text field3 or context field7; other intents do not produce this candidate at the callsite. `IHM:224` then falls back to ASR text, and `IHM:255-285` constructs a `VoiceAction` only if this candidate is present. An enum4 therefore does not demonstrate its exposure by this S3 processor.
+- `APK/defpackage/ffh.java:670-695` calls the PixelBoard filter **before** checking the final span and presence of a `VoiceAction`.
+- `TAG/pixelboard-patches/extensions/extension/src/main/java/com/akshaykadam/pixelboard/extension/rambler/GboardRamblerDictationRuntime.java:174-183` replaces produced text with the transcript for a local action4 with a nonempty transcript, resets intent to 0, and clears the diff. This is a **local post-result** transformation, not a composition trigger sent to the server. The main body of this method is missing from the general APK decompilation; details of this branch come from the tagged source, and its actual call is visible in APK `ffh`.
+- The adjacent tagged test `src/test/java/com/akshaykadam/pixelboard/extension/rambler/GboardRamblerDictationRuntimeTest.java:74-88` explicitly injects a **fake action4**, the question « What is the capital of France? » and an answer about Paris. It tests the client filter: this is **not** a backend capture.
 
-Le statut IME `ABORT_COMPOSING` rencontré dans le cycle de vie de la dictée ne doit
-pas être confondu avec l'intention sémantique `INTENT_COMPOSE`.
+The IME status `ABORT_COMPOSING` encountered in the dictation lifecycle must not be confused with the semantic intent `INTENT_COMPOSE`.
 
-## Backends : câblage réellement présent
+## Backends: wiring actually present
 
-### Sélecteur MUSE/MUSE_LITE : alternatives non enregistrées ici
+### MUSE/MUSE_LITE selector: alternatives not registered here
 
-`APK/defpackage/mup.java:6-10` définit UNDEFINED0, S3=1, MUSE=2, MUSE_LITE=3.
-`APK/defpackage/muq.java:31` donne1 comme défaut déclaré du backend.
-`APK/defpackage/ffi.java:21-30` consulte d'abord
-`pref_key_ad_backend_override`, sinon ce flag, puis cherche le fournisseur dans la
-carte injectée. Une entrée absente revient au fournisseur S3 par défaut.
+`APK/defpackage/mup.java:6-10` defines UNDEFINED0, S3=1, MUSE=2, MUSE_LITE=3. `APK/defpackage/muq.java:31` gives 1 as the declared backend default. `APK/defpackage/ffi.java:21-30` first checks `pref_key_ad_backend_override`, otherwise this flag, then looks up the provider in the injected map. A missing entry falls back to the default S3 provider.
 
-Le point décisif est l'injection, pas le nom des enums :
+The decisive point is injection, not the enum names:
 
-- `APK/defpackage/erz.java:1895` enregistre `new ffi(this.cM, wmr.b)`.
-- `APK/defpackage/erz.java:1088` construit `cM` avec `ffk`.
-- `APK/defpackage/ffk.java:16-17` construit l'extension `ffh`.
-- `APK/defpackage/wmr.java:11` définit `b` comme une carte de zéro entrée.
+- `APK/defpackage/erz.java:1895` registers `new ffi(this.cM, wmr.b)`.
+- `APK/defpackage/erz.java:1088` constructs `cM` with `ffk`.
+- `APK/defpackage/ffk.java:16-17` constructs the `ffh` extension.
+- `APK/defpackage/wmr.java:11` defines `b` as a map with zero entries.
 
-La recherche des références MUSE et de la construction de `ffi` a couvert les
-19704 fichiers Java disponibles dans `APK/defpackage`, en excluant `iha.java` ;
-elle n'a trouvé qu'une construction de `ffi`. Les deux racines source de patchs
-principales examinées (107 fichiers Java/Kotlin/XML) ne contiennent pas de
-référence aux prefs de sélection de backend ni au flag de backend.
+The search for MUSE references and construction of `ffi` covered the 19704 Java files available in `APK/defpackage`, excluding `iha.java`; it found only one construction of `ffi`. The two main patch source roots examined (107 Java/Kotlin/XML files) contain no references to backend selection prefs or the backend flag.
 
-**Conséquence pour ce câblage** : une préférence2/3 n'active pas magiquement un
-client MUSE/MUSE_LITE ; l'entrée manque et le fallback reste `ffh`. Aucun endpoint,
-schéma d'authentification ou client de composition distant alternatif n'est ainsi
-établi. Cela ne signifie pas que tout code portant le nom Muse soit inutilisé :
-il existe des modules et un véritable chemin Lite distinct ci-dessous.
+**Consequence for this wiring**: a preference 2/3 does not magically activate a MUSE/MUSE_LITE client; the entry is missing and fallback remains `ffh`. No alternative endpoint, authentication scheme, or remote composition client is thereby established. This does not mean all code named Muse is unused: modules and a real separate Lite path exist below.
 
-### Jetson Lite : retombée Android réelle, pas endpoint portable démontré
+### Jetson Lite: real Android fallback, no demonstrated portable endpoint
 
-- `APK/defpackage/kkj.java:23-46` sélectionne S3 lorsqu'il est disponible et peut
-  sélectionner Jetson Lite lors d'une retombée hors ligne ou d'une indisponibilité.
-- `APK/defpackage/fgu.java:13-23` installe la factory `fgo` lors de la création du
-  module ; `fgo.java:14-23` exige une session Jetson et
-  `muq.K == a.ao(3)`. `a.java:771-772` résout cette valeur à1, alors que le défaut
-  déclaré `jetson_no_network_fallback_strategy` est0 (`muq.java:45`). Les valeurs
-  effectives, le chargement du module et les modèles disponibles sur un appareil
-  ne sont pas établis ici ; aucune de ces gates n'a été modifiée.
-- ASR : `erz.java:1534-1538,1823-1825` fournit le client `uxz` via
-  `sgq.java:91-97` et `ohq.java:69-80`. Le channel est construit vers le composant
-  **Android Binder** `com.google.android.tts` /
-  `com.google.android.libraries.speech.transcription.recognition.grpc.GoogleAsrService`.
-  Le package vient de `GboardSpeechServicesDetector.PACKAGE_NAME`.
-  `uxz.java:15-45` décrit `RecognitionSession` et `DownloadModel` sur ce service.
-  Ce n'est pas la découverte d'un hôte HTTPS distant.
-- La construction du channel inclut une policy `abfi`, un `PackageManager` et une
-  allowlist contenant le package Speech Services (`sgq.java:94-97`). Les contrôles
-  Android de liaison/identité et l'installation du vrai service restent des
-  dépendances ; aucun header cloud autonome équivalent n'est établi ni proposé.
-- Génération : `fgn.java:187-202` crée un client AICore et demande un feature ;
-  `fgn.java:82-87` appelle le client LLM `eog`. `enm.java:38-40` cible les services
-  Android `com.google.android.aicore` /
-  `AiCoreMultiUserService` ou `AiCoreService`, via Binder. Disponibilité du feature,
-  autorisations effectives, modèle et résultats réels ne sont pas vérifiés ici.
+- `APK/defpackage/kkj.java:23-46` selects S3 when available and can select Jetson Lite on offline fallback or unavailability.
+- `APK/defpackage/fgu.java:13-23` installs the `fgo` factory when the module is created; `fgo.java:14-23` requires a Jetson session and `muq.K == a.ao(3)`. `a.java:771-772` resolves this value to 1, while declared default `jetson_no_network_fallback_strategy` is 0 (`muq.java:45`). Effective values, module loading, and models available on a device are not established here; none of these gates was modified.
+- ASR: `erz.java:1534-1538,1823-1825` supplies the `uxz` client via `sgq.java:91-97` and `ohq.java:69-80`. The channel is constructed to the **Android Binder** component `com.google.android.tts` / `com.google.android.libraries.speech.transcription.recognition.grpc.GoogleAsrService`. The package comes from `GboardSpeechServicesDetector.PACKAGE_NAME`. `uxz.java:15-45` describes `RecognitionSession` and `DownloadModel` on this service. This is not discovery of a remote HTTPS host.
+- Channel construction includes an `abfi` policy, a `PackageManager`, and an allowlist containing the Speech Services package (`sgq.java:94-97`). Android binding/identity checks and installation of the real service remain dependencies; no equivalent standalone cloud header is established or proposed.
+- Generation: `fgn.java:187-202` creates an AICore client and requests a feature; `fgn.java:82-87` calls the `eog` LLM client. `enm.java:38-40` targets Android services `com.google.android.aicore` / `AiCoreMultiUserService` or `AiCoreService`, via Binder. Feature availability, effective permissions, model, and actual results are not verified here.
 
-`APK/defpackage/igs.java:6` déclare exactement les expressions «Okay Gboard» et
-«Hey Gboard». `APK/defpackage/fgn.java:63` contient une comparaison exacte d'un ancien prompt
-et son remplacement par un autre prompt, sous condition d'égalité. L'ancien
-texte prévoit un mode explicite avec «Hey Gboard» et génération demandée ; le
-texte de remplacement prévoit aussi l'exécution de demandes telles que
-« Write me a sick leave email », plutôt que leur dictée littérale. Ce sont des
-**instructions locales embarquées** montrant une intention de fonctionnalité,
-non la preuve d'une inférence réussie, non un prédicat du backend S3, et non la
-preuve de l'émission d'une intention wire4. Si le prompt effectif diffère du
-littéral comparé, cette branche de remplacement ne s'applique pas nécessairement.
+`APK/defpackage/igs.java:6` declares exactly the expressions «Okay Gboard» and «Hey Gboard». `APK/defpackage/fgn.java:63` contains an exact comparison of an old prompt and its replacement with another prompt, conditional on equality. The old text provides for an explicit mode with «Hey Gboard» and requested generation; the replacement also provides for executing requests such as « Write me a sick leave email », rather than dictating them literally. These are **embedded local instructions** showing feature intent, not evidence of successful inference, not a predicate of the S3 backend, and not evidence of emitting wire intent4. If the effective prompt differs from the literal compared, this replacement branch does not necessarily apply.
 
-## Préférences : pas de switch compose démontré
+## Preferences: no compose switch demonstrated
 
-`muq.java:58-60` déclare app-context (`X`, défautfalse), custom-instruction (`Y`,
-défautfalse) et des règles rewrite/compose (`Z`). La présence de ce dernier nom
-ne prouve pas son émission. Aucune référence `muq.Z` n'a été trouvée dans les
-19704 fichiers `defpackage` examinés.
+`muq.java:58-60` declares app-context (`X`, default false), custom-instruction (`Y`, default false), and rewrite/compose rules (`Z`). The presence of the latter name does not prove it is emitted. No `muq.Z` reference was found in the 19704 examined `defpackage` files.
 
-`FFH-SIMPLE:2010-2077` ajoute l'app-context seulement avec la gateX et un
-`EditorInfo` adapté, et une instruction personnalisée seulement avec la gateY et
-une préférence non vide. Le wrapper de cette dernière limite explicitement les
-préférences au style de dictée et exclut les réponses aux questions et tâches
-non-dictée. Il ne doit pas être réinterprété comme une méthode pour activer la
-composition. Le détail de transport/timing des hints est une analyse séparée.
+`FFH-SIMPLE:2010-2077` adds app-context only with gate X and a suitable `EditorInfo`, and a custom instruction only with gate Y and a nonempty preference. The latter's wrapper explicitly limits preferences to dictation style and excludes answers to questions and non-dictation tasks. It must not be reinterpreted as a method to enable composition. Hint transport/timing details are a separate analysis.
 
-## Cinq observations réelles du profil S3
+## Five real observations of the S3 profile
 
-Preuve expurgée du coordinateur :
-[compose-matrix-public.json](../evidence/compose-matrix-public.json), code observé
-au commit `a5fa05c2a0492e6f6feb186c9175c3253c918624`.
-Résumé :5 sessions complètes,5 transports/rendus uniques réussis. Les contenus
-sont des phrases contrôlées ; aucun payload opaque n'est reproduit ici.
+Coordinator's redacted evidence: [compose-matrix-public.json](../evidence/compose-matrix-public.json), code observed at commit `a5fa05c2a0492e6f6feb186c9175c3253c918624`. Summary: 5 complete sessions, 5 successful unique transports/renderings. Contents are controlled sentences; no opaque payload is reproduced here.
 
-| Cas | Contexte / variable | Résultat observé | Intention / oneof |
+| Case | Context / variable | Observed result | Intent / oneof |
 |---|---|---|---|
-| `compose-question-en` | Question directe, contexte vide | La question sur la capitale reste une question ; pas de réponse générée |2 /3|
-| `compose-message-empty-en` | Demande d'un message à Alex, contexte vide | L'instruction est dictée, avec «20» normalisé |2 /3|
-| `compose-message-context-en` | **Même fichier audio** que le précédent, précédé de «Message to Alex:» | Scaffold + instruction dictée ; pas de message composé |2 /3|
-| `compose-question-literal-control-en` | Question présentée comme texte à inclure | La question citée est conservée comme texte |2 /3|
-| `compose-rewrite-control-en` | Demande de politesse, contexte «Send me the report now.» | «Could you please send me the report at your earliest convenience?» |3 /3|
+| `compose-question-en` | Direct question, empty context | The capital question remains a question; no generated answer |2 /3|
+| `compose-message-empty-en` | Request for a message to Alex, empty context | Instruction dictated, with «20» normalized |2 /3|
+| `compose-message-context-en` | **Same audio file** as previous, preceded by «Message to Alex:» | Scaffold + dictated instruction; no composed message |2 /3|
+| `compose-question-literal-control-en` | Question presented as text to include | Quoted question retained as text |2 /3|
+| `compose-rewrite-control-en` | Request for politeness, context «Send me the report now.» | «Could you please send me the report at your earliest convenience?» |3 /3|
 
-Les deux cas message partagent le même SHA-256 audio dans la preuve : la variation
-porte bien sur le contexte, pas sur deux synthèses distinctes. Le contrôle de
-réécriture écarte ici l'explication simple «aucune commande contextuelle ne
-fonctionne». Il ne prouve pas la composition, ni la portée de remplacement de
-l'historique pour l'intention3.
+The two message cases share the same audio SHA-256 in the evidence: the variation is in context, not two separate syntheses. The rewrite control shows that at least one context-dependent instruction works in this setup. It proves neither composition nor history replacement scope for intent3.
 
-Plans reproductibles :
-[compose-validation.json](../../tools/fixtures/compose-validation.json) et
-[compose-speech.json](../../tools/fixtures/compose-speech.json). Ils bornent les
-observations à cinq appels, sans retries automatiques ni ajout de flags/auth,
-sans changement de backend et sans autre API générative.
+Reproducible plans: [compose-validation.json](../../tools/fixtures/compose-validation.json) and [compose-speech.json](../../tools/fixtures/compose-speech.json). They bound observations to five calls, without automatic retries or added flags/auth, without backend change, and without another generative API.
 
-## Suivi : invocation explicite et confusion ASR
+## Follow-up: explicit invocation and ASR confusion
 
-Preuve expurgée :
-[compose-invocation-public.json](../evidence/compose-invocation-public.json).
-Les trois sessions supplémentaires du coordinateur terminent correctement, sans
-changement de flags, de prompt ou de backend ; leurs résultats restent
-intention2 / oneof3 :
+Redacted evidence: [compose-invocation-public.json](../evidence/compose-invocation-public.json). The coordinator's three additional sessions complete successfully, without changing flags, prompt, or backend; results remain intent2 / oneof3:
 
-| Cas | Texte retourné pertinent | Conséquence bornée |
+| Case | Relevant returned text | Bounded consequence |
 |---|---|---|
-| `compose-invocation-question-en` | «Hey board, what is the capital of France?» | Pas de réponse générée, mais le nom d'invocation n'est pas fidèlement reconnu |
-| `compose-invocation-message-en` | «Hey board, write a short message…» | Demande encore littérale ; même confusion du nom |
-| `compose-invocation-literal-en` | Citation contenant «Hagbard, what is the capital of France?» | Le contrôle reste du texte cité, avec une autre confusion phonétique |
+| `compose-invocation-question-en` | «Hey board, what is the capital of France?» | No generated answer, but invocation name is not faithfully recognized |
+| `compose-invocation-message-en` | «Hey board, write a short message…» | Request still literal; same name confusion |
+| `compose-invocation-literal-en` | Quotation containing «Hagbard, what is the capital of France?» | Control remains quoted text, with another phonetic confusion |
 
-**Ces négatifs sont confondus par la reconnaissance du nom.** Ils ne permettent
-pas de réfuter un éventuel déclencheur serveur dépendant du signal phonétique ou
-d'une reconnaissance correcte de «Gboard». Inversement, le client Lite ne prouve
-pas qu'un tel déclencheur existe côté S3. L'hypothèse d'une articulation différente
-et de «Okay Gboard» a ensuite été testée dans le suivi ci-dessous, sans activation
-d'un flag compose découvert. Aucune instruction locale Lite n'a été transplantée
-dans les requêtes S3.
+**These negatives are confounded by recognition of the name.** They cannot disprove a possible server trigger dependent on the phonetic signal or correct recognition of «Gboard». Conversely, the Lite client does not prove that such a trigger exists on S3. The hypothesis of different articulation and «Okay Gboard» was subsequently tested in the follow-up below, without activating a discovered compose flag. No local Lite instruction was transplanted into S3 requests.
 
-## Suivi SDK0.3.0 : nom reconnu avec et sans biais initial
+## SDK0.3.0 follow-up: name recognized with and without initial bias
 
-Preuve expurgée :
-[input-hints-public.json](../evidence/input-hints-public.json), version SDK
-rapportée **0.3.0**. Le lot complet comporte10 sessions réussies sur10 ; les
-**quatre cas d'invocation** ci-dessous en sont un sous-ensemble, pas dix nouveaux
-essais de composition. Les intentions et membres actifs ont été vérifiés
-directement dans les `final_updates` du rapport public : **2 /3 dans les quatre
-cas**, avec un candidat par cas.
+Redacted evidence: [input-hints-public.json](../evidence/input-hints-public.json), reported SDK version **0.3.0**. The complete batch has 10 successful sessions out of 10; the **four invocation cases** below are a subset, not ten new composition trials. Intents and active members were checked directly in the public report's `final_updates`: **2 /3 in all four cases**, with one candidate per case.
 
-Les textes de synthèse emploient explicitement l'orthographe phonétique
-«Hey, G board» et «Okay, G board». Chaque paire baseline/biais partage exactement
-le même SHA-256 WAV, la langue en-US et le contexte tardif vide ; seul le biais
-initial `bias_terms=["Gboard"]` varie. Plans et textes contrôlés :
-[input-hints-validation.json](../../tools/fixtures/input-hints-validation.json) et
-[input-hints-speech.json](../../tools/fixtures/input-hints-speech.json).
+The synthesis texts explicitly use phonetic spellings «Hey, G board» and «Okay, G board». Each baseline/bias pair shares exactly the same WAV SHA-256, en-US language, and empty late context; only initial bias `bias_terms=["Gboard"]` varies. Plans and controlled texts: [input-hints-validation.json](../../tools/fixtures/input-hints-validation.json) and [input-hints-speech.json](../../tools/fixtures/input-hints-speech.json).
 
-| Cas | Biais initial | Texte retourné | Intention / oneof |
+| Case | Initial bias | Returned text | Intent / oneof |
 |---|---|---|---|
-| `invocation-hey-baseline-en` | Aucun | «Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.» |2 /3|
+| `invocation-hey-baseline-en` | None | «Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.» |2 /3|
 | `invocation-hey-biased-en` | `Gboard` | «Hey Gboard, write a short message to Alex saying I will arrive 20 minutes late.» |2 /3|
-| `invocation-okay-baseline-en` | Aucun | «Gboard, what is the capital of France?» |2 /3|
+| `invocation-okay-baseline-en` | None | «Gboard, what is the capital of France?» |2 /3|
 | `invocation-okay-biased-en` | `Gboard` | «Okay, Gboard, what is the capital of France?» |2 /3|
 
-Le nom **Gboard est effectivement reconnu** : la confusion «board/Hagbard» des
-anciens essais n'explique donc plus à elle seule ces nouveaux résultats. Les deux
-cas Hey et le cas Okay avec biais conservent même le préfixe complet dans le
-texte retourné ; malgré cela, aucune réponse sur Paris ni aucun message composé
-n'est produit. Le cas Okay sans biais omet toujours «Okay» : la fidélité du
-préfixe n'est pas complète dans toutes les sorties.
+The name **Gboard is actually recognized**: the «board/Hagbard» confusion in earlier trials therefore no longer alone explains these new results. Both Hey cases and the biased Okay case even retain the full prefix in returned text; despite this, no answer about Paris or composed message is produced. The unbiased Okay case still omits «Okay»: prefix fidelity is not complete in every output.
 
-**Conclusion bornée** : le confound ASR antérieur est partiellement levé, mais la
-composition reste non observée dans ces phrases et ce profil S3. La présence
-textuelle du préfixe ne prouve pas que le serveur l'a classé comme invocation,
-ni qu'elle suffirait à déclencher une génération. Une observation par bras ne
-permet pas non plus d'attribuer avec certitude le maintien de «Okay» au biais,
-ni de généraliser un gain de reconnaissance. Aucun `INTENT_COMPOSE=4` n'est
-observé ; aucune impossibilité générale de composition n'est établie. Aucun prompt
-Lite, flag d'activation compose, changement d'authentification ou backend alternatif n'a
-été utilisé dans ce suivi.
+**Bounded conclusion**: the earlier ASR confound is partially resolved, but composition remains unobserved for these sentences and this S3 profile. Textual presence of the prefix does not prove the server classified it as an invocation or that it would suffice to trigger generation. One observation per arm also cannot reliably attribute retention of «Okay» to bias or generalize a recognition gain. No `INTENT_COMPOSE=4` is observed; no general impossibility of composition is established. No Lite prompt, compose activation flag, authentication change, or alternative backend was used in this follow-up.
 
-## Ce qui reste ouvert
+## What remains open
 
-- Le prédicat serveur exact déclenchant une composition, s'il existe pour un
-  autre profil S3, n'est pas récupéré dans le client.
-- Une génération de contenu pourrait être observée sous une intention autre que4 :
-  comportement du contenu et valeur numérique doivent être rapportés séparément.
-- Les gates et prompts Android Lite constituent des sources réelles, mais pas une
-  validation de disponibilité sur un appareil ni un contrat natif portable.
-- Ni une enum, ni un mock, ni ces petites matrices d'observations ne justifient l'affirmation
-  universelle «Rambler ne sait jamais composer».
-- Les essais ne changent rien à l'authentification, aux quotas, à l'attestation,
-  au consentement ou à la politique d'édition. Aucun contournement n'est proposé.
+- The exact server predicate triggering composition, if it exists for another S3 profile, is not recovered from the client.
+- Content generation could be observed under an intent other than 4: content behavior and numeric value must be reported separately.
+- Android Lite gates and prompts are real sources, but not validation of availability on a device or a portable native contract.
+- These enums, mocks, and small test matrices cannot establish whether composition is available in other Rambler profiles.
+- Trials change nothing about authentication, quotas, attestation, consent, or editing policy. No circumvention is proposed.

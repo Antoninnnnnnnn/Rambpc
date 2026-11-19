@@ -1,295 +1,290 @@
-# Entrée PCM native bornée et arrêt normal explicite
+# Bounded native PCM input and explicit normal stop
 
-## Rôle
+## Role
 
-`rambler_audio::pcm_channel()` fournit un couple `(PcmSender, PcmInput)` original,
-sans microphone, Android, fichier, credential ou connexion. L'intégrateur produit
-son PCM16LE mono16kHz et compose `Pcm16Opus::new(input, config)` avant de confier
-cette source **encodée Ogg/Opus** au moteur existant. Ce n'est pas un nouveau
-backend ASR, ni une activation d'intention Rambler supplémentaire.
+`rambler_audio::pcm_channel()` provides a new `(PcmSender, PcmInput)` pair,
+without microphone, Android, file, credentials or connection. The integrator
+produces mono 16 kHz PCM16LE and composes `Pcm16Opus::new(input, config)` before
+passing this **Ogg/Opus-encoded** source to the existing engine. This is not a new
+ASR backend or activation of an additional Rambler intent.
 
-L'arrêt normal était déjà possible en terminant une `AudioSource` personnalisée.
-Ce helper rend ce contrat disponible sans réimplémenter une file et son cycle de
-vie dans chaque intégration. Aucun changement de profil codec, bitrate, qualité,
-page par défaut, transport, contexte, résultat ou politique safety.
+Normal stop was already possible by finishing a custom `AudioSource`. This helper
+makes that contract available without reimplementing a queue and its lifecycle in
+every integration. No change to codec profile, bitrate, quality, default page,
+transport, context, result or safety policy.
 
-## Producteur et capacité
+## Producer and capacity
 
-Le producteur est unique et non clonable ; chaque canal possède son état et sa
-file indépendants. Une seule entrée peut être en file. Chaque chunk est borné à
-`MAX_INPUT_BYTES` (8 Mio de **longueur logique**), avec fragments vides ou impairs
-acceptés. L'encodeur contrôle l'intégrité du dernier échantillon à l'EOF.
+The producer is single and non-cloneable; each channel has independent state and
+queue. Only one entry can be queued. Each chunk is bounded by `MAX_INPUT_BYTES`
+(8 MiB of **logical length**), with empty or odd-length fragments accepted. The
+encoder checks the last sample's integrity at EOF.
 
 ```rust,ignore
-let owned_pcm: bytes::Bytes = /* PCM obtenu par l'intégrateur */;
-// `owned_pcm` reste au producteur si cette attente est annulée.
+let owned_pcm: bytes::Bytes = /* PCM obtained by the integrator */;
+// `owned_pcm` remains with the producer if this wait is cancelled.
 let permit = writer.reserve().await?;
-// Pas d'await entre la remise du chunk et sa soumission.
+// No await between handing over the chunk and submitting it.
 permit.send(owned_pcm)?;
 ```
 
-La remise du chunk est synchrone après réservation. Abandonner un permis libère
-sa place. Un rejet de chunk trop grand ou de source déjà fermée conserve les
-bytes dans `PcmSendError::into_chunk()` ; `kind()` donne une raison fixe.
-`Debug`, `Display` et la chaîne d'erreur n'exposent pas le payload.
-Aucun retry, rejeu, rééchantillonnage ni pacing automatique.
+Chunk handover is synchronous after reservation. Dropping a permit releases its
+slot. Rejection of an oversized chunk or already closed source retains the bytes
+in `PcmSendError::into_chunk()`; `kind()` gives a fixed reason. `Debug`, `Display`
+and the error chain do not expose the payload. No automatic retry, replay,
+resampling or pacing.
 
-La file ne borne pas la mémoire détenue par le producteur, le chunk déjà pris par
-l'encodeur ou une grande allocation racine retenue par une tranche `Bytes`.
-Ce n'est pas une borne RSS globale de 8 Mio. Producteur et consommateur doivent
-être conduits **en concurrence** : remplir plusieurs chunks avant de démarrer le
-consommateur attendrait légitimement sur la capacité.
+The queue does not bound memory held by the producer, the chunk already taken by
+the encoder or a large root allocation retained by a `Bytes` slice. It is not a
+global 8 MiB RSS bound. Producer and consumer must be driven **concurrently**:
+submitting several chunks before starting the consumer would legitimately wait
+for capacity.
 
-## Observation PCM optionnelle — qualification locale
+## Optional PCM observation — local qualification
 
-`Pcm16Opus::new_with_progress(source, config)` retourne l'encodeur et un
-`PcmProgressHandle` ; `handle.snapshot()` donne un `PcmProgress` cohérent et
-monotone, dont les compteurs restent disponibles après fermeture :
+`Pcm16Opus::new_with_progress(source, config)` returns the encoder and a
+`PcmProgressHandle`; `handle.snapshot()` gives a consistent and monotonic
+`PcmProgress`, whose counters remain available after closure:
 
-- `input_bytes: u64` compte les octets des chunks acceptés en amont, y compris
-  ceux encore tamponnés sans encodage lors d'une fermeture précoce ; les chunks
-  surdimensionnés rejetés ne comptent pas.
-- `encoded_input_samples: u64` compte les vrais échantillons PCM des trames
-  encodées et comptabilisées, sans padding nul ni flush de seul lookahead.
-- `encoded_frames: u64` compte les trames codec, padding et flush compris.
-- `input_eof: bool` indique seulement un `None` naturel de la source amont.
-- `output_eof: bool` indique l'EOF encodé naturel après cleanup amont et drainage
-  du mux, jamais un simple close explicite, une erreur ou Drop.
+- `input_bytes: u64` counts bytes of upstream accepted chunks, including those
+  still buffered without encoding at early closure; rejected oversized chunks do
+  not count.
+- `encoded_input_samples: u64` counts actual PCM samples in encoded and counted
+  frames, without zero padding or lookahead-only flush.
+- `encoded_frames: u64` counts codec frames, including padding and flush.
+- `input_eof: bool` indicates only a natural `None` from the upstream source.
+- `output_eof: bool` indicates natural encoded EOF after upstream cleanup and mux
+  drain, never merely explicit close, error or Drop.
 
 ```rust,ignore
 let (encoder, progress) = Pcm16Opus::new_with_progress(input, config);
-// Conduire encoder puis attendre sa terminaison ou son nettoyage.
+// Drive encoder, then await its termination or cleanup.
 let snapshot = progress.snapshot();
 ```
 
-Le constructeur `Pcm16Opus::new` reste sans allocation ni verrou d'observateur ;
-aucun coût CPU nul ou performance optimale n'est revendiqué. Ces mesures locales
-ne sont ni des hashes PCM, ni des acquittements serveur, ni des flags terminaux
-de requête, ni une preuve contre toute perte ou rejeu. Les métriques encodées du
-moteur restent distinctes. La [qualification locale A/B](rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15)
-et sa [preuve](../evidence/rust-pcm-progress-admission.json) distinguent les
-suites complètes et la reprise ciblée après échec Clippy.
+The `Pcm16Opus::new` constructor remains without observer allocation or lock; no
+zero CPU cost or optimal performance is claimed. These local measurements are
+neither PCM hashes, server acknowledgments, request terminal flags nor proof
+against all loss or replay. Engine encoded metrics remain distinct. The
+[local A/B qualification](rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15)
+and its [evidence](../evidence/rust-pcm-progress-admission.json) distinguish full
+suites and the focused rerun after a Clippy failure.
 
-## Fin normale, abandon et annulation
+## Normal completion, abandonment and cancellation
 
-- `writer.finish()` consomme le producteur et annonce un EOF volontaire. La source
-  draine les chunks déjà acceptés avant `None`. L'encodeur ferme ensuite son
-  upstream et flush le tail/lookahead jusqu'à son véritable EOS.
-- Détruire le producteur **sans `finish()`** draine les chunks acceptés puis
-  renvoie `AudioError::InputAbandoned`, même pour un canal vide. L'erreur reste
-  latched jusqu'au close explicite ; l'encodeur ne fabrique aucun EOS réussi.
-- `PcmInput::close()` et Drop ferment immédiatement la source, jettent la file
-  intentionnellement et réveillent les réservations. La transition a lieu même
-  si le futur retourné par close n'est jamais pollé. Un permis tenu avant close
-  rejette une soumission qui observe ensuite la fermeture.
-- Une soumission concurrente avec close peut être acceptée puis jetée par cette
-  annulation. **Acceptation et `finish()` ne sont pas des acquittements de
-  consommation, d'upload ou de dictée réussie.** Il faut toujours attendre les
-  conditions finales existantes : audio/cleanup, END S3, upload complet et gRPC OK.
+- `writer.finish()` consumes the producer and announces intentional EOF. The
+  source drains already accepted chunks before `None`. The encoder then closes its
+  upstream and flushes the tail/lookahead through its actual EOS.
+- Destroying the producer **without `finish()`** drains accepted chunks then
+  returns `AudioError::InputAbandoned`, even for an empty channel. The error stays
+  latched until explicit close; the encoder fabricates no successful EOS.
+- `PcmInput::close()` and Drop immediately close the source, intentionally discard
+  the queue and wake reservations. The transition occurs even if the future
+  returned by close is never polled. A permit held before close rejects a submission
+  that subsequently observes closure.
+- A submission concurrent with close may be accepted and then discarded by that
+  cancellation. **Acceptance and `finish()` are not acknowledgments of consumption,
+  upload or successful dictation.** Always await the existing final conditions:
+  audio/cleanup, S3 END, complete upload and gRPC OK.
 
-`AudioError::InputAbandoned` est une variante publique additive du prototype Rust
-0.1 ; les intégrateurs ayant un match exhaustif doivent l'ajouter. Aucun nouveau
-champ wire ni nouvelle dépendance.
+`AudioError::InputAbandoned` is an additive public variant of the Rust 0.1
+prototype; integrators with an exhaustive match must add it. No new wire field
+or dependency.
 
-## Exemple offline réellement exécutable
+## Actually executable offline example
 
 ```sh
 cargo run -p rambler-audio --example pcm_channel --locked --offline
 ```
 
-L'exemple produit 1017 échantillons synthétiques en fragments de 17 octets, conduit
-producteur/encodeur avec `tokio::join!`, puis attend le nettoyage. Un lecteur Ogg
-indépendant valide framing/CRC, le décodeur libopus couvre le granule final et le
-pre-skip : **3051 échantillons à 48kHz après trim**, un EOS. Aucun contenu audio
-n'est affiché, aucun appareil ou service n'est contacté. L'Opus reste lossy : ce
-contrôle de durée ne prétend pas reproduire le PCM d'entrée à l'identique.
+The example produces 1017 synthetic samples in 17-byte fragments, drives
+producer/encoder with `tokio::join!`, then awaits cleanup. An independent Ogg
+reader validates framing/CRC, the libopus decoder covers final granule and pre-skip:
+**3051 samples at 48 kHz after trim**, one EOS. No audio content is displayed,
+no device or service contacted. Opus remains lossy: this duration check does not
+claim to reproduce input PCM identically.
 
-Ce smoke est un usage du package public, pas une dictée distante. La fidélité
-avant/après fragmentation est aussi testée par égalité des paquets Opus avec la
-source mémoire existante, pages20/1000ms et durée décodée indépendante.
+This smoke is use of the public package, not remote dictation. Fidelity before/after
+fragmentation is also tested by Opus packet equality with the existing memory
+source, 20/1000 ms pages and independent decoded duration.
 
-## Validation et limites
+## Validation and limits
 
-Les 19 nouveaux tests sont répartis entre contrat de canal et composition avec
-l'encodeur : capacité, réveils vérifiés sans sleeps, réservations annulées, close
-non pollé, limites/restitution, isolation, tail, abandon, troncature et EOF vide.
-La revue indépendante Sol de la machine d'états est statique, pas une preuve
-formelle, une revue Opus ou une exploration exhaustive des ordonnancements.
+The 19 new tests are divided between channel contract and composition with the
+encoder: capacity, wakeups verified without sleeps, cancelled reservations, unpolled
+close, limits/return, isolation, tail, abandonment, truncation and empty EOF. Sol's
+independent state-machine review is static, not a formal proof, Opus review or
+exhaustive exploration of schedules.
 
-[Preuve des builds/tests](../evidence/rust-pcm-channel.json). L'échec initial du
-check sans `cmake` sur PATH reste conservé ; la validation utilise le CMake local
-existant par variable de processus explicite, sans installation/réglage global.
-Pas de nouveau gain de latence, d'endurance ou de qualité distante revendiqué.
-La parité Android et les limites d'authentification restent distinctes.
+[Build/test evidence](../evidence/rust-pcm-channel.json). The initial check failure
+without `cmake` on PATH remains preserved; validation uses existing local CMake via
+an explicit process variable, without global installation/configuration. No new
+latency, endurance or remote quality gain is claimed. Android parity and
+authentication limits remain distinct.
 
-## Qualification jusqu'au moteur et au pair HTTP/2
+## Qualification through the engine and HTTP/2 peer
 
-Les tests CLI optionnels audio composent le vrai canal PCM, `Pcm16Opus`, `Engine`
-et `GrpcTransport` face à un serveur tonic loopback. Les helpers existants sont
-réutilisés depuis les tests engine/audio ; aucune dépendance ni implémentation
-moteur de substitution n'est ajoutée. Les réponses S3 du pair sont synthétiques,
-pas des reconnaissances du véritable service.
+Optional audio CLI tests compose the real PCM channel, `Pcm16Opus`, `Engine` and
+`GrpcTransport` against a loopback tonic server. Existing helpers are reused from
+engine/audio tests; no dependency or substitute engine implementation is added.
+The peer's S3 responses are synthetic, not recognition by the real service.
 
-Les cinq tests se complètent sans réattribuer leurs assertions à chaque cas :
+The five tests complement each other without attributing their assertions to every case:
 
-- `pcm_channel_engine.rs` (2 tests) vérifie les octets Ogg effectivement reçus,
-  CRC/framing par lecteur Ogg indépendant, durée décodée par libopus avec trim,
-  égalité des paquets Opus avec la source mémoire et ordre init/audio/contexte/END.
-  Le cas fragmenté utilise1607 échantillons et pages20/1000ms ; le cas contexte
-  tardif utilise967 échantillons. L'EOF audio/nettoyage précède l'appel au provider,
-  mais pas l'EOF du RequestSource complet. END S3 ne suffit pas pendant l'attente
-  du statut gRPC ; une erreur terminale PermissionDenied reste une erreur.
-- `pcm_engine_failure.rs` (3 tests) vérifie abandon typé du producteur, réservation
-  réellement Pending sur file pleine puis réveillée par annulation moteur sans
-  transfert des bytes de l'appelant, et END/OK précoce avec producteur toujours
-  ouvert classé `IncompleteSession`. Cleanup et suppression du contexte d'échec
-  sont contrôlés. **Le cas d'abandon n'établit que l'arrivée d'un payload audio
-  commençant par OggS : une page OpusHead suffit, sans preuve d'arrivée d'un paquet
-  d'échantillons, de CRC ou de durée décodée dans ce cas.**
+- `pcm_channel_engine.rs` (2 tests) checks Ogg bytes actually received, CRC/framing
+  via an independent Ogg reader, libopus decoded duration with trim, Opus packet
+  equality with the memory source and init/audio/context/END order. The fragmented
+  case uses 1607 samples and 20/1000 ms pages; the late context case uses 967
+  samples. Audio EOF/cleanup precedes the provider call, but not EOF of the entire
+  RequestSource. S3 END is insufficient while awaiting gRPC status; terminal
+  PermissionDenied remains an error.
+- `pcm_engine_failure.rs` (3 tests) checks typed producer abandonment, reservation
+  actually Pending on a full queue then awakened by engine cancellation without
+  transferring caller bytes, and early END/OK with producer still open classified
+  `IncompleteSession`. Cleanup and failure context suppression are checked.
+  **The abandonment case establishes only arrival of an audio payload beginning
+  with OggS: an OpusHead page suffices, without proof of arrival of a sample packet,
+  CRC or decoded duration in this case.**
 
-### Matrice de la base commitée, publiée le15 novembre2026
+### Committed base matrix, published November 15, 2026
 
-Cette qualification appartient à la base intégrée `90a773a`, **pas au lot de
-fiabilité local non commité**. Ses compteurs et hashes sont historiques ; aucune
-relance finale de ce nouveau lot n'est déduite des résultats ci-dessous.
+This qualification belongs to integrated base `90a773a`, **not the uncommitted
+local reliability batch**. Its counts and hashes are historical; no final rerun
+of the new batch is inferred from the results below.
 
-Les exécutions restent datées du **14 novembre2026**, pas du jour de publication.
-Sur chacun de Windows stable, Windows/MSVC1.88 et Linux/WSL1.88 : **310 tests
-workspace passent,0 échoué,1 ignoré**. Ce sont305 tests de base plus les cinq tests
-ci-dessus, pas930 tests distincts ni cinq dictées distantes. L'exemple
-`session_reuse` passe10 tests et la CLI sans audio30, sur les deux OS. Windows
-valide aussi Clippy strict, formatage et release CLI avec/sans audio ; Linux
-valide release CLI audio. Build de l'exemple PCM et smoke release passent sur les
-deux OS :1017 échantillons d'entrée,3051 après trim à48kHz,1 EOS,0 appel service.
-Aucun nouveau comportement production ni dépendance.
+Runs remain dated **November 14, 2026**, not publication day. On each of Windows
+stable, Windows/MSVC 1.88 and Linux/WSL 1.88: **310 workspace tests pass, 0 failed,
+1 ignored**. These are 305 base tests plus the five tests above, not 930 distinct
+tests or five remote dictations. The `session_reuse` example passes 10 tests and
+the CLI without audio 30, on both OSes. Windows also validates strict Clippy,
+formatting and release CLI with/without audio; Linux validates release audio CLI.
+PCM example build and release smoke pass on both OSes: 1017 input samples, 3051
+after trim at 48 kHz, 1 EOS, 0 service calls. No new production behavior or
+dependency.
 
-Lors de cette publication, les96 entrées des manifestes Windows/Linux étaient
-strictement identiques et leurs hashes correspondaient au snapshot qualifié.
-La preuve publie le digest canonique du manifeste complet et les hashes
-sélectionnés des **deux fichiers CLI réels**, des helpers réutilisés et des entrées
-bibliothèque pertinentes. Hashes des rapports, logs et sections Linux avaient été
-revérifiés sans relance des builds/tests/binaires. Les fichiers modifiés depuis
-nécessitent de nouveaux hashes après la validation finale, pas un report implicite
-de cette ancienne correspondance.
+At publication, the 96 Windows/Linux manifest entries were strictly identical and
+their hashes matched the qualified snapshot. The evidence publishes the complete
+manifest's canonical digest and selected hashes of the **two actual CLI files**,
+reused helpers and relevant library inputs. Report, log and Linux section hashes
+had been rechecked without rerunning builds/tests/binaries. Files changed since
+require new hashes after final validation, not implicit carryover of that old match.
 
-Les deux contre-revues statiques finales n'identifient aucun défaut concret
-bloquant : réservations bloquées/OK précoce absents du fichier normal sont couverts
-par le fichier d'échec ; codec/ordre sains absents du fichier d'échec le sont par
-le fichier normal. La limite en-tête seul de l'abandon demeure. Une première revue
-était bloquée par la cible inexistante `pcm_engine_finish.rs`, puis corrigée par
-reprise du workflow : ni échec production, ni succès initial de revue. L'auteur
-avait nommé le fichier d'échec `pcm_input_failures.rs` avant son renommage en
-`pcm_engine_failure.rs` ; les logs ciblés et les trois logs workspace exécutent
-les **noms finaux**, sans inférer leur exécution des anciennes commandes auteur.
-Ces revues sont statiques, sans attribution certifiée au modèle Opus ni preuve
-formelle d'exhaustivité.
+The two final static counter-reviews identify no concrete blocking defect: blocked
+reservations/early OK absent from the normal file are covered by the failure file;
+healthy codec/order absent from the failure file are covered by the normal file.
+The abandonment header-only limit remains. A first review was blocked by nonexistent
+`pcm_engine_finish.rs` target, then corrected by resuming the workflow: neither
+production failure nor initial review success. The author had named the failure file
+`pcm_input_failures.rs` before renaming it `pcm_engine_failure.rs`; targeted logs
+and all three workspace logs execute the **final names**, without inferring their
+execution from old author commands. These reviews are static, without certified
+attribution to the Opus model or formal proof of exhaustiveness.
 
-[Preuve d'intégration séparée](../evidence/rust-pcm-engine-loopback.json).
-Elle ne réattribue pas les anciens tests de canal/encodeur à une dictée distante,
-ne transforme pas un pair simulé en qualification Google et n'établit aucune
-nouvelle parité Android, intention, disponibilité d'accès ou performance WAN.
-macOS reste non exécuté ; ni les comptes de tests ni les revues ne prouvent un
-moteur parfait ou la parité Gboard complète.
+[Separate integration evidence](../evidence/rust-pcm-engine-loopback.json).
+It does not reattribute old channel/encoder tests to remote dictation, turn a
+simulated peer into Google qualification or establish new Android parity, intent,
+access availability or WAN performance. macOS remains not run; neither test counts
+nor reviews prove a perfect engine or complete Gboard parity.
 
-## Contrat de fiabilité local — qualification distincte de la base commitée
+## Local reliability contract — qualification distinct from the committed base
 
-Les travaux du15 novembre renforcent la frontière source/transport sans changer
-la signification de `writer.finish()` : il annonce l'EOF du producteur, pas une
-dictée acquittée. Pour les sources audio fournies, un abandon, une troncature ou
-une erreur de lecture reste `Err` aux appels `AudioSource::next()` suivants jusqu'au
-close explicite ; l'encodeur ne fabrique pas d'EOS sain après une telle erreur.
-La libération unique de l'upstream et la persistance de la faute sont deux états
-distincts. Le close conserve sa propre issue de cleanup.
+Work on November 15 strengthens the source/transport boundary without changing
+`writer.finish()` meaning: it announces producer EOF, not acknowledged dictation.
+For supplied audio sources, abandonment, truncation or read error remains `Err` on
+subsequent `AudioSource::next()` calls until explicit close; the encoder does not
+fabricate healthy EOS after such an error. One-time upstream release and fault
+persistence are distinct states. Close retains its own cleanup outcome.
 
-Ne pas confondre cette persistance avec `rambler_transport::Session::next()` :
-celui-ci est volontairement fused après sa première erreur terminale, et son
-`finish()` conserve l'issue. Une paire `TransportError::PrimaryAndCleanup` peut
-préserver les deux causes ; l'engine restaure localement la primaire et conserve
-le cleanup distinct une fois dans son ledger `AudioCleanup`. Annulation explicite
-avec cleanup défaillant reste `Cleanup` au transport.
+Do not confuse this persistence with `rambler_transport::Session::next()`: that is
+intentionally fused after its first terminal error, and its `finish()` retains the
+outcome. A `TransportError::PrimaryAndCleanup` pair can preserve both causes; the
+engine locally restores the primary and retains distinct cleanup once in its
+`AudioCleanup` ledger. Explicit cancellation with failed cleanup remains `Cleanup`
+at transport.
 
-Le premier `source.next()` attend désormais métadonnées, h2 ready et succès local
-de `send_request`. Cette admission ne prouve ni réception/authentification du pair,
-ni détection d'une perte silencieuse derrière NAT. Un constructeur de source ou un
-producteur indépendant peut déjà avoir travaillé avant le `start` synchrone.
-Une source acceptée est nettoyée une fois même sans premier chunk consommé.
-Un rejet synchrone du transport brut avant `Ok(Session)` ne fait qu'un Drop
-ordinaire ; `Engine::start` supervise le cleanup audio même après rejet pour
-configuration invalide ou moteur fermé. Attendre alors `Engine::close().await`.
+The first `source.next()` now waits for metadata, h2 ready and local `send_request`
+success. This admission proves neither peer receipt/authentication nor detection
+of silent loss behind NAT. A source constructor or independent producer may already
+have worked before synchronous `start`. An accepted source is cleaned up once even
+without a first chunk consumed. Synchronous raw transport rejection before
+`Ok(Session)` only performs ordinary Drop; `Engine::start` supervises audio cleanup
+even after rejection for invalid configuration or closed engine. Then await
+`Engine::close().await`.
 
-`SessionOptions.finalize_timeout: Option<Duration>` (défaut `None`, CLI
-`--finalize-timeout`) fournit un budget qui commence seulement après EOF **et cleanup
-audio réussi**. Il borne contexte, fin d'upload et statut/livraison sous le plafond
-du délai dur de 30 s, qui **inclut la parole**. `Some(Duration::ZERO)` est refusé
-et un budget énorme est plafonné au dur ; aucun faux EOF, `max_audio` ou arrêt
-automatique de la source
-n'est ajouté. Les nettoyages restent attendus coopérativement au-delà des délais.
+`SessionOptions.finalize_timeout: Option<Duration>` (default `None`, CLI
+`--finalize-timeout`) provides a budget starting only after EOF **and successful
+audio cleanup**. It bounds context, upload completion and status/delivery under
+the hard 30 s deadline, which **includes speech**. `Some(Duration::ZERO)` is
+rejected and a huge budget is capped at the hard deadline; no false EOF, `max_audio`
+or automatic source stop is added. Cleanup remains cooperatively awaited beyond
+deadlines.
 
-Toutes les attentes fallibles précèdent désormais le commit terminal privé
-irréversible : un EOF sain publié ne devient plus erreur et `eof_seconds` date
-ce commit réussi, pas le dernier échantillon. Les régressions dédiées et l'état
-Windows/Linux sont séparés des anciens 12 scénarios dans le
-[contrat de fiabilité](rust-reliability-lifecycle.md) ; les 310 tests historiques
-ci-dessus ne qualifient pas ce lot. Aucun rejeu/reconnect automatique, keepalive ou
-gain de performance n'est revendiqué, ni nouvelle qualification Android/ART,
-authentification, COMPOSE, macOS ou service réel.
+All fallible waits now precede the private irreversible terminal commit: a published
+healthy EOF no longer becomes an error and `eof_seconds` dates that successful
+commit, not the last sample. Dedicated regressions and Windows/Linux status are
+separate from the old 12 scenarios in the [reliability contract](rust-reliability-lifecycle.md);
+the historical 310 tests above do not qualify this batch. No automatic replay/reconnect,
+keepalive or performance gain is claimed, nor new Android/ART, authentication,
+COMPOSE, macOS or real service qualification.
 
-## Préflight natif du code récent — 15 novembre 2026
+## Native preflight of recent code — November 15, 2026
 
-La [preuve de préflight](../evidence/rust-native-release-preflight-20261115.json)
-consigne un refus NO_GO à une barrière réelle de confidentialité, sans appel
-service. Après correction du vérificateur, les 11 groupes de tests offline passent ;
-les contrôles interpréteur/sources/binaire passent, mais le contrôle ACL refuse
-encore. Ni les permissions ni la politique d'admission n'ont été modifiées.
-La qualification live du code récent, notamment terminal/échantillons/nettoyage
-et rendu, **n'a pas été effectuée**. Aucun audio ni identifiant chargé, aucun
-sentinel, réservation ou lancement CLI/service ; une réservation ne prouverait
-pas une réception serveur. Le confinement de descendants n'a pas été testé en exécution.
-Les anciennes preuves CI et Windows live restent inchangées ; Linux reste NO_GO,
-le budget téléphone 0/0/0, sans revendication COMPOSE ou parité Android.
+The [preflight evidence](../evidence/rust-native-release-preflight-20261115.json)
+records a NO_GO rejection at a real privacy barrier, without a service call. After
+fixing the checker, all 11 offline test groups pass; interpreter/source/binary
+checks pass, but the ACL check still rejects. Neither permissions nor admission
+policy were changed. Live qualification of recent code, particularly terminal/
+samples/cleanup and rendering, **was not performed**. No audio or identifier loaded,
+no sentinel, reservation or CLI/service launch; a reservation would not prove
+server receipt. Descendant confinement was not tested in execution. Old CI and
+Windows live evidence remain unchanged; Linux remains NO_GO, phone budget 0/0/0,
+without COMPOSE or Android parity claims.
 
-## Régression native release — résultat distinct de la réservation — 16 novembre 2026
+## Native release regression — result distinct from reservation — November 16, 2026
 
-Le NO_GO ci-dessus reste l'observation correcte du préflight précédent. La
-[remédiation de racine privée](../evidence/rust-private-capture-root-20261115.json)
-a ensuite permis une nouvelle admission sans modifier l'ancienne ACL ni la
-politique ; aucune administration ni modification de réglages. Les protections
-ne garantissent pas contre un processus hostile du même utilisateur ou un
-administrateur, les écritures de contenu ou toutes les courses locales.
+The NO_GO above remains the correct observation of the previous preflight. The
+[private root remediation](../evidence/rust-private-capture-root-20261115.json)
+subsequently enabled new admission without changing the old ACL or policy; no
+administration or settings changes. Protections do not guarantee against a hostile
+process of the same user or administrator, content writes or all local races.
 
-Le contrôleur gelé `78ce29130fef8ac828d0dac58e7bc2183ddc8861a985ab01c2f9eb753a5bc1f4`
-a passé 20 groupes offline, un préflight, un sentinel renforcé de commande
-verrouillée et descendants, puis une génération locale SAPI supervisée. Une seule
-opportunité et capture ont été consommées, sans retry ni rejeu. Le processus du
-contrôleur est sorti à 0 avec `REGRESSION_HEALTHY_STRICT` ; le candidat n'a été
-qualifié qu'après sortie et les gardes de capture et provenance ont passé. Le
-nettoyage supervisé est terminé. Les métadonnées publiques de l'entrée sont
-synthétiques ; aucun audio ni capture brute n'est publié.
+Frozen controller `78ce29130fef8ac828d0dac58e7bc2183ddc8861a985ab01c2f9eb753a5bc1f4`
+passed 20 offline groups, a preflight, a strengthened locked-command and descendants
+sentinel, then supervised local SAPI generation. One opportunity and capture were
+consumed, without retry or replay. The controller process exited 0 with
+`REGRESSION_HEALTHY_STRICT`; the candidate was qualified only after exit and capture
+and provenance guards passed. Supervised cleanup completed. Public input metadata
+is synthetic; no audio or raw capture is published.
 
-Le HEAD lors de la capture est `703f0eee82f6228044115f72be5744aba7c08d6f`,
-l'association production `7327f51b89aeec537e8bf5ebaf6db3b0c25e5cef` et le hash
-CLI `3d1d2916e337419d4f2987084c2d7002cc02b59c2ad07b6e1e0fc91d7507cb8e`.
-C'est la CLI release, non le binaire du banc ni une attestation CI. L'entrée de
-69 440 échantillons PCM16 mono représente 138 880 octets et 4,34 s à 16 kHz ;
-le fichier de 138 924 octets ajoute 44 octets. Les comptes préparation et capture
-concordent, avec 69 440 échantillons encodés et EOF/cleanup observés.
+HEAD at capture is `703f0eee82f6228044115f72be5744aba7c08d6f`, production
+association `7327f51b89aeec537e8bf5ebaf6db3b0c25e5cef` and CLI hash
+`3d1d2916e337419d4f2987084c2d7002cc02b59c2ad07b6e1e0fc91d7507cb8e`.
+This is the release CLI, not the benchmark binary or a CI attestation. Input of
+69,440 mono PCM16 samples represents 138,880 bytes and 4.34 s at 16 kHz; the
+138,924-byte file adds 44 bytes. Preparation and capture counts agree, with 69,440
+samples encoded and EOF/cleanup observed.
 
-Les 223 requêtes produites sont des **messages protobuf**, pas des RPC ; le
-nombre de RPC côté serveur reste inconnu. Les 2,2043591 s écoulées concernent
-une session client non cadencée, sans conclusion de vitesse WAN ou de qualité.
-Les flags terminaux sont inférés du contrat de succès CLI vérifié, non d'une
-capture wire indépendante. Intent 2/champ actif 7 qualifie une requête littérale
-stricte, pas COMPOSE ni génération : les booléens de rétention sont mécaniques,
-la sémantique d'un message généré reste inconnue.
+The 223 produced requests are **protobuf messages**, not RPCs; server-side RPC
+count remains unknown. The 2.2043591 s elapsed concern an unpaced client session,
+without WAN speed or quality conclusion. Terminal flags are inferred from the
+verified CLI success contract, not an independent wire capture. Intent 2/active
+field 7 qualifies a strict literal request, not COMPOSE or generation: retention
+booleans are mechanical, semantics of a generated message remain unknown.
 
-La [réservation durable initiale](../evidence/rust-native-release-regression-20261115-budget.json)
-reste immuable avec son résultat pré-exécution `not_observed_at_reservation` ;
-la [preuve distincte](../evidence/rust-native-release-regression-20261116.json)
-publie le résultat observé sans modifier ce fait historique. Ce cas synthétique
-unique ne démontre ni qualité ASR représentative, perfection, provisionnement
-durable ou parité Android. Linux live, téléphone, autres intentions, révocation et
-cause de l'incident long restent ouverts ; les échecs historiques sont conservés.
+The [initial durable reservation](../evidence/rust-native-release-regression-20261115-budget.json)
+remains immutable with its pre-execution result `not_observed_at_reservation`; the
+[separate evidence](../evidence/rust-native-release-regression-20261116.json)
+publishes the observed result without changing that historical fact. This single
+synthetic case demonstrates neither representative ASR quality, perfection,
+durable provisioning nor Android parity. Linux live, phone, other intents,
+revocation and the long incident's cause remain open; historical failures are retained.
 
-## Profil CPU local de la session PCM 48 kHz — 18 novembre 2026
+## Local CPU profile of the 48 kHz PCM session — November 18, 2026
 
-Après la symétrisation du FIR, le [profil Windows hors ligne](../evidence/rust-native-pcm48-session-cpu-windows-20261118.md) sur 180 s de PCM synthétique non cadencé attribue environ 56 % des cycles du thread de session à Opus/Ogg, 17 % au décimateur et 26–27 % au reste (Engine, h2, pair local et collecteur). La lecture d’une source prête ou via le vrai `pcm_channel` borné conserve cette répartition. Le CRC Ogg à table a produit les mêmes octets, mais n’a gagné que 13 paires CPU sur 20 (seuil fixé à 15) : non retenu. Ces mesures ne prédisent ni la latence réseau ni la consommation microphone/service en temps réel.
+After FIR symmetrization, the [offline Windows profile](../evidence/rust-native-pcm48-session-cpu-windows-20261118.md)
+on 180 s of unpaced synthetic PCM attributes about 56% of session thread cycles to
+Opus/Ogg, 17% to the decimator and 26–27% to the remainder (Engine, h2, local peer
+and collector). Reading a ready source or through the actual bounded `pcm_channel`
+retains this distribution. Table-based Ogg CRC produced the same bytes but won
+only 13 CPU pairs out of 20 (threshold set at 15): not retained. These measurements
+predict neither network latency nor real-time microphone/service consumption.

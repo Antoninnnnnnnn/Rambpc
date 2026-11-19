@@ -1,78 +1,75 @@
-# Moteur et CLI Rust de Sambler
+# Sambler Rust engine and CLI
 
-Le portage est séparé de la référence Python 0.3 : aucun interpréteur Python,
-Android, téléphone relais ni processus FFmpeg dans le chemin Rust. Il utilise le
-même service S3Bidi Rambler et le même routage, pas une API Gemini publique.
-Voir [le contrat de portage](architecture/portage-rust.md).
+The port is separate from the Python 0.3 reference: there is no Python interpreter,
+Android, relay phone or FFmpeg process in the Rust path. It uses the same S3Bidi
+Rambler service and routing, not a public Gemini API. See the
+[porting contract](architecture/portage-rust.md).
 
-## Validation CI récente
+## Recent CI validation
 
-La CI hors service réel de `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442`
-a réussi sur quatre familles natives avec Rust 1.88.0 et stable. Chacun des
-huit jobs vérifie trois rejets de budgets CLI zéro sur le binaire release et
-la régression de fermeture ; ces restrictions CLI ne changent pas la sémantique
-zéro de la bibliothèque. La première fermeture bornée de ce test accepte `Ok`
-ou l'erreur indépendante `Connect`, et la seconde doit réussir. L'échec des
-trois jobs macOS du précédent run `7327f51` reste historique.
-[Résultats et limites](evidence/rust-close-ledger-zero-budgets-ci-20261115.json).
+The offline CI for `171ef084cc1b1e7f3b82daefdcd6bb0aadafe442` passed on four
+native platform families with Rust 1.88.0 and stable. Each of the eight jobs checks
+three CLI zero-budget rejections on the release binary and the close regression;
+these CLI restrictions do not change the library's zero semantics. The first
+bounded close in this test accepts `Ok` or the independent `Connect` error, and
+the second must succeed. The three macOS job failures in the previous run
+`7327f51` remain historical. [Results and limits](evidence/rust-close-ledger-zero-budgets-ci-20261115.json).
 
-## Construire et vérifier hors service réel
+## Build and test offline
 
-Depuis la racine, avec Rust/Cargo et les outils de compilation natifs de la
-plateforme (MSVC sur Windows ; compilateur C pour `ring` et libopus), ainsi que
-CMake pour l'audio et les tests :
+From the root, with Rust/Cargo and the platform's native build tools (MSVC on
+Windows; a C compiler for `ring` and libopus), as well as CMake for audio and tests:
 
 ```sh
 cargo fmt --all -- --check
 cargo test --workspace --all-features --locked
-# Les tests de cet exemple ne font pas partie du cargo test workspace implicite
+# This example's tests are not part of the implicit workspace cargo test
 cargo test -p rambler-cli --features audio --example session_reuse --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-# Binaire Ogg minimal, sans encodeur ni CMake dans ses dépendances de build
+# Minimal Ogg binary, without an encoder or CMake in its build dependencies
 cargo build --release --locked -p rambler-cli
-# Binaire avec entrée WAV/PCM native
+# Binary with native WAV/PCM input
 cargo build --release --locked -p rambler-cli --features audio
 ```
 
-Le workspace et les dev-dependencies de test incluent libopus même si la feature
-CLI est désactivée. Seul le build normal du binaire Ogg peut s'en passer. Si CMake
-n'est pas sur le PATH, définir `CMAKE` avec le chemin absolu de son exécutable.
-Voir [le guide audio](../crates/rambler-audio/BUILDING.md) pour la toolchain validée,
-l'outil de build isolé sans installation globale et les licences de redistribution.
-Libopus 1.6.1 est liée statiquement ; les DLL système/CRT MSVC restent nécessaires,
-pas une DLL Opus, Python ou FFmpeg.
+The workspace and test dev-dependencies include libopus even when the CLI feature
+is disabled. Only the normal Ogg binary build can do without it. If CMake is not
+on PATH, set `CMAKE` to the absolute path of its executable. See the
+[audio guide](../crates/rambler-audio/BUILDING.md) for the validated toolchain,
+the isolated build tool without global installation, and redistribution licenses.
+Libopus 1.6.1 is statically linked; system DLLs/MSVC CRT are still required, but
+an Opus DLL, Python and FFmpeg are not.
 
-Rust **1.88.0 a été exécuté sur Windows x86_64/MSVC et Linux x86_64/GCC**.
-Les snapshots exacts et les limites de chaque revalidation sont dans la
-[validation du backend](research/rust-backend-validation-2026-11-14.md).
-La CI du commit `4264126852b2c03e25fc231c60f9582569a84ae9` a exécuté avec
-succès Windows, Linux, macOS ARM64 et macOS Intel natif sous 1.88.0 et stable.
-Les résultats PCM/admission, comptes et limites figurent dans la
-[validation des builds](research/rust-build-validation.md) et sa
-[preuve CI](evidence/rust-pcm-admission-expanded-ci-20261115.json). Les tests de ce lot utilisent
-seulement des fixtures et des serveurs loopback, sans appel réel au service. Le téléchargement initial
-nécessite Internet ; `--locked` fixe les versions, pas leur disponibilité locale.
+Rust **1.88.0 was run on Windows x86_64/MSVC and Linux x86_64/GCC**. Exact
+snapshots and limits of each revalidation are in the
+[backend validation](research/rust-backend-validation-2026-11-14.md). CI for commit
+`4264126852b2c03e25fc231c60f9582569a84ae9` successfully ran Windows, Linux,
+macOS ARM64 and native macOS Intel under 1.88.0 and stable. PCM/admission results,
+counts and limits are in the [build validation](research/rust-build-validation.md)
+and its [CI evidence](evidence/rust-pcm-admission-expanded-ci-20261115.json).
+Tests in this batch use only fixtures and loopback servers, with no real service
+call. The initial download requires Internet; `--locked` fixes versions, not their
+local availability.
 
-Le binaire est `target/release/rambler.exe` sur Windows et
-`target/release/rambler` sur Linux/macOS. Aucun environnement virtuel Python n'est
-nécessaire. La présence de sources Python dans le dépôt ne constitue pas une
-dépendance du binaire.
+The binary is `target/release/rambler.exe` on Windows and
+`target/release/rambler` on Linux/macOS. No Python virtual environment is needed.
+The presence of Python sources in the repository does not make them a binary
+dependency.
 
-## CLI fichier Ogg/Opus
+## Ogg/Opus file CLI
 
-Fournir les trois variables d'[authentification](research/authentication.md) dans
-l'environnement : `RAMBLER_API_KEY`, `RAMBLER_ANDROID_PACKAGE` et
-`RAMBLER_ANDROID_CERT`, toutes présentes et non vides. Sur l'endpoint normal,
-la CLI ouvre d'abord l'entrée puis valide les trois champs avant `Engine::connect` ;
-une absence, une configuration partielle, une valeur Unicode invalide ou une
-métadonnée invalide échoue localement et la fermeture de l'entrée est attendue.
-Le snapshot immuable est transmis à `SessionOptions` sans relecture ; snapshots et
-diagnostics sont expurgés à l'affichage. Aucun secret n'est fourni dans un argument
-de commande ; la CLI ne charge pas `.env` implicitement.
-Le chargement explicite Git Bash est décrit dans le README.
+Provide the three [authentication](research/authentication.md) variables in the
+environment: `RAMBLER_API_KEY`, `RAMBLER_ANDROID_PACKAGE` and
+`RAMBLER_ANDROID_CERT`, all present and nonempty. On the normal endpoint, the
+CLI first opens the input, then validates the three fields before `Engine::connect`;
+a missing field, partial configuration, invalid Unicode value or invalid metadata
+fails locally and input closure is awaited. The immutable snapshot is passed to
+`SessionOptions` without rereading; snapshots and diagnostics are redacted when
+displayed. No secret is supplied in a command argument; the CLI does not implicitly
+load `.env`. Explicit loading in Git Bash is described in the README.
 
 ```sh
-# Windows / Git Bash ; retirer .exe sur Linux/macOS
+# Windows / Git Bash; remove .exe on Linux/macOS
 target/release/rambler.exe dictate input.ogg --language fr-FR
 target/release/rambler.exe dictate instruction.ogg --language en-US \
   --before 'The meeting is tomorrow at ten.'
@@ -80,389 +77,375 @@ target/release/rambler.exe dictate instruction.ogg --language en-US \
   --before 'The meeting is tomorrow at ' --selected ten --after '.' --cursor-aware
 ```
 
-L'entrée doit être un **flux Ogg/Opus continu, mono, source 16 kHz**, version1
-et mapping0. La CLI émet une page validée par chunk, sans modifier les octets :
-CRC, séquence, numéro de série unique, continuation, en-têtes, granules et EOS.
-La première page `OpusHead` est contrôlée avant le RPC ; une corruption ultérieure
-est une erreur source, jamais un EOF réussi. La page EOS n'est rendue qu'après
-vérification de l'absence d'octets supplémentaires. Pages bornées à65 307 octets,
-paquets et `OpusTags` à64Kio : une extension/padding légal plus grand reste
-**hors profil pris en charge**, pas universellement invalide. Ce n'est pas un
-décodeur Opus : durée codec, payload audio et qualité audible ne sont pas certifiés.
-Elle ne convertit pas un WAV et ne simule pas le temps réel. Ne pas étiqueter du
-PCM comme Opus. Le SDK `AudioSource` reste un contrat d'octets encodés fournis par
-l'appelant ; cette validation fichier appartient à la CLI.
+Input must be a **continuous Ogg/Opus stream, mono, 16 kHz source**, version 1
+and mapping 0. The CLI emits one validated page per chunk without changing bytes:
+CRC, sequence, single serial number, continuation, headers, granules and EOS.
+The first `OpusHead` page is checked before the RPC; later corruption is a source
+error, never successful EOF. The EOS page is returned only after checking that
+there are no extra bytes. Pages are limited to 65,307 bytes, packets and `OpusTags`
+to 64 KiB: a larger legal extension/padding remains **outside the supported
+profile**, not universally invalid. This is not an Opus decoder: codec duration,
+audio payload and audible quality are not certified. It does not convert WAV or
+simulate real time. Do not label PCM as Opus. The SDK `AudioSource` remains a
+contract for caller-supplied encoded bytes; this file validation belongs to the CLI.
 
-Les commandes fichier exigent des **fichiers réguliers** (liens vers un fichier
-régulier permis), pas des FIFO, pipes, consoles ou périphériques. Sous Unix,
-l'ouverture non bloquante permet de vérifier le descripteur sans attendre un
-producteur ; sous Windows, son type est interrogé avant toute lecture. Les flux
-vivants restent possibles via une implémentation asynchrone `AudioSource`, pas en
-présentant un pipe comme un fichier. Le délai RPC ne borne pas tous les blocages
-possibles du système de fichiers ou d'un disque défaillant. Voir
-[préflight et régressions](research/rust-file-inputs.md).
+File commands require **regular files** (links to a regular file are allowed), not
+FIFOs, pipes, consoles or devices. On Unix, nonblocking open checks the descriptor
+without waiting for a producer; on Windows, its type is queried before any read.
+Live streams remain possible through an asynchronous `AudioSource` implementation,
+not by presenting a pipe as a file. The RPC timeout does not bound every possible
+filesystem or failing-disk stall. See [preflight and regressions](research/rust-file-inputs.md).
 
-Options : `--timeout` (30 s, **parole comprise**), `--context-timeout` (2 s),
-`--finalize-timeout` (optionnel, absent par défaut), ainsi que les listes répétables
-`--bias-term`, `--preference`, `--secondary-language`. Le budget optionnel de
-finalisation commence après EOF et cleanup audio réussi ; il borne contexte,
-fin d'upload et statut/livraison, sans dépasser le délai dur `--timeout`. Zéro est
-refusé ; un budget énorme est plafonné au dur. Aucun `max_audio` ni faux EOF n'est
-ajouté ; le cleanup reste attendu coopérativement même après expiration.
-Le commit terminal irréversible, ses régressions et l'état de qualification
-Windows/Linux sont distingués dans
-[fiabilité et finalisation](research/rust-reliability-lifecycle.md).
-Par exemple `--timeout 150 --finalize-timeout 10` illustre au plus 10 s après
-EOF/cleanup sous 150 s au total, pas un réglage optimal mesuré ni 150 s de parole
-plus 10 s garanties. Les listes sont émises à l'init ; le contexte texte est envoyé
-après l'audio. Leur encodage ne prouve pas leur effet sur le serveur. Ne pas placer
-de texte personnel dans les arguments si l'historique shell/la liste des
-processus peut être consulté.
+Options: `--timeout` (30 s, **including speech**), `--context-timeout` (2 s),
+`--finalize-timeout` (optional, absent by default), and repeatable lists
+`--bias-term`, `--preference`, `--secondary-language`. The optional finalization
+budget starts after EOF and successful audio cleanup; it bounds context, upload
+completion and status/delivery without exceeding the hard `--timeout`. Zero is
+rejected; a huge budget is capped at the hard deadline. No `max_audio` or false
+EOF is added; cleanup is still awaited cooperatively even after expiration. The
+irreversible terminal commit, its regressions and Windows/Linux qualification
+status are distinguished in [reliability and finalization](research/rust-reliability-lifecycle.md).
+For example, `--timeout 150 --finalize-timeout 10` illustrates at most 10 s after
+EOF/cleanup within 150 s total, not a measured optimal setting or 150 s of speech
+plus a guaranteed 10 s. Lists are emitted at init; text context is sent after
+audio. Their encoding does not prove their effect on the server. Do not put
+personal text in arguments if shell history or the process list can be inspected.
 
-Pour `--timeout`, `--context-timeout` et `--finalize-timeout`, zéro est rejeté
-à l'analyse des arguments, avant ouverture de l'entrée, lecture des credentials
-d'environnement ou connexion réseau : JSON expurgé `type=error`,
-`category=arguments`, code de sortie 2. Cela ne garantit pas le rejet de toute
-configuration invalide avant connexion. Côté bibliothèque, les durées nulles de
-`SessionOptions` restent des erreurs `EngineError::InvalidConfig` ; l'appelant
-doit attendre `Engine::close().await` pour le nettoyage coopératif, même après
-un rejet. [Validation locale et limites](evidence/rust-zero-cli-budgets-20261115.json) ;
-la nouvelle étape CI vérifie aussi le binaire release sur les plateformes natives.
+For `--timeout`, `--context-timeout` and `--finalize-timeout`, zero is rejected
+at argument parsing, before input opening, environment credential reading or
+network connection: redacted JSON `type=error`, `category=arguments`, exit code 2.
+This does not guarantee rejection of every invalid configuration before connection.
+In the library, zero `SessionOptions` durations remain `EngineError::InvalidConfig`
+errors; the caller must await `Engine::close().await` for cooperative cleanup,
+even after rejection. [Local validation and limits](evidence/rust-zero-cli-budgets-20261115.json);
+the new CI step also checks the release binary on native platforms.
 
-`ProtocolConfig` expose aussi `block_offensive_words: Option<bool>`,
-`auto_punctuation: Option<bool>` et `secondary_routing: Option<String>`.
-Les trois valeurs par défaut `None` préservent l'init historique octet pour octet.
-La CLI accepte `--block-offensive-words true|false`,
-`--auto-punctuation true|false` et `--secondary-routing VALEUR`. Ce sont des champs
-vérifiés du client S3, pas une preuve de leur effet serveur ni un déclencheur
-COMPOSE. La préférence de mots offensants ne modifie jamais les contrôles safety
-sur les réponses. [Schéma, conditions et limites](research/rust-recognizer-options.md).
+`ProtocolConfig` also exposes `block_offensive_words: Option<bool>`,
+`auto_punctuation: Option<bool>` and `secondary_routing: Option<String>`.
+All three default `None` values preserve the historical init byte for byte.
+The CLI accepts `--block-offensive-words true|false`,
+`--auto-punctuation true|false` and `--secondary-routing VALEUR`. These are
+verified S3 client fields, not proof of their server effect or a COMPOSE trigger.
+The offensive words preference never changes response safety checks.
+[Schema, conditions and limits](research/rust-recognizer-options.md).
 
-La sortie est une ligne JSON UTF-8 après collecte **et** nettoyage. Elle contient
-les finales connues ordonnées, le contexte et les métriques, mais pas les octets
-bruts, champs opaques, identifiants de résultat ou credentials. Une suppression
-valide reste `"text":""`. Une ambiguïté conserve les finales et produit un code
-de sortie non nul ; aucune dernière hypothèse n'est choisie arbitrairement. Le
-contenu textuel reste sensible : la sortie n'est pas un journal automatiquement
-anonymisé. Des finales non retenues comme texte utilisable peuvent encore contenir
-la dictée ou le contexte privé dans cette sortie détaillée.
+Output is one UTF-8 JSON line after collection **and** cleanup. It contains ordered
+known finals, context and metrics, but not raw bytes, opaque fields, result IDs or
+credentials. A valid deletion remains `"text":""`. Ambiguity preserves finals
+and produces a nonzero exit code; no last hypothesis is chosen arbitrarily. Text
+content remains sensitive: output is not an automatically anonymized log. Finals
+not retained as usable text may still contain dictation or private context in this
+detailed output.
 
-Pour brancher la CLI à la télémétrie, utiliser **`--diagnostics-only`** avec `dictate`
-ou `dictate-wav`. La projection retire le texte, les hypothèses et le contexte,
-y compris dans les segments terminés en mode interactif. Elle conserve seulement
-les catégories connues, durées, compteurs et plages d’échantillons et porte le marqueur
-`"diagnostics_only":true` après une analyse valide des arguments. Le code de sortie
-reste celui de la dictée. Cette option ne transforme pas la sortie en résultat de
-reconnaissance, ne change pas les données envoyées au service et ne masque pas les
-arguments que le système ou le shell peuvent conserver.
+To connect the CLI to telemetry, use **`--diagnostics-only`** with `dictate` or
+`dictate-wav`. The projection removes text, hypotheses and context, including in
+completed segments in interactive mode. It retains only known categories,
+durations, counters and sample ranges and carries the `"diagnostics_only":true`
+marker after valid argument parsing. The exit code remains that of the dictation.
+This option does not turn output into a recognition result, change data sent to
+the service or mask arguments that the system or shell may retain.
 
-`--loopback 127.0.0.1:PORT` est réservé aux tests locaux en clair. Il refuse les
-adresses non-loopback et n'utilise **pas** les credentials de l'environnement.
-Le chemin normal utilise TLS vérifié avec les racines système et ALPN HTTP/2.
-La référence Python restreint également `GrpcTransport(..., secure=False)`
-aux adresses numériques de boucle locale avec port explicite (`127.0.0.1:PORT`
-ou `[::1]:PORT`), sans résolution de nom ni proxy. Utiliser TLS ailleurs.
+`--loopback 127.0.0.1:PORT` is reserved for local plaintext tests. It rejects
+non-loopback addresses and does **not** use environment credentials. The normal
+path uses verified TLS with system roots and HTTP/2 ALPN. The Python reference
+also restricts `GrpcTransport(..., secure=False)` to numeric loopback addresses
+with an explicit port (`127.0.0.1:PORT` or `[::1]:PORT`), without name resolution
+or a proxy. Use TLS elsewhere.
 
-## CLI PCM native optionnelle
+## Optional native PCM CLI
 
-Après construction avec `--features audio` :
+After building with `--features audio`:
 
 ```sh
 target/release/rambler.exe dictate-wav input-16k-mono.wav --language fr-FR
 target/release/rambler.exe dictate-wav input-16k-mono.wav --language fr-FR --realtime
-# Comparaison explicite du batching, sans changer les trames codec 20 ms
+# Explicit batching comparison, without changing 20 ms codec frames
 target/release/rambler.exe dictate-wav input-16k-mono.wav --language fr-FR --page-duration-ms 60
 ```
 
-Le WAV doit être PCM16LE mono à 16 ou 48 kHz. À 48 kHz, un seul convertisseur
-48 → 16 kHz traite tout le fichier, y compris avant le découpage interactif.
-Les fréquences autres que 16 et 48 kHz, le stéréo et le PCM flottant sont refusés.
-La source est lue progressivement (chunks CLI 20 ms à la fréquence du fichier), encodée VoIP/VBR24kbps et
-muxée en Ogg continu ; le flush/lookahead et la granule EOS conservent les derniers
-échantillons, sans allonger la durée décodée par le padding. `--realtime` simule une
-source fichier, pas un microphone ; le premier chunk n'attend pas artificiellement.
-`--page-duration-ms` accepte les multiples de 20 entre 20 et 1000, défaut 20.
-Les autres options de contexte, langues et métadonnées sont les mêmes que `dictate`.
-Le build sans feature audio ne propose pas cette commande.
-Sur la sortie finale, `dictate-wav` ajoute un objet `pcm` lorsque l'observateur
-existe : `input_bytes`, `encoded_input_samples`, `encoded_frames`, `input_eof` et
-`output_eof`. `input_bytes` et `encoded_input_samples` comptent le PCM16LE à
-16 kHz remis à l'encodeur, pas les octets ou échantillons du WAV à 48 kHz.
-La sortie Ogg et celle sans feature audio restent inchangées. Ces
-compteurs locaux sont distincts des métriques encodées et ne prouvent ni réception
-serveur ni absence de perte ou de rejeu. Leurs définitions et l'API optionnelle
-sont dans le [contrat PCM](research/rust-pcm-channel.md). La
-[qualification locale A/B](research/rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15)
-précise les périmètres ; voir aussi la [preuve](evidence/rust-pcm-progress-admission.json).
+WAV must be mono PCM16LE at 16 or 48 kHz. At 48 kHz, a single 48 → 16 kHz
+converter processes the entire file, including before interactive segmentation.
+Rates other than 16 and 48 kHz, stereo and floating-point PCM are rejected. The
+source is read progressively (20 ms CLI chunks at the file rate), encoded as
+VoIP/VBR24kbps and muxed into continuous Ogg; flush/lookahead and the EOS granule
+preserve the last samples without extending decoded duration with padding.
+`--realtime` simulates a file source, not a microphone; the first chunk does not
+wait artificially. `--page-duration-ms` accepts multiples of 20 between 20 and
+1000, default 20. Other context, language and metadata options are the same as
+`dictate`. A build without the audio feature does not offer this command.
+On final output, `dictate-wav` adds a `pcm` object when the observer exists:
+`input_bytes`, `encoded_input_samples`, `encoded_frames`, `input_eof` and
+`output_eof`. `input_bytes` and `encoded_input_samples` count PCM16LE at 16 kHz
+passed to the encoder, not the bytes or samples of the 48 kHz WAV. Ogg output and
+output without the audio feature remain unchanged. These local counters are
+distinct from encoded metrics and prove neither server receipt nor absence of
+loss or replay. Their definitions and the optional API are in the
+[PCM contract](research/rust-pcm-channel.md). The
+[local A/B qualification](research/rust-build-validation.md#pcm-progress-and-strict-admission--local-checkpoint-2026-11-15)
+clarifies scope; see also the [evidence](evidence/rust-pcm-progress-admission.json).
 
-Les [quatre essais réels complémentaires](evidence/rust-pcm-functional-public.json)
-valident PCM accéléré/progressif au même texte final, réécriture intention 3 et
-sélection avec emoji. Une [preuve distincte de réutilisation native](evidence/rust-native-session-reuse-public.json)
-valide ensuite trois cas sur un même moteur, avec hash des PCM réellement consommés.
-L'oracle indépendant, ignoré par défaut puis passé séparément sur57 conteneurs,
-est distinct de ces preuves réseau. Les notices
-[libopus/wrapper](../crates/rambler-audio/THIRD_PARTY_LICENSES) accompagnent toute
-redistribution du binaire audio.
+The [four additional live trials](evidence/rust-pcm-functional-public.json)
+validate accelerated/progressive PCM with the same final text, intent 3 rewriting
+and selection with emoji. Separate [native reuse evidence](evidence/rust-native-session-reuse-public.json)
+then validates three cases on one engine, with a hash of the PCM actually consumed.
+The independent oracle, ignored by default and then passed separately on 57
+containers, is distinct from this network evidence. The
+[libopus/wrapper notices](../crates/rambler-audio/THIRD_PARTY_LICENSES) accompany
+any redistribution of the audio binary.
 
-Ctrl-C pendant collecte ou fermeture annule puis attend le nettoyage, avec erreur
-JSON et exit 130. En dictée interactive, les [segments déjà validés](research/recoverable-segment-delivery.md)
-sont conservés dans la sortie privée, sans texte global. Une erreur de fermeture
-est également indiquée. La supervision est testée par simulation déterministe et par
-[signal console Windows réel en loopback](evidence/rust-windows-ctrl-c.json), dans
-une nouvelle console dont les seuls processus attachés sont le pilote et son
-client enfant. Le premier pilote a temporisé ; l'isolation/héritage console a été
-corrigé sans modifier le binaire. Reproduction offline avec le venv de test et le
-fixture contrôlé préparé :
+Ctrl-C during collection or closure cancels and then awaits cleanup, with a JSON
+error and exit 130. In interactive dictation, [already validated segments](research/recoverable-segment-delivery.md)
+are retained in private output, without global text. A close error is also reported.
+Supervision is tested by deterministic simulation and by a
+[real Windows console signal on loopback](evidence/rust-windows-ctrl-c.json), in a
+new console whose only attached processes are the driver and its child client.
+The first driver timed out; console isolation/inheritance was corrected without
+changing the binary. Offline reproduction with the test venv and prepared
+controlled fixture:
 
 ```sh
 .venv/Scripts/python -I tools/validate_rust_ctrl_c.py . local/ctrl-c-new.json
 ```
 
-## Bibliothèques
+## Libraries
 
-- `rambler-protocol` : encodage des requêtes et décodage protobuf borné ; présence,
-  inconnus, ordre et fusion proto2 préservés, octets racine exacts.
-- `rambler-transport` : connexion HTTP/2 partagée, framing gRPC, métadonnées,
-  délais et superviseurs de nettoyage. Client `h2` + `tokio-rustls`/`ring` ;
-  `tonic` reste utilisé pour les types gRPC et les serveurs de test. Le client
-  tonic/hyper initial n'offrait pas le contrôle de reset nécessaire au test
-  d'annulation sous backpressure ; ce changement ne modifie pas le backend.
-- `rambler-engine` : assemblage des sessions, source audio asynchrone, contexte
-  différé, événements, collecte bornée et politique de résultat/proposition.
-- `rambler-audio` : source WAV stricte, entrée PCM producteur bornée et adaptateur
-  PCM → Ogg/Opus natif statique, fragmentation, tail/flush, pacing fichier et
-  cleanup bornés ; aucun microphone.
-- `rambler-cli` : adaptateur fichier minimal, sans microphone, GUI ou insertion.
+- `rambler-protocol`: request encoding and bounded protobuf decoding; presence,
+  unknowns, order and proto2 merging preserved, exact root bytes.
+- `rambler-transport`: shared HTTP/2 connection, gRPC framing, metadata, deadlines
+  and cleanup supervisors. `h2` + `tokio-rustls`/`ring` client; `tonic` remains
+  in use for gRPC types and test servers. The original tonic/hyper client did not
+  provide the reset control needed to test cancellation under backpressure; this
+  change does not modify the backend.
+- `rambler-engine`: session assembly, asynchronous audio source, deferred context,
+  events, bounded collection and result/proposal policy.
+- `rambler-audio`: strict WAV source, bounded producer PCM input and static native
+  PCM → Ogg/Opus adapter, fragmentation, tail/flush, file pacing and bounded
+  cleanup; no microphone.
+- `rambler-cli`: minimal file adapter, without microphone, GUI or insertion.
 
-Un [exemple d'intégration Rust compilé par les doctests](../crates/rambler-engine/src/lib.rs)
-illustre la collecte depuis une source fournie par l'appelant, le contexte et les
-credentials injectés. `Presentation::new(&response)` fournit une vue empruntée du membre actif
-(reconnaissance, événement vocal, variante opaque). `RecognitionCompletion::Complete`
-signifie state1, **pas** une fin globale. Les présences des conteneurs3/4/5/7
-sont indépendantes. `PartialTranscript::from_result` sépare préfixe stable et
-suffixe provisoire selon le client observé ; ne jamais ajouter les aperçus de
-réponses successives. La vue n'autorise aucune application dans l'éditeur.
-Pour les signatures détaillées :
+A [Rust integration example compiled by doctests](../crates/rambler-engine/src/lib.rs)
+illustrates collection from a caller-supplied source, context and injected
+credentials. `Presentation::new(&response)` provides a borrowed view of the
+active member (recognition, speech event, opaque variant).
+`RecognitionCompletion::Complete` means state 1, **not** global completion.
+Presence of containers 3/4/5/7 is independent. `PartialTranscript::from_result`
+separates stable prefix and provisional suffix according to the observed client;
+never append previews from successive responses. The view does not authorize any
+application in the editor. For detailed signatures:
 
 ```sh
 cargo doc -p rambler-engine -p rambler-transport -p rambler-protocol --no-deps --open
 ```
 
-`SourceError` masque les détails sensibles dans `Display`, `Debug` et la chaîne
-d'erreur automatique. `original()` est un accès explicite à l'erreur typée,
-compatible avec `downcast_ref` ; ne pas journaliser ce contenu aveuglément.
+`SourceError` masks sensitive details in `Display`, `Debug` and the automatic
+error chain. `original()` provides explicit access to the typed error, compatible
+with `downcast_ref`; do not log this content blindly.
 
-`Engine::connect(TransportConfig)` possède son transport ;
-`Engine::new(transport)` utilise un transport injecté qui reste à fermer par
-l'appelant. `Engine::start(Box<dyn AudioSource>, SessionOptions)` prend la source
-en charge immédiatement. Avant le premier `source.next()`, le transport attend
-métadonnées valides, h2 ready et succès local de `send_request` ; ce n'est ni une
-acceptation du pair/authentification, ni un health check/détecteur de NAT silencieux.
-Le constructeur de la source peut déjà avoir travaillé avant le `start` synchrone.
-`Engine::start` supervise le nettoyage audio même en cas de configuration invalide
-ou de moteur fermé ; attendre `Engine::close().await` pour terminer ce nettoyage
-également après un rejet. Pour le transport brut, c'est différent : un rejet
-synchrone de `GrpcTransport::start` avant `Ok(Session)` ne transfère pas la source
-au superviseur et relève du Drop Rust ordinaire. Après acceptation, la source est
-nettoyée une fois même sans admission RPC réussie. `StreamAudio::new(stream)`
-adapte un flux de fragments `Bytes`. Les implémentations de source doivent coopérer
-avec l'annulation et leur `close` asynchrone doit terminer.
+`Engine::connect(TransportConfig)` owns its transport; `Engine::new(transport)`
+uses an injected transport that the caller must still close.
+`Engine::start(Box<dyn AudioSource>, SessionOptions)` takes charge of the source
+immediately. Before the first `source.next()`, transport waits for valid metadata,
+h2 ready and local `send_request` success; this is neither peer acceptance or
+authentication nor a health check/silent NAT detector. The source constructor may
+already have worked before synchronous `start`. `Engine::start` supervises audio
+cleanup even for invalid configuration or a closed engine; await
+`Engine::close().await` to finish this cleanup after rejection too. Raw transport
+is different: synchronous rejection by `GrpcTransport::start` before
+`Ok(Session)` does not transfer the source to the supervisor and falls under
+ordinary Rust Drop. After acceptance, the source is cleaned up once even without
+successful RPC admission. `StreamAudio::new(stream)` adapts a stream of `Bytes`
+fragments. Source implementations must cooperate with cancellation and their
+asynchronous `close` must finish.
 
-L'établissement initial résout une fois le DNS et conserve toutes les adresses,
-en alternant les familles. La course TCP de style Happy Eyeballs conserve le
-stagger normal de **250 ms** ; après échec observé, elle accélère avec l'échéance
-`min(échéance prévue, max(dernier lancement + 10 ms, maintenant))`, sans reporter
-un départ programmé. Chaque future épinglée reçoit son premier poll avec le waker
-réel avant tout yield ; le dernier lancement est horodaté **après ce poll**, pas à
-la construction. Ces délais d'**initiation de l'API applicative** sont inspirés du
-[RFC 8305 §5](https://www.rfc-editor.org/rfc/rfc8305.txt) : défaut recommandé 250 ms,
-minimum recommandé 100 ms (`SHOULD`), plancher absolu **10 ms** (`MUST NOT`).
-Ils ne constituent **ni une mesure ni une preuve d'espacement des SYN noyau**,
-ni une conformité RFC 8305 complète : aucune course DNS AAAA/A ni implémentation
-complète de RFC 6724. Aucun gain de performance n'est revendiqué. La course yield
-après initiation pour ne pas masquer le timeout et ferme les perdants avant TLS.
-Le plafond de connexion 10 s par défaut couvre
-DNS/TCP/TLS/h2 et conserve `Timeout` ; environ 41 tentatives bloquées sous ce défaut
-n'est pas une borne pour un timeout utilisateur arbitraire. Nom TLS original,
-racines système et ALPN restent inchangés ; une faute TLS ne déclenche pas une
-autre destination. Ce n'est pas un retry/replay/reconnect de session et aucun
-keepalive/PING n'est ajouté. La [correction de premier poll et ses 19 tests ciblés](research/rust-connection-lifecycle.md#correction-ciblée-du-pacing-tcp--15-novembre-2026)
-est distincte des [résultats intégrés Windows/Linux](research/rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
-Les 13 anciens tests dont l'oracle enregistrait la construction des futures ne
-qualifient pas le premier poll.
-La fenêtre h2 de réception connexion 1 Mio / stream 65 535 octets et les files
-applicatives de capacité un donnent une marge finie, pas une isolation pour N
-streams quelconques ni une borne RSS globale.
+Initial establishment resolves DNS once and retains all addresses, alternating
+families. The Happy Eyeballs-style TCP race retains the normal **250 ms** stagger;
+after an observed failure, it accelerates with deadline
+`min(scheduled deadline, max(last launch + 10 ms, now))`, without delaying
+a scheduled start. Each pinned future receives its first poll with the real waker
+before any yield; the last launch is timestamped **after this poll**, not at
+construction. These **application API initiation** delays are inspired by
+[RFC 8305 §5](https://www.rfc-editor.org/rfc/rfc8305.txt): recommended default
+250 ms, recommended minimum 100 ms (`SHOULD`), absolute floor **10 ms** (`MUST NOT`).
+They are **neither a measurement nor proof of kernel SYN spacing**, nor full
+RFC 8305 compliance: there is no AAAA/A DNS race or complete RFC 6724 implementation.
+No performance gain is claimed. The race yields after initiation to avoid hiding
+the timeout and closes losers before TLS. The default 10 s connection ceiling
+covers DNS/TCP/TLS/h2 and preserves `Timeout`; approximately 41 blocked attempts
+under this default is not a bound for an arbitrary user timeout. The original TLS
+name, system roots and ALPN remain unchanged; a TLS fault does not trigger another
+destination. This is not session retry/replay/reconnect and no keepalive/PING is
+added. The [first-poll fix and its 19 targeted tests](research/rust-connection-lifecycle.md#targeted-tcp-pacing-correction--november-15-2026)
+are distinct from the [integrated Windows/Linux results](research/rust-build-validation.md#november-15-reliability-batch).
+The 13 older tests whose oracle recorded future construction do not qualify the
+first poll. The h2 receive window of 1 MiB per connection / 65,535 bytes per stream
+and capacity-one application queues provide finite headroom, not isolation for
+arbitrary N streams or a global RSS bound.
 
-Pour du PCM produit progressivement, `rambler_audio::pcm_channel()` fournit un
-producteur unique et une source à composer avec `Pcm16Opus`. Réserver avant de
-remettre les bytes évite leur perte lors d'une attente de capacité annulée.
-`PcmSender::finish()` annonce la fin normale ; Drop sans finish est un abandon
-en erreur, pas un EOF réussi. Conduire producteur et collecte en concurrence puis
-attendre la vraie terminaison moteur. [Contrat et exemple offline exécutable](research/rust-pcm-channel.md).
-Ce helper n'ajoute aucune capture microphone et n'est pas un acquittement d'upload.
+For progressively produced PCM, `rambler_audio::pcm_channel()` provides a single
+producer and a source to compose with `Pcm16Opus`. Reserving before handing over
+bytes avoids losing them when a capacity wait is cancelled. `PcmSender::finish()`
+announces normal completion; Drop without finish is an erroneous abandonment, not
+successful EOF. Run producer and collection concurrently, then await actual engine
+termination. [Contract and executable offline example](research/rust-pcm-channel.md).
+This helper adds no microphone capture and is not an upload acknowledgment.
 
-`SessionOptions` regroupe la configuration, les délais, un
-`Option<Arc<dyn MetadataProvider>>` et `ContextInput::{None, Static, Provider}`.
-`timeout` vaut 30 s par défaut dès le démarrage, métadonnées/parole/upload/contexte
-compris ; `finalize_timeout: Option<Duration>` vaut `None` par défaut et ne commence
-qu'après EOF audio et cleanup réussi. Son échéance ne dépasse jamais le délai dur,
-même pour une durée énorme ; `Some(Duration::ZERO)` est invalide. Un provider de
-contexte est appelé une seule fois après ce cleanup, sous le minimum de son budget
-de contexte et des délais restants. Les credentials sont injectables par session ;
-`EnvironmentCredentials` est une implémentation fournie et reste permissive si
-les trois variables sont absentes. Pour imposer leur présence, utiliser
-`required_snapshot()` ou `required_snapshot_with(...)` ; la CLI normale utilise
-un snapshot strict, contrairement au loopback explicite. Ce contrôle ne prouve
-pas une authentification distante ni un provisionnement renouvelable ; sa
-qualification locale et ses limites sont décrites dans le [contrat des snapshots](research/rust-credential-snapshots.md).
-Le commit terminal de ce
-budget et ses preuves sont décrits dans le [contrat de fiabilité](research/rust-reliability-lifecycle.md).
+`SessionOptions` groups configuration, deadlines, an
+`Option<Arc<dyn MetadataProvider>>` and `ContextInput::{None, Static, Provider}`.
+`timeout` defaults to 30 s from startup, including metadata/speech/upload/context;
+`finalize_timeout: Option<Duration>` defaults to `None` and starts only after audio
+EOF and successful cleanup. Its deadline never exceeds the hard deadline, even for
+a huge duration; `Some(Duration::ZERO)` is invalid. A context provider is called
+once after this cleanup, under the minimum of its context budget and remaining
+deadlines. Credentials can be injected per session; `EnvironmentCredentials` is
+a supplied implementation and remains permissive if all three variables are
+absent. To require them, use `required_snapshot()` or `required_snapshot_with(...)`;
+the normal CLI uses a strict snapshot, unlike explicit loopback. This check does
+not prove remote authentication or renewable provisioning; its local qualification
+and limits are described in the [snapshot contract](research/rust-credential-snapshots.md).
+The terminal commit of this budget and its evidence are described in the
+[reliability contract](research/rust-reliability-lifecycle.md).
 
-Migration du prototype Rust 0.1 : un littéral exhaustif `SessionOptions` doit
-ajouter `finalize_timeout: None` ou utiliser `..SessionOptions::default()`.
-Les matches exhaustifs doivent aussi couvrir `EngineError::FinalizeTimeout` et
-`TransportError::PrimaryAndCleanup`. Le budget absent préserve le défaut de
-30 s ; les nouvelles causes restent structurées et expurgées à l'affichage.
+Migration from the Rust 0.1 prototype: an exhaustive `SessionOptions` literal must
+add `finalize_timeout: None` or use `..SessionOptions::default()`. Exhaustive
+matches must also cover `EngineError::FinalizeTimeout` and
+`TransportError::PrimaryAndCleanup`. An absent budget preserves the 30 s default;
+new causes remain structured and redacted when displayed.
 
-`collect_dictation(&engine, source, options, limits)` rend une future dont
-l'ownership est établi dès l'appel, même si elle n'est jamais pollée. Elle conserve
-par défaut au plus 128 finales et 8 Mio de réponses brutes associées. Pour traiter
-les événements, consommer `EngineSession::next()` jusqu'à `None` et appeler
-explicitement `close()` en cas d'arrêt anticipé.
+`collect_dictation(&engine, source, options, limits)` returns a future whose
+ownership is established on the call, even if it is never polled. By default it
+retains at most 128 finals and 8 MiB of associated raw responses. To process
+events, consume `EngineSession::next()` until `None` and explicitly call `close()`
+if stopping early.
 
-`collect_segments` / `collect_segment_session` retiennent aussi les réponses avec
-un conteneur d'hypothèses3/5/7, indépendamment du state, ainsi que les marqueurs
-state1. Les previews4 seuls ne sont pas retenus. `SegmentResult.updates` préserve
-chaque réponse et son ordinal client (incluant les réponses non retenues), sans
-concaténation, déduplication ou sélection implicite. Les limites sont partagées
-avec le collecteur strict et mesurent les octets wire retenus, pas le RSS.
+`collect_segments` / `collect_segment_session` also retain responses with a
+hypothesis container 3/5/7 regardless of state, as well as state 1 markers.
+Preview 4 alone is not retained. `SegmentResult.updates` preserves each response
+and its client ordinal (including responses not retained), without concatenation,
+deduplication or implicit selection. Limits are shared with the strict collector
+and measure retained wire bytes, not RSS.
 
-Les conteneurs et leurs fallbacks sont structurellement décodés ;
-`all_hypotheses()` les parcourt dans l'ordre canonique3/5/7, pas un classement ni
-un ordre wire global. Les helpers `hypotheses()` et le rendu restent limités au
-conteneur primaire. `RecognitionResponse.language` et `spoken_language` sont
-les champs3/4, pas des identifiants de résultat. Voir
-[schéma et provenance](research/rust-response-containers.md).
+Containers and their fallbacks are structurally decoded; `all_hypotheses()`
+iterates them in canonical 3/5/7 order, not a ranking or global wire order. The
+`hypotheses()` helpers and rendering remain limited to the primary container.
+`RecognitionResponse.language` and `spoken_language` are fields 3/4, not result
+identifiers. See [schema and provenance](research/rust-response-containers.md).
 
-### Octets bruts partagés : migration du prototype Rust0.1
+### Shared raw bytes: migration from Rust 0.1 prototype
 
-Les champs `raw` des modèles décodés et `RecognitionResponse.active_raw` utilisent
-maintenant `bytes::Bytes`, pas `Vec<u8>`. Les signatures des fonctions et les types
-wire `Field`/`Value` ne changent pas. Utiliser `raw.as_ref()` pour emprunter les
-octets, `raw.to_vec()` lorsqu'un `Vec` indépendant est nécessaire, et
-`raw: vec![...].into()` dans les constructions manuelles de modèles.
+The decoded models' `raw` fields and `RecognitionResponse.active_raw` now use
+`bytes::Bytes`, not `Vec<u8>`. Function signatures and wire `Field`/`Value` types
+do not change. Use `raw.as_ref()` to borrow bytes, `raw.to_vec()` when an
+independent `Vec` is needed, and `raw: vec![...].into()` in manual model construction.
 
-Le décodeur copie une seule fois le payload racine borné, puis partage les vues
-enfants ; il ne conserve pas un gros buffer de transport extérieur au message.
-Une véritable fusion de plusieurs occurrences garde sa concaténation logique.
-Un petit enfant peut toutefois garder toute sa racine (au plus8Mio) : pour une
-conservation isolée prolongée, détacher explicitement son `raw` avec
-`bytes::Bytes::copy_from_slice(child.raw.as_ref())`. Texte, présence et champs
-inconnus ne sont pas supprimés. Le [profil mémoire](research/rust-backend-profiling.md)
-mesure −70,82% de rétention logique sur son banc, pas une baisse RSS garantie.
+The decoder copies the bounded root payload once, then shares child views; it does
+not retain a large transport buffer outside the message. A real merge of multiple
+occurrences retains its logical concatenation. A small child can nevertheless
+retain its entire root (at most 8 MiB): for prolonged isolated retention, explicitly
+detach its `raw` with `bytes::Bytes::copy_from_slice(child.raw.as_ref())`. Text,
+presence and unknown fields are not removed. The [memory profile](research/rust-backend-profiling.md)
+measures −70.82% logical retention on its benchmark, not a guaranteed RSS reduction.
 
-## Finalité, annulation et résultats
+## Completion, cancellation and results
 
-- Une fin réussie nécessite END S3, upload entièrement épuisé/half-clos, source
-  fermée et statut gRPC OK. Une finale reçue avant cela n'est pas une réussite.
-- Une erreur S3 n'interrompt pas le drainage requis pour détecter une erreur gRPC
-  tardive. Aucun échec ne déclenche un rejeu automatique d'audio.
-- `EngineError::IncompleteSession(Arc<IncompleteSessionDiagnostic>)` expose END S3,
-  les compteurs/flags du transport et des métriques finales sans texte/raw/ID,
-  relevés après son nettoyage. La CLI les projette dans `error.incomplete` ; ils
-  distinguent un END absent d'un upload interrompu, sans prouver la cause serveur.
-  Le payload typé remplace la variante unitaire du prototype0.1 initial.
-  `source_exhausted` vise le RequestSource entier (init/audio/contexte/END), pas
-  directement l'EOF PCM ; `source_closed` signifie cleanup terminé, même précoce.
-  `upload_eof_polled` reste une soumission locale END_STREAM, pas un acquittement
-  serveur, et `saw_s3_end` seul ne garantit pas le tail audio.
-- Arrêt normal : terminer la source et drainer les réponses. Annulation :
-  `request_cancel()` puis `close().await` ; ce n'est pas une finalisation de dictée.
-- `Drop` signale l'annulation mais ne peut pas attendre un nettoyage asynchrone.
-  Garder Tokio vivant et attendre explicitement la fermeture des sessions/moteurs.
-  Un nettoyage coopératif peut dépasser le délai réseau.
-- `Engine::close()` et `GrpcTransport::close()` attendent les nettoyages, puis
-  livrent au plus une erreur non encore observée par appel. S'il y en a plusieurs,
-  rappeler `close()` jusqu'à `Ok` pour les relever toutes ; elles ne sont pas
-  silencieusement acquittées ensemble. Une future de fermeture interrompue avant
-  son résultat ne doit pas acquitter une erreur qu'elle n'a pas livrée.
-  Une erreur audio primaire observée n'acquitte pas un cleanup secondaire distinct :
-  `Engine::close()` peut donc encore retourner `AudioCleanup`, puis `Ok` une fois
-  les autres erreurs relevées. Le moteur propriétaire préserve aussi le driver.
-- Les sources audio fournies gardent une faute typée `Err` dans
-  `AudioSource::next()` jusqu'au close explicite ; pas d'EOF/EOS sain fabriqué.
-  À l'inverse, `rambler_transport::Session::next()` est intentionnellement fused
-  après livraison de son erreur terminale et `finish()` conserve cette issue.
-- `TransportError::PrimaryAndCleanup` préserve une primaire et un cleanup distinct,
-  avec construction/champs privés et accès explicite aux deux causes, sans fuite
-  par formatage/chaîne automatique. Annulation explicite avec cleanup défaillant
-  reste `Cleanup`. L'engine défait cette paire seulement pour son adaptateur local
-  et conserve `AudioCleanup` une fois, sans second close ; cela ne change pas la
-  conversion publique générale. La priorité transport d'une faute source observée
-  n'efface pas universellement un délai/une annulation déjà choisi par l'engine.
-- Les files sont bornées ; un consommateur suspendu peut retarder la lecture des
-  trailers. Les compteurs d'upload décrivent le travail client, pas un accusé de
-  réception du serveur. Toutes les attentes fallibles, nettoyage et réservation
-  de file compris, précèdent le commit privé irréversible. Annulation et délais
-  sont revérifiés juste avant publication : un EOF sain publié ne devient plus
-  erreur et `metrics.eof_seconds` date ce commit réussi, pas le dernier échantillon
-  PCM. Voir [les régressions et la qualification du lot](research/rust-reliability-lifecycle.md).
-- `EngineSession::audio_progress()` et `metrics.audio` comptent les chunks non
-  vides et octets encodés réellement rendus à l'engine, l'EOF audio et les flags
-  `cleanup_finished`/`cleanup_succeeded`. Ils restent accessibles après une erreur
-  sur la session ; attendre la terminaison/fermeture pour un snapshot final.
-  Ce n'est ni un nombre d'échantillons PCM ni une preuve d'audio reçu par le serveur.
-  L'EOF audio peut être vrai pendant que le contexte tardif bloque encore le
-  RequestSource. Les champs sont ajoutés aux structs du prototype0.1.
-- `DictationResult::check_safety()` et `SegmentResult::check_safety()` inspectent
-  toutes les hypothèses des réponses retenues, conteneurs secondaires/fallbacks
-  compris, sans pour autant les sélectionner pour le rendu.
-  `text()`, `single_hypothesis()` et `replacement_proposal()` refusent les candidats
-  safety1 (`SafetyBlocked`) et le champ30 non interprété (`UnrecognizedSafety`),
-  avant l'ambiguïté. La CLI retourne une erreur sans texte ni finales. Les données
-  structurées restent explicitement consultables par l'intégrateur. Absence/0
-  inchangés ; refus hors VoiceEdit et sur inconnu volontairement conservateurs,
-  [portée et preuve statique](research/rust-feature-parity.md).
-- Le texte simplifié exige une unique finale/hypothèse interprétable : sans
-  VoiceEdit, texte d'hypothèse ; intention 2, texte/contexte édité vérifié ;
-  intention 3, champ `edited_text` seulement. Les autres cas restent ambigus.
-- Une proposition de remplacement reste limitée à l'intention 2 et ne modifie
-  rien. Vérifier snapshot texte/révision avant application ; les positions sont
-  en unités UTF-16, pas en octets Rust. Les révisions texte et entier sont des types
-  distincts ; les entiers canoniques ne sont pas bornés à 64 bits.
+- Successful completion requires S3 END, fully exhausted/half-closed upload,
+  closed source and gRPC OK status. A final received before that is not success.
+- An S3 error does not interrupt the draining needed to detect a late gRPC error.
+  No failure triggers automatic audio replay.
+- `EngineError::IncompleteSession(Arc<IncompleteSessionDiagnostic>)` exposes S3
+  END, transport counters/flags and final metrics without text/raw/ID, recorded
+  after cleanup. The CLI projects these into `error.incomplete`; they distinguish
+  missing END from interrupted upload without proving the server cause. The typed
+  payload replaces the unit variant of the initial 0.1 prototype. `source_exhausted`
+  refers to the entire RequestSource (init/audio/context/END), not directly PCM EOF;
+  `source_closed` means cleanup completed, even early. `upload_eof_polled` remains
+  a local END_STREAM submission, not a server acknowledgment, and `saw_s3_end`
+  alone does not guarantee the audio tail.
+- Normal stop: finish the source and drain responses. Cancellation:
+  `request_cancel()` then `close().await`; this is not dictation finalization.
+- `Drop` signals cancellation but cannot await asynchronous cleanup. Keep Tokio
+  alive and explicitly await session/engine closure. Cooperative cleanup can exceed
+  the network deadline.
+- `Engine::close()` and `GrpcTransport::close()` await cleanup, then deliver at
+  most one previously unobserved error per call. If there are several, call
+  `close()` again until `Ok` to collect them all; they are not silently acknowledged
+  together. A close future interrupted before its result must not acknowledge an
+  error it did not deliver. An observed primary audio error does not acknowledge
+  a distinct secondary cleanup error: `Engine::close()` may therefore still return
+  `AudioCleanup`, then `Ok` once the other errors have been collected. The owning
+  engine also preserves the driver.
+- Supplied audio sources retain a typed `Err` fault in `AudioSource::next()` until
+  explicit close; no healthy EOF/EOS is fabricated. Conversely,
+  `rambler_transport::Session::next()` is intentionally fused after delivery of
+  its terminal error and `finish()` retains that outcome.
+- `TransportError::PrimaryAndCleanup` preserves a primary and distinct cleanup
+  error, with private construction/fields and explicit access to both causes,
+  without leakage through formatting/automatic chaining. Explicit cancellation
+  with failed cleanup remains `Cleanup`. The engine unwraps this pair only for its
+  local adapter and preserves `AudioCleanup` once, without a second close; this
+  does not change general public conversion. Transport precedence for an observed
+  source fault does not universally erase a deadline/cancellation already chosen
+  by the engine.
+- Queues are bounded; a stalled consumer can delay reading trailers. Upload counters
+  describe client work, not server acknowledgment. All fallible waits, including
+  cleanup and queue reservation, precede the private irreversible commit.
+  Cancellation and deadlines are rechecked immediately before publication: a
+  published healthy EOF cannot become an error, and `metrics.eof_seconds` dates
+  this successful commit, not the last PCM sample. See
+  [regressions and batch qualification](research/rust-reliability-lifecycle.md).
+- `EngineSession::audio_progress()` and `metrics.audio` count nonempty chunks and
+  encoded bytes actually returned to the engine, audio EOF and the
+  `cleanup_finished`/`cleanup_succeeded` flags. They remain accessible after a
+  session error; await termination/closure for a final snapshot. This is neither a
+  PCM sample count nor proof of audio received by the server. Audio EOF can be true
+  while late context still blocks the RequestSource. The fields are added to the
+  0.1 prototype structs.
+- `DictationResult::check_safety()` and `SegmentResult::check_safety()` inspect all
+  hypotheses in retained responses, including secondary containers/fallbacks,
+  without selecting them for rendering. `text()`, `single_hypothesis()` and
+  `replacement_proposal()` reject safety 1 candidates (`SafetyBlocked`) and
+  uninterpreted field 30 (`UnrecognizedSafety`) before ambiguity. The CLI returns
+  an error without text or finals. Structured data remains explicitly available to
+  the integrator. Absent/0 unchanged; rejection outside VoiceEdit and on unknowns
+  is intentionally conservative. [Scope and static evidence](research/rust-feature-parity.md).
+- Simplified text requires a single interpretable final/hypothesis: without
+  VoiceEdit, hypothesis text; intent 2, verified edited text/context; intent 3,
+  `edited_text` field only. Other cases remain ambiguous.
+- A replacement proposal remains limited to intent 2 and changes nothing. Check
+  the text/revision snapshot before application; positions are in UTF-16 units,
+  not Rust bytes. Text and integer revisions are distinct types; canonical integers
+  are not limited to 64 bits.
 
-### Rendu et commandes explicitement opt-in
+### Explicitly opt-in rendering and commands
 
-`DictationResult::render(RenderPolicy)` retourne texte, provenance, intention et
-raison de fallback éventuel. `Strict` conserve le contrat de `text()` décrit
-ci-dessus. `AsrOnly` projette le texte d'hypothèse, jamais le transcript VoiceEdit.
-`S3ClientCompatible` rend les intentions2/3, membres3/7 ; sinon il utilise le getter
-ASR (absence → chaîne vide). Un edit accepté vide reste vide. Toutes les politiques
-exigent unicité et sécurité ; ce helper ne reproduit pas la sélection Android.
+`DictationResult::render(RenderPolicy)` returns text, provenance, intent and any
+fallback reason. `Strict` preserves the `text()` contract described above. `AsrOnly`
+projects hypothesis text, never the VoiceEdit transcript. `S3ClientCompatible`
+renders intents 2/3, members 3/7; otherwise it uses the ASR getter (absence → empty
+string). An accepted empty edit remains empty. All policies require uniqueness and
+safety; this helper does not reproduce Android selection.
 
-`replacement_proposal_with_policy` reste sans effets : en mode compatible,
-intention2/champs3 ou7, et intention3/**champ7 seulement**. Intention3/champ3 peut
-être rendue mais ne prouve pas la portée d'un remplacement ; `AsrOnly` ne produit
-aucune proposition. La portée reste la fenêtre de contexte capturée.
+`replacement_proposal_with_policy` remains effect-free: in compatible mode,
+intent 2/fields 3 or 7, and intent 3/**field 7 only**. Intent 3/field 3 can be
+rendered but does not prove the scope of a replacement; `AsrOnly` produces no
+proposal. Scope remains the captured context window.
 
-`classify_command(CommandProfile::S3DefaultPatternsV1, ime_action)` reconnaît les
-regex par défaut SEND/CLEAR/CLEAR ALL sur un candidat final édité unique et sûr.
-CLEAR est reconnu mais rejeté par la branche client ; SEND exige IME action4.
-Le résultat expose préconditions/disposition et `applied=false`, sans envoi,
-suppression ni insertion système. Ce profil versionné n'interprète pas des regex
-configurées à distance. Ce n'est pas une implémentation COMPOSE.
+`classify_command(CommandProfile::S3DefaultPatternsV1, ime_action)` recognizes
+standard SEND/CLEAR/CLEAR ALL regexes on a single safe edited final candidate.
+CLEAR is recognized but rejected by the client branch; SEND requires IME action 4.
+The result exposes preconditions/disposition and `applied=false`, without sending,
+deleting or system insertion. This versioned profile does not interpret remotely
+configured regexes. It is not a COMPOSE implementation.
 
-## Endurance explicite et rapports privés
+## Explicit endurance and private reports
 
-`tools/validate_rust_endurance.py` est un **outil de développement Python**, pas
-un composant du binaire. Il lance le vrai exécutable, mesure son RSS/CPU enfant,
-borne sorties/durée/sessions, exige les marqueurs dans le texte rendu et compare
-les finales connues ordonnées. Il s'arrête au premier échec/non-concluant, sans
-rejeu. Chaque session est un processus et un canal neufs.
+`tools/validate_rust_endurance.py` is a **Python development tool**, not a binary
+component. It runs the real executable, measures its child RSS/CPU, bounds output,
+duration and sessions, requires markers in rendered text and compares ordered
+known finals. It stops at the first failure/inconclusive result, without replay.
+Each session is a new process and channel.
 
-Après préparation du corpus synthétique contrôlé et chargement explicite de
-l'environnement autorisé, exemple Windows / Git Bash :
+After preparing the controlled synthetic corpus and explicitly loading the
+authorized environment, Windows / Git Bash example:
 
 ```sh
 .venv/Scripts/python tools/validate_rust_endurance.py --allow-live --stage 120 \
@@ -475,55 +458,53 @@ l'environnement autorisé, exemple Windows / Git Bash :
   --public-output local/rust120-public-new.json
 ```
 
-Le palier `--stage 300` requiert un `--previous-report`120 sain compatible avec le
-même binaire/configuration ; utiliser le fichier cinq minutes et un délai330s,
-au plus trois sessions. Le gate est une précaution locale, pas une attestation.
-La preuve enregistrée contient un **échec au deuxième essai long** ; ne pas
-présenter la commande comme une garantie de succès. Les empreintes pré/post du
-fichier ne sont pas une preuve indépendante de chaque octet consommé.
+The `--stage 300` level requires a healthy `--previous-report` 120 compatible with
+the same binary/configuration; use the five-minute file and a 330 s timeout, at
+most three sessions. The gate is a local precaution, not an attestation. Recorded
+evidence includes a **failure on the second long attempt**; do not present the
+command as a guarantee of success. Pre/post file hashes are not independent proof
+of every byte consumed.
 
-Le rapport complet conserve stdout/stderr privés bornés ; la projection
-`--public-output` est distincte, par allowlist, et doit encore être inspectée.
-Les versions compiler/build sont des déclarations de l'appelant, pas déduites du
-binaire. Les métriques sont échantillonnées, pas des pics exacts. Sous Windows,
-le PATH enfant est limité aux répertoires système ; cette politique sous Unix
-n'établit pas l'absence d'interpréteurs dans ces répertoires.
+The full report retains bounded private stdout/stderr; the `--public-output`
+projection is separate, allowlisted, and still needs inspection. Compiler/build
+versions are caller declarations, not inferred from the binary. Metrics are
+sampled, not exact peaks. On Windows, child PATH is limited to system directories;
+this policy on Unix does not establish the absence of interpreters in those
+directories.
 
-## Validation de plusieurs sessions natives
+## Validation of multiple native sessions
 
 ```sh
 cargo run --release -p rambler-cli --features audio --example session_reuse -- \
   manifest.json --allow-live --timeout 30
 ```
 
-Cet exemple de développement exige explicitement `--allow-live` (ou un endpoint
-`--loopback`), accepte2 à3 WAV contrôlés, borne manifeste et fichiers, utilise un
-seul moteur/connexion explicite et s'arrête au premier échec sans retry. Chaque
-cas déclare `input`, `language`, `pcm_sha256`, `markers` ; options
-`marker_alternatives`, `expected_text_sha256` et contexte/hints documentées dans
-[son source](../crates/rambler-cli/examples/session_reuse.rs). La sortie ne contient
-que hashes, compteurs et catégories, pas texte/chemin/credentials. Le manifeste
-accepte aussi `block_offensive_words`, `auto_punctuation`, `secondary_routing` ;
-les valeurs ne sont pas échoées dans le rapport. Les tests
-loopback comptent physiquement une connexion TCP ; ce nombre n'est pas inventé
-pour la preuve distante. Le premier lot avec marqueur `eleven` au lieu de `11`
-reste [inconclusif](evidence/rust-reuse-initial-marker-failure.json) ; le lot
-suivant a déclaré les variantes avant exécution, sans réécrire cet échec.
+This development example explicitly requires `--allow-live` (or a `--loopback`
+endpoint), accepts 2 to 3 controlled WAVs, bounds manifest and files, uses one
+explicit engine/connection and stops at the first failure without retry. Each case
+declares `input`, `language`, `pcm_sha256`, `markers`; options
+`marker_alternatives`, `expected_text_sha256` and context/hints are documented in
+[its source](../crates/rambler-cli/examples/session_reuse.rs). Output contains only
+hashes, counters and categories, not text/path/credentials. The manifest also
+accepts `block_offensive_words`, `auto_punctuation`, `secondary_routing`; values
+are not echoed in the report. Loopback tests physically count one TCP connection;
+this count is not invented for remote evidence. The first batch with marker
+`eleven` instead of `11` remains [inconclusive](evidence/rust-reuse-initial-marker-failure.json);
+the next batch declared variants before execution, without rewriting that failure.
 
-## Performance mesurée
+## Measured performance
 
-La construction des requêtes audio utilise une allocation exacte et une seule
-copie du payload, après vérification de toutes les bornes. Le
-[profil A/B](research/rust-backend-profiling.md) publie96 mesures CPU et40 sessions
-loopback, source/binaire hashés et snapshots distingués du code ultérieur.
-Gain micro-CPU établi ; **pas de gain global WAN ou pipeline robuste établi**.
-Le candidat CRC antérieur a été rejeté, pas conservé sur la seule intuition.
+Audio request construction uses one exact allocation and a single payload copy,
+after checking all bounds. The [A/B profile](research/rust-backend-profiling.md)
+publishes 96 CPU measurements and 40 loopback sessions, hashed source/binary and
+snapshots distinguished from later code. Micro-CPU gain established; **no robust
+overall WAN or pipeline gain established**. The earlier CRC candidate was rejected,
+not retained on intuition alone.
 
-## Périmètre encore distinct
+## Scope still distinct
 
-Le moteur prend de l'Ogg/Opus déjà encodé ou du PCM via l'adaptateur natif
-optionnel. Les mesures d'endurance Rust sont rapportées séparément des preuves
-Python, avec leur modèle de processus/canal ; aucune exécution réelle
-multiplateforme n'en est déduite. La composition intention 4 n'a pas été démontrée
-sur le profil observé. Le provisionnement et la révocation des métadonnées
-applicatives restent des limites externes.
+The engine takes pre-encoded Ogg/Opus or PCM through the optional native adapter.
+Rust endurance measurements are reported separately from Python evidence, with
+their process/channel model; no cross-platform live run is inferred. Intent 4
+composition has not been demonstrated on the observed profile. Provisioning and
+revocation of application metadata remain external limitations.

@@ -1,320 +1,305 @@
-# Profilage du backend Rust hors codec audio
+# Profiling the Rust backend outside the audio codec
 
-## Périmètre et méthode
+## Scope and method
 
-Baseline : `e427fb1`. Données exclusivement synthétiques, exécution locale sans
-identifiants, `.env`, corpus privé ni connexion à un service externe. Le codec et
-les sources de `rambler-audio` ne sont pas modifiés. Le CRC précédemment rejeté
-n'est pas réévalué.
+Baseline: `e427fb1`. Exclusively synthetic data, local execution without
+credentials, `.env`, private corpus or external service connection. The codec and
+`rambler-audio` sources are unchanged. The previously rejected CRC is not reassessed.
 
-Deux exécutables indépendants dans `crates/rambler-engine/examples` :
+Two independent executables in `crates/rambler-engine/examples`:
 
-- `backend_cpu_profile` mesure les requêtes initiale/contexte/audio, le décodage de
-  réponses imbriquées et le décodage avec rétention ordonnée par lots de 128.
-  Les fixtures contiennent du texte synthétique, un VoiceEdit, le statut de
-  sécurité reconnu et des champs inconnus au niveau racine et hypothèse.
-- `engine_loopback_profile` utilise le vrai `Engine`, le transport tonic/h2 et le
-  vrai `collect_session`, avec un serveur TCP IPv4 local sur port éphémère. Il
-  réutilise le serveur brut des tests engine, sans dépendance de développement
-  vers `rambler-audio` (aucun cycle). Son allocateur n'est pas instrumenté.
+- `backend_cpu_profile` measures initial/context/audio requests, nested response
+  decoding and decoding with ordered retention in batches of 128. Fixtures contain
+  synthetic text, a VoiceEdit, recognized safety status and unknown fields at the
+  root and hypothesis levels.
+- `engine_loopback_profile` uses the real `Engine`, tonic/h2 transport and real
+  `collect_session`, with a local IPv4 TCP server on an ephemeral port. It reuses
+  the raw server from engine tests, without a development dependency on
+  `rambler-audio` (no cycle). Its allocator is not instrumented.
 
-### CPU et allocations
+### CPU and allocations
 
-Chaque cas CPU effectue 128 échauffements, puis cinq passes wall de 20 000
-opérations (156 lots de 128 pour la rétention), puis une passe de comptage
-séparée. Pour l'audio, référence et production alternent leur ordre à chaque
-paire, avec échauffement et comptage séparés à chaque passe. La référence est
-l'assemblage figé de `e427fb1`, temporaires imbriqués compris ; les résultats
-sont comparés octet par octet avant les mesures. `black_box` observe les payloads
-produits et empêche leur élimination. Les allocations des fixtures, le formatage
-JSON et la sortie console sont hors des mesures.
+Each CPU case performs 128 warmups, then five wall-time passes of 20,000 operations
+(156 batches of 128 for retention), then a separate counting pass. For audio,
+reference and production alternate order in each pair, with separate warmup and
+counting on each pass. The reference is the frozen `e427fb1` assembly, including
+nested temporaries; results are compared byte for byte before measurement.
+`black_box` observes produced payloads and prevents their elimination. Fixture
+allocations, JSON formatting and console output are outside measurements.
 
-L'allocateur global CPU délègue à `System`. Pendant la passe de comptage,
-`alloc`/`alloc_zeroed`, `realloc`, les octets demandés et le pic d'octets vivants
-supplémentaires sont comptés exactement, après réussite de l'allocation. Un
-`realloc` charge **toute sa nouvelle taille**, pas seulement sa croissance. Ce
-volume n'est donc ni le trafic de copies effectif, ni un RSS. Le pic compte les
-tailles logiques au contrat `GlobalAlloc`, pas les réserves internes de l'OS ni
-un éventuel chevauchement interne à `System::realloc`. Toutes les
-allocations de chaque opération naissent et meurent dans la passe ; les fixtures
-préexistantes ne sont ni modifiées ni libérées. La valeur vivante de fin doit
-retrouver exactement sa valeur de départ. Exécution synchrone monothread,
-sans runtime réseau concurrent. Les passes wall désactivent ces compteurs mais
-conservent le branchement de l'allocateur : ce n'est pas un profil CPU sans aucun
-surcoût d'instrumentation.
+The CPU global allocator delegates to `System`. During the counting pass,
+`alloc`/`alloc_zeroed`, `realloc`, requested bytes and peak additional live bytes
+are counted exactly after successful allocation. A `realloc` charges **its entire
+new size**, not just its growth. This volume is therefore neither actual copy
+traffic nor RSS. The peak counts logical sizes under the `GlobalAlloc` contract,
+not internal OS reserves or possible internal overlap in `System::realloc`. All
+allocations of each operation are born and die during the pass; preexisting
+fixtures are neither modified nor freed. The final live value must return exactly
+to its starting value. Execution is synchronous and single-threaded, without a
+concurrent network runtime. Wall passes disable these counters but retain the
+allocator branch: this is not a CPU profile without any instrumentation overhead.
 
-La rétention CPU est une opération de mouvement vers `Vec<S3Response>` avec borne
-de 8 MiB, pas une seconde implémentation autoritative du collecteur. La collecte
-réelle et ses invariants de fin sont exercés par l'exécutable réseau.
+CPU retention is a move operation into `Vec<S3Response>` with an 8 MiB limit, not
+a second authoritative collector implementation. The network executable exercises
+actual collection and its termination invariants.
 
-### Pipeline et backpressure
+### Pipeline and backpressure
 
-Par défaut, chaque session envoie 16 384 chunks opaques de 640 octets, soit
-10 485 760 octets, puis un contexte Unicode tardif et le marqueur END. Chaque
-chunk contient son numéro de séquence ; ce n'est **pas** de l'Ogg/Opus valide et
-le serveur local ne prétend pas faire de reconnaissance. Le moteur doit bien
-traiter le flux encodé comme opaque. Le serveur renvoie une réponse par chunk,
-dont 128 finales uniformément espacées, puis un unique S3 END.
+By default, each session sends 16,384 opaque 640-byte chunks, totaling 10,485,760
+bytes, followed by a late Unicode context and the END marker. Each chunk contains
+its sequence number; it is **not** valid Ogg/Opus and the local server does not
+claim to recognize speech. The engine must treat the encoded stream as opaque.
+The server returns one response per chunk, including 128 evenly spaced finals,
+then a single S3 END.
 
-Quatre modes, dans un ordre tournant entre les cinq répétitions :
+Four modes, in rotating order across five repetitions:
 
-1. `collect_active` : vrai collecteur actif sans délai volontaire ;
-2. `observe_active` : consommateur d'événements actif sans rétention ;
-3. `collect_reader_stall` : vrai collecteur actif ; lecture serveur suspendue
-   pendant au moins 1 ms avant un chunk sur 64 ;
-4. `observe_consumer_stall` : lecture serveur active ; consommateur d'événements
-   suspendu pendant au moins 1 ms après une réponse sur 64.
+1. `collect_active`: real collector active without intentional delay;
+2. `observe_active`: active event consumer without retention;
+3. `collect_reader_stall`: real collector active; server reading suspended for at
+   least 1 ms before one chunk in 64;
+4. `observe_consumer_stall`: server reading active; event consumer suspended for
+   at least 1 ms after one response in 64.
 
-La file de réponses du serveur a une capacité de **1** ; les files de production
-restent inchangées. Il ne s'agit jamais d'un producteur laissé tourner sans
-consommateur. Les délais utilisent le timer Tokio, ne garantissent pas exactement
-1 ms et n'imitent pas le rythme temps réel d'une capture audio.
+The server response queue has capacity **1**; production queues are unchanged.
+A producer is never left running without a consumer. Delays use the Tokio timer,
+do not guarantee exactly 1 ms and do not imitate the real-time pace of audio capture.
 
-Le temps wall commence juste avant `Engine::start` et finit après fermeture et
-jonction de session, engine, transport et serveur. Construction des fixtures,
-validation préalable et connexion initiale sont exclues. Il comprend les
-validations du serveur : égalité exacte de l'init, des chunks audio réassemblés
-avec leur elapsed réellement observé, du contexte et d'END ; ordre et EOF
-upload réels ; égalité des réponses brutes et ordre des finales côté client.
-La vérification audio serveur utilise le parseur public et l'assemblage de
-requête figé de `e427fb1`, même dans le binaire candidat : un gain du sérialiseur
-client n'est ainsi pas compté une seconde fois côté serveur. Cette vérification
-alloue : ce coût est intentionnellement inclus et interdit d'interpréter ces
-mesures comme le coût du seul transport ou du seul moteur. Le mode observation
-vérifie chaque réponse, le collecteur seulement les finales retenues ; leur
-écart n'isole donc pas mathématiquement le coût de collecte.
+Wall time starts just before `Engine::start` and ends after session, engine,
+transport and server shutdown and joining. Fixture construction, prior validation
+and initial connection are excluded. It includes server validations: exact equality
+of init, reassembled audio chunks with their actually observed elapsed, context
+and END; actual upload order and EOF; raw response equality and client-side final
+order. Server audio verification uses the public parser and frozen `e427fb1`
+request assembly, even in the candidate binary: a client serializer gain is thus
+not counted a second time on the server. This verification allocates: that cost
+is intentionally included and prevents interpreting these measurements as the
+cost of transport or engine alone. Observation mode checks every response, the
+collector only retained finals; their difference therefore does not mathematically
+isolate collection cost.
 
-Chaque exécution vérifie les volumes protobuf dans les deux sens, le nombre de
-chunks et de finales, un seul EOF engine, l'EOF upload, les trois drapeaux de
-cleanup et exactement un appel de fermeture de la source. Le collecteur conserve
-ses bornes par défaut (128 finales / 8 MiB) ; le protocole garde ses bornes de
-8 MiB / 100 000 champs, la sécurité et les sémantiques proto2/unknowns.
+Every run checks protobuf volumes in both directions, chunk and final counts, a
+single engine EOF, upload EOF, the three cleanup flags and exactly one source
+close call. The collector retains its default limits (128 finals / 8 MiB); the
+protocol retains its 8 MiB / 100,000 field limits, safety and proto2/unknown semantics.
 
-## Environnement de mesure
+## Measurement environment
 
-Windows 11 Pro `10.0.26300`, cible `x86_64-pc-windows-msvc`,
+Windows 11 Pro `10.0.26300`, target `x86_64-pc-windows-msvc`,
 `rustc 1.99.1 (58cf8f9c3 2026-10-13)`, Cargo `1.99.1`, LLVM `23.1.1`.
-Processeur annoncé par l'environnement : `Intel64 Family 6 Model 154 Stepping 3,
-GenuineIntel`, 12 processeurs logiques. Profil Cargo release par défaut ;
-`RUSTFLAGS`, `CARGO_BUILD_RUSTFLAGS` et `CARGO_PROFILE_RELEASE_LTO` non définis.
-Runtime pipeline Tokio monothread. Pas d'affinité CPU ni de verrouillage de
-fréquence ; on conserve la dispersion observée, sans promesse d'absence de bruit
-Windows. Chaque fenêtre a été annoncée au coordinateur puis réservée sans autre
-compilation ni benchmark des agents du mandat.
+Processor reported by the environment: `Intel64 Family 6 Model 154 Stepping 3,
+GenuineIntel`, 12 logical processors. Default Cargo release profile;
+`RUSTFLAGS`, `CARGO_BUILD_RUSTFLAGS` and `CARGO_PROFILE_RELEASE_LTO` unset.
+Single-threaded Tokio pipeline runtime. No CPU affinity or frequency lock; the
+observed spread is retained without promising an absence of Windows noise. Each
+window was announced to the coordinator and reserved without other compilation
+or benchmarks by agents on the assignment.
 
 ## Reproduction
 
-Depuis la racine du dépôt, dans une fenêtre sans compilation ni autre benchmark :
+From the repository root, in a window without compilation or other benchmarks:
 
 ```sh
 cargo build --release -p rambler-engine --examples
-# Exécuter directement les binaires afin d'exclure Cargo/compilation du wall.
+# Run binaries directly to exclude Cargo/compilation from wall time.
 ./target/release/examples/backend_cpu_profile --iterations 20000 --repeats 5
 ./target/release/examples/engine_loopback_profile --chunks 16384 --repeats 5
 ```
 
-Sous Windows, les exécutables portent le suffixe `.exe`. Chaque ligne est un
-objet JSON autonome. `wall_ns` est le temps écoulé monotone ; `ns_per_unit`
-normalise par requête ou réponse, y compris les lots de 128. Les tailles CPU
-128/4096 décrivent le texte de remplissage, non la taille totale de la réponse.
-Les volumes réseau sont des payloads protobuf, sans enveloppes gRPC/h2/TCP.
-`elapsed_ms` des requêtes dépend du déroulement réel et peut changer légèrement
-leur taille entre répétitions ; leur contenu audio et leur ordre ne changent pas.
+On Windows, executables have the `.exe` suffix. Each line is a standalone JSON
+object. `wall_ns` is monotonic elapsed time; `ns_per_unit` normalizes per request
+or response, including batches of 128. CPU sizes 128/4096 describe padding text,
+not total response size. Network volumes are protobuf payloads without gRPC/h2/TCP
+envelopes. Request `elapsed_ms` depends on actual execution and may slightly
+change their size between repetitions; audio content and order do not change.
 
-Ce profil offline ne donne ni latence du service distant, ni qualité de
-reconnaissance, ni consommation mémoire d'un codec, ni performance sur Android.
+This offline profile provides neither remote-service latency, recognition quality,
+codec memory consumption nor Android performance.
 
-## Résultats retenus (consolidés le 2026-11-14)
+## Retained results (consolidated 2026-11-14)
 
-[Preuve structurée, 96 lignes CPU et40 sessions pipeline](../evidence/rust-backend-offline-profile.json).
-La dernière passe utilise la référence avec les temporaires imbriqués et
-`Vec::extend(field)` de `e427fb1`. Les passes intermédiaires sont marquées
-`superseded` en privé et **exclues** des chiffres ci-dessous. La finalisation
-de l'agent a rencontré son quota ; le parent a vérifié les40 sessions et
-consolidé directement les données déjà produites, sans inventer de nouveau run.
+[Structured evidence, 96 CPU lines and 40 pipeline sessions](../evidence/rust-backend-offline-profile.json).
+The last pass uses the reference with nested temporaries and `Vec::extend(field)`
+from `e427fb1`. Intermediate passes are privately marked `superseded` and
+**excluded** from the figures below. Agent finalization encountered its quota;
+the parent checked all 40 sessions and directly consolidated already produced
+data, without inventing a new run.
 
-### Requêtes audio
+### Audio requests
 
-| Audio opaque | Référence médiane ns (min–max) | Candidat médiane ns (min–max) | Alloc/realloc avant→après | Octets demandés avant→après | Pic logique avant→après |
+| Opaque audio | Reference median ns (min–max) | Candidate median ns (min–max) | Alloc/realloc before→after | Requested bytes before→after | Logical peak before→after |
 |---:|---:|---:|---|---:|---:|
 | 640 | 1399.605 (1332.790–1548.935) | 48.445 (47.130–50.765) | 8+3→1+0 | 2030→658 | 1950→658 |
 | 4096 | 1416.995 (1378.970–1577.565) | 74.660 (70.290–78.555) | 8+3→1+0 | 12398→4114 | 12318→4114 |
 | 65536 | 6925.355 (6137.865–15918.405) | 1653.345 (1607.680–1753.890) | 8+3→1+0 | 196723→65556 | 196643→65556 |
 
-**Optimisation locale retenue** : tailles pré-calculées et bornées avant
-allocation, écriture directe des mêmes varints/extensions, copie audio unique.
-Aucune baisse de qualité ni réduction des validations. L'oracle indépendant
-couvre220 frontières et2000 vecteurs déterministes, le message racine exact8MiB
-et le rejet de l'octet suivant. Le gain wall est celui de ce microbenchmark
-Windows avec allocateur instrumenté désactivé mais présent, pas une promesse
-d'accélération de la dictée distante ni une comparaison de langages.
+**Retained local optimization**: sizes precomputed and bounded before allocation,
+direct writing of the same varints/extensions, one audio copy. No quality loss
+or reduction in validation. The independent oracle covers 220 boundaries and
+2000 deterministic vectors, the exact 8 MiB root message and rejection of the
+next byte. The wall-time gain belongs to this Windows microbenchmark with the
+instrumented allocator disabled but present, not a promise of faster remote
+dictation or a language comparison.
 
-### Pipeline complet, cinq paires alternées
+### Full pipeline, five alternating pairs
 
-| Mode | Baseline médiane ms (min–max) | Candidat médiane ms (min–max) |
+| Mode | Baseline median ms (min–max) | Candidate median ms (min–max) |
 |---|---:|---:|
 | collect_active | 924.1896 (852.0531–1019.7183) | 823.8450 (794.5236–1060.5637) |
 | observe_active | 916.9192 (899.9580–1025.5379) | 890.5094 (790.2901–993.2578) |
 | collect_reader_stall | 3916.1529 (3644.0743–3961.6783) | 3910.3259 (3400.9980–3958.1498) |
 | observe_consumer_stall | 3976.8663 (3972.0477–4003.1131) | 3981.2580 (3974.9819–4006.4920) |
 
-Les distributions se recouvrent ; **aucun gain global robuste retenu**. Toutes
-les40 sessions vérifient16 384 chunks/10MiB,128 finales, ordre, payloads exacts,
-EOF upload/engine et cleanup unique. Le serveur vérifie aussi chaque requête
-avec le constructeur figé ; cette charge participe aux timings. Les modes
-stall incluent la granularité des timers Windows, pas exactement256ms ajoutées.
+Distributions overlap; **no robust overall gain is retained**. All 40 sessions
+check 16,384 chunks/10 MiB, 128 finals, order, exact payloads, upload/engine EOF
+and single cleanup. The server also checks every request with the frozen builder;
+this work contributes to timings. Stall modes include Windows timer granularity,
+not exactly 256 ms added.
 
-Le lot de128 grosses réponses retient1 591 040octets protobuf mais atteint
-12 463 808octets de heap supplémentaire logique sur ce modèle. Il n'y a pas
-de fuite dans la passe (vivant final égal au départ), mais la borne8MiB du
-collecteur porte sur les payloads, **pas** sur les allocations hiérarchiques.
-Les raw/inconnus ne sont pas supprimés pour améliorer artificiellement ce chiffre.
+The batch of 128 large responses retains 1,591,040 protobuf bytes but reaches
+12,463,808 logical additional heap bytes on this model. There is no leak in the
+pass (final live bytes equal the start), but the collector's 8 MiB limit applies
+to payloads, **not** hierarchical allocations. Raw/unknown fields are not removed
+to artificially improve this figure.
 
-Les SHA des sources/binaire réellement mesurés et des benchmarks livrés figurent
-dans le rapport. Seuls des attributs/commentaires Clippy ont ensuite été ajoutés
-aux deux `main` pour conserver le rejet runtime du mode debug. Ils ne changent
-pas le workload ; ce n'est pas présenté comme un nouveau benchmark. Le lot
-source mesuré précède les nouvelles politiques de rendu/segments et corrections
-transport ultérieures, donc ne représente pas rétroactivement tout le code final.
+The report contains SHA hashes of actually measured sources/binary and delivered
+benchmarks. Only Clippy attributes/comments were subsequently added to both `main`
+functions to retain runtime rejection of debug mode. They do not change the
+workload; this is not presented as a new benchmark. The measured source batch
+predates the new rendering/segment policies and later transport fixes, and thus
+does not retroactively represent all final code.
 
-## Prototype de rétention `raw` partagée (2026-11-14, non intégré)
+## Shared `raw` retention prototype (2026-11-14, not integrated)
 
-Baseline actuelle **`fdc9fd9`**, distincte du profil historique ci-dessus.
-[Preuve structurée : 100 lignes CPU et 40 sessions h2](../evidence/rust-backend-shared-raw-profile.json).
-Le prototype reste dans le worktree, sans commit ni intégration à `main`.
+Current baseline **`fdc9fd9`**, distinct from the historical profile above.
+[Structured evidence: 100 CPU lines and 40 h2 sessions](../evidence/rust-backend-shared-raw-profile.json).
+The prototype remains in the worktree, without a commit or integration into `main`.
 
-### Diagnostic avant modification
+### Diagnosis before modification
 
-Pour le même lot de **128 réponses de 12 430 octets**, soit **1 591 040 octets
-protobuf**, la baseline actuelle retient **12 635 008 octets** logiques et atteint
-un pic de **12 635 840 octets**. La différence avec l'ancien pic de 12 463 808
-vient des modèles enrichis depuis le profil historique ; ces mesures ne sont
-pas comparées comme si les modèles étaient identiques.
+For the same batch of **128 responses of 12 430 bytes**, or **1 591 040 protobuf
+bytes**, the current baseline retains **12 635 008 logical bytes** and reaches a
+peak of **12 635 840 bytes**. The difference from the old peak of 12 463 808
+comes from models enriched since the historical profile; these measurements are
+not compared as if the models were identical.
 
-Le recensement des capacités et `size_of` explique exactement la rétention par
-réponse, sans assimilations au RSS :
+The capacity and `size_of` inventory explains retention per response exactly,
+without treating it as RSS:
 
-| Allocation retenue par réponse | Baseline `Vec` | Prototype `Bytes` |
+| Allocation retained per response | `Vec` baseline | `Bytes` prototype |
 |---|---:|---:|
-| Backing des `raw` et `active_raw` | 82 625 | 12 430 |
-| Métadonnées de partage `Bytes` | 0 | 24 |
-| Capacités des chaînes de texte | 12 360 | 12 360 |
-| Vecteurs/champs/valeurs inconnus | 502 | 502 |
-| Allocation du vecteur d'hypothèses | 1 408 | 1 504 |
-| Élément du vecteur racine `S3Response` | 1 816 | 1 984 |
+| Backing of `raw` and `active_raw` | 82 625 | 12 430 |
+| `Bytes` sharing metadata | 0 | 24 |
+| Text string capacities | 12 360 | 12 360 |
+| Unknown vectors/fields/values | 502 | 502 |
+| Hypothesis vector allocation | 1 408 | 1 504 |
+| Root `S3Response` vector element | 1 816 | 1 984 |
 | **Total** | **98 711** | **28 804** |
 
-Les sept copies baseline sont les `raw` racine (12 430), réponse (12 410),
-reconnaissance (12 390), liste (12 385), hypothèse (12 382), VoiceEdit (8 238),
-et `active_raw` (12 390). Leurs **82 625 octets représentent 83,7 %** de la
-rétention. Les allocations temporaires de parsing ne dominent pas la rétention :
-le pic ne dépasse le vivant du lot complet que de **832 octets**, avant comme
-après. Les doublons des inconnus (`Field::raw` et `Value::Bytes`) restent présents
-et ne sont pas supprimés.
+The seven baseline copies are root `raw` (12 430), response (12 410), recognition
+(12 390), list (12 385), hypothesis (12 382), VoiceEdit (8 238), and `active_raw`
+(12 390). Their **82 625 bytes represent 83.7%** of retention. Temporary parsing
+allocations do not dominate retention: the peak exceeds live bytes for the full
+batch by only **832 bytes**, both before and after. Unknown duplicates (`Field::raw`
+and `Value::Bytes`) remain present and are not removed.
 
-### Choix minimal et invariants
+### Minimal choice and invariants
 
-Conserver plusieurs `Vec<u8>` publics indépendants et mutables interdit de
-partager sûrement leur backing. Réduire leurs capacités ne supprime pas les
-copies des mêmes octets à chaque niveau. Le prototype limité à l'API 0.1 change
-donc **uniquement** le stockage `raw` des modèles en `bytes::Bytes`, ainsi que
-`RecognitionResponse::active_raw` en `Option<Bytes>`.
+Keeping multiple independent, mutable public `Vec<u8>` values prevents safely
+sharing their backing. Reducing their capacities does not remove copies of the
+same bytes at each level. The prototype limited to the 0.1 API therefore changes
+**only** model `raw` storage to `bytes::Bytes`, and
+`RecognitionResponse::active_raw` to `Option<Bytes>`.
 
-Le décodeur vérifie la borne racine **avant allocation**, copie exactement le
-payload racine une seule fois, puis utilise `Bytes::slice_ref` pour les enfants
-à occurrence unique. Une vraie fusion proto2 alloue une concaténation logique
-contiguë, de taille exacte ; chaque occurrence est toujours parsée séparément
-avant cette concaténation. Pour les membres oneof connus, `active_raw` partage
-le `raw` du modèle décodé, y compris après fusion. Le parseur continue à visiter
-les membres écrasés et à charger chaque champ interprété une seule fois sur le
-budget global. Les inconnus restent opaques, ordonnés et intacts.
+The decoder checks the root limit **before allocation**, copies the root payload
+exactly once, then uses `Bytes::slice_ref` for single-occurrence children. A real
+proto2 merge allocates a contiguous logical concatenation of exact size; each
+occurrence is still parsed separately before concatenation. For known oneof
+members, `active_raw` shares the decoded model's `raw`, including after merging.
+The parser continues to visit overwritten members and charge each interpreted
+field only once against the global budget. Unknowns remain opaque, ordered and intact.
 
-Aucun nouveau code `unsafe`, aucune dépendance nouvelle au workspace (`bytes`
-y existait déjà), aucun changement transport, suppression d'inconnus, décodage
-permissif, GC ou modification des bornes **8 MiB / 100 000 champs**. La copie
-racine est volontaire : ce n'est pas du zero-copy transport.
+No new `unsafe` code, new workspace dependency (`bytes` was already present),
+transport change, removal of unknowns, permissive decoding, GC or change to the
+**8 MiB / 100 000 field** limits. The root copy is intentional: this is not
+zero-copy transport.
 
-**Compromis d'ownership :** garder un petit `raw` enfant peut garder vivant tout
-son payload racine exact, jusqu'à **8 MiB**. Cela ne retient jamais un buffer
-framer/transport plus grand non lié au payload. Pour détacher explicitement un
-petit enfant, utiliser `bytes::Bytes::copy_from_slice(&child.raw)` ou
-`child.raw.to_vec()` ; le premier conserve un type immuable `Bytes`, le second
-produit un `Vec` mutable indépendant. Les fusions multiples peuvent toujours
-retenir leurs concaténations supplémentaires : le gain mesuré n'est pas une
-nouvelle garantie de borne heap du collecteur.
+**Ownership tradeoff:** retaining a small child `raw` can keep its entire exact
+root payload alive, up to **8 MiB**. It never retains a larger framer/transport
+buffer unrelated to the payload. To explicitly detach a small child, use
+`bytes::Bytes::copy_from_slice(&child.raw)` or `child.raw.to_vec()`; the former
+retains an immutable `Bytes` type, the latter produces an independent mutable
+`Vec`. Multiple merges can still retain their additional concatenations: the
+measured gain is not a new collector heap bound guarantee.
 
-### Mesures matched A/B
+### Matched A/B measurements
 
-Cinq paires de processus, ordre baseline/candidat alterné à chaque paire,
-fixtures identiques inchangées. Chaque cas CPU garde 128 échauffements puis une
-passe wall de 20 000 réponses (156 lots de 128 pour la rétention), et une passe
-d'allocations **séparée**. Les compteurs sont désactivés pendant le wall ; leur
-branche d'allocateur reste présente. Nouveau relevé `retained_increment_bytes`
-juste après remplissage du lot et avant destruction, hors formatage/sortie.
-Toutes les passes retrouvent leur vivant initial après destruction.
+Five process pairs, baseline/candidate order alternating each pair, identical
+unchanged fixtures. Each CPU case retains 128 warmups then a wall-time pass of
+20 000 responses (156 batches of 128 for retention), and a **separate** allocation
+pass. Counters are disabled during wall time; their allocator branch remains.
+New `retained_increment_bytes` reading immediately after filling the batch and
+before destruction, outside formatting/output. All passes return to their initial
+live bytes after destruction.
 
-| Cas | Baseline médiane ns/réponse (min–max) | Prototype médiane ns/réponse (min–max) |
+| Case | Baseline median ns/response (min–max) | Prototype median ns/response (min–max) |
 |---|---:|---:|
 | decode 128 | 4 965,54 (2 939,31–5 568,70) | 2 806,84 (2 657,80–4 069,25) |
 | decode 4096 | 6 185,47 (5 782,81–10 048,85) | 4 280,60 (2 971,53–5 774,55) |
-| rétention 128 × petit | 9 482,36 (7 168,98–10 638,64) | 5 896,12 (4 915,88–8 147,60) |
-| rétention 128 × gros | 23 052,54 (18 714,34–27 205,86) | 16 781,54 (10 830,02–20 183,81) |
+| retention 128 × small | 9 482,36 (7 168,98–10 638,64) | 5 896,12 (4 915,88–8 147,60) |
+| retention 128 × large | 23 052,54 (18 714,34–27 205,86) | 16 781,54 (10 830,02–20 183,81) |
 
-Sur chaque réponse grosse isolée : **44 → 39 allocations**, aucun realloc,
-**99 586 → 29 511 octets demandés**. Le lot conserve son unique allocation
-initiale de vecteur et ses sept reallocations de croissance ; le mouvement des
-réponses n'est pas remplacé par un collecteur artificiel. Sur le lot gros :
+For each isolated large response: **44 → 39 allocations**, no realloc,
+**99 586 → 29 511 requested bytes**. The batch retains its single initial vector
+allocation and seven growth reallocations; response movement is not replaced by
+an artificial collector. For the large batch:
 
-- vivant retenu **12 635 008 → 3 686 912 octets**, soit **−70,82 %** ;
-- pic supplémentaire **12 635 840 → 3 687 744 octets** ;
-- sur le lot petit, vivant **953 216 → 639 488 octets**.
+- live retention **12 635 008 → 3 686 912 bytes**, or **−70.82%**;
+- additional peak **12 635 840 → 3 687 744 bytes**;
+- for the small batch, live bytes **953 216 → 639 488 bytes**.
 
-Les tailles logiques de tous les `raw` et les volumes wire sont inchangés. Les
-264 octets supplémentaires de métadonnées par réponse sont inclus, pas masqués.
-**Aucun gain RSS n'est déduit de ces tailles `GlobalAlloc`** et les octets
-alloués ne sont pas présentés comme une mesure physique du trafic de copies.
+Logical sizes of all `raw` fields and wire volumes are unchanged. The additional
+264 metadata bytes per response are included, not hidden. **No RSS gain is inferred
+from these `GlobalAlloc` sizes**, and allocated bytes are not presented as a
+physical measure of copy traffic.
 
-Le vrai moteur/collecteur h2 a exécuté 40 sessions supplémentaires de 16 384
-chunks, 10 MiB audio opaque et 128 finales, avec les mêmes vérifications de
-payloads, ordre, EOF et cleanup. Les quatre modes sont exécutés dans le même
-ordre dans chaque processus (`--repeats 1`) ; l'ordre des variantes alterne entre
-processus. Médianes baseline → prototype : `collect_active` **1 087,32 →
-1 116,04 ms**, `observe_active` **1 219,85 → 1 011,45 ms**, lecture suspendue
-**2 979,01 → 2 819,98 ms**, consommateur suspendu **3 996,50 → 3 997,72 ms**.
-La dispersion est forte et les intervalles se recouvrent : **aucun gain de
-pipeline global revendiqué**. Seul le gain de rétention logique est retenu
-comme résultat robuste de ce prototype.
+The real h2 engine/collector ran 40 additional sessions of 16 384 chunks, 10 MiB
+opaque audio and 128 finals, with the same payload, order, EOF and cleanup checks.
+The four modes run in the same order in each process (`--repeats 1`); variant order
+alternates between processes. Baseline → prototype medians: `collect_active`
+**1 087,32 → 1 116,04 ms**, `observe_active` **1 219,85 → 1 011,45 ms**, stalled
+reader **2 979,01 → 2 819,98 ms**, stalled consumer **3 996,50 → 3 997,72 ms**.
+Spread is high and intervals overlap: **no overall pipeline gain is claimed**.
+Only the logical retention gain is retained as a robust result of this prototype.
 
-### API publique et migration
+### Public API and migration
 
-Types concernés par `raw: Vec<u8> → Bytes` : `EditingContext`, `VoiceEditResult`,
+Types affected by `raw: Vec<u8> → Bytes`: `EditingContext`, `VoiceEditResult`,
 `Hypothesis`, `PartialHypothesis`, `HypothesisFallback`, `HypothesisResult`,
 `PartialResult`, `RecognitionResult`, `SpeechEventResult`,
-`RecognitionResponse`, `S3Response`. `RecognitionResponse::active_raw` devient
-`Option<Bytes>`. C'est une rupture source explicitement assumée pour ce
-prototype 0.1, pas une promesse de compatibilité silencieuse.
+`RecognitionResponse`, `S3Response`. `RecognitionResponse::active_raw` becomes
+`Option<Bytes>`. This is an explicitly accepted source break for this 0.1
+prototype, not a promise of silent compatibility.
 
-- Construction depuis un `Vec` : `raw: vector.into()` ; option :
-  `Some(vector.into())`.
-- Lecture en slice : `raw.as_ref()` ou `&raw[..]`, à la place de `as_slice()`.
-- Mutation : créer explicitement `let mut owned = raw.to_vec()`, modifier ce
-  `Vec`, puis remplacer le champ avec `raw = owned.into()` si nécessaire.
-- `raw.clone()` partage désormais des octets immuables ; utiliser le détachement
-  décrit ci-dessus si l'ownership doit devenir indépendant.
-- `decode_response(&[u8])`, tous les helpers wire, `wire::Field`, `wire::Value`,
-  les retours de requêtes, chaînes et autres champs publics restent inchangés.
-  Le moteur n'a nécessité **aucun changement de production**, seulement des
-  adaptations de tests/exemples qui supposaient `Vec`.
+- Construction from a `Vec`: `raw: vector.into()`; option: `Some(vector.into())`.
+- Slice access: `raw.as_ref()` or `&raw[..]`, instead of `as_slice()`.
+- Mutation: explicitly create `let mut owned = raw.to_vec()`, modify that `Vec`,
+  then replace the field with `raw = owned.into()` if needed.
+- `raw.clone()` now shares immutable bytes; use the detachment described above
+  if ownership must become independent.
+- `decode_response(&[u8])`, all wire helpers, `wire::Field`, `wire::Value`,
+  request returns, strings and other public fields remain unchanged. The engine
+  required **no production change**, only adaptations to tests/examples that
+  assumed `Vec`.
 
-### Validation et reproduction
+### Validation and reproduction
 
-**144 tests protocol + engine all-targets** passent sous Windows stable 1.99.1
-et MSRV **1.88.0**, avec **2 doctests** et Clippy `-D warnings`. Les deux tests
-supplémentaires vérifient la copie exacte hors d'un gros buffer framer, les vues
-enfants partagées, leur survie après destruction du parent et de l'entrée, le
-détachement explicite, et l'alias `active_raw` après fusion. Les tests existants
-conservent leurs oracles indépendants : Unicode, NaN, presence/vides, oneofs,
-fragments invalides qui ne guérissent pas et budgets exacts.
+**144 protocol + engine all-targets tests** pass on Windows stable 1.99.1 and MSRV
+**1.88.0**, with **2 doctests** and Clippy `-D warnings`. The two additional tests
+check the exact copy out of a large framer buffer, shared child views, their survival
+after destruction of parent and input, explicit detachment, and the `active_raw`
+alias after merging. Existing tests retain their independent oracles: Unicode,
+NaN, presence/empties, oneofs, invalid fragments that do not heal and exact budgets.
 
 ```sh
 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0 \
@@ -326,10 +311,10 @@ CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=t cargo build --release -p rambler-engine -
 ./t/release/examples/engine_loopback_profile --chunks 16384 --repeats 1
 ```
 
-Les SHA256 des quatre binaires conservés, les blobs git baseline, les sources
-mesurées du candidat, les lignes brutes et les résumés calculés figurent dans la
-preuve structurée. Les binaires baseline comprennent uniquement le recensement
-commun ajouté au profiler ; leur codec est celui de `fdc9fd9`. La fenêtre A/B a
-été coordonnée sans autre build/benchmark. Aucun benchmark n'a été relancé pour
-faire disparaître sa dispersion. Les mesures ci-dessus ne prétendent pas
-valider tout le workspace ni Linux après ce prototype.
+SHA256 hashes of the four retained binaries, baseline git blobs, measured
+candidate sources, raw lines and calculated summaries are in the structured
+evidence. Baseline binaries include only the common inventory added to the
+profiler; their codec is that of `fdc9fd9`. The A/B window was coordinated
+without other builds/benchmarks. No benchmark was rerun to eliminate its spread.
+The above measurements do not claim to validate the entire workspace or Linux
+after this prototype.

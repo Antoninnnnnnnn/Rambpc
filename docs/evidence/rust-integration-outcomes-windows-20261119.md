@@ -1,21 +1,21 @@
-# Corrections de l’audit indépendant d’intégration
+# Independent integration audit corrections
 
-19 novembre 2026 · révision auditée : `9120decab7df7b2ecb277445ef24ff8fb66aa1aa`.
-Révision Rust testée : `fb29d02afa4ddf370e82e765abc30a41ac81c1a2`. Tous les essais correctifs ci-dessous utilisent des pairs loopback possédés, des réponses synthétiques et des éditeurs simulés. Aucun appel fournisseur, APK, appareil ou microphone.
+19 November 2026 · audited revision: `9120decab7df7b2ecb277445ef24ff8fb66aa1aa`.
+Tested Rust revision: `fb29d02afa4ddf370e82e765abc30a41ac81c1a2`. All corrective tests below use owned loopback peers, synthetic responses and simulated editors. No provider call, APK, device or microphone.
 
-| Cas | Contrat vérifié |
+| Case | Verified contract |
 | --- | --- |
-| Dictée longue : texte puis segment vide | Une finale avec forme d’édition non prise en charge et sans hypothèse ASR ne devient pas une dictée réussie. La CLI signale l’absence de résultat, garde exactement les deux plages `[0,96000)` et `[96000,116000)` et conserve « Première phrase. » comme résultat du premier segment. Pas de texte global utilisable ni de code 0. Le résumé strict SDK ne saute pas non plus un segment sans texte. |
-| Aucune finale, ambiguïté, sécurité, suppression | Zéro finale n’établit pas que l’audio était silencieux. Plusieurs finales restent à revoir. Un statut de sécurité bloqué ou inconnu reste distinct et ne donne pas de texte. Une suppression demande un remplacement explicite et étayé de la fenêtre capturée ; une chaîne ASR vide n’est jamais une suppression. Un résultat interprété n’autorise toujours aucun effet sur le document. |
-| Édition riche | `minimal_app` vérifie l’identité du document, la plage exacte, la révision et la sélection ou le caret avant de dériver une proposition. Dans `Paris Paris`, supprimer le premier `Paris ` laisse intact le lien porté par le deuxième. Si la portée d’une correction de sélection n’est pas prouvée, le modèle indique une revue sans plage à appliquer. |
-| Télémétrie CLI | Les marqueurs de transcription et de contexte apparaissent dans la sortie privée attendue, mais sont absents sous `--diagnostics-only` sur le vrai binaire, y compris en cas d’ambiguïté. Une liste d’autorisation retient les catégories, durées, compteurs et plages ; les tests la confrontent aussi à la sortie imbriquée des segments. Le mode ne modifie ni le code de sortie ni les requêtes. |
-| Référence Python | `secure=False` exige une autorité TCP numérique de boucle locale, avec adresse directe et proxy désactivé. Une configuration modifiée après construction est contrôlée de nouveau avant la création du canal. Le parcours TLS reste inchangé. Aucun test n’ouvre de connexion vers une destination distante. |
+| Long dictation: text followed by an empty segment | A final with an unsupported edit shape and no ASR hypothesis does not become a successful dictation. The CLI reports the absence of a result, keeps exactly the two ranges `[0,96000)` and `[96000,116000)` and retains « Première phrase. » as the first segment's result. No usable global text or exit code 0. The SDK strict summary does not skip a segment without text either. |
+| No final, ambiguity, safety, deletion | Zero finals does not establish that the audio was silent. Multiple finals remain subject to review. A blocked or unknown safety status remains distinct and yields no text. Deletion requires an explicit, supported replacement of the captured window; an empty ASR string is never a deletion. An interpreted result still authorizes no effect on the document. |
+| Rich editing | `minimal_app` checks document identity, the exact range, revision and selection or caret before deriving a proposal. In `Paris Paris`, deleting the first `Paris ` leaves the link on the second intact. If the scope of a selection correction is not proven, the model indicates review without a range to apply. |
+| CLI telemetry | Transcription and context markers appear in the expected private output, but are absent under `--diagnostics-only` in the actual binary, including on ambiguity. An allowlist retains categories, durations, counters and ranges; tests also check it against nested segment output. The mode changes neither the exit code nor requests. |
+| Python reference | `secure=False` requires a numeric loopback TCP authority, with a direct address and proxy disabled. Configuration changed after construction is checked again before channel creation. The TLS path remains unchanged. No test opens a connection to a remote destination. |
 
-## Validation locale
+## Local validation
 
-- Python 3.14, hors ligne : **947 réussis, 5 sautés, 981 sous-tests réussis**. Sous-ensemble transport/moteur : **117 réussis**. Le contrôle d’admission prouve le rejet avant la création du canal et la suite exerce aussi un vrai pair IPv4 local.
-- Rust stable : **569 réussis, 2 ignorés** dans le workspace, **28 réussis** côté CLI sans audio ; **6 réussis** pour `minimal_app`, formatage et Clippy strict.
-- Rust 1.88 : **569 réussis, 2 ignorés** dans le workspace, **28 réussis** côté CLI sans audio.
+- Python 3.14, offline: **947 passed, 5 skipped, 981 successful subtests**. Transport/engine subset: **117 passed**. The admission check proves rejection before channel creation and the suite also exercises a real local IPv4 peer.
+- Rust stable: **569 passed, 2 ignored** in the workspace, **28 passed** for the CLI without audio; **6 passed** for `minimal_app`, formatting and strict Clippy.
+- Rust 1.88: **569 passed, 2 ignored** in the workspace, **28 passed** for the CLI without audio.
 
 ```sh
 cargo fmt --all -- --check
@@ -26,8 +26,8 @@ cargo test -p rambler-cli --features audio --example minimal_app --locked --offl
 python -m pytest -q tests
 ```
 
-## Limites de mise en production
+## Production limits
 
-L’app garde le brouillon et les segments déjà validés ; une panne n’autorise pas à rejouer automatiquement la phrase en cours. La récupération d’audio avant EOF demande une rétention indépendante, explicite et bornée côté hôte. Un texte utilisable ne préjuge pas d’une décision d’édition ; la vérification du document et l’application annulable doivent se faire dans la même transaction côté hôte.
+The app retains the draft and already validated segments; a failure does not authorize automatic replay of the current sentence. Recovery of audio before EOF requires independent, explicit and bounded host-side retention. Usable text does not predetermine an editing decision; document verification and reversible application must occur in the same host-side transaction.
 
-L’audit indépendant a exécuté `rambpc` sur le vrai service sans métadonnées d’authentification d’application : TLS et PING/PONG h2 réussis, dictée refusée par `PERMISSION_DENIED`, aucune nouvelle transcription. Ce constat n’établit ni l’expiration d’anciens paramètres ni un accès autorisé pour une nouvelle application. La reconnaissance réelle, le délai en conditions d’usage, le micro et la comparaison avec Gboard ne sont pas déduits de ces essais correctifs.
+The independent audit ran `rambpc` against the real service without application authentication metadata: TLS and h2 PING/PONG succeeded, dictation was rejected with `PERMISSION_DENIED`, and there was no new transcription. This observation establishes neither expiration of previous settings nor authorized access for a new app. Real recognition, latency under usage conditions, the microphone and comparison with Gboard are not inferred from these corrective tests.

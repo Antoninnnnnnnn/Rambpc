@@ -1,105 +1,35 @@
-# Référence visible : remplacement vocal ciblé
+# Visible reference: targeted voice replacement
 
-Plan du 18 novembre 2026, **non exécuté**. Le but est d'observer un effet
-éditeur précis, pas de découvrir un sélecteur serveur. Android reste une
-référence de développement : le moteur Rust natif n'a besoin d'aucun téléphone,
-relais, clavier ni ASR de substitution à l'exécution.
+Plan dated November 18, 2026, **not executed**. The aim is to observe a specific editor effect, not discover a server selector. Android remains a development reference: the native Rust engine needs no phone, relay, keyboard, or substitute ASR at runtime.
 
-## Ce que disent les sources publiques
+## What the public sources say
 
-| Source | Mode et signe visible | Actions annoncées, pas résultats mesurés |
+| Source | Mode and visible indication | Announced actions, not measured results |
 |---|---|---|
-| [Google : Rambler voice input on Gboard](https://support.google.com/gboard/answer/17468539?hl=en) | Appareil de la série Pixel 11 ; Gboard à jour, clavier par défaut, autorisation micro. Dans **Voice typing**, choisir **Rambler** (ou suivre l'introduction **Start**), puis toucher le micro ; l'animation lumineuse indique Rambler actif. **Done** arrête ou suspend la capture ; **Standard voice typing** rétablit la dictée standard. | Texte rendu après capture ; retouches ciblées (« Change blue to green »), réécritures, ajout d'emoji et changement de langue en cours de phrase. Hors ligne, nettoyage/ponctuation/majuscules restent possibles, mais l'édition complexe et la réécriture nécessitent la connexion ; **Retry** n'est pas un signe de réussite. |
-| PixelBoard, projet indépendant : [README à `4b4e48d`](https://github.com/Akshayykadam/PixelBoard/blob/4b4e48dd4486f29d1140a3b36144933d90a1b7c4/README.md), [release `1.3.5` du 17 novembre 2026](https://github.com/Akshayykadam/PixelBoard/releases/tag/1.3.5) | **Voice typing → Dictation type → Rambler** plutôt que **Standard** ; le README décrit aussi **Enable Advanced Voice Typing** et la barre vocale. C'est la configuration de PixelBoard, pas une attestation d'éligibilité Gboard. | Le README annonce filtre des hésitations, autocorrections et ponctuation. La release annonce la conservation des modifications de texte pour « replace X with Y » et les commandes à mi-phrase, la correction des doublons au départ dans un champ non vide, la continuité à la rotation et moins de dérive entre langues. Les outils distincts de rédaction (reformulation, correction, ton) ne sont pas des commandes vocales validées par ces notes. |
+| [Google: Rambler voice input on Gboard](https://support.google.com/gboard/answer/17468539?hl=en) | Pixel 11 series device; up-to-date Gboard, default keyboard, microphone permission. In **Voice typing**, select **Rambler** (or follow the **Start** introduction), then tap the microphone; the glowing animation indicates Rambler is active. **Done** stops or pauses capture; **Standard voice typing** restores standard dictation. | Text rendered after capture; targeted edits (“Change blue to green”), rewrites, emoji insertion, and language changes mid-sentence. Offline, cleanup/punctuation/capitalization remain possible, but complex editing and rewriting require a connection; **Retry** is not a sign of success. |
+| PixelBoard, independent project: [README at `4b4e48d`](https://github.com/Akshayykadam/PixelBoard/blob/4b4e48dd4486f29d1140a3b36144933d90a1b7c4/README.md), [November 17, 2026 release `1.3.5`](https://github.com/Akshayykadam/PixelBoard/releases/tag/1.3.5) | **Voice typing → Dictation type → Rambler** rather than **Standard**; the README also describes **Enable Advanced Voice Typing** and the voice bar. This is PixelBoard configuration, not evidence of Gboard eligibility. | The README announces hesitation filtering, self-corrections, and punctuation. The release announces preservation of text edits for “replace X with Y” and mid-sentence commands, a fix for initial duplication in a nonempty field, continuity on rotation, and less drift between languages. The separate writing tools (rephrasing, correction, tone) are not voice commands validated by these notes. |
 
-Le [Pixel Drop du 10 novembre 2026](https://blog.google/products-and-platforms/devices/pixel/november-2026-pixel-drop/)
-présente aussi Rambler parmi les nouveautés des appareils Pixel 10, avec un
-calendrier général de déploiement progressif. Cela élargit les appareils
-candidats par rapport à l'aide qui cite la série Pixel 11, sans confirmer la
-disponibilité sur chaque modèle, région ou version. Pour le test, le critère
-est **Rambler réellement proposé puis visiblement actif dans Gboard officiel**.
+The [November 10, 2026 Pixel Drop](https://blog.google/products-and-platforms/devices/pixel/november-2026-pixel-drop/) also presents Rambler among the new features for Pixel 10 devices, with a general gradual rollout schedule. This broadens the candidate devices compared with the help page citing the Pixel 11 series, without confirming availability on every model, region, or version. For the test, the criterion is **Rambler actually offered and then visibly active in official Gboard**.
 
-Le [premier essai de 9to5Google](https://9to5google.com/2026/08/13/gboard-rambler-prompt/)
-observe un indicateur vocal, sans aperçu de texte, puis du texte après
-validation et une nouvelle dictée pour retoucher le brouillon. C'est une
-observation d'interface ponctuelle, pas la preuve que le serveur n'émet pas
-de partiels. Une app peut choisir de ne montrer que le résultat final avec le
-[SDK actuel](sdk-integration-guide.md#3-observe-preview-and-progress-without-taking-over-the-collector),
-sans supprimer ni modifier les réponses provisoires du moteur.
+The [first 9to5Google trial](https://9to5google.com/2026/08/13/gboard-rambler-prompt/) observes a voice indicator without a text preview, then text after confirmation and a new dictation to edit the draft. This is a single interface observation, not proof that the server does not emit partials. An app can choose to show only the final result with the [current SDK](sdk-integration-guide.md#3-observe-preview-and-progress-without-taking-over-the-collector), without suppressing or modifying the engine's provisional responses.
 
-Le README et la release PixelBoard sont deux publications distinctes, pas la
-version mesurée le 16 novembre. Ni la proximité des intitulés ni un micro à
-étoile ne prouvent le même mode actif, le même backend ou la même sémantique.
+The PixelBoard README and release are two separate publications, not the version measured on November 16. Neither similar labels nor a starred microphone prove the same active mode, backend, or semantics.
 
-Les trois [observations PixelBoard du 16 novembre](../evidence/android-supervised-public-voice-20261116.json)
-ont testé une dictée qui n'a pas préservé son préfixe ni ajouté de ponctuation,
-une demande de reformulation enregistrée littéralement, et des callbacks SEND
-non attribuables à chaque énoncé. Le cas ci-dessous ajoute une question différente :
-**une commande remplace-t-elle un seul mot du texte préexistant, sans sélection et
-sans toucher au reste ?** Cela n'exige ni formulation générative évaluée au jugé,
-ni véritable envoi, ni mesure de ponctuation.
+The three [November 16 PixelBoard observations](../evidence/android-supervised-public-voice-20261116.json) tested a dictation that did not preserve its prefix or add punctuation, a rephrasing request recorded literally, and SEND callbacks not attributable to individual utterances. The case below adds a different question: **does a command replace a single word in existing text, without a selection and without touching the rest?** This requires neither subjectively evaluated generative wording, an actual send, nor a punctuation measurement.
 
-## Un cas, une séance supervisée, au plus deux énoncés
+## One case, one supervised session, at most two utterances
 
-1. **Avant de parler, vérifier les préconditions.** Gboard officiel, appareil
-   déjà éligible, version affichée et langue identique (`en-US`) pour les deux
-   passages, connexion déjà disponible, même opérateur et même champ. Utiliser
-   l'[éditeur public ordinaire déjà installé](../../tools/reference/android_editor/README.md#isolated-public-voice-reference-editor)
-   `org.rambpc.publicvoiceprobe`, sans permission et dont SEND n'envoie rien.
-   Ne pas passer à l'éditeur original avec incognito forcé. Pas de vrai message,
-   compte, donnée personnelle, capture d'écran/audio ni consultation des fichiers
-   privés. L'absence de permission réseau dans l'éditeur n'empêche pas le
-   traitement effectué par le clavier.
-2. **Témoin Standard, un énoncé.** Vérifier le libellé **Standard voice typing**
-   dans Gboard. Dans l'éditeur, remettre à zéro le cas 1, remplacer manuellement
-   son texte par `The kite is blue. Marker stays.` et vérifier visuellement la
-   chaîne exacte, le curseur final (aucune sélection) et les deux compteurs à zéro.
-   Avec le contrôle normal du micro, dire une seule fois `Change blue to green`
-   puis arrêter normalement. Noter uniquement le mode, si la capture était
-   visible, le texte affiché une fois la capture terminée et les compteurs visibles.
-3. **Rambler, le même énoncé une fois.** Vérifier **Rambler** dans **Voice typing**,
-   préparer le même champ exactement comme au passage Standard et confirmer
-   l'animation lumineuse documentée lorsque le micro est activé, **avant de
-   parler**. Répéter le script, arrêter normalement et relever le résultat avant
-   toute autre action d'édition. Si activation ambiguë, requête **Retry**, erreur,
-   limite d'usage ou précondition manquante, arrêter : noter le motif, pas un
-   échec sémantique, et ne pas relancer. Rétablir le mode initial par l'interface.
+1. **Check prerequisites before speaking.** Official Gboard, an already eligible device, displayed version and identical language (`en-US`) for both passes, an existing connection, same operator and same field. Use the [ordinary public editor already installed](../../tools/reference/android_editor/README.md#isolated-public-voice-reference-editor) `org.rambpc.publicvoiceprobe`, which has no permissions and whose SEND sends nothing. Do not switch to the original editor with forced incognito. No real message, account, personal data, screenshot/audio recording, or inspection of private files. The editor's lack of network permission does not prevent processing by the keyboard.
+2. **Standard control, one utterance.** Check the **Standard voice typing** label in Gboard. In the editor, reset case 1, manually replace its text with `The kite is blue. Marker stays.` and visually verify the exact string, final cursor (no selection), and both counters at zero. Using the normal microphone control, say `Change blue to green` once, then stop normally. Record only the mode, whether capture was visible, the displayed text after capture ended, and the visible counters.
+3. **Rambler, the same utterance once.** Check **Rambler** in **Voice typing**, prepare the same field exactly as for the Standard pass, and confirm the documented glowing animation when the microphone is activated, **before speaking**. Repeat the script, stop normally, and record the result before any other editing action. If activation is ambiguous, there is a **Retry** request, error, usage limit, or missing prerequisite, stop: record the reason, not a semantic failure, and do not retry. Restore the initial mode through the interface.
 
-**Critère fixé à l'avance :** `The kite is green. Marker stays.` exactement,
-avec compteurs SEND/éditeur inchangés. Le seul remplacement doit être `blue` →
-`green` sur la plage d'entrée UTF-16 `[12,16)` ; les signes de ponctuation, les
-espaces et `Marker stays.` restent identiques. Ne pas imposer une position finale
-du curseur que Google ne documente pas. Commande transcrite littéralement,
-ponctuation seule, texte dupliqué, suppression ou réécriture du voisinage sont
-à distinguer de ce résultat ; ne pas normaliser une différence pour la faire
-passer. Noter état initial et résultat séparément pour chaque énoncé, sans
-publier de capture privée ni d'identifiants.
+**Predefined criterion:** exactly `The kite is green. Marker stays.`, with SEND/editor counters unchanged. The only replacement must be `blue` → `green` over the UTF-16 input range `[12,16)`; punctuation, spaces, and `Marker stays.` remain identical. Do not impose a final cursor position that Google does not document. A literally transcribed command, punctuation alone, duplicated text, deletion, or rewriting surrounding text must be distinguished from this result; do not normalize a difference to make it pass. Record the initial state and result separately for each utterance, without publishing private captures or identifiers.
 
-- **Rambler exact / Standard transcrit sans cette retouche :** différence visible
-  pour ce script et cette configuration, pas une preuve que le mode seul cause
-  l'écart ni que Standard ne sait jamais éditer.
-- **Les deux exacts :** la retouche est observable mais ne distingue pas les modes.
-  **Rambler seul exploitable :** une réussite exacte établit une retouche côté
-  éditeur pour ce passage, sans contraste. **Rambler actif mais sortie différente :**
-  noter ce qui a changé, sans conclure à l'absence générale de fonctionnalité.
+- **Rambler exact / Standard transcribed without this edit:** visible difference for this script and configuration, not proof that the mode alone causes the difference or that Standard can never edit.
+- **Both exact:** the edit is observable but does not distinguish the modes. **Only Rambler usable:** an exact success establishes an editor-side edit for this pass, without a contrast. **Rambler active but different output:** record what changed, without concluding that the feature is generally absent.
 
-## Décision et dépendance
+## Decision and dependency
 
-Ce plan compare deux lectures humaines du **même script**, ni le même PCM, ni
-une référence Android/native appariée, ni un benchmark WAN. Il ne révèle ni
-l'identité du service, ni la requête, la réponse brute, le contexte tardif ni le
-filtre local. Les actions publiques ne sont pas les intentions wire 4/5/6
-(COMPOSE/RAMBLE/RAMBLE_HISTORY). Aucun résultat UI ne suffit à justifier leur
-activation ou une modification native : voir la [matrice](rust-feature-parity.md)
-et les [discriminants avant changement client](rust-advanced-mode-contract-audit.md#precise-discriminators-needed-before-another-client-change).
+This plan compares two human readings of the **same script**, not the same PCM, a matched Android/native reference, or a WAN benchmark. It reveals neither the service identity, request, raw response, late context, nor local filter. Public actions are not wire intents 4/5/6 (COMPOSE/RAMBLE/RAMBLE_HISTORY). No UI result suffices to justify enabling them or a native change: see the [matrix](rust-feature-parity.md) and [discriminators before a client change](rust-advanced-mode-contract-audit.md#precise-discriminators-needed-before-another-client-change).
 
-MAIN peut intégrer le plan maintenant. La séance reste conditionnelle : il faut
-que l'utilisateur confirme un appareil officiellement éligible avec Gboard en
-état de marche et l'éditeur public déjà disponible, puis autorise et conduise
-lui-même ces deux interactions, y compris leur éventuel traitement en ligne
-ordinaire. La [préparation connue](android-reference-validation.md) ne démontre
-pas cette disponibilité. Sans elle, ne rien lancer ni remplacer la référence
-par PixelBoard : pas d'installation, d'instrumentation, de contournement de
-permission/d'éligibilité, ni d'appel direct au service. Pour une évolution native,
-il reste nécessaire d'obtenir un contrat ou une preuve de référence autorisée,
-non secrète, du service et de l'accès exacts ; ce plan ne les fournit pas.
+MAIN can integrate the plan now. The session remains conditional: the user must confirm an officially eligible device with working Gboard and the public editor already available, then authorize and personally conduct these two interactions, including their possible ordinary online processing. The [known preparation](android-reference-validation.md) does not establish this availability. Without it, do not launch anything or substitute PixelBoard for the reference: no installation, instrumentation, permission/eligibility bypass, or direct service call. For native development, a contract or authorized, nonsecret reference evidence for the exact service and access is still necessary; this plan does not provide it.

@@ -1,12 +1,6 @@
 # Rust shared-connection lifecycle and error integrity
 
-Base historique : `e427fb1`. Les reproductions et résultats chiffrés ci-dessous
-concernent ce lot antérieur ; ils ne qualifient pas les modifications locales après
-`90a773a`. Le lot initial transport a été corrigé après des contre-exemples HTTP/2
-bruts indépendants, sans replay/reconnect automatique, Android, service externe,
-credentials ni lecture de fichiers d'environnement. Le contrat actualisé est
-résumé ci-dessous et dans [fiabilité et finalisation](rust-reliability-lifecycle.md),
-qui sépare les contrats, les résultats intégrés et leurs limites.
+Historical baseline: `e427fb1`. The reproductions and numerical results below concern that earlier batch; they do not qualify local changes after `90a773a`. The initial transport batch was corrected after independent raw HTTP/2 counterexamples, without automatic replay/reconnect, Android, external service, credentials or reading environment files. The updated contract is summarized below and in [reliability and finalization](rust-reliability-lifecycle.md), which separates contracts, integrated results and their limits.
 
 ## Reproductions and corrected claims
 
@@ -36,18 +30,7 @@ Therefore **a session result never acknowledges the independent driver result**.
 
 This intentionally permits a conservative duplicate: session `Grpc(Internal)` followed by driver `Connect`, even when they may share a cause. **The original goal of safely deduplicating every session/driver connection error is not achieved through the public h2 API.** Keeping the driver error is preferable to losing an independent later failure. Both the method documentation and tests explicitly adopt this contract, rather than presenting the duplicate as eliminated.
 
-La précédence source/cleanup décrite par le lot historique ci-dessous a évolué :
-le contrat local du 15 novembre préserve désormais une faute primaire et le cleanup
-distinct dans `TransportError::PrimaryAndCleanup`, au lieu d'effacer la primaire.
-Une annulation explicite avec cleanup défaillant reste `Cleanup`. Le type public
-possède des champs et un constructeur privés, avec accès explicite `primary()`,
-`cleanup()` et `into_parts()` ; son formatage et la chaîne d'erreur automatique
-restent expurgés. L'engine ne défait la paire que pour son adaptateur local et
-conserve le secondaire `AudioCleanup` une fois, sans second close audio. La priorité
-transport d'une faute source observée ne remplace pas universellement un délai ou
-une annulation déjà sélectionné par l'engine. Aucune de ces issues n'acquitte la
-faute indépendante du driver. Les causes h2 restent attachées à l'erreur wire
-sélectionnée jusqu'à l'expurgation après cleanup, sans exposer les détails du pair.
+The source/cleanup precedence described by the historical batch below has evolved: the local November 15 contract now preserves a primary failure and distinct cleanup in `TransportError::PrimaryAndCleanup`, instead of erasing the primary. Explicit cancellation with failing cleanup remains `Cleanup`. The public type has private fields and constructor, with explicit `primary()`, `cleanup()` and `into_parts()` access; its formatting and automatic error chain remain redacted. The engine unpacks the pair only for its local adapter and retains secondary `AudioCleanup` once, without a second audio close. Transport precedence for an observed source failure does not universally replace a timeout or cancellation already selected by the engine. None of these outcomes acknowledges the independent driver failure. h2 causes remain attached to the selected wire error until redaction after cleanup, without exposing peer details.
 
 The driver also polls its connection result before honoring local shutdown cancellation. An already-ready terminal error must not become successful cancellation; a unit test checks that race and that genuinely pending IO still stops. This is not a promise to detect errors that arrive only after local cancellation has discarded the connection.
 
@@ -57,140 +40,38 @@ There is no automatic reconnect, retry or replay. Explicit `GrpcTransport::conne
 
 Observe old sessions, then explicitly close the old transport. Drain outstanding errors by repeating close until OK; a driver `Connect` after a session gRPC failure is possible and intentional. Source `close` is cooperative, called once, and must eventually finish. Deadlines bound RPC work, not asynchronous cleanup. Final transport Drop cannot await cleanup: keep the runtime alive and await close.
 
-## Admission et setup locaux — 15 novembre 2026
+## Local admission and setup — November 15, 2026
 
-`start` n'est pas un health check. Après acceptation de la source par son
-superviseur, aucun `source.next()` n'est appelé avant métadonnées valides,
-`SendRequest::ready()` puis succès local de `send_request`. Ce n'est ni
-acceptation du pair/authentification, ni détection d'un NAT silencieux. Un
-constructeur de source peut déjà avoir ouvert/lu/initialisé avant cet appel
-synchrone. Le superviseur nettoie une fois la source acceptée même si la barrière
-échoue. Un rejet synchrone du transport brut avant `Ok(Session)` reste du Drop
-Rust ordinaire ; `Engine::start` supervise le cleanup audio même après rejet de
-configuration ou moteur fermé, à attendre via `Engine::close().await`.
+`start` is not a health check. After the source is accepted by its supervisor, no `source.next()` is called before valid metadata, `SendRequest::ready()` and local success of `send_request`. This is neither peer acceptance/authentication nor detection of a silent NAT. A source constructor may already have opened/read/initialized before this synchronous call. The supervisor cleans up the accepted source once even if the barrier fails. Synchronous rejection by the raw transport before `Ok(Session)` remains ordinary Rust Drop; `Engine::start` supervises audio cleanup even after configuration rejection or a closed engine, to be awaited via `Engine::close().await`.
 
-Le setup effectue une résolution DNS et utilise toutes les adresses, familles
-alternées dans leur ordre interne, sans supprimer les doublons. La course **TCP
-seule**, de style Happy Eyeballs, conserve l'espacement normal de **250 ms**.
-Après échec observé, l'échéance suivante devient
-`min(échéance prévue, max(dernier lancement + 10 ms, maintenant))` : accélération
-bornée à 10 ms depuis le **dernier lancement**, jamais report d'un départ programmé.
-La course applique ces délais au **démarrage de l'API applicative**, inspirés du
-[RFC 8305 §5](https://www.rfc-editor.org/rfc/rfc8305.txt) : 250 ms par défaut,
-minimum recommandé de 100 ms (`SHOULD`), plancher absolu de 10 ms (`MUST NOT`).
-Chaque future est épinglée et pollée une fois avec le waker réel, avant tout yield ;
-le dernier lancement est horodaté **après ce premier poll**, et non à la construction.
-L'accélération sur échec n'applique pas un minimum permanent de 100 ms. Cela ne
-mesure **pas l'émission des SYN par le noyau**, ni ne prouve leur espacement RFC.
-Ce n'est **pas une conformité RFC 8305 complète** : ni course DNS AAAA/A ni
-implémentation complète de RFC 6724. Aucun gain de performance n'est revendiqué.
-La course yield pour que le délai externe reste observable et ferme les perdants
-avant TLS. Le défaut 10 s couvre DNS/TCP/TLS/h2 et son expiration reste `Timeout`.
-Environ 41 tentatives bloquées sous ce défaut ne constituent pas une borne pour un
-timeout utilisateur arbitraire. TLS garde le nom d'origine, les racines système
-et ALPN `h2` ; son échec ne relance jamais une course vers un autre serveur.
+Setup performs DNS resolution and uses all addresses, alternating families in their internal order, without removing duplicates. The **TCP-only** Happy Eyeballs-style race retains normal **250 ms** spacing. After an observed failure, the next deadline becomes `min(échéance prévue, max(dernier lancement + 10 ms, maintenant))`: acceleration bounded to 10 ms from the **last launch**, never postponing a scheduled start. The race applies these delays to **application API initiation**, inspired by [RFC 8305 §5](https://www.rfc-editor.org/rfc/rfc8305.txt): 250 ms by default, recommended minimum of 100 ms (`SHOULD`), absolute floor of 10 ms (`MUST NOT`). Each future is pinned and polled once with the real waker before any yield; the last launch is timestamped **after that first poll**, not at construction. Failure acceleration does not impose a permanent 100 ms minimum. This does **not measure kernel SYN emission**, or prove its RFC spacing. This is **not full RFC 8305 compliance**: neither an AAAA/A DNS race nor a complete RFC 6724 implementation. No performance gain is claimed. The race yields so the external timeout remains observable and closes losers before TLS. The default 10 s covers DNS/TCP/TLS/h2 and its expiry remains `Timeout`. Around 41 blocked attempts under this default are not a bound for an arbitrary user timeout. TLS retains the original name, system roots and ALPN `h2`; its failure never starts another race to another server.
 
-La réception h2 dispose d'une fenêtre de connexion de 1 Mio, de 65 535 octets par
-stream et de files applicatives de capacité un. Cela fournit une marge finie pour
-un frère d'un consommateur suspendu, ni isolation pour N quelconque ni borne RSS
-globale. Les buffers natifs et le ledger d'erreurs restent séparés.
+h2 reception has a 1 MiB connection window, 65,535 bytes per stream and application queues of capacity one. This gives finite headroom to a sibling of a stalled consumer, not isolation for arbitrary N or a global RSS bound. Native buffers and the error ledger remain separate.
 
-`Session::next()` livre l'erreur terminale une fois puis est fused (`Ok(None)`),
-alors que `finish()` conserve son issue. Ne pas copier cette règle sur
-`AudioSource::next()` : les sources audio fournies gardent leurs erreurs sticky
-jusqu'au close explicite. Le commit EOF irréversible et l'état de qualification
-sont détaillés dans le [contrat de fiabilité](rust-reliability-lifecycle.md).
-Aucun keepalive, PING de production, retry ou reconnect n'est ajouté.
+`Session::next()` delivers the terminal error once then is fused (`Ok(None)`), while `finish()` retains its outcome. Do not copy this rule to `AudioSource::next()`: supplied audio sources keep errors sticky until explicit close. Irreversible EOF commit and qualification status are detailed in the [reliability contract](rust-reliability-lifecycle.md). No production keepalive, PING, retry or reconnect is added.
 
-## Correction ciblée du pacing TCP — 15 novembre 2026
+## Targeted TCP pacing correction — November 15, 2026
 
-L'ancienne accélération sans délai après échec et le premier correctif à 10 ms
-sont deux étapes distinctes. `tcp-pacing-floor/red.log` (sortie 101) reproduit
-l'absence de plancher ; `green-02.log` (13 tests) et `clippy-lib.log` (sortie 0)
-qualifiaient le source `af8595a997f963fbea8c9b34c787ade10f2e8dc7f65fb78a8f8433215c3f1cae`.
-**Ces 13 tests n'établissent pas le bon espacement des premiers polls** : leur
-oracle enregistrait la construction, avant que `FuturesUnordered` ne pollât la
-future, après un yield. Une suspension de 20 ms pouvait consommer tout le plancher.
-Les anciennes sources/logs restent historiques, sans réécriture.
+The old acceleration without delay after failure and the first 10 ms fix are two distinct stages. `tcp-pacing-floor/red.log` (exit 101) reproduces the missing floor; `green-02.log` (13 tests) and `clippy-lib.log` (exit 0) qualified source `af8595a997f963fbea8c9b34c787ade10f2e8dc7f65fb78a8f8433215c3f1cae`. **Those 13 tests do not establish correct first-poll spacing**: their oracle recorded construction, before `FuturesUnordered` polled the future after a yield. A 20 ms suspension could consume the entire floor. Old sources/logs remain historical, without rewriting.
 
-La correction du premier poll dispose de preuves séparées, dans le nouveau dossier
-temporaire `tcp-first-poll-20261115` :
+The first-poll correction has separate evidence in the new temporary directory `tcp-first-poll-20261115`:
 
-- **RED runtime**, `red-02.log`, sortie **101** : **13 réussites, 6 échecs**, sans
-  erreur de compilation. Les oracles enregistrent désormais le **premier poll**.
-  Le parent est pollé jusqu'à sa première suspension, puis l'horloge injectée
-  avance de 20 ms ; sans autre avance, les deux départs de l'ancien code sont
-  enregistrés à **20 ms / 20 ms** (écart nul). Le cas pending suspendu jusqu'à
-  270 ms échoue aussi ; deux cas font consommer 20 ms par le premier poll lui-même
-  et exigent ensuite 10 ms après ReadyErr, ou 250 ms après Pending. Les deux autres
-  échecs concernent le succès Ready immédiat et le yield après initiation.
-  `red-final-connection.rs` conserve exactement le source exécuté. `red-01.log`
-  conserve l'étape antérieure (12 réussites / 5 échecs), dont l'ancien fixture de
-  coopération attendait encore un lancement compté à la construction.
-- **GREEN ciblé**, `green-01.log`, sortie **0** :
-  `cargo test --locked --offline -p rambler-transport --lib connection::tests::`,
-  **19 tests réussis** : 16 avec horloge injectée sans I/O, un d'ordre des familles,
-  un de sélection du driver et un de socket loopback réel. Ils couvrent premier
-  poll avant yield, horodatage post-poll, ReadyOk immédiat, ReadyErr à 10 ms,
-  Pending à 250 ms, accélération à 200 ms, échec ancien et échéance non reportée,
-  neuvième adresse à **2 s**, **129** échecs avec **129** drops en **1 280 ms
-  virtuelles**, coopération/timeout et Drop explicite. Le test loopback vérifie
-  l'EOF réel du socket perdant avant retour, **pas le pacing des paquets**.
-- `clippy-lib.log` et `fmt-check.log`, sorties **0** :
-  `cargo clippy --locked --offline -p rambler-transport --lib -- -D warnings` et
-  `cargo fmt -p rambler-transport -- --check`. Clippy vise la bibliothèque seulement.
-- Rust/Cargo **1.99.1**, Windows ; debug dev/test et incremental désactivés,
-  target racine existant, CMake local existant. `invariants.log` confirme que, hors
-  des trois documents ciblés, tous les autres fichiers, notamment production/
-  manifests/lock, restent inchangés et que le source est identique à
-  `green-connection.rs` après tests/Clippy/format :
-  SHA-256 `5cc8ad1534668904bf05523afb92e629a9086d0f0d130e435e0065c1e6614565`.
+- **Runtime RED**, `red-02.log`, exit **101**: **13 passed, 6 failed**, without compilation error. Oracles now record the **first poll**. The parent is polled until its first suspension, then the injected clock advances 20 ms; without further advance, the two starts of the old code are recorded at **20 ms / 20 ms** (zero gap). The pending case suspended until 270 ms also fails; two cases make the first poll itself consume 20 ms and then require 10 ms after ReadyErr, or 250 ms after Pending. The other two failures concern immediate Ready success and yield after initiation. `red-final-connection.rs` retains exactly the source executed. `red-01.log` retains the earlier stage (12 passed / 5 failed), whose old cooperation fixture still expected a launch counted at construction.
+- **Targeted GREEN**, `green-01.log`, exit **0**: `cargo test --locked --offline -p rambler-transport --lib connection::tests::`, **19 tests passed**: 16 with injected clock without I/O, one family ordering, one driver selection and one real loopback socket. They cover first poll before yield, post-poll timestamp, immediate ReadyOk, ReadyErr at 10 ms, Pending at 250 ms, acceleration at 200 ms, old failure and non-postponed deadline, ninth address at **2 s**, **129** failures with **129** drops in **1,280 virtual ms**, cooperation/timeout and explicit Drop. The loopback test verifies real EOF of the losing socket before return, **not packet pacing**.
+- `clippy-lib.log` and `fmt-check.log`, exits **0**: `cargo clippy --locked --offline -p rambler-transport --lib -- -D warnings` and `cargo fmt -p rambler-transport -- --check`. Clippy targets the library only.
+- Rust/Cargo **1.99.1**, Windows; dev/test debug and incremental disabled, existing root target, existing local CMake. `invariants.log` confirms that, outside the three targeted documents, all other files, notably production/manifests/lock, remain unchanged and source is identical to `green-connection.rs` after tests/Clippy/format: SHA-256 `5cc8ad1534668904bf05523afb92e629a9086d0f0d130e435e0065c1e6614565`.
 
-Il s'agit d'oracles bornés d'**initiation applicative**, ni d'une mesure des SYN,
-ni d'un banc de performance. Windows R3 et Linux R3 intègrent ensuite ce correctif
-dans le même snapshot qualifié localement, avec exclusions explicites. Linux R2
-reste en échec sur son test CLI release distinct : le diagnostic identifie un
-exécutable périmé, sans cause déduite du pacing. Windows R2 et Linux R1/R2 restent
-historiques et intacts. Voir [les résultats intégrés et leurs limites](rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
+These are bounded **application initiation** oracles, neither SYN measurement nor a performance benchmark. Windows R3 and Linux R3 subsequently integrate this fix in the same locally qualified snapshot, with explicit exclusions. Linux R2 remains failed on its distinct release CLI test: diagnosis identifies a stale executable, with no cause inferred from pacing. Windows R2 and Linux R1/R2 remain historical and intact. See [integrated results and their limits](rust-build-validation.md#november-15-reliability-batch).
 
-## Setup TLS hors du runtime — qualification locale du 15 novembre
+## TLS setup outside the runtime — November 15 local qualification
 
-Après le gagnant TCP et `TCP_NODELAY`, un unique `spawn_blocking` attendu charge
-les racines natives, les parse et construit `ClientConfig`. Pas de cache : chaque
-connexion recharge ses racines. Le socket reste dans la future appelante ; le délai
-externe DNS/TCP/TLS/h2 peut donc progresser sur un runtime mono-thread et ferme le
-socket à l'expiration. Nom vérifié, authority, ALPN `h2`, ordre et erreurs ordinaires
-restent inchangés (zéro racine acceptée : `Connect`, succès partiel conservé).
-Un échec de jointure/panic devient `Supervisor` sous le profil unwind testé ; seul
-le texte de l'erreur retournée est expurgé. Le panic hook de l'application peut
-encore écrire sur stderr.
+After the TCP winner and `TCP_NODELAY`, one awaited `spawn_blocking` loads native roots, parses them and builds `ClientConfig`. No cache: each connection reloads its roots. The socket remains in the calling future; the external DNS/TCP/TLS/h2 timeout can therefore progress on a single-thread runtime and closes the socket on expiry. Verified name, authority, ALPN `h2`, order and ordinary errors remain unchanged (zero roots accepted: `Connect`, partial success preserved). A join failure/panic becomes `Supervisor` under the tested unwind profile; only the returned error text is redacted. The application's panic hook can still write to stderr.
 
-Le guard Drop appelle `abort` : un travail encore en file peut être annulé ; un
-travail **déjà démarré ne peut pas être interrompu**. Son résultat est alors jeté,
-sans démarrer TLS ni accéder à une source. L'appelant doit borner sa concurrence de
-connexions : aucun sémaphore global n'est ajouté, et le pool borne ses threads,
-pas sa file. Des loaders OS bloqués peuvent aussi retarder le DNS qui partage ce
-pool. L'arrêt du runtime peut attendre les travaux bloquants déjà démarrés.
-Aucun fallback TLS, racine personnalisée, 0-RTT, PING ou reconnect n'est ajouté.
+The Drop guard calls `abort`: work still queued can be cancelled; **already started work cannot be interrupted**. Its result is then discarded, without starting TLS or accessing a source. The caller must bound connection concurrency: no global semaphore is added, and the pool bounds its threads, not its queue. Blocked OS loaders can also delay DNS sharing that pool. Runtime shutdown can await already-started blocking work. No TLS fallback, custom root, 0-RTT, PING or reconnect is added.
 
-Qualification Windows ciblée, offline/locked : **25 tests de connexion** (les 19
-existants + 6 nouveaux), format et Clippy bibliothèque. Les loaders injectés et
-un DER synthétique ne lisent aucun magasin OS. Heartbeat mono-thread, timeout,
-annulation en file (pool d'un thread), résultat démarré jeté, panic et erreurs du
-provider sont couverts ; chaque attente bloquante a un watchdog OS indépendant.
-Deux contrôles négatifs ciblés échouent comme attendu (sortie 101) : sans `abort`,
-le loader en file est appelé ; inline, le watchdog libère après 5 s, sans hang.
-L'EOF loopback à l'expiration teste une portée de possession analogue à `connect`,
-pas un handshake TLS réel ni le magasin système, la rotation ou un service externe.
-La revue statique Opus 5.5 accepte ce source. Les qualifications intégrées R4 passent
-ensuite sur Windows stable/1.88 et Linux 1.88 : **382 réussis, 0 échoué, 1 ignoré**
-par workspace, avec le même manifeste sélectionné de 167 fichiers. Le test PyAV
-ignoré est activé séparément sous Windows seulement ; les autres exclusions Linux
-restent explicites. Les résultats R3 restent ceux du snapshot précédent. Voir
-[la preuve TLS R4](../evidence/rust-tls-setup-offload.json) et
-[le détail des builds](rust-build-validation.md#setup-tls-déporté--r4).
+Targeted Windows qualification, offline/locked: **25 connection tests** (19 existing + 6 new), format and library Clippy. Injected loaders and synthetic DER read no OS store. Single-thread heartbeat, timeout, queued cancellation (one-thread pool), discarded started result, panic and provider errors are covered; each blocking wait has an independent OS watchdog. Two targeted negative controls fail as expected (exit 101): without `abort`, the queued loader is called; inline, the watchdog releases after 5 s, without hanging. Loopback EOF on expiry tests an ownership scope analogous to `connect`, not a real TLS handshake or system store, rotation or external service. The Opus 5.5 static review accepts this source. Integrated R4 qualifications then pass on Windows stable/1.88 and Linux 1.88: **382 passed, 0 failed, 1 ignored** per workspace, with the same selected 167-file manifest. The ignored PyAV test is enabled separately on Windows only; other Linux exclusions remain explicit. R3 results remain those of the previous snapshot. See [R4 TLS evidence](../evidence/rust-tls-setup-offload.json) and [build details](rust-build-validation.md#offloaded-tls-setup--r4).
 
-## Offline coverage and limits (lot historique)
+## Offline coverage and limits (historical batch)
 
 The 13 lifecycle tests cover invalid initial SETTINGS, active/idle TCP loss, typed and flow-blocked GOAWAY cases, RST CANCEL mapping, sibling isolation, graceful GOAWAY with an active stream, distinct/same-reason successive non-OK GOAWAYs, queue-full responses, interrupted close, cleanup precedence, explicit replacement and no replay. PING/PONG, oneshots, semaphores and counters determine event order; sleeps do not choose failure timing. TCP_NODELAY is explicit in the lifecycle peer fixtures.
 
@@ -198,7 +79,7 @@ The inherited 512-session reuse test checks exact payloads, one call per source,
 
 Passing these schedules, even repeatedly, is not proof that all interleavings are bug-free. There is no multi-hour WAN, real-service, TLS-rotation, proxy or idle-health guarantee. No idle keepalive is added. h2 native flow buffers are separate from capacity-one application queues. Unobserved failures require ledger memory proportional to those failures; there is no lossy cap. An `Unavailable`/GOAWAY/upload-EOF code is never evidence of server receipt or permission to replay.
 
-## Validation historique, pas acceptation du lot local du 15 novembre
+## Historical validation, not acceptance of the November 15 local batch
 
 On Windows, offline and locked, with build artifacts owned by this worktree. `CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0` avoids unnecessary disk/debug artifacts. Earlier disk-exhaustion/linker failures and a corrected fixture synchronization timeout are not counted as RED assertions.
 

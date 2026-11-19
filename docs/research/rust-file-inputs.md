@@ -1,58 +1,25 @@
-# Entrées fichier : préflight borné et types pris en charge
+# File inputs: bounded preflight and supported types
 
-Les sources fichier du backend acceptent des fichiers réguliers : WAV strict
-PCM16LE mono16k (`WavAudio`) et Ogg/Opus validé dans la CLI. Un lien symbolique vers
-un fichier régulier est permis ; le descripteur ouvert est ensuite conservé.
-Pour un flux vivant, fournir un `AudioSource` asynchrone coopératif : les commandes
-fichier ne constituent pas une interface FIFO, pipe, console ou périphérique.
+Backend file sources accept regular files: strict mono 16 kHz PCM16LE WAV (`WavAudio`) and CLI-validated Ogg/Opus. A symbolic link to a regular file is permitted; the opened descriptor is then retained. For a live stream, provide a cooperative asynchronous `AudioSource`: file commands are not an interface for a FIFO, pipe, console, or device.
 
-## Défaut reproduit
+## Reproduced defect
 
-Sur le binaire Linux natif du snapshot R5, une FIFO sans producteur passée à
-`dictate` puis `dictate-wav`, avec `--timeout 1`, ne terminait pas. Chaque processus
-a dû être arrêté par une limite externe de2s (`timeout` exit124, stdout vide).
-Le délai RPC n'avait pas encore commencé : `File::open` attendait le producteur.
-Deux essais locaux seulement, sans Google, credentials ni données audio.
+On the native Linux binary from snapshot R5, a FIFO without a producer passed to `dictate` and then `dictate-wav`, with `--timeout 1`, did not terminate. Each process had to be stopped by an external 2s limit (`timeout` exit 124, empty stdout). The RPC timeout had not yet started: `File::open` was waiting for the producer. Only two local tests, without Google, credentials, or audio data.
 
-Une première correction fondée seulement sur `metadata().is_file()` a encore
-échoué sur un pipe Windows : un des deux tests a dépassé5s. Le test tue son enfant
-sur timeout ; il n'immobilise pas le runtime de test dans un open système bloqué.
-Cette tentative n'est pas présentée comme un succès Windows.
+A first fix based only on `metadata().is_file()` still failed on a Windows pipe: one of the two tests exceeded 5s. The test kills its child on timeout; it does not stall the test runtime in a blocking system open. This attempt is not presented as a Windows success.
 
-## Correction
+## Fix
 
-- Unix : `O_NONBLOCK` à l'ouverture, puis vérification du type sur le descripteur.
-  Les fichiers réguliers conservent leur sémantique normale. La vérification ne
-  dépend pas d'un contrôle de chemin vulnérable à un remplacement par une FIFO.
-- Windows : `GetFileType` exige `FILE_TYPE_DISK` avant metadata/lecture. Une simple
-  metadata peut ne pas distinguer correctement un pipe. L'appel FFI n'utilise
-  qu'un handle vivant emprunté et ne le ferme ni ne conserve de pointeur.
-- Échec avant lecture : fermeture attendue du fichier possédé, erreur source,
-  aucun RPC ni résultat. Aucun EOF ou EOS synthétique.
+- Unix: `O_NONBLOCK` on open, followed by a type check on the descriptor. Regular files retain their normal semantics. The check does not rely on a path check vulnerable to replacement by a FIFO.
+- Windows: `GetFileType` requires `FILE_TYPE_DISK` before metadata/read. Metadata alone may not distinguish a pipe correctly. The FFI call uses only a borrowed live handle and neither closes it nor retains a pointer.
+- Failure before reading: the owned file is awaited on close, a source error is returned, and there is no RPC or result. No synthetic EOF or EOS.
 
-`libc` (Unix) et `windows-sys` (Windows) étaient déjà présents dans le lock ; ils
-sont maintenant des dépendances directes ciblées pour ces constantes/API. La
-feature Tokio `process` ajoutée à la CLI est **dev-only**, pour tuer les enfants
-de test sur timeout, pas pour exécuter un encodeur ou interpréteur au runtime.
+`libc` (Unix) and `windows-sys` (Windows) were already in the lockfile; they are now direct, targeted dependencies for these constants/APIs. The Tokio `process` feature added to the CLI is **dev-only**, to kill test children on timeout, not to run an encoder or interpreter at runtime.
 
-Pour l'endpoint normal, le préflight strict des credentials intervient après
-l'ouverture de l'entrée et avant `Engine::connect` ; un échec attend sa fermeture.
-Il ne dispense donc pas des opérations d'ouverture ci-dessus. Le loopback explicite
-n'inspecte pas l'environnement. Détails et qualification locale :
-[snapshots de credentials](rust-credential-snapshots.md) ·
-[preuve A/B](../evidence/rust-pcm-progress-admission.json).
+For the normal endpoint, strict credential preflight occurs after opening the input and before `Engine::connect`; on failure its closure is awaited. It therefore does not dispense with the open operations above. Explicit loopback does not inspect the environment. Details and local qualification: [credential snapshots](rust-credential-snapshots.md) · [A/B evidence](../evidence/rust-pcm-progress-admission.json).
 
-## Filets de régression
+## Regression safeguards
 
-`crates/rambler-cli/tests/file_inputs.rs` vérifie : répertoire, FIFO Unix sans
-producteur, lien vers FIFO, `/dev/null`, `/dev/zero`, et pipe Windows sans données.
-Chaque commande Windows utilise une instance fraîche. Les tests exigent erreur
-JSON audio, absence de chemin/texte publié, stderr vide et zéro connexion TCP.
-Les tests WAV/Opus existants vérifient que les fichiers réguliers restent intacts.
-Le snapshot Linux R6 passe également la suite : le vrai binaire natif rejette
-ensuite les deux commandes FIFO avec exit1 et53octets de JSON, sans attendre
-la limite externe de2s. Les anciennes captures exit124 sont conservées séparément.
+`crates/rambler-cli/tests/file_inputs.rs` checks: directory, Unix FIFO without a producer, link to FIFO, `/dev/null`, `/dev/zero`, and Windows pipe without data. Each Windows command uses a fresh instance. Tests require a JSON audio error, no published path/text, empty stderr, and zero TCP connections. Existing WAV/Opus tests verify that regular files remain intact. Linux snapshot R6 also passes the suite: the real native binary then rejects both FIFO commands with exit 1 and 53 bytes of JSON, without waiting for the external 2s limit. The old exit 124 captures are retained separately.
 
-Cette correction ne promet pas de rendre annulable toute opération disque, tout
-partage réseau ou toute source utilisateur non coopérative. Le délai réseau ne
-constitue pas une garantie absolue sur le noyau ou le matériel sous-jacent.
+This fix does not promise to make every disk operation, network share, or uncooperative user source cancellable. The network timeout is not an absolute guarantee on the underlying kernel or hardware.

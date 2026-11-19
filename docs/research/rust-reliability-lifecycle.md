@@ -1,250 +1,77 @@
-# Contrats de fiabilité Rust : admission, erreurs et finalisation
+# Rust reliability contracts: admission, errors, and finalization
 
-État documentaire au **15 novembre 2026**, lot construit depuis la base
-`90a773a`, intégré dans `58da700`. **Windows R3 et Linux R3 qualifient localement
-le même snapshot, avec exclusions explicites. Linux R1/R2 restent FAILED.** Les
-310 tests du snapshot précédent
-qualifient uniquement la base commitée, pas ce lot. Les résultats intégrés et leurs
-limites sont séparés dans [la validation des builds](rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
+Documentation status as of **November 15, 2026**, batch built from base `90a773a`, integrated into `58da700`. **Windows R3 and Linux R3 locally qualify the same snapshot, with explicit exclusions. Linux R1/R2 remain FAILED.** The 310 tests from the previous snapshot qualify only the committed base, not this batch. Integrated results and their limitations are separated in [build validation](rust-build-validation.md#november-15-reliability-batch).
 
-## Admission locale avant consommation
+## Local admission before consumption
 
-Le superviseur attend successivement la résolution/validation des métadonnées,
-`SendRequest::ready()` et le succès local de `send_request` avant d'autoriser le
-premier `RequestSource::next()`. L'engine bénéficie de cette barrière avant de
-consommer son `AudioSource`. Un refus connu localement ne doit donc pas lire de
-nouveaux chunks audio pour rien.
+The supervisor successively waits for metadata resolution/validation, `SendRequest::ready()`, and local success of `send_request` before permitting the first `RequestSource::next()`. The engine benefits from this barrier before consuming its `AudioSource`. A locally known rejection should therefore not needlessly read new audio chunks.
 
-Cette barrière n'est ni un acquittement du pair, ni une authentification acceptée,
-ni une preuve de réception des HEADERS ou de l'audio. Une connexion silencieusement
-perdue derrière un NAT peut encore paraître prête localement. `start` reste
-synchrone : il peut accepter une source dont le **constructeur a déjà travaillé**
-(ouverture/prélecture/initialisation), voire dont le producteur indépendant tourne
-déjà. La barrière ne remonte pas le temps et n'est pas une promesse de capture
-microphone sans activité préalable.
+This barrier is neither a peer acknowledgment, accepted authentication, nor proof of receipt of HEADERS or audio. A connection silently lost behind a NAT can still appear locally ready. `start` remains synchronous: it can accept a source whose **constructor has already done work** (opening/prereading/initialization), or whose independent producer is already running. The barrier cannot turn back time and is not a promise of microphone capture without prior activity.
 
-Une fois la source acceptée par `GrpcTransport::start`, le superviseur conduit son
-nettoyage **une fois**, même si l'admission échoue avant le premier `next`.
-Un rejet synchrone de ce transport brut avant `Ok(Session)` relève du Drop Rust
-ordinaire. **`Engine::start` supervise au contraire le cleanup audio même s'il
-rejette une configuration invalide ou un moteur fermé** : attendre
-`Engine::close().await` aussi après ce rejet. Les sources ne doivent pas bloquer
-le runtime ni paniquer ; leur close doit finir coopérativement. Drop seul ne peut
-l'attendre.
+Once the source is accepted by `GrpcTransport::start`, the supervisor conducts its cleanup **once**, even if admission fails before the first `next`. A synchronous rejection by this raw transport before `Ok(Session)` falls under ordinary Rust Drop. **`Engine::start`, by contrast, supervises audio cleanup even if it rejects invalid configuration or a closed engine**: await `Engine::close().await` after that rejection as well. Sources must not block the runtime or panic; their close must finish cooperatively. Drop alone cannot await it.
 
-Aucun retry, rejeu, reconnect automatique, health check, keepalive ou PING de
-production n'est ajouté. Les PING de fixtures servent uniquement à ordonner les
-tests. Créer explicitement un autre transport ne déplace aucune ancienne session
-et n'autorise aucun rejeu de sa source.
+No production retry, replay, automatic reconnect, health check, keepalive, or PING is added. Fixture PINGs only order tests. Explicitly creating another transport moves no old session and authorizes no replay of its source.
 
-## Connexion initiale : course TCP seulement
+## Initial connection: TCP race only
 
-- Une résolution DNS, sous le délai global de connexion, conserve **toutes** les
-  adresses, même les doublons. L'ordre de chaque famille est préservé ; les familles
-  alternent en commençant par celle de la première réponse.
-- La course TCP est de style Happy Eyeballs et applique à l'**initiation de l'API
-  applicative** les délais inspirés du
-  [RFC 8305 §5](https://www.rfc-editor.org/rfc/rfc8305.txt), pas l'intégralité du RFC :
-  aucune course DNS AAAA/A ni implémentation complète de RFC 6724. La première
-  tentative est épinglée et pollée immédiatement, avec le waker réel avant tout
-  yield ; l'espacement normal reste **250 ms**. Après échec observé, l'échéance
-  suivante devient
-  `min(échéance prévue, max(dernier lancement + 10 ms, maintenant))` : elle ne
-  reporte jamais un départ programmé. Le dernier lancement est horodaté **après
-  son premier poll**, pas à la construction, ni depuis la tentative échouée.
-  Le §5 recommande 100 ms comme minimum (`SHOULD`) et 250 ms par défaut ; 10 ms est
-  son plancher absolu obligatoire (`MUST NOT` démarrer plus tôt). L'accélération
-  sur échec utilise ici ce plancher applicatif, sans minimum permanent de 100 ms.
-  **Aucune mesure ni preuve d'espacement des SYN noyau n'est revendiquée**, ni gain
-  de performance. Des yields après initiation empêchent une longue série d'échecs
-  immédiatement disponibles de monopoliser l'exécuteur et de masquer le délai
-  externe. Une adresse tardive n'est pas éliminée par une limite arbitraire aux
-  huit premières réponses.
-- Au succès, à l'erreur finale ou à l'annulation, les futures/sockets perdantes
-  sont abandonnées et fermées avant de passer à TLS. Cette sélection de destination
-  appartient à l'établissement initial, pas à un retry de RPC.
-- Le délai externe, **10 s par défaut**, couvre DNS, TCP, TLS et handshake h2.
-  Son expiration reste `TransportError::Timeout`, pas un `Connect` générique.
-  Environ **41 tentatives bloquées** peuvent coexister sous ce seul défaut 10 s /
-  250 ms (également limitées par la liste DNS) : ce n'est pas une borne fixe pour
-  un timeout choisi arbitrairement par l'appelant. Les tentatives échouées sortent
-  de la course.
-- TLS démarre uniquement sur le TCP gagnant, conserve le nom d'hôte original pour
-  sa vérification et l'autorité, les racines système et ALPN `h2`. Un échec TLS
-  termine cette connexion : il ne lance ni ne reprend une course vers une autre
-  destination et ne réduit jamais les vérifications TLS.
+- A DNS resolution, under the global connection timeout, retains **all** addresses, even duplicates. Order within each family is preserved; families alternate starting with the family of the first response.
+- The TCP race is Happy Eyeballs-style and applies delays inspired by [RFC 8305 §5](https://www.rfc-editor.org/rfc/rfc8305.txt) to **application API initiation**, not the entire RFC: no DNS AAAA/A race or complete RFC 6724 implementation. The first attempt is pinned and polled immediately, with the real waker before any yield; normal spacing remains **250 ms**. After an observed failure, the next deadline becomes `min(échéance prévue, max(dernier lancement + 10 ms, maintenant))`: it never postpones a scheduled start. The last launch is timestamped **after its first poll**, not at construction or from the failed attempt. §5 recommends 100 ms as a minimum (`SHOULD`) and 250 ms by default; 10 ms is its mandatory absolute floor (`MUST NOT` start sooner). Acceleration on failure uses this application floor, without a permanent 100 ms minimum. **No measurement or evidence of kernel SYN spacing is claimed**, nor a performance gain. Yields after initiation prevent a long series of immediately available failures from monopolizing the executor and masking the external timeout. A late address is not eliminated by an arbitrary limit to the first eight responses.
+- On success, final error, or cancellation, losing futures/sockets are dropped and closed before proceeding to TLS. This destination selection belongs to initial establishment, not an RPC retry.
+- The external timeout, **10 s by default**, covers DNS, TCP, TLS, and h2 handshake. Its expiration remains `TransportError::Timeout`, not a generic `Connect`. About **41 blocked attempts** can coexist under this 10 s / 250 ms default alone (also limited by the DNS list): this is not a fixed bound for an arbitrarily chosen caller timeout. Failed attempts leave the race.
+- TLS starts only on the winning TCP, retains the original hostname for verification and authority, system roots, and ALPN `h2`. TLS failure ends this connection: it neither starts nor resumes a race to another destination and never reduces TLS checks.
 
-## Backpressure et équité finie
+## Backpressure and finite fairness
 
-La fenêtre de réception h2 de connexion est **1 Mio** ; celle de chaque stream
-reste **65 535 octets**. Les files applicatives requête/réponse restent de capacité
-**un**, avec les éléments en vol distincts. Un consommateur suspendu ne doit pas
-épuiser à lui seul l'ancien crédit de connexion et bloquer le petit échange d'un
-frère dans le scénario couvert.
+The h2 connection receive window is **1 MiB**; each stream's remains **65,535 bytes**. Application request/response queues remain capacity **one**, with in-flight elements distinct. A stalled consumer must not alone exhaust the old connection credit and block a sibling's small exchange in the covered scenario.
 
-Ce crédit fournit une marge d'équité **finie**, pas une isolation pour un nombre
-arbitraire N de streams suspendus. Les buffers h2, les allocations racines de
-`Bytes`, les sources et le ledger d'erreurs restent distincts. Ni cette fenêtre,
-ni les files de capacité un ne constituent une borne RSS globale. Un consommateur
-qui ne draine pas peut toujours retarder les trailers de sa propre session.
+This credit provides a **finite** fairness margin, not isolation for an arbitrary number N of stalled streams. h2 buffers, `Bytes` root allocations, sources, and the error ledger remain distinct. Neither this window nor capacity-one queues constitute a global RSS bound. A consumer that does not drain can still delay its own session's trailers.
 
-## Deux contrats terminaux à ne pas confondre
+## Two terminal contracts that must not be confused
 
-Pour les sources audio fournies (`PcmInput`, `Pcm16Opus`, WAV), une faute source
-reste typée et **sticky** : les appels `AudioSource::next()` suivants restent
-`Err` jusqu'au close explicite, au lieu de transformer corruption/troncature/
-abandon en EOF sain. Aucun EOS Opus réussi n'est fabriqué pour masquer la faute.
-La libération de l'upstream est unique et peut déjà avoir commencé ; cela n'efface
-pas la faute exposée par `next`. Le close explicite reste une transition séparée,
-avec sa propre issue de cleanup.
+For supplied audio sources (`PcmInput`, `Pcm16Opus`, WAV), a source fault remains typed and **sticky**: subsequent `AudioSource::next()` calls remain `Err` until explicit close, instead of turning corruption/truncation/abandonment into healthy EOF. No successful Opus EOS is fabricated to mask the fault. Upstream release is unique and may already have begun; that does not erase the fault exposed by `next`. Explicit close remains a separate transition, with its own cleanup outcome.
 
-En revanche, `rambler_transport::Session::next()` est volontairement **fused** :
-après avoir livré son erreur terminale une fois, il rend `Ok(None)` aux appels
-suivants. `finish()` conserve et rend l'issue terminale, y compris cette erreur.
-Cet EOF après erreur n'est donc pas le contrat des `AudioSource`, ni un nouvel
-acquittement de réussite. L'intégrateur doit observer l'issue, pas seulement le
-dernier `None`.
+Conversely, `rambler_transport::Session::next()` is intentionally **fused**: after delivering its terminal error once, it returns `Ok(None)` on subsequent calls. `finish()` retains and returns the terminal outcome, including that error. This EOF after error is therefore neither the `AudioSource` contract nor a new success acknowledgment. The integrator must observe the outcome, not just the last `None`.
 
-### Préserver primaire et cleanup
+### Preserve primary and cleanup
 
-`TransportError::PrimaryAndCleanup(Box<PrimaryAndCleanup>)` préserve la faute
-primaire sélectionnée et une faute distincte du close. Le type est public, mais
-sa construction et ses champs sont privés ; `primary()`, `cleanup()` et
-`into_parts()` permettent une lecture explicite. Debug/Display et la chaîne
-d'erreur automatique n'exposent pas les erreurs privées de l'appelant. Une
-annulation explicite accompagnée d'un cleanup défaillant reste `Cleanup`, pas une
-paire dont le primaire serait `Cancelled`.
+`TransportError::PrimaryAndCleanup(Box<PrimaryAndCleanup>)` preserves the selected primary fault and a distinct close fault. The type is public, but its construction and fields are private; `primary()`, `cleanup()`, and `into_parts()` permit explicit inspection. Debug/Display and the automatic error chain do not expose the caller's private errors. Explicit cancellation accompanied by failed cleanup remains `Cleanup`, not a pair whose primary is `Cancelled`.
 
-L'engine ne défait cette paire que **localement**, pour son propre adaptateur de
-requêtes et son audio mémorisé : il restaure son primaire et conserve le cleanup
-distinct dans son ledger `AudioCleanup`, sans deuxième close audio ni deuxième
-livraison de la même faute de cleanup. Il ne faut pas généraliser cette opération
-au `From<TransportError>` public, ni dédupliquer par texte/code d'erreur.
+The engine unwraps this pair only **locally**, for its own request adapter and retained audio: it restores its primary and retains cleanup separately in its `AudioCleanup` ledger, without a second audio close or second delivery of the same cleanup fault. This operation must not be generalized to public `From<TransportError>`, nor deduplicated by error text/code.
 
-La priorité du transport pour une faute source effectivement observée n'est pas
-une règle universelle remplaçant un délai ou une annulation **déjà sélectionné par
-l'engine**. Chaque couche conserve son point de sélection et ses responsabilités.
-Une erreur de session observée n'acquitte pas non plus le driver indépendant :
-voir [le ledger de connexion](rust-connection-lifecycle.md). Des close successifs
-peuvent légitimement révéler des fautes distinctes ; les attendre jusqu'à `Ok`.
+Transport priority for an actually observed source fault is not a universal rule replacing a timeout or cancellation **already selected by the engine**. Each layer retains its selection point and responsibilities. An observed session error also does not acknowledge the independent driver: see [the connection ledger](rust-connection-lifecycle.md). Successive closes can legitimately reveal distinct faults; await them until `Ok`.
 
-## Délais et budget de finalisation
+## Timeouts and finalization budget
 
-`SessionOptions.timeout` reste le délai dur global, **30 s par défaut** à partir
-du démarrage de la session. Il **inclut la parole**, les métadonnées, l'admission,
-l'upload, le contexte tardif et la livraison terminale ; ce n'est pas « 30 s après
-que l'utilisateur a fini de parler ». Le setup de connexion a son délai distinct
-ci-dessus. Un cleanup asynchrone est toujours attendu coopérativement, même après
-l'expiration : aucun de ces délais ne constitue un abandon forcé du nettoyage.
+`SessionOptions.timeout` sets a **30 s default deadline** starting when the session starts. It covers speech, metadata, admission, upload, late context, and terminal delivery. Connection setup uses the separate timeout above. Asynchronous cleanup is cooperative and is awaited after either timeout expires.
 
-`SessionOptions.finalize_timeout: Option<Duration>` vaut **`None` par défaut**.
-La CLI expose `--finalize-timeout` en secondes. Lorsqu'il est présent, ce budget
-ne commence **qu'après EOF audio et cleanup audio réussi**. Il couvre ensuite le
-contexte, la fin d'upload/END, le statut gRPC et la livraison finale sous
-backpressure. Son échéance effective est le minimum de son échéance propre et de
-l'échéance dure : il ne prolonge jamais la session. `Some(Duration::ZERO)` est
-invalide ; un budget énorme ou une addition d'instant débordante est plafonné
-sans risque par l'échéance dure. Le provider de contexte garde aussi son propre
-budget (`context_timeout`, défaut 2 s), limité par le temps restant.
+`SessionOptions.finalize_timeout: Option<Duration>` is **`None` by default**. The CLI exposes `--finalize-timeout` in seconds. When present, this budget starts **only after audio EOF and successful audio cleanup**. It then covers context, upload completion/END, gRPC status, and final delivery under backpressure. Its effective deadline is the minimum of its own deadline and the hard deadline: it never extends the session. `Some(Duration::ZERO)` is invalid; an enormous budget or overflowing instant addition is safely capped by the hard deadline. The context provider also retains its own budget (`context_timeout`, default 2 s), limited by remaining time.
 
-Un dépassement du budget de finalisation doit rester distinct (`FinalizeTimeout`)
-du timeout dur (`Transport(Timeout)`). Aucun `max_audio`, faux EOF automatique ou
-arrêt de microphone n'est ajouté. Le producteur doit décider de la fin normale.
+Exceeding the finalization budget must remain distinct (`FinalizeTimeout`) from hard timeout (`Transport(Timeout)`). No `max_audio`, automatic false EOF, or microphone stop is added. The producer must decide normal termination.
 
-Exemples de réglage **illustratifs, non mesurés comme optimaux** : pour une source
-pouvant durer deux minutes, `--timeout 150 --finalize-timeout 10` laisse au maximum
-10 s après EOF/cleanup, sans dépasser 150 s au total ; `--context-timeout 2` garde
-son plafond propre. Une parole de plus de 150 s n'obtient aucun sursis. Sans
-`--finalize-timeout`, seul le délai dur et les délais spécifiques existants
-s'appliquent.
+**Illustrative settings, not measured as optimal**: for a source that may last two minutes, `--timeout 150 --finalize-timeout 10` leaves at most 10 s after EOF/cleanup, without exceeding 150 s total; `--context-timeout 2` retains its own cap. Speech longer than 150 s gets no extension. Without `--finalize-timeout`, only the hard timeout and existing specific timeouts apply.
 
-### Publication irréversible du succès
+### Irreversible publication of success
 
-La correction locale place **toutes les attentes fallibles avant un commit privé
-irréversible**, nettoyage et réservation de la file d'événements compris. Après
-réservation, annulation et échéances sont encore vérifiées avant publication ;
-aucune attente fallible ne suit le commit. Un EOF sain publié ne devient donc pas
-ultérieurement une erreur ; `metrics.eof_seconds` date le **commit réussi**, pas
-le dernier échantillon PCM ni le simple drainage d'une file.
+The local fix places **all fallible waits before a private irreversible commit**, including cleanup and event queue reservation. After reservation, cancellation and deadlines are still checked before publication; no fallible wait follows the commit. Published healthy EOF therefore does not later become an error; `metrics.eof_seconds` timestamps the **successful commit**, not the last PCM sample or mere queue drainage.
 
-Les régressions de file pleine, expiration après réservation, priorité des délais
-et annulation après EOF passent dans Windows R3. Le passage antérieur de 12 cas
-n'était pas cette preuve. Ces scénarios finis ne prouvent pas tous les
-ordonnancements ; l'échec Linux R2 distinct reste enregistré ci-dessous.
+Full-queue, expiration-after-reservation, timeout priority, and cancellation-after-EOF regressions pass in Windows R3. The earlier pass of 12 cases was not this evidence. These finite scenarios do not prove all schedules; the distinct Linux R2 failure remains recorded below.
 
-## Historique ciblé, distinct de la qualification intégrée
+## Targeted history, separate from integrated qualification
 
-Les noms ci-dessous identifient des logs locaux ciblés, pas des liens vers une
-preuve publiée ni un total workspace. Ils décrivent les snapshots intermédiaires
-exécutés, pas nécessairement le dernier état partagé des sources.
+The names below identify targeted local logs, not links to published evidence or a workspace total. They describe intermediate snapshots run, not necessarily the latest shared source state.
 
-- Admission : `admission-evidence-20261115/red-01.log` contient trois assertions
-  en échec ; `green-admission-09.log` indique le passage des cinq tests filtrés
-  d'admission. `green-transport-10.log`, `green-engine-07.log` et
-  `green-cli-08.log` contiennent les résultats ciblés transport/moteur/CLI. Ces
-  groupes ne sont pas additionnés en un compteur de tests distincts.
-- Erreurs audio sticky : `sticky-errors-8sqitv/red-final.log` contient six échecs
-  de régression ; `green-final.log` contient notamment les six cas sticky réussis
-  et les groupes audio voisins. Ce n'est pas une preuve de tous les interleavings.
-- Course TCP initiale : `happy-eyeballs-wwjpVW/after-test-2.log` et
-  `tcp-test-current.log` indiquent dix tests de connexion réussis chacun sur
-  l'ancien pacing sans plancher. Le premier correctif (`tcp-pacing-floor/red.log`,
-  sortie 101, puis `green-02.log`, 13 réussites, et `clippy-lib.log`, sortie 0)
-  conserve sa preuve historique, **mais son oracle mesurait la construction et
-  manquait le premier poll différé après yield**. Il ne qualifie pas ce pacing.
-  Dans `tcp-first-poll-20261115/red-02.log`, les oracles corrigés échouent au runtime
-  (sortie 101, 13 réussites / 6 échecs) : deux initiations à **20 ms / 20 ms** après
-  une suspension de 20 ms, cas pending à 270 ms, coût de premier poll et sélection
-  Ready/cooperation. Après correction, `green-01.log` passe **19 tests** (sortie 0 :
-  16 avec horloge injectée sans I/O, ordre des familles, driver, socket loopback).
-  `clippy-lib.log` et `fmt-check.log` passent aussi (sortie 0). Le parcours des
-  **129** échecs conserve **129** drops en **1 280 ms virtuelles**, la neuvième
-  adresse gagne à 2 s ; les cas post-poll vérifient 10 ms après ReadyErr et 250 ms
-  après Pending. Sources RED/GREEN exactes, hashes et invariants sont conservés ;
-  voir [la preuve ciblée de pacing](rust-connection-lifecycle.md#correction-ciblée-du-pacing-tcp--15-novembre-2026).
-  Ce sont des oracles d'initiation applicative, **pas une preuve de pacing SYN/RFC**,
-  ni une qualification intégrée ou un banc WAN.
-- Fenêtre h2 : `connection-window-zEaYDA/desired-red-1.log` échoue sur le frère
-  bloqué ; `happy-eyeballs-wwjpVW/window-green-1.log` passe ce cas ciblé. Cela ne
-  généralise pas l'équité à N streams quelconques.
-- `happy-eyeballs-wwjpVW/tcp-test-final.log` est un **échec transitoire de
-  compilation** (`E0061`, signature partagée lib/wire en cours d'édition), pas
-  un RED runtime ni une validation finale. Ne pas le transformer en assertion
-  réseau échouée ou en relance verte présumée.
+- Admission: `admission-evidence-20261115/red-01.log` contains three failing assertions; `green-admission-09.log` reports all five filtered admission tests passing. `green-transport-10.log`, `green-engine-07.log`, and `green-cli-08.log` contain targeted transport/engine/CLI results. These groups are not added into a distinct test count.
+- Sticky audio errors: `sticky-errors-8sqitv/red-final.log` contains six regression failures; `green-final.log` contains the six passing sticky cases and neighboring audio groups. This is not evidence of all interleavings.
+- Initial TCP race: `happy-eyeballs-wwjpVW/after-test-2.log` and `tcp-test-current.log` each report ten successful connection tests on old pacing without a floor. The first fix (`tcp-pacing-floor/red.log`, exit 101, then `green-02.log`, 13 passes, and `clippy-lib.log`, exit 0) retains its historical evidence, **but its oracle measured construction and missed the first poll deferred after yield**. It does not qualify that pacing. In `tcp-first-poll-20261115/red-02.log`, corrected oracles fail at runtime (exit 101, 13 passes / 6 failures): two initiations at **20 ms / 20 ms** after a 20 ms suspension, pending case at 270 ms, first-poll cost and Ready/cooperation selection. After correction, `green-01.log` passes **19 tests** (exit 0: 16 with injected clock without I/O, family order, driver, loopback socket). `clippy-lib.log` and `fmt-check.log` also pass (exit 0). The **129** failures retain **129** drops in **1 280 virtual ms**, and the ninth address wins at 2 s; post-poll cases check 10 ms after ReadyErr and 250 ms after Pending. Exact RED/GREEN sources, hashes, and invariants are retained; see [targeted pacing evidence](rust-connection-lifecycle.md#targeted-tcp-pacing-correction--november-15-2026). These are application-initiation oracles, **not SYN/RFC pacing evidence**, integrated qualification, or a WAN benchmark.
+- h2 window: `connection-window-zEaYDA/desired-red-1.log` fails on the blocked sibling; `happy-eyeballs-wwjpVW/window-green-1.log` passes this targeted case. This does not generalize fairness to arbitrary N streams.
+- `happy-eyeballs-wwjpVW/tcp-test-final.log` is a **transient compilation failure** (`E0061`, shared lib/wire signature being edited), not a runtime RED or final validation. Do not turn it into a failed network assertion or presumed green rerun.
 
-Les sorties de tests ont été lues ; les logs historiques n'ont pas tous un code
-de sortie enregistré indépendamment. La correction de pacing ci-dessus a, elle,
-relancé uniquement les tests de connexion et le Clippy bibliothèque, avec codes
-de sortie conservés. Aucun journal privé n'est reproduit. Windows R2 et Linux R1
-restent des preuves historiques sur leurs snapshots immuables ; Linux R1 reste
-**FAILED**, sans réécriture après correction.
+Test output was read; historical logs do not all have an independently recorded exit code. The pacing fix above, however, reran only connection tests and library Clippy, with exit codes retained. No private log is reproduced. Windows R2 and Linux R1 remain historical evidence on their immutable snapshots; Linux R1 remains **FAILED**, without rewriting after correction.
 
-## Qualification intégrée
+## Integrated qualification
 
-Windows R3 qualifie le snapshot incluant le premier poll TCP corrigé et le commit
-terminal. Linux R2 utilise le même manifeste sélectionné de 167 fichiers, inchangé
-avant/après. Ses tests workspace, exemple et feature-off passent, mais le test
-`release-finalization-cli` échoue (sortie 101) à `peer upload was not complete`.
-Le diagnostic contre-vérifié identifie un binaire release périmé : il rejette
-`--finalize-timeout` avant upload, car le nettoyage par paquet ne couvrait que le
-profil dev. Le test identique passe avec le debug reconstruit ; ce n'est pas une
-réussite release. **Linux R2 reste non qualifié.** Ses phases release PCM/smoke
-suivantes n'ont pas été exécutées. Linux R3, après nettoyage des deux profils,
-passe ensuite le même workspace, le test du release reconstruit, le smoke PCM et
-le postflight source, sans changement du moteur. Son test PyAV reste ignoré ;
-les autres exclusions de plateforme sont conservées.
+Windows R3 qualifies the snapshot including corrected first TCP poll and terminal commit. Linux R2 uses the same selected 167-file manifest, unchanged before/after. Its workspace, example, and feature-off tests pass, but `release-finalization-cli` fails (exit 101) at `peer upload was not complete`. Cross-checked diagnosis identifies a stale release binary: it rejects `--finalize-timeout` before upload, because per-package cleanup covered only the dev profile. The identical test passes with rebuilt debug; this is not a release success. **Linux R2 remains unqualified.** Its subsequent release PCM/smoke phases were not run. Linux R3, after cleaning both profiles, then passes the same workspace, rebuilt release test, PCM smoke, and source postflight, without engine changes. Its PyAV test remains ignored; other platform exclusions are retained.
 
-Les compteurs, rapports locaux exacts et preuves publiques déjà disponibles sont
-référencés dans [la validation des builds](rust-build-validation.md#lot-de-fiabilité-du-15-novembre).
-La qualification locale du snapshot est publiée avec ses exclusions ; les échecs
-historiques ne sont pas réétiquetés.
-Une réussite locale ne vaut ni CI distante ni qualification téléphone/service/WAN.
+Counts, exact local reports, and already available public evidence are referenced in [build validation](rust-build-validation.md#november-15-reliability-batch). Local snapshot qualification is published with its exclusions; historical failures are not relabeled. Local success is neither remote CI nor phone/service/WAN qualification.
 
-La revue architecturale Opus réelle du 15 novembre est **statique**, sans tests
-exécutés par le reviewer ; sa provenance est séparée des demandes historiques
-mal routées dans [la validation des builds](rust-build-validation.md).
-Les micro-optimisations CPU oneof/OggScratch/mutex ont été écartées comme peu
-prioritaires et non mesurées face à la fiabilité ; aucun gain vitesse/WAN n'est
-revendiqué. Android/ART, authentification/provisionnement/révocation, COMPOSE et
-macOS restent des périmètres distincts non qualifiés par ce lot offline. Aucun
-APK propriétaire, détail de capture privée ou accès réel n'est nécessaire ici.
+The November 15 real Opus architectural review is **static**, without tests run by the reviewer; its provenance is separate from misrouted historical requests in [build validation](rust-build-validation.md). CPU oneof/OggScratch/mutex micro-optimizations were discarded as low priority and unmeasured relative to reliability; no speed/WAN gain is claimed. Android/ART, authentication/provisioning/revocation, COMPOSE, and macOS remain separate scopes not qualified by this offline batch. No proprietary APK, private capture detail, or live access is necessary here.
