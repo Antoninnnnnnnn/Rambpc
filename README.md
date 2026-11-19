@@ -113,12 +113,37 @@ séparément : l'entrée doit être **un seul flux Ogg/Opus continu**.
 
 | Valeur | Effet |
 |---|---|
-| `strict` (défaut) | Projection SDK conservatrice ; forme JSON inchangée. |
+| `strict` (défaut) | Projection SDK conservatrice. |
 | `asr-only` | Texte de reconnaissance uniquement. |
 | `s3-client-compatible` | Accepte aussi la réécriture d'une fenêtre capturée (intention 3, champ 7). |
 
-Les choix explicites ajoutent `provenance` à la sortie (`hypothesis_text`,
-`voice_edit_text` ou `voice_edit_context`).
+Les choix explicites ajoutent `provenance` à une projection acceptée
+(`hypothesis_text`, `voice_edit_text` ou `voice_edit_context`).
+
+`DictationResult::interpret(policy)` distingue `UsableText`, `NoResult`,
+`NeedsReview`, `VerifiedDeletion`, `SafetyBlocked` et `UnrecognizedSafety`.
+`NoResult` couvre notamment l’absence de finale ou de texte et une hypothèse
+explicitement vide ; cela ne prouve pas un silence acoustique. Les projections
+historiques `render(policy)` et `text()` restent inchangées. Une suppression
+vérifiée exige une édition explicitement vide, admissible comme remplacement
+de la fenêtre capturée non vide. Elle n’autorise aucune mutation : utiliser
+une proposition bornée à cette fenêtre et revalider le contexte et la révision.
+
+La CLI ajoute `outcome` au JSON : `usable_text` et `verified_deletion` ont le
+code 0 pour une session seule (`type: result`). `no_result` et `needs_review`
+renvoient le code 1 (`type: ambiguous`, `text: null`) ; `no_result_reason`
+précise le motif par segment (`no_finals`, `missing_text` ou `empty_text`).
+Les issues `safety_blocked` et `unrecognized_safety` restent des erreurs
+sans texte, contexte ni finale de la session concernée.
+
+En mode `--interactive`, seules des sessions avec du texte utilisable forment
+le texte global. Si un segment manque ou exige une révision, le code est
+non nul et `text` reste `null`, mais `completed_segments` conserve les sessions
+terminées dans l’ordre, chacune avec sa `sample_range` (intervalle semi-ouvert
+d’échantillons PCM 16 kHz). Si aucune session n’a été ouverte, le motif est
+`no_segments`. De même, `LongDictationResult::text()` refuse la jointure si
+un segment présent ne contient pas de texte utilisable ; chaque résultat
+reste disponible séparément.
 
 ```sh
 target/release/rambler.exe dictate instruction.ogg --language en-US \

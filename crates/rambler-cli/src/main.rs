@@ -4,9 +4,9 @@ mod tests;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use rambler_engine::{
-    AudioSource, CollectorLimits, ContextInput, DictationResult, EditingContext,
-    EncodedAudioProgress, Engine, EngineError, OggAudio, ProtocolConfig, RenderPolicy,
-    SessionDiagnostic, SessionOptions, TextProvenance, collect_session,
+    AudioSource, CollectorLimits, ContextInput, DictationOutcome, DictationResult, EditingContext,
+    EncodedAudioProgress, Engine, EngineError, NoResultReason, OggAudio, ProtocolConfig,
+    RenderPolicy, SessionDiagnostic, SessionOptions, TextProvenance, collect_session,
 };
 use rambler_transport::{
     EnvironmentCredentials, Metadata, MetadataProvider, TransportConfig, TransportError,
@@ -253,15 +253,39 @@ fn audio_progress(progress: &EncodedAudioProgress) -> Value {
     json!({"chunks":progress.chunks, "bytes":progress.bytes, "eof":progress.eof,
         "cleanup_finished":progress.cleanup_finished, "cleanup_succeeded":progress.cleanup_succeeded})
 }
+#[derive(Clone, Copy)]
+enum OutputKind {
+    UsableText,
+    VerifiedDeletion,
+    NoResult(NoResultReason),
+    NeedsReview,
+}
+impl OutputKind {
+    fn success(self) -> bool {
+        matches!(self, Self::UsableText | Self::VerifiedDeletion)
+    }
+    fn outcome(self) -> &'static str {
+        match self {
+            Self::UsableText => "usable_text",
+            Self::VerifiedDeletion => "verified_deletion",
+            Self::NoResult(_) => "no_result",
+            Self::NeedsReview => "needs_review",
+        }
+    }
+}
+
 fn output(
     result: &DictationResult,
     policy: Option<ResultPolicy>,
-) -> Result<(Value, bool), EngineError> {
-    // Rendering checks all retained candidates for safety before it can be ambiguous.
-    let rendered = match result.render(policy.unwrap_or(ResultPolicy::Strict).into()) {
-        Ok(rendered) => Some(rendered),
-        Err(EngineError::AmbiguousResult) => None,
-        Err(error) => return Err(error),
+) -> Result<(Value, OutputKind), EngineError> {
+    // Interpret first so safety errors never serialize raw finals or context.
+    let (kind, rendered) = match result.interpret(policy.unwrap_or(ResultPolicy::Strict).into()) {
+        DictationOutcome::UsableText(text) => (OutputKind::UsableText, Some(text)),
+        DictationOutcome::VerifiedDeletion(text) => (OutputKind::VerifiedDeletion, Some(text)),
+        DictationOutcome::NoResult(reason) => (OutputKind::NoResult(reason), None),
+        DictationOutcome::NeedsReview => (OutputKind::NeedsReview, None),
+        DictationOutcome::SafetyBlocked => return Err(EngineError::SafetyBlocked),
+        _ => return Err(EngineError::UnrecognizedSafety),
     };
     let finals: Vec<_> = result.final_updates.iter().map(|r| {
         let hypotheses: Vec<_> = r.hypotheses().iter().map(|h| {
@@ -271,15 +295,23 @@ fn output(
         json!({"hypotheses":hypotheses})
     }).collect();
     let metrics = result.metrics.as_ref().map(|m| json!({"audio":audio_progress(&m.audio), "requests_produced":m.requests_produced, "request_protobuf_bytes":m.request_protobuf_bytes, "responses_received":m.responses_received, "response_protobuf_bytes":m.response_protobuf_bytes, "elapsed_seconds":m.elapsed_seconds, "first_response_seconds":m.first_response_seconds, "eof_seconds":m.eof_seconds}));
-    let ambiguous = rendered.is_none();
     let mut value = json!({
-        "type": if ambiguous { "ambiguous" } else { "result" },
+        "type": if kind.success() { "result" } else { "ambiguous" },
+        "outcome": kind.outcome(),
         "text": rendered.as_ref().map(|r| &r.text),
         "final_updates": finals,
         "context": result.context.as_ref().map(context),
         "metrics": metrics,
     });
-    // Leave the legacy JSON unchanged when the flag is omitted.
+    if let OutputKind::NoResult(reason) = kind {
+        value["no_result_reason"] = json!(match reason {
+            NoResultReason::NoFinals => "no_finals",
+            NoResultReason::MissingText => "missing_text",
+            NoResultReason::EmptyText => "empty_text",
+            _ => "unknown",
+        });
+    }
+    // Continue to report provenance only for an explicit policy and accepted projection.
     if let (Some(_), Some(rendered)) = (policy, rendered) {
         value["provenance"] = json!(match rendered.provenance {
             TextProvenance::HypothesisText => "hypothesis_text",
@@ -287,7 +319,7 @@ fn output(
             TextProvenance::VoiceEditContext => "voice_edit_context",
         });
     }
-    Ok((value, ambiguous))
+    Ok((value, kind))
 }
 fn basic_error(category: &str) -> Value {
     json!({"type":"error", "category":category, "grpc_code":null, "timeline":null})
@@ -336,6 +368,12 @@ fn failure_output(
         .map_or((None, None), |(category, code)| (Some(category), code));
     let mut value = json!({"type":"error", "category":category, "grpc_code":code,
         "close_error_category":close_category, "close_grpc_code":close_code});
+    if matches!(
+        error,
+        EngineError::SafetyBlocked | EngineError::UnrecognizedSafety
+    ) {
+        value["outcome"] = json!(category);
+    }
     if let EngineError::IncompleteSession(diagnostic) = error {
         let completion = &diagnostic.completion;
         let metrics = &diagnostic.metrics;
@@ -473,7 +511,8 @@ async fn run_interactive(
     );
     let (result, cleanup, interrupted) = supervise(collection, || engine.close(), signal).await;
     let failure = result.and_then(Result::err);
-    let mut ambiguous = false;
+    let mut missing = false;
+    let mut needs_review = false;
     let mut projection_failure = None;
     // The collector has been dropped and the engine is closed. Do not project or
     // serialize results on the polling path where Ctrl-C must cancel the RPC.
@@ -486,8 +525,15 @@ async fn run_interactive(
                  ..
              }| {
                 let mut value = match output(&result, policy) {
-                    Ok((value, needs_review)) => {
-                        ambiguous |= needs_review;
+                    Ok((value, kind)) => {
+                        match kind {
+                            OutputKind::UsableText => {}
+                            OutputKind::NoResult(_) => missing = true,
+                            // Independent segments cannot apply a replacement to each other.
+                            OutputKind::VerifiedDeletion | OutputKind::NeedsReview => {
+                                needs_review = true;
+                            }
+                        }
                         value
                     }
                     Err(error) => {
@@ -527,10 +573,28 @@ async fn run_interactive(
             )
         }
         (None, None, Ok(()), Some(error)) => (failure_output(&error, None, None), 1),
-        (None, None, Ok(()), None) if ambiguous => (json!({"type":"ambiguous", "text":null}), 1),
+        (None, None, Ok(()), None) if needs_review => (
+            json!({"type":"ambiguous", "outcome":"needs_review", "text":null}),
+            1,
+        ),
+        (None, None, Ok(()), None) if segments.is_empty() => (
+            json!({"type":"ambiguous", "outcome":"no_result", "no_result_reason":"no_segments", "text":null}),
+            1,
+        ),
+        (None, None, Ok(()), None) if missing => (
+            json!({"type":"ambiguous", "outcome":"no_result", "text":null}),
+            1,
+        ),
         (None, None, Ok(()), None) => {
-            let text = join_segment_texts(segments.iter().filter_map(|s| s["text"].as_str()));
-            (json!({"type":"result", "text":text}), 0)
+            let text = join_segment_texts(
+                segments
+                    .iter()
+                    .map(|s| s["text"].as_str().expect("usable segment text")),
+            );
+            (
+                json!({"type":"result", "outcome":"usable_text", "text":text}),
+                0,
+            )
         }
     };
     value["completed_segments"] = Value::Array(segments);
@@ -722,7 +786,7 @@ async fn main() {
             std::process::exit(1);
         }
         (Ok(r), Ok(())) => {
-            let (value, ambiguous) = match output(&r, result_policy) {
+            let (value, kind) = match output(&r, result_policy) {
                 Ok(output) => output,
                 Err(error) => {
                     emit(pcm.append_to(failure_output(&error, None, diagnostic)));
@@ -730,7 +794,7 @@ async fn main() {
                 }
             };
             emit(pcm.append_to(value));
-            if ambiguous {
+            if !kind.success() {
                 std::process::exit(1);
             }
         }

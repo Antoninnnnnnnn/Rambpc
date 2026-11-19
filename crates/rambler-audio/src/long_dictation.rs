@@ -4,9 +4,9 @@ use crate::{
 };
 use bytes::Bytes;
 use rambler_engine::{
-    AudioSource, CollectorLimits, ContextInput, DictationObservation, DictationResult, Engine,
-    EngineError, RECOMMENDED_FINALIZE_TIMEOUT, SessionOptions, SourceError, collect_dictation,
-    collect_dictation_with_observer,
+    AudioSource, CollectorLimits, ContextInput, DictationObservation, DictationOutcome,
+    DictationResult, Engine, EngineError, RECOMMENDED_FINALIZE_TIMEOUT, RenderPolicy,
+    SessionOptions, SourceError, collect_dictation, collect_dictation_with_observer,
 };
 use std::{fmt, future::Future, ops::Range, time::Duration};
 use tokio::time::{Instant, sleep_until};
@@ -108,13 +108,21 @@ impl fmt::Debug for LongDictationResult {
     }
 }
 impl LongDictationResult {
-    /// Strict text for every segment, joined using [`crate::join_segment_texts`].
-    /// An ambiguous or unsafe segment makes the entire projection fail. No
-    /// segments yields an empty string. The individual results are unchanged.
+    /// Join only usable strict text from every segment using [`crate::join_segment_texts`].
+    /// The first segment without usable text makes the entire projection fail;
+    /// no-result, review and deletion outcomes map to [`EngineError::AmbiguousResult`].
+    /// No segments yields an empty string. Inspect the individual results for details.
     pub fn text(&self) -> Result<String, EngineError> {
         let mut joined = crate::segment_text::SegmentText::default();
         for segment in &self.segments {
-            joined.push(&segment.text()?);
+            match segment.interpret(RenderPolicy::Strict) {
+                DictationOutcome::UsableText(rendered) => joined.push(&rendered.text),
+                DictationOutcome::SafetyBlocked => return Err(EngineError::SafetyBlocked),
+                DictationOutcome::UnrecognizedSafety => {
+                    return Err(EngineError::UnrecognizedSafety);
+                }
+                _ => return Err(EngineError::AmbiguousResult),
+            }
         }
         Ok(joined.finish())
     }
@@ -157,7 +165,7 @@ pub struct CompletedDictationSegment {
     /// Absolute half-open range in the collector's 16 kHz PCM input, excluding
     /// Opus padding. If resampling upstream, these are post-resampling indices.
     pub sample_range: Range<u64>,
-    /// Structured finals; use `result.render(...)` for safety-checked text.
+    /// Structured finals; use `result.interpret(...)` before accepting text.
     pub result: DictationResult,
 }
 impl fmt::Debug for CompletedDictationSegment {

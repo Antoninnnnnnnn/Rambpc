@@ -518,6 +518,112 @@ async fn interactive_ctrl_c_returns_only_prior_completed_segments() {
 }
 
 #[cfg(feature = "audio")]
+#[tokio::test]
+async fn interactive_missing_text_preserves_exact_completed_ranges_but_fails_the_join() {
+    use bytes::Bytes;
+    use futures_util::stream;
+    use interactive_peer::{TestServer, bounded, drain, replies};
+    use rambler_audio::{LongDictationOptions, collect_long_pcm_dictation};
+    use rambler_engine::{CollectorLimits, Engine, SessionOptions, StreamAudio};
+    use rambler_protocol::{
+        RECOGNITION_RESPONSE, VOICE_EDITING_RESULT, end_request,
+        wire::{bytes_field as b, string_field as s, varint_field as v},
+    };
+    use serde_json::json;
+    use std::{sync::atomic::AtomicUsize, time::Duration};
+
+    bounded(async {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let peer = TestServer::new({
+            let calls = calls.clone();
+            move |request| {
+                let index = calls.fetch_add(1, Ordering::SeqCst);
+                async move {
+                    assert_eq!(
+                        drain(request.into_inner()).await.last().unwrap().as_ref(),
+                        end_request()
+                    );
+                    let hypothesis = match index {
+                        0 | 2 | 4 => s(1, "Première phrase.").unwrap(),
+                        1 => b(
+                            VOICE_EDITING_RESULT,
+                            &[v(4, 2).unwrap(), s(2, "unsupported").unwrap()].concat(),
+                        )
+                        .unwrap(),
+                        3 | 5 => s(1, "").unwrap(),
+                        _ => panic!("unexpected replay or extra RPC"),
+                    };
+                    let recognition =
+                        [v(1, 1).unwrap(), b(3, &b(3, &hypothesis).unwrap()).unwrap()].concat();
+                    let response =
+                        Bytes::from(b(RECOGNITION_RESPONSE, &b(1, &recognition).unwrap()).unwrap());
+                    Ok(replies(stream::iter([
+                        Ok(response),
+                        Ok(Bytes::from_static(b"\x08\x01")),
+                    ])))
+                }
+            }
+        })
+        .await;
+        // Unpaced owned PCM and no pause search make the 6-second sample cut exact.
+        let pcm = || StreamAudio::new(stream::iter([Ok(Bytes::from(vec![0; 116_000 * 2]))]));
+        let segmentation = LongDictationOptions {
+            segment_budget: Duration::from_secs(6),
+            pause_search: Duration::ZERO,
+        };
+        for (policy, reason) in [
+            (
+                Some(super::ResultPolicy::S3ClientCompatible),
+                "missing_text",
+            ),
+            (None, "empty_text"),
+        ] {
+            let engine = Engine::new(peer.transport().await);
+            let (value, code) = super::run_interactive(
+                &engine,
+                Box::new(pcm()),
+                SessionOptions::default(),
+                segmentation,
+                policy,
+                std::future::pending(),
+            )
+            .await;
+            assert_eq!(code, 1, "{value}");
+            assert_eq!(value["type"], "ambiguous");
+            assert_eq!(value["outcome"], "no_result");
+            assert!(value["text"].is_null());
+            let segments = value["completed_segments"].as_array().unwrap();
+            assert_eq!(segments.len(), 2);
+            assert_eq!(segments[0]["sample_range"], json!([0, 96_000]));
+            assert_eq!(segments[0]["outcome"], "usable_text");
+            assert_eq!(segments[0]["text"], "Première phrase.");
+            assert_eq!(segments[1]["sample_range"], json!([96_000, 116_000]));
+            assert_eq!(segments[1]["outcome"], "no_result");
+            assert_eq!(segments[1]["no_result_reason"], reason);
+            assert!(segments[1]["text"].is_null());
+        }
+
+        let engine = Engine::new(peer.transport().await);
+        let result = collect_long_pcm_dictation(
+            &engine,
+            pcm(),
+            SessionOptions::default(),
+            CollectorLimits::default(),
+            segmentation,
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.segments[0].text().unwrap(), "Première phrase.");
+        assert_eq!(result.segments[1].text().unwrap(), ""); // Exact legacy projection.
+        assert!(matches!(result.text(), Err(EngineError::AmbiguousResult)));
+        engine.close().await.unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 6);
+        peer.close().await;
+    })
+    .await;
+}
+
+#[cfg(feature = "audio")]
 #[test]
 fn interactive_wav_budgets_are_opt_in_and_explicit_deadlines_win() {
     use super::Cli;

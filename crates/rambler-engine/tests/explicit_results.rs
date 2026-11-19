@@ -69,6 +69,86 @@ fn strict_text_distinguishes_empty_asr_from_absent_asr() {
 }
 
 #[test]
+fn application_outcomes_distinguish_missing_and_empty_asr_from_unprojectable_edits() {
+    use DictationOutcome::*;
+    for policy in POLICIES {
+        let spoken = result(Some("Première phrase."), None);
+        assert_eq!(
+            spoken.interpret(policy),
+            UsableText(spoken.render(policy).unwrap())
+        );
+        assert_eq!(
+            result(None, None).interpret(policy),
+            NoResult(NoResultReason::MissingText)
+        );
+        assert_eq!(
+            result(Some(""), None).interpret(policy),
+            NoResult(NoResultReason::EmptyText)
+        );
+        assert_eq!(
+            DictationResult::default().interpret(policy),
+            NoResult(NoResultReason::NoFinals)
+        );
+    }
+    let unsupported = edit(Some(2), Some(2), "unsupported output");
+    let fallback = result(None, Some(unsupported.clone()));
+    assert_eq!(fallback.interpret(RenderPolicy::Strict), NeedsReview);
+    assert_eq!(
+        fallback.interpret(CLIENT),
+        NoResult(NoResultReason::MissingText)
+    );
+    assert_eq!(fallback.render(CLIENT).unwrap().text, ""); // Legacy wire projection.
+    assert_eq!(
+        fallback.render(CLIENT).unwrap().fallback_reason,
+        Some(FallbackReason::UnsupportedMember)
+    );
+    assert_eq!(
+        result(Some(""), Some(unsupported)).interpret(CLIENT),
+        NoResult(NoResultReason::EmptyText)
+    );
+}
+
+#[test]
+fn only_an_explicit_policy_scoped_empty_replacement_proves_deletion() {
+    use DictationOutcome::*;
+    for (intent, field) in [(2, 3), (2, 7), (3, 3), (3, 7)] {
+        let mut deletion = result(None, Some(edit(Some(intent), Some(field), "")));
+        for (policy, proven) in [
+            (RenderPolicy::Strict, intent == 2),
+            (CLIENT, intent == 2 || field == 7),
+        ] {
+            let expected = if proven {
+                let rendered = deletion.render(policy).unwrap();
+                assert_eq!(rendered.text, "");
+                assert_eq!(
+                    replacement_proposal_with_policy(&deletion, None, policy)
+                        .unwrap()
+                        .replacement_text,
+                    ""
+                );
+                VerifiedDeletion(rendered)
+            } else {
+                NeedsReview
+            };
+            assert_eq!(deletion.interpret(policy), expected);
+        }
+        assert_eq!(
+            deletion.interpret(RenderPolicy::AsrOnly),
+            NoResult(NoResultReason::MissingText)
+        );
+        deletion.context = Some(EditingContext::default());
+        assert_eq!(deletion.interpret(CLIENT), NeedsReview);
+        deletion.context = None;
+        assert_eq!(deletion.interpret(CLIENT), NeedsReview);
+    }
+    let malformed_context = [v(4, 2).unwrap(), b(7, &v(1, 0).unwrap()).unwrap()].concat();
+    assert_eq!(
+        result(None, Some(malformed_context)).interpret(CLIENT),
+        NeedsReview
+    );
+}
+
+#[test]
 fn client_accepts_both_intents_and_members_without_changing_strict_contracts() {
     for intent in [2, 3] {
         for field in [3, 7] {
@@ -257,6 +337,9 @@ fn every_policy_keeps_global_safety_and_ambiguity_before_fallback_or_commands() 
         .final_updates
         .push(multiple.final_updates[0].clone());
     assert_ambiguous(&multiple);
+    for policy in POLICIES {
+        assert_eq!(multiple.interpret(policy), DictationOutcome::NeedsReview);
+    }
     multiple.final_updates.clear();
     assert_ambiguous(&multiple);
     for (safety, blocked) in [
@@ -284,6 +367,14 @@ fn every_policy_keeps_global_safety_and_ambiguity_before_fallback_or_commands() 
                 .push(update(std::slice::from_ref(&accepted)));
             for policy in POLICIES {
                 assert_safety(result.render(policy), blocked);
+                assert_eq!(
+                    result.interpret(policy),
+                    if blocked {
+                        DictationOutcome::SafetyBlocked
+                    } else {
+                        DictationOutcome::UnrecognizedSafety
+                    }
+                );
             }
         }
     }

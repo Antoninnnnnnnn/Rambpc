@@ -37,6 +37,35 @@ pub struct RenderedText {
     pub fallback_reason: Option<FallbackReason>,
 }
 
+/// Why there is no text to commit. None of these outcomes proves acoustic silence.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum NoResultReason {
+    /// No final recognition response was retained.
+    NoFinals,
+    /// The policy uses ASR, but the hypothesis did not carry an ASR text field.
+    MissingText,
+    /// The policy uses ASR, and the hypothesis carried an explicitly empty string.
+    EmptyText,
+}
+
+/// Application-facing interpretation of a completed collection, not an editor action.
+/// Use [`DictationResult::render`] for the policy's exact protocol text projection.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum DictationOutcome {
+    /// A nonempty text projection, with the policy's original provenance.
+    UsableText(RenderedText),
+    NoResult(NoResultReason),
+    /// Multiple candidates/finals, an unsupported projection, or an unproven empty edit.
+    NeedsReview,
+    /// An explicit empty replacement of a captured nonempty context window.
+    /// Applying it still requires a scoped proposal and current-context/revision validation.
+    VerifiedDeletion(RenderedText),
+    SafetyBlocked,
+    UnrecognizedSafety,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct CollectorLimits {
     pub max_final_updates: usize,
@@ -113,16 +142,91 @@ impl DictationResult {
     }
     pub fn single_hypothesis(&self) -> Result<&Hypothesis, EngineError> {
         self.check_safety()?;
-        if self.final_updates.len() != 1 || self.final_updates[0].hypotheses().len() != 1 {
-            return Err(EngineError::AmbiguousResult);
-        }
-        Ok(&self.final_updates[0].hypotheses()[0])
+        self.unique_hypothesis().ok_or(EngineError::AmbiguousResult)
     }
+
+    // Call only after checking global safety.
+    fn unique_hypothesis(&self) -> Option<&Hypothesis> {
+        let [update] = self.final_updates.as_slice() else {
+            return None;
+        };
+        match update.hypotheses() {
+            [hypothesis] => Some(hypothesis),
+            _ => None,
+        }
+    }
+
+    /// Interpret a completed result without turning an empty ASR projection into an edit.
+    /// Safety takes precedence across every retained final candidate. No finals is
+    /// a no-result outcome, not evidence that the input was silent.
+    pub fn interpret(&self, policy: RenderPolicy) -> DictationOutcome {
+        use DictationOutcome::*;
+        match self.check_safety() {
+            Ok(()) => {}
+            Err(EngineError::SafetyBlocked) => return SafetyBlocked,
+            Err(_) => return UnrecognizedSafety,
+        }
+        if self.final_updates.is_empty() {
+            return NoResult(NoResultReason::NoFinals);
+        }
+        let Some(hypothesis) = self.unique_hypothesis() else {
+            return NeedsReview;
+        };
+        let rendered = match Self::project_text(hypothesis, policy) {
+            Ok(rendered) => rendered,
+            Err(_)
+                if hypothesis.text.is_none()
+                    && (policy == RenderPolicy::AsrOnly || hypothesis.voice_edit.is_none()) =>
+            {
+                return NoResult(NoResultReason::MissingText);
+            }
+            Err(_) => return NeedsReview,
+        };
+        if !rendered.text.is_empty() {
+            return UsableText(rendered);
+        }
+        if rendered.provenance == TextProvenance::HypothesisText {
+            return NoResult(if hypothesis.text.is_some() {
+                NoResultReason::EmptyText
+            } else {
+                NoResultReason::MissingText
+            });
+        }
+        if self.final_updates[0].recognition_state() == Some(1)
+            && hypothesis.voice_edit.as_ref().is_some_and(|edit| {
+                replacement_intent_allowed(edit.intent, edit.active_field, policy)
+                    && !edit
+                        .unknown_fields
+                        .iter()
+                        .any(|f| matches!(f.number, 2 | 3 | 4 | 7))
+                    && edit
+                        .edited_context
+                        .as_ref()
+                        .is_none_or(|ctx| ctx.unknown_fields.is_empty())
+            })
+            && self.context.as_ref().is_some_and(|snapshot| {
+                !snapshot.before.is_empty()
+                    || !snapshot.selected.is_empty()
+                    || !snapshot.after.is_empty()
+            })
+        {
+            return VerifiedDeletion(rendered);
+        }
+        NeedsReview
+    }
+
     /// Safety is checked across ALL finals before any policy-specific projection.
     /// Multiple finals/hypotheses remain ambiguous, including identical candidates.
     /// An accepted empty edit stays empty: it never falls back to ASR.
     pub fn render(&self, policy: RenderPolicy) -> Result<RenderedText, EngineError> {
-        let hypothesis = self.single_hypothesis()?;
+        Self::project_text(self.single_hypothesis()?, policy)
+    }
+
+    // Call only after checking global safety and uniqueness.
+    fn project_text(
+        hypothesis: &Hypothesis,
+        policy: RenderPolicy,
+    ) -> Result<RenderedText, EngineError> {
         let edit = hypothesis.voice_edit.as_ref();
         let intent = edit.and_then(|edit| edit.intent);
         if policy == RenderPolicy::AsrOnly {
@@ -545,6 +649,21 @@ impl ReplacementProposal {
         Some((start, start + context.selected.encode_utf16().count()))
     }
 }
+// A renderable rewrite string alone does not establish its editor range.
+fn replacement_intent_allowed(
+    intent: Option<i32>,
+    field: Option<u32>,
+    policy: RenderPolicy,
+) -> bool {
+    match policy {
+        RenderPolicy::Strict => intent == Some(2),
+        RenderPolicy::AsrOnly => false,
+        RenderPolicy::S3ClientCompatible => {
+            intent == Some(2) || (intent == Some(3) && field == Some(7))
+        }
+    }
+}
+
 /// The revision must belong to the captured (possibly late) snapshot. Callers
 /// should capture context and revision atomically; text alone cannot detect ABA.
 pub fn replacement_proposal(
@@ -560,7 +679,7 @@ pub fn replacement_proposal(
         .voice_edit
         .as_ref()
         .ok_or(EngineError::UnsupportedEdit)?;
-    if edit.intent != Some(2) {
+    if !replacement_intent_allowed(edit.intent, edit.active_field, RenderPolicy::Strict) {
         return Err(EngineError::UnsupportedEdit);
     }
     let (text, context) = match edit.active_field {
@@ -607,21 +726,15 @@ pub fn replacement_proposal_with_policy(
         .voice_edit
         .as_ref()
         .ok_or(EngineError::UnsupportedEdit)?;
-    // The newly established rewrite replacement scope is specifically field7.
-    // A renderable rewrite string alone does not establish its editor range.
-    if edit.intent != Some(2) && !(edit.intent == Some(3) && edit.active_field == Some(7)) {
+    if !replacement_intent_allowed(edit.intent, edit.active_field, policy) {
         return Err(EngineError::UnsupportedEdit);
     }
-    let rendered = result.render(policy)?;
+    let rendered = DictationResult::project_text(hypothesis, policy)?;
     if rendered.provenance == TextProvenance::HypothesisText {
         return Err(EngineError::UnsupportedEdit);
     }
     let snapshot = result
         .context
-        .as_ref()
-        .ok_or(EngineError::UnsupportedEdit)?;
-    let edit = hypothesis
-        .voice_edit
         .as_ref()
         .ok_or(EngineError::UnsupportedEdit)?;
     Ok(ReplacementProposal {
