@@ -73,8 +73,8 @@ class _OpusEncoder:
             if exc.name != "av":
                 raise
             raise ImportError(
-                "PCM encoding requires the audio extra: install "
-                "rambpc-engine[audio] with Python >= 3.12"
+                "PCM encoding requires Sambler's audio extra. Install it from the checkout "
+                "with python -m pip install '.[audio]' (Python >= 3.12)."
             ) from exc
 
         self._av = av

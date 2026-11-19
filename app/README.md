@@ -1,4 +1,4 @@
-# Démarrer les applications Rambpc
+# Démarrer les applications Sambler
 
 `app/` accueille les futures interfaces. Tous les projets utilisent le même moteur de dictée Rust dans `crates/`. L’outil en ligne de commande et les tests se lancent depuis la racine du dépôt.
 

@@ -1,13 +1,15 @@
-# Rambpc — moteur Rambler natif
+# Sambler — moteur de dictée multiplateforme
 
-Moteur qui parle **directement au service Rambler/Jetson** (gRPC), reconstruit à
-partir de PixelBoard 1.3.4. Aucun Android, téléphone, émulateur ni API Gemini
-publique n'est requis à l'exécution. Pas d'interface graphique, pas de microphone,
-pas d'insertion dans un éditeur : ces éléments appartiennent à l'application.
+Sambler est un moteur de dictée et d’édition reconstruit à partir de PixelBoard
+1.3.4. Il parle **directement au service Rambler/Jetson** en gRPC. Aucun Android,
+téléphone, émulateur ni API Gemini publique n'est requis à l'exécution.
+L’interface graphique, la capture micro et l’insertion dans un éditeur
+appartiennent à l’application.
 
 - **Cœur Rust** (crates `rambler-*`, CLI `rambler`) : chemin à utiliser pour une
   application. SDK et CLI fichier.
-- **Python 0.3** : référence de conformité, pas un runtime caché du binaire.
+- **Python 0.3** est la référence de conformité. La distribution `sambler-engine`
+  expose le module `rambler`.
 
 ## En bref
 
@@ -59,9 +61,9 @@ Dépendances par chemin, depuis un checkout de ce dépôt (ajuster les chemins) 
 
 ```toml
 [dependencies]
-rambler-engine = { path = "../Rambpc/crates/rambler-engine" }
-rambler-transport = { path = "../Rambpc/crates/rambler-transport" }
-rambler-audio = { path = "../Rambpc/crates/rambler-audio" } # omettre pour de l'Ogg déjà encodé
+rambler-engine = { path = "../Sambler/crates/rambler-engine" }
+rambler-transport = { path = "../Sambler/crates/rambler-transport" }
+rambler-audio = { path = "../Sambler/crates/rambler-audio" } # omettre pour de l'Ogg déjà encodé
 bytes = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```

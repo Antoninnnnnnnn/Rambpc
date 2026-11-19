@@ -1,4 +1,4 @@
-# Moteur et CLI Rust
+# Moteur et CLI Rust de Sambler
 
 Le portage est séparé de la référence Python 0.3 : aucun interpréteur Python,
 Android, téléphone relais ni processus FFmpeg dans le chemin Rust. Il utilise le

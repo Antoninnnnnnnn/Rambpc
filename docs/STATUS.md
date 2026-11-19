@@ -394,8 +394,8 @@ L’échec WSL historique reste inchangé ; **Linux réel avec identifiants NO_G
 #### Enveloppes gRPC — CI des huit configurations natives qualifiée
 
 Les 13 jobs de la source exacte `8cb381e8d26d448db80481d4aab9472aee3b096c`
-réussissent : [Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489195)
-et [Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489085).
+réussissent : [Rust](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43859489195)
+et [Python](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43859489085).
 Windows, Linux, macOS ARM et Intel passent sur Rust 1.88 et stable, y compris le
 job Intel/1.88 précédemment en échec. Les 72 groupes Rust sont vérifiés séparément :
 workspace **429/0/2** sous Windows, **430/0/2** ailleurs. Les sept nouveaux noms de
@@ -467,7 +467,7 @@ stable **418/0/2**, SDK9, feature-off38, format/Clippy/build passent. Échec lin
 premier lot conservé ; CLI historique et budgets inchangés. Ces mesures locales
 restent un point de contrôle historique, où la CI était encore en attente.
 
-CI distante hors ligne désormais réussie sur la source exacte `98d46590ec708c7e1ae6157323a07b8eaa41ddd7` : [Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001772) et [Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43832001623), 13 jobs dont 8 natifs et 72 groupes de commandes Rust, non des tests distincts. Par toolchain, workspace Windows **418/0/2**, Linux et macOS **419/0/2** ; macOS ARM et Intel confirmés. Par job natif : banc préfixe **7/0/0**, SDK gardé **9/0/0**, banc wire **3/0/0** ; ne pas sommer les groupes rejoués. La CI vérifie les invariants, la matrice H2 brute, la fragmentation forcée et les tailles PCM/Opus synthétiques, pas les temps ni les allocations locales, la voix réelle ou la performance du service. G1 reste non satisfait, Linux live NO_GO ; aucune qualification nouvelle des credentials, téléphone, core ou provisioning.
+CI distante hors ligne désormais réussie sur la source exacte `98d46590ec708c7e1ae6157323a07b8eaa41ddd7` : [Rust](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43832001772) et [Python](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43832001623), 13 jobs dont 8 natifs et 72 groupes de commandes Rust, non des tests distincts. Par toolchain, workspace Windows **418/0/2**, Linux et macOS **419/0/2** ; macOS ARM et Intel confirmés. Par job natif : banc préfixe **7/0/0**, SDK gardé **9/0/0**, banc wire **3/0/0** ; ne pas sommer les groupes rejoués. La CI vérifie les invariants, la matrice H2 brute, la fragmentation forcée et les tailles PCM/Opus synthétiques, pas les temps ni les allocations locales, la voix réelle ou la performance du service. G1 reste non satisfait, Linux live NO_GO ; aucune qualification nouvelle des credentials, téléphone, core ou provisioning.
 
 [Contrat et limites](research/rust-grpc-prefix-allocation.md) ·
 [Preuve locale historique](evidence/rust-grpc-prefix-allocation-windows-20261116.json) ·
@@ -1282,7 +1282,7 @@ Ogg/Opus16k mono, contexte tardif, fin S3 puis statut gRPC OK.
 
 Au jalon précédent, **356 tests locaux passaient** en mode asyncio debug, avertissements traités comme
 erreurs ; roue Python construite et installée dans un environnement vierge sans
-PyAV. La [CI du jalon0814813](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43304009641)
+PyAV. La [CI du jalon0814813](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43304009641)
 a réussi sur Windows/Linux et Python3.11/3.14 (tests réseau local uniquement).
 
 Le premier probe, trois cas fonctionnels,21 sessions accélérées,12 progressives,

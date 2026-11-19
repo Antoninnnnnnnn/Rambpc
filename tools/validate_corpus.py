@@ -278,7 +278,7 @@ def render(result, case, include):
 
 def versions():
     libs = {}
-    for name in ('rambpc-engine', 'grpcio', 'av'):
+    for name in ('sambler-engine', 'grpcio', 'av'):
         try:
             libs[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:

@@ -38,7 +38,8 @@ def report():
                   'raw': {'hex': raw.hex()}, 'unknown_fields': []}}
     return {'schema_version': 1, 'versions': {'python': '3.14.5', 'os': 'test OS',
                 'cpu': {'model': 'test CPU', 'logical_cores': 8, 'unexpected': PRIVATE_ID},
-                'libraries': {'grpcio': '1.85.1', 'unrecognized': PRIVATE_ID},
+                'libraries': {'sambler-engine': '0.3.0', 'rambpc-engine': '0.3.0',
+                              'grpcio': '1.85.1', 'unrecognized': PRIVATE_ID},
                 'git_head': 'a' * 40, 'rambler_source_sha256': {'protocol.py': 'b' * 64,
                 'unrecognized.py': PRIVATE_ID}, 'validator_sha256': 'c' * 64},
             'requested_realtime': False, 'include_results': True,
@@ -98,7 +99,9 @@ def test_allowlist_withholds_nested_unknown_bytes_values_and_service_ids(include
                        'top_level_fields': [{'number': 1, 'wire_type': 2}]}
     assert sanitized['versions']['rambler_source_sha256'] == {'protocol.py': 'b' * 64}
     assert sanitized['versions']['cpu'] == {'model': 'test CPU', 'logical_cores': 8}
-    assert sanitized['versions']['libraries'] == {'grpcio': '1.85.1'}
+    assert sanitized['versions']['libraries'] == {
+        'sambler-engine': '0.3.0', 'rambpc-engine': '0.3.0', 'grpcio': '1.85.1',
+    }
     assert sanitized['privacy_review_required'] is True
     assert 'not proof' in sanitized['publication_warning']
 

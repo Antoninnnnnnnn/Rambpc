@@ -6,7 +6,7 @@ Date : 13 novembre 2026.
 
 ## 1. Objectif
 
-Faire évoluer Rambpc vers une application de dictée pour **Windows d’abord, puis macOS et Linux**, avec une majorité de code partagée.
+Faire évoluer Sambler vers une application de dictée pour **Windows d’abord, puis macOS et Linux**, avec une majorité de code partagée.
 
 Les usages envisagés sont :
 
@@ -60,7 +60,7 @@ Ce choix n’implique pas nécessairement un unique exécutable autonome : codec
 
 ### Pas de gain de reconnaissance garanti
 
-Rambpc est un client d’un service distant. Rust n’accélérera pas le modèle exécuté sur le serveur.
+Sambler est un client d’un service distant. Rust n’accélérera pas le modèle exécuté sur le serveur.
 
 Le moteur Python utilise déjà des composants natifs pour le transport gRPC et l’encodage audio. Les mesures existantes ont surtout identifié un levier de tamponnement du pipeline audio, pas un goulot d’étranglement démontré dans le langage Python.
 
@@ -149,7 +149,7 @@ Voir [l’API de résultat et ses limites](../refinement.md).
 
 ## 8. Alternatives considérées
 
-| Alternative | Quand elle serait préférable | Compromis pour Rambpc |
+| Alternative | Quand elle serait préférable | Compromis pour Sambler |
 |---|---|---|
 | C# + Avalonia | Forte maîtrise de .NET ou priorité Windows durable | Très crédible ; les intégrations macOS/Linux restent spécifiques |
 | Flutter + Dart | Interface homogène et éventuelle extension mobile | Plugins et code natif toujours nécessaires pour les fonctions système avancées |

@@ -1,10 +1,10 @@
-# Feuille de route du moteur natif Rambler
+# Feuille de route du moteur Sambler
 
 **Objectif.** Livrer un SDK Rust qui prend un flux audio et un contexte d’édition, puis rend un texte fiable ou une erreur exploitable sur Windows, macOS, Linux, Android et iOS. La future app fournira le microphone, le document actif et l’interface. Les vérifications actuelles et le test de départ figurent dans le [guide de démarrage](../app/README.md).
 
 Plan établi le 18 novembre 2026 sur la révision `9a29ab8`. Le Xiaomi disponible a terminé 40 sessions locales avec les mêmes textes que Windows. Deux problèmes étaient reproductibles sans service de reconnaissance : le transport Android ne trouvait pas de racines par défaut, et la limite globale de 30 s interrompait un WAV de 31 s à cadence réelle. [Audit historique](research/audit-moteur-20261118.md) · [Mesures et versions](evidence/audit-moteur-20261118.json)
 
-Depuis l’audit, `7ceb590` a passé les [10 jobs Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44373609858) et les [4 jobs Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44373609771) avant le passage sur `main`. Le collecteur segmente l’audio sur des RPC successifs et indépendants ; [609,03 s sur localhost](evidence/rust-long-pcm-loopback-windows-20261118.md) sont couverts en quatre segments sans perte ni doublon, avec rétention des seuls segments terminés sur une erreur injectée. Ce test est accéléré, avec des réponses prédéfinies. Il ne qualifie ni la cadence réelle sur cinq minutes, ni la reconnaissance distante.
+Depuis l’audit, `7ceb590` a passé les [10 jobs Rust](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/44373609858) et les [4 jobs Python](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/44373609771) avant le passage sur `main`. Le collecteur segmente l’audio sur des RPC successifs et indépendants ; [609,03 s sur localhost](evidence/rust-long-pcm-loopback-windows-20261118.md) sont couverts en quatre segments sans perte ni doublon, avec rétention des seuls segments terminés sur une erreur injectée. Ce test est accéléré, avec des réponses prédéfinies. Il ne qualifie ni la cadence réelle sur cinq minutes, ni la reconnaissance distante.
 
 Les [diagnostics de fin et l’endurance](evidence/rust-native-real-reliability-20261118.json) séparent ce qui est observé par le client d’une livraison au pair. Un `DeadlineExceeded` historique et deux arrêts vers 300 s sont documentés ; leurs causes ne sont pas établies. Aucun succès local ne démontre un accès autorisé au service pour une application distribuée.
 
@@ -105,8 +105,8 @@ Le [lot Ogg/édition et les corrections de
 qualification](evidence/rust-ogg-edit-wave-windows-20261118.json) passent
 465 tests Rust, 42 tests Python, le formatage et Clippy strict hors ligne
 sur Windows (2 tests ignorés, 1 test TLS filtré). Sur `40da48e`, les
-[10 jobs Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44262188795)
-et les [4 jobs Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44262188873)
+[10 jobs Rust](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/44262188795)
+et les [4 jobs Python](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/44262188873)
 sont passés au premier essai, dont VS2022 et macOS ARM/Rust 1.88. Le
 [contrôle d’édition synthétique](evidence/rust-native-edit-acceptance-seam-windows-20261118.json)
 relie en plus le SDK Rust au vérificateur hors ligne. Le [lot PCM 48 kHz et

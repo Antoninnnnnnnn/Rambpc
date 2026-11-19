@@ -136,7 +136,7 @@ async def _run(args):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Rambler S3 diagnostic")
+    parser = argparse.ArgumentParser(description="Sambler diagnostics for Rambler S3")
     sub = parser.add_subparsers(dest="command", required=True)
     probe = sub.add_parser("probe", help="diagnostic init/end without audio")
     dictate = sub.add_parser("dictate", help="stream an existing Ogg/Opus file")
@@ -161,7 +161,9 @@ def main(argv=None):
     try:
         return asyncio.run(_run(args))
     except _AudioExtraMissing:
-        _emit({"type": "error", "message": "install audio extra: pip install 'rambpc-engine[audio]' (Python >= 3.12)",
+        _emit({"type": "error",
+               "message": "install Sambler's audio extra from the checkout with "
+                          "python -m pip install '.[audio]' (Python >= 3.12)",
                "error_type": "AudioExtraMissing"})
         return 1
     except (asyncio.CancelledError, KeyboardInterrupt):

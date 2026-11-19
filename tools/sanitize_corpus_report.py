@@ -30,7 +30,8 @@ _GIT = re.compile(r'[0-9a-fA-F]{40}\Z')
 _SOURCE_FILES = frozenset(('__init__.py', 'audio.py', 'cli.py', 'credentials.py',
                            'encoding.py', 'engine.py', 'protocol.py', 'results.py',
                            'transport.py', 'wire.py'))
-_LIBRARIES = frozenset(('rambpc-engine', 'grpcio', 'av'))
+# Historical reports use the previous Python distribution name.
+_LIBRARIES = frozenset(('sambler-engine', 'rambpc-engine', 'grpcio', 'av'))
 _ENUMS = {
     'transport': {'success', 'failed_or_unverified'},
     'rendering': {'unique', 'ambiguous', 'error'},

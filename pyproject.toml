@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rambpc-engine"
+name = "sambler-engine"
 version = "0.3.0"
-description = "Direct streaming client for Rambler dictation and contextual editing"
+description = "Sambler streaming client for Rambler dictation and contextual editing"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["grpcio>=1.85.1,<2"]
@@ -16,6 +16,9 @@ test = ["pytest>=9,<10", "pytest-asyncio>=1.5,<2"]
 
 [project.scripts]
 rambler = "rambler.cli:main"
+
+[project.urls]
+Repository = "https://github.com/Antoninnnnnnnn/Sambler"
 
 [tool.setuptools.packages.find]
 where = ["src"]

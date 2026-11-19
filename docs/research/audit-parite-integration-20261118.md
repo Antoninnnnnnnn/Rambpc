@@ -1,4 +1,4 @@
-# Audit du moteur Rambpc avant intégration
+# Audit du moteur Sambler avant intégration
 
 18 novembre 2026 · Windows, Android et comparaison avec la Dictée améliorée de Gboard.
 
@@ -27,7 +27,7 @@ La référence produit est le comportement décrit par Gboard et le texte finale
 | Modifier un mot, reformuler une sélection, raccourcir et ajouter un emoji | Des réponses réelles couvrent ces parcours. Pour certaines reformulations de sélection, le SDK exige la politique explicite `S3ClientCompatible`. Sur le Xiaomi, PixelBoard a réussi le remplacement bleu → vert et a inséré littéralement la demande de reformulation polie. Les voix utilisées par les deux clients étaient différentes. [Campagne native][campagne] · [Comparaison sur téléphone][comparaison] |
 | Langues et changements au milieu d’une phrase | Une phrase synthétique par langue a produit une finale pour 13 langues additionnelles. Le hindi et le tamoul sont revenus en caractères latins. Un clip anglais puis français a conservé les deux langues. Ces essais laissent ouverte la reconnaissance d’un locuteur qui alterne spontanément dans une phrase. [Mesures multilingues][langues] |
 | Composer, poursuivre ou restructurer un brouillon | Les essais ciblés ont transcrit ou ajouté la consigne. Le client sait décoder les intentions `COMPOSE`, `RAMBLE`, `RAMBLE_HISTORY`. Leur activation et le résultat attendu sur ce parcours restent à établir. [Essais de composition][composition] |
-| Hors connexion | Gboard décrit une reconnaissance avec ponctuation et corrections de base. Rambpc encode sur l’appareil et délègue la reconnaissance au service. Ajouter cette capacité impliquerait un moteur de reconnaissance local. [Aide Gboard][gboard] · [Architecture Rust][architecture] |
+| Hors connexion | Gboard décrit une reconnaissance avec ponctuation et corrections de base. Sambler encode sur l’appareil et délègue la reconnaissance au service. Ajouter cette capacité impliquerait un moteur de reconnaissance local. [Aide Gboard][gboard] · [Architecture Rust][architecture] |
 
 Un cas mérite une place dans le corpus de qualité. Sur 122,6 s de répétitions d’une phrase, une seule occurrence est revenue. Sur 46,8 s avec douze phrases distinctes, les douze sont revenues. La cause de la différence reste ouverte. Les chiffres souvent cités de 3 erreurs sur 109 mots anglais et 3 sur 79 mots français concernent dix extraits de livres lus avec la référence **Python**. Une campagne native distincte donne six écarts sur un passage de 520 mots. Aucun de ces chiffres ne mesure la fidélité d’une réécriture sur une conversation spontanée. [Répétitions et passage long][fiabilite] · [Évaluation Python][wer]
 
@@ -61,30 +61,30 @@ Le Xiaomi a refusé l’installation ADB ordinaire de mon APK. Les essais applic
 3. **Mesurer la qualité perçue avant de retoucher le codec.** Le projet a déjà un plan d’annotation FR/EN. L’exécuter sur plusieurs voix spontanées, avec les mêmes sons et le même état d’éditeur sur le moteur et sur un Pixel équipé de Gboard officiel. Compter séparément erreurs de faits, répétitions supprimées, modifications hors sélection et délai après la fin de parole. [Plan d’annotation existant][qualite]
 
 [mesures]: ../evidence/audit-parite-integration-20261118.json
-[revision]: https://github.com/Antoninnnnnnnn/Rambpc/tree/e52e568ec8a602a224b249970e69f749ffa9ab18
+[revision]: https://github.com/Antoninnnnnnnn/Sambler/tree/e52e568ec8a602a224b249970e69f749ffa9ab18
 [canal]: ../../crates/rambler-audio/src/input.rs
-[transition]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-audio/src/long_dictation.rs#L174
-[evenement]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-audio/src/long_dictation.rs#L146
-[interruption]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-cli/src/main.rs#L483
-[raccord]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-audio/src/long_dictation.rs#L114
-[raccord-cli]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-cli/src/main.rs#L499
+[transition]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-audio/src/long_dictation.rs#L174
+[evenement]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-audio/src/long_dictation.rs#L146
+[interruption]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-cli/src/main.rs#L483
+[raccord]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-audio/src/long_dictation.rs#L114
+[raccord-cli]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-cli/src/main.rs#L499
 [splice]: ../../crates/rambler-engine/src/splice.rs
 [gboard]: https://support.google.com/gboard/answer/17468539?hl=fr
 [pixelboard]: https://github.com/Akshayykadam/PixelBoard/releases/tag/1.3.5
 [dictee]: ../../README.md
 [campagne]: ../evidence/rust-native-real-campaign-20261118.json
 [comparaison]: ../evidence/pixelboard-vs-native-real-20261118.json
-[langues]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/rust-native-multilingual-real-20261118.json
+[langues]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/rust-native-multilingual-real-20261118.json
 [composition]: composition.md
 [architecture]: ../../crates/rambler-audio/BUILDING.md
-[fiabilite]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/rust-native-real-reliability-20261118.json
+[fiabilite]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/rust-native-real-reliability-20261118.json
 [wer]: ../evidence/natural-expansion-quality.json
-[horloge]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-engine/src/engine.rs#L247
-[profil]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/research/interactive-pcm-dictation.md
-[cinqminutes]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/rust-interactive-wall-cadence-windows-20261118.md
-[tls]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-transport/ANDROID_TLS.md
-[xiaomi]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/android-tls-host-app-20261118.md
+[horloge]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-engine/src/engine.rs#L247
+[profil]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/research/interactive-pcm-dictation.md
+[cinqminutes]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/rust-interactive-wall-cadence-windows-20261118.md
+[tls]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/crates/rambler-transport/ANDROID_TLS.md
+[xiaomi]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/evidence/android-tls-host-app-20261118.md
 [pagesandroid]: https://developer.android.com/guide/practices/page-sizes
-[ci]: https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44391305891
-[cipy]: https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/44391305956
-[qualite]: https://github.com/Antoninnnnnnnn/Rambpc/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/research/quality-annotation-plan.md
+[ci]: https://github.com/Antoninnnnnnnn/Sambler/actions/runs/44391305891
+[cipy]: https://github.com/Antoninnnnnnnn/Sambler/actions/runs/44391305956
+[qualite]: https://github.com/Antoninnnnnnnn/Sambler/blob/e52e568ec8a602a224b249970e69f749ffa9ab18/docs/research/quality-annotation-plan.md

@@ -12,8 +12,8 @@ CLI release.
 
 ## Qualification CI ultérieure — source `8cb381e`
 
-Les [neuf jobs Rust](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489195)
-et les [quatre jobs Python](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43859489085)
+Les [neuf jobs Rust](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43859489195)
+et les [quatre jobs Python](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43859489085)
 réussissent sur le commit exact `8cb381e8d26d448db80481d4aab9472aee3b096c`, tentative 1.
 La [preuve CI séparée](../evidence/rust-grpc-envelope-coalescing-ci-20261116.json)
 conserve les identités et hashes des API/logs. Les 72 groupes Rust sont recomptés
@@ -45,7 +45,7 @@ Rust 1.88, oracle `every_small_upload_length_and_large_boundaries_preserve_raw_g
 Le pair h2 rapporte un GOAWAY `ENHANCE_YOUR_CALM` d'origine bibliothèque. Les quatre
 tests HPACK et l'oracle de fenêtre de trois octets passent dans ce même job.
 [Preuve terminale distincte](../evidence/rust-credential-hpack-wire-ci-failed-20261116.json) ·
-[run Rust échoué](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43850604441).
+[run Rust échoué](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43850604441).
 
 Deux analyses statiques indépendantes identifient l'envoi du préfixe de cinq
 octets comme DATA séparée comme un mécanisme plausible d'accumulation de petites

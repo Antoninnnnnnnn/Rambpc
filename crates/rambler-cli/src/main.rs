@@ -17,7 +17,7 @@ use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 #[derive(Parser)]
 #[command(
     name = "rambler",
-    about = "Dictate audio files without a microphone or external encoder."
+    about = "Sambler's command-line client for file dictation."
 )]
 struct Cli {
     #[command(subcommand)]

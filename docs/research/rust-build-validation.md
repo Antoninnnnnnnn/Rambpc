@@ -433,13 +433,13 @@ historical, as does the successful `1561f87` matrix below, which predates this t
 The [runner-history proof](../evidence/rust-native-root-runner-history.json)
 records the subsequent failures and bounded local correction without rewriting either.
 
-At `bc5449c`, [Rust CI2](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43726164598)
+At `bc5449c`, [Rust CI2](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43726164598)
 **FAILED** only in the Ubuntu stable/1.88 native-root step. Both selected the
 intended ignored test but failed the `SSL_CERT_FILE`-absence assertion **before
 native OS-root loading or TLS configuration**. The precise downstream environment
 injector is unverified. Windows/macOS on both toolchains and lint succeeded;
 macOS therefore exercised native public-root loading/configuration, not a handshake.
-[Python CI2](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43726164608)
+[Python CI2](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43726164608)
 passed all four jobs. Local Linux R1 reproduced the same precondition failure
 (0 passed, 1 failed, 0 ignored, 52 filtered); its 167 selected sources were unchanged
 and containment valid. That failure is preserved, not a failed root-loader diagnosis.
@@ -475,8 +475,8 @@ Both local platforms preserved the same 169 selected source files before/after,
 with digest `65029fd139d299a41f34905c55a02ca9fcf453f7624f7f4596e5099714ec76b3`;
 this selector is not all build inputs. Static decision-review metadata records
 15 assistant responses from Opus 5.5; that advice is not execution evidence.
-At the supplied checkpoint, corrected [Rust CI3](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415832)
-and [Python CI3](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43730415914)
+At the supplied checkpoint, corrected [Rust CI3](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43730415832)
+and [Python CI3](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43730415914)
 at `906905988c5c51d83b05b259cd642a165325b7d2` were **IN_PROGRESS / pending**, not passed;
 no later outcome was polled for that historical consolidation. Both workflows
 have since completed successfully, including all six native jobs and the direct
@@ -491,8 +491,8 @@ WAN performance. No app/network/service execution accompanies the local correcti
 
 The push on `feat/rust-engine` executed both public workflows at source commit
 `1561f878a0b8714af669771fc7bd091784b1f3d9`:
-[Rust run 43722181759](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181759)
-and [Python run 43722181718](https://github.com/Antoninnnnnnnn/Rambpc/actions/runs/43722181718).
+[Rust run 43722181759](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43722181759)
+and [Python run 43722181718](https://github.com/Antoninnnnnnnn/Sambler/actions/runs/43722181718).
 **Both completed successfully: six native jobs, one Rust lint job and four Python
 jobs.** The [allowlisted proof](../evidence/rust-remote-ci-20261115.json) records
 job URLs, source SHA, commands, counts, versions and verified report/log hashes.

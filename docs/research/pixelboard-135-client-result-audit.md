@@ -1,8 +1,8 @@
 # PixelBoard 1.3.5: client-result source audit
 
-**NO_CANDIDATE** for the current Rambpc engine. PixelBoard 1.3.5 changes how its Android client handles an already-created edit action, but the public source does not establish a new S3 projection or a safe mapping from that local action to a Rambpc proposal.
+**NO_CANDIDATE** for the audited Sambler version. PixelBoard 1.3.5 changes how its Android client handles an already-created edit action, but the public source does not establish a new S3 projection or a safe mapping from that local action to a Sambler proposal.
 
-Reviewed against Rambpc `2658ffb619ce91b0f456b5330e5eac64b286f637` on 2026-11-18. GitHub resolves PixelBoard `1.3.4` to the [previously audited source][baseline] and `1.3.5` to [the release source][tag-diff] (published 2026-11-17). Public `main` was [`4b4e48d`][main-diff], one commit after the tag, with no further Java/Kotlin client-source changes. This is a read-only audit of public GPL-3.0 source and release metadata; no artifacts, upstream tests, device, or provider were run.
+Reviewed against Sambler `2658ffb619ce91b0f456b5330e5eac64b286f637` on 2026-11-18. GitHub resolves PixelBoard `1.3.4` to the [previously audited source][baseline] and `1.3.5` to [the release source][tag-diff] (published 2026-11-17). Public `main` was [`4b4e48d`][main-diff], one commit after the tag, with no further Java/Kotlin client-source changes. This is a read-only audit of public GPL-3.0 source and release metadata; no artifacts, upstream tests, device, or provider were run.
 
 ## What actually changed
 
@@ -10,7 +10,7 @@ Reviewed against Rambpc `2658ffb619ce91b0f456b5330e5eac64b286f637` on 2026-11-18
 - **Insertion instead of context echo (#166):** The old non-command branch could rebuild a span with surrounding text. [The new branch][new-span] no longer prepends that context: it restores the transcript for a discarded errant diff when available, or for a diff-free dictation span that is empty or echoes preceding text. The [pasted-text fixture][dup-test] expects only the newly spoken text. This is a local insertion-span rule, not a reason to strip context from a wire replacement window or label a transcript as ASR text.
 - **Not a new result contract:** [Rotation continuity and language-fallback changes][release-changes] affect Android lifecycle and recognition policy, respectively; neither supplies a new result field or proves recognition accuracy. [`417ff1f`][readiness] is native split-loading readiness for Gboard `18.6.3.100`, the base [already specified in 1.3.4][old-base]. [`a5d74d2`][writing-tools] changes configuration/defaults for the separate Writing Tools feature, not Rambler result handling; the release's connectivity claim was not verified. The [tagged source notes][tag-compat] and [release page][release] disagree on Android minimum (10/API 29 vs. 12L); installed compatibility is not established here.
 
-## What Rambpc would need
+## What Sambler would need
 
 The [contract audit](rust-advanced-mode-contract-audit.md) and [parity matrix](rust-feature-parity.md) distinguish the S3 helper from the later Android filter. At the reviewed Rust revision, `S3ClientCompatible` still accepts wire intents 2/3 with member 3/7 and otherwise falls back to `Hypothesis.text` with provenance. Replacement proposals preserve the captured window and do not mutate an editor. PixelBoard's [local action-4 rewrite][new-span] already existed at 1.3.4 and still does not establish a mapping from wire intents 4/5/6 to those local actions. Nothing here warrants changing strict refusals or safety checks.
 

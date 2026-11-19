@@ -1,4 +1,4 @@
-# Contribuer
+# Contribuer à Sambler
 
 ## Avant de commencer
 

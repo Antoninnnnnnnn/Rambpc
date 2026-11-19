@@ -1,4 +1,4 @@
-# Integrating the native Rust SDK
+# Integrating the Sambler Rust SDK
 
 The SDK consumes audio supplied by your application and returns a completed session result. You own capture, document state, user consent, and any UI or editor action. The examples below use public APIs; you do not need to assemble protocol messages or drain the responses yourself.
 
@@ -8,9 +8,9 @@ Use crates from the same checkout. For example, in your application's `Cargo.tom
 
 ```toml
 [dependencies]
-rambler-engine = { path = "../Rambpc/crates/rambler-engine" }
-rambler-transport = { path = "../Rambpc/crates/rambler-transport" }
-rambler-audio = { path = "../Rambpc/crates/rambler-audio" } # omit for pre-encoded audio
+rambler-engine = { path = "../Sambler/crates/rambler-engine" }
+rambler-transport = { path = "../Sambler/crates/rambler-transport" }
+rambler-audio = { path = "../Sambler/crates/rambler-audio" } # omit for pre-encoded audio
 bytes = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
