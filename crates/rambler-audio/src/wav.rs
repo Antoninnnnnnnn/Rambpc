@@ -28,18 +28,17 @@ impl Default for WavConfig {
     }
 }
 impl WavConfig {
-    fn chunk_bytes(self) -> Result<usize, AudioError> {
-        let bytes = u64::from(self.chunk_ms)
-            .checked_mul(32)
-            .ok_or(AudioError::InvalidConfig)?;
+    fn chunk_bytes(self, sample_rate: u32) -> Result<usize, AudioError> {
+        let bytes = u64::from(self.chunk_ms) * u64::from(sample_rate / 1000) * 2;
         if bytes == 0 || bytes > MAX_INPUT_BYTES as u64 {
             return Err(AudioError::InvalidConfig);
         }
         Ok(bytes as usize)
     }
 }
-/// Strict classic RIFF/WAVE PCM16LE mono/16k reader, including PCM extensible
-/// headers. Unknown RIFF chunks are skipped by seeking, never buffered. One open
+/// Strict classic RIFF/WAVE PCM16LE mono reader, including PCM extensible
+/// headers. Reads the exact PCM bytes at the validated file rate.
+/// Unknown RIFF chunks are skipped by seeking, never buffered. One open
 /// file descriptor is retained, so path replacement after open cannot swap audio.
 /// Explicit close/EOF/errors await Tokio's in-flight file work before releasing
 /// the descriptor. Dropped read/close futures retain progress and cleanup state.
@@ -52,6 +51,7 @@ pub struct WavAudio {
     data_bytes: u64,
     config: WavConfig,
     chunk_bytes: usize,
+    bytes_per_second: u64,
     emitted_bytes: u64,
     pending: Vec<u8>,
     filled: usize,
@@ -59,8 +59,28 @@ pub struct WavAudio {
     failure: Option<AudioError>,
 }
 impl WavAudio {
+    /// Open a 16 kHz mono PCM16LE WAV.
     pub async fn open(path: impl AsRef<Path>, config: WavConfig) -> Result<Self, AudioError> {
-        let chunk_bytes = config.chunk_bytes()?;
+        Self::open_with_rates(path.as_ref(), config, false).await
+    }
+
+    /// Also accept 48 kHz mono PCM16LE. Chunk durations and realtime pacing
+    /// use the original rate; `next` still emits the file's exact PCM bytes.
+    /// Use [`crate::Pcm48kTo16k`] before feeding 48 kHz audio to the 16 kHz encoder.
+    pub async fn open_16_or_48k(
+        path: impl AsRef<Path>,
+        config: WavConfig,
+    ) -> Result<Self, AudioError> {
+        Self::open_with_rates(path.as_ref(), config, true).await
+    }
+
+    async fn open_with_rates(
+        path: &Path,
+        config: WavConfig,
+        allow_48k: bool,
+    ) -> Result<Self, AudioError> {
+        // Reject invalid configuration before opening the file when possible.
+        let chunk_bytes = config.chunk_bytes(16_000)?;
         let mut options = OpenOptions::new();
         options.read(true);
         // A FIFO must not block open before its descriptor can be rejected.
@@ -84,6 +104,7 @@ impl WavAudio {
             data_bytes: 0,
             config,
             chunk_bytes,
+            bytes_per_second: 32_000,
             emitted_bytes: 0,
             pending: Vec::new(),
             filled: 0,
@@ -91,16 +112,18 @@ impl WavAudio {
             failure: None,
         };
         let parsed = match audio.file.as_mut() {
-            Some(file) => parse_header(file).await,
+            Some(file) => parse_header(file, allow_48k).await,
             None => Err(AudioError::Io),
         };
-        match parsed {
-            Ok(size) => {
+        match parsed.and_then(|(size, rate)| Ok((size, rate, config.chunk_bytes(rate)?))) {
+            Ok((size, sample_rate, chunk_bytes)) => {
+                audio.format.sample_rate = sample_rate;
+                let rate = u64::from(sample_rate);
+                audio.chunk_bytes = chunk_bytes;
+                audio.bytes_per_second = rate * 2;
                 audio.data_bytes = size;
                 audio.frame_count = size / 2;
-                let frames = audio.frame_count;
-                audio.duration = Duration::from_secs(frames / 16000)
-                    + Duration::from_nanos((frames % 16000) * 1_000_000_000 / 16000);
+                audio.duration = Duration::from_nanos(audio.frame_count * 1_000_000_000 / rate);
                 Ok(audio)
             }
             Err(error) => {
@@ -157,7 +180,8 @@ impl WavAudio {
             self.filled += count;
         }
         if self.config.realtime && self.emitted_bytes > 0 {
-            let offset = Duration::from_nanos(self.emitted_bytes * 1_000_000_000 / 32000);
+            let offset =
+                Duration::from_nanos(self.emitted_bytes * 1_000_000_000 / self.bytes_per_second);
             let deadline = start.checked_add(offset).ok_or(AudioError::InvalidConfig)?;
             tokio::time::sleep_until(deadline).await;
         }
@@ -221,7 +245,7 @@ fn is_disk_file(file: &File) -> bool {
     // neither closes it nor retains the handle or any borrowed memory.
     unsafe { GetFileType(file.as_raw_handle()) == FILE_TYPE_DISK }
 }
-async fn parse_header(file: &mut File) -> Result<u64, AudioError> {
+async fn parse_header(file: &mut File, allow_48k: bool) -> Result<(u64, u32), AudioError> {
     // Windows metadata alone can classify a pipe as a file. Query the opened
     // handle before any metadata/header operation that could wait for pipe data.
     #[cfg(windows)]
@@ -246,7 +270,7 @@ async fn parse_header(file: &mut File) -> Result<u64, AudioError> {
         return Err(AudioError::TruncatedWav);
     }
     let mut position = 12_u64;
-    let mut has_format = false;
+    let mut sample_rate = None;
     // Cap metadata work independently of file length; large opaque chunks are
     // skipped in constant memory, endless tiny chunks are rejected.
     for _ in 0..100_000 {
@@ -265,20 +289,19 @@ async fn parse_header(file: &mut File) -> Result<u64, AudioError> {
         }
         match &chunk[..4] {
             b"fmt " => {
-                if has_format || size < 16 {
+                if sample_rate.is_some() || size < 16 {
                     return Err(AudioError::InvalidWav);
                 }
                 let mut fmt = [0; 40];
                 let take = size.min(fmt.len() as u64) as usize;
                 exact(file, &mut fmt[..take]).await?;
-                validate_format(&fmt, size)?;
-                has_format = true;
+                sample_rate = Some(validate_format(&fmt, size, allow_48k)?);
             }
             b"data" => {
-                if !has_format || !size.is_multiple_of(2) {
+                if !size.is_multiple_of(2) {
                     return Err(AudioError::InvalidWav);
                 }
-                return Ok(size);
+                return Ok((size, sample_rate.ok_or(AudioError::InvalidWav)?));
             }
             _ => (),
         }
@@ -304,10 +327,11 @@ fn u16le(data: &[u8]) -> u16 {
 fn u32le(data: &[u8]) -> u32 {
     u32::from_le_bytes([data[0], data[1], data[2], data[3]])
 }
-fn validate_format(fmt: &[u8; 40], size: u64) -> Result<(), AudioError> {
-    if u16le(&fmt[2..]) != 1
-        || u32le(&fmt[4..]) != 16000
-        || u32le(&fmt[8..]) != 32000
+fn validate_format(fmt: &[u8; 40], size: u64, allow_48k: bool) -> Result<u32, AudioError> {
+    let rate = u32le(&fmt[4..]);
+    if !(rate == 16_000 || allow_48k && rate == 48_000)
+        || u16le(&fmt[2..]) != 1
+        || u32le(&fmt[8..]) != rate * 2
         || u16le(&fmt[12..]) != 2
         || u16le(&fmt[14..]) != 16
     {
@@ -334,5 +358,5 @@ fn validate_format(fmt: &[u8; 40], size: u64) -> Result<(), AudioError> {
         }
         _ => return Err(AudioError::InvalidWav),
     }
-    Ok(())
+    Ok(rate)
 }

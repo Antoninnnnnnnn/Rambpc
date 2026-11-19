@@ -174,8 +174,10 @@ target/release/rambler.exe dictate-wav input-16k-mono.wav --language fr-FR --rea
 target/release/rambler.exe dictate-wav input-16k-mono.wav --language fr-FR --page-duration-ms 60
 ```
 
-Le WAV doit être PCM16LE mono16k, pas du PCM arbitraire automatiquement rééchantillonné.
-La source est lue progressivement (chunks CLI 20 ms), encodée VoIP/VBR24kbps et
+Le WAV doit être PCM16LE mono à 16 ou 48 kHz. À 48 kHz, un seul convertisseur
+48 → 16 kHz traite tout le fichier, y compris avant le découpage interactif.
+Les fréquences autres que 16 et 48 kHz, le stéréo et le PCM flottant sont refusés.
+La source est lue progressivement (chunks CLI 20 ms à la fréquence du fichier), encodée VoIP/VBR24kbps et
 muxée en Ogg continu ; le flush/lookahead et la granule EOS conservent les derniers
 échantillons, sans allonger la durée décodée par le padding. `--realtime` simule une
 source fichier, pas un microphone ; le premier chunk n'attend pas artificiellement.
@@ -184,7 +186,9 @@ Les autres options de contexte, langues et métadonnées sont les mêmes que `di
 Le build sans feature audio ne propose pas cette commande.
 Sur la sortie finale, `dictate-wav` ajoute un objet `pcm` lorsque l'observateur
 existe : `input_bytes`, `encoded_input_samples`, `encoded_frames`, `input_eof` et
-`output_eof`. La sortie Ogg et celle sans feature audio restent inchangées. Ces
+`output_eof`. `input_bytes` et `encoded_input_samples` comptent le PCM16LE à
+16 kHz remis à l'encodeur, pas les octets ou échantillons du WAV à 48 kHz.
+La sortie Ogg et celle sans feature audio restent inchangées. Ces
 compteurs locaux sont distincts des métriques encodées et ne prouvent ni réception
 serveur ni absence de perte ou de rejeu. Leurs définitions et l'API optionnelle
 sont dans le [contrat PCM](research/rust-pcm-channel.md). La

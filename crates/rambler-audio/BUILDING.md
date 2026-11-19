@@ -151,12 +151,15 @@ No reopening/whole-file buffer is used. Concurrent in-place file modifications
 are not a snapshot guarantee; truncation is detected during consumption.
 
 The WAV adapter accepts classic little-endian RIFF, PCM format 1 or extensible
-PCM GUID, exactly mono / 16000 Hz / 16 valid bits, block alignment 2, byte rate
-32000. It rejects compressed, stereo, other rates/widths, RF64/RIFX, incomplete
-samples, extent overflow and truncation. Unknown RIFF chunks are skipped by seek
-with padding validated. Metadata traversal is capped at 100000 chunks. This is
-intentionally stricter than the general Python WAV reader, which also supports
-rates other than the validated encoder profile.
+PCM GUID, exactly mono / 16 valid bits, block alignment 2, with a byte rate of
+twice the sample rate. `open` keeps its 16 kHz-only contract;
+`WavAudio::open_16_or_48k` opts into both 16 and 48 kHz. Both emit the exact PCM
+bytes at the file rate and size/pace chunks at that rate. Pass 48 kHz input
+through one continuous `Pcm48kTo16k` before the encoder or segment collector.
+The reader rejects compressed or floating-point samples, stereo, other
+rates/widths, RF64/RIFX, incomplete samples, extent overflow and truncation.
+Unknown RIFF chunks are skipped by seek with padding validated. Metadata
+traversal is capped at 100000 chunks.
 
 ```rust,ignore
 use rambler_audio::{EncoderConfig, Pcm16Opus, WavAudio, WavConfig};

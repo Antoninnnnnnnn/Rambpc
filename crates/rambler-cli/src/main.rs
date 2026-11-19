@@ -31,7 +31,7 @@ enum Command {
         common: CommonArgs,
     },
     #[cfg(feature = "audio")]
-    /// Encode PCM16LE mono 16 kHz WAVE and stream Ogg/Opus.
+    /// Encode PCM16LE mono 16 or 48 kHz WAVE and stream Ogg/Opus.
     DictateWav {
         #[command(flatten)]
         common: CommonArgs,
@@ -138,7 +138,7 @@ struct PcmObservation {
     handle: Option<rambler_audio::PcmProgressHandle>,
 }
 impl PcmObservation {
-    /// Read only after source/session cleanup; these are encoder, not network, counters.
+    /// Read only after cleanup; these counters describe the 16 kHz encoder input/output.
     fn append_to(&self, value: Value) -> Value {
         #[cfg(feature = "audio")]
         {
@@ -162,6 +162,25 @@ impl PcmObservation {
     }
 }
 
+#[cfg(feature = "audio")]
+async fn open_wav_pcm(path: PathBuf, realtime: bool) -> Result<Box<dyn AudioSource>, &'static str> {
+    use rambler_audio::{Pcm48kTo16k, WavAudio, WavConfig};
+    let wav = WavAudio::open_16_or_48k(
+        path,
+        WavConfig {
+            chunk_ms: 20,
+            realtime,
+        },
+    )
+    .await
+    .map_err(|_| "audio")?;
+    if wav.format.sample_rate == 48_000 {
+        Ok(Box::new(Pcm48kTo16k::new(wav)))
+    } else {
+        Ok(Box::new(wav))
+    }
+}
+
 async fn open_audio(
     path: PathBuf,
     kind: InputKind,
@@ -173,24 +192,15 @@ async fn open_audio(
         )),
         #[cfg(feature = "audio")]
         InputKind::InteractiveWav { .. } => {
-            use rambler_audio::{WavAudio, WavConfig};
-            let pcm = WavAudio::open(
-                path,
-                WavConfig {
-                    chunk_ms: 20,
-                    realtime: true,
-                },
-            )
-            .await
-            .map_err(|_| "audio")?;
-            Ok((Box::new(pcm), PcmObservation::default()))
+            // The collector segments normalized PCM, not the continuous resampler.
+            Ok((open_wav_pcm(path, true).await?, PcmObservation::default()))
         }
         #[cfg(feature = "audio")]
         InputKind::Wav {
             realtime,
             page_duration_ms,
         } => {
-            use rambler_audio::{EncoderConfig, Pcm16Opus, WavAudio, WavConfig};
+            use rambler_audio::{EncoderConfig, Pcm16Opus};
             let page_duration_ms = u16::try_from(page_duration_ms).map_err(|_| "configuration")?;
             if page_duration_ms % 20 != 0 {
                 return Err("configuration");
@@ -200,16 +210,8 @@ async fn open_audio(
                 ..Default::default()
             };
             encoder.validate().map_err(|_| "configuration")?;
-            let wav = WavAudio::open(
-                path,
-                WavConfig {
-                    chunk_ms: 20,
-                    realtime,
-                },
-            )
-            .await
-            .map_err(|_| "audio")?;
-            let (encoder, handle) = Pcm16Opus::new_with_progress(wav, encoder);
+            let pcm = open_wav_pcm(path, realtime).await?;
+            let (encoder, handle) = Pcm16Opus::new_with_progress(pcm, encoder);
             Ok((
                 Box::new(encoder),
                 PcmObservation {

@@ -22,7 +22,7 @@ match result {
 
 ## CLI
 
-Build the CLI with the `audio` feature. `rambler dictate-wav INPUT.wav --interactive` uses paced 16 kHz mono PCM WAV and the profile above. `--segment-seconds` sets the cap (6–280; five-second pause search stays fixed); `--finalize-timeout` and `--timeout` are optional explicit seconds per RPC. Without an explicit `--timeout`, the derived default uses the effective finalization budget. `--interactive` is separate from `--realtime`, which retains the single-session 30 s default, and is not compatible with editor context or an explicit `--page-duration-ms`.
+Build the CLI with the `audio` feature. `rambler dictate-wav INPUT.wav --interactive` accepts paced mono PCM16LE WAV at 16 or 48 kHz and uses the profile above. A single converter normalizes 48 kHz input to 16 kHz before segmentation; rollover does not reset it. `--segment-seconds` sets the cap (6–280; five-second pause search stays fixed); `--finalize-timeout` and `--timeout` are optional explicit seconds per RPC. Without an explicit `--timeout`, the derived default uses the effective finalization budget. `--interactive` is separate from `--realtime`, which retains the single-session 30 s default, and is not compatible with editor context or an explicit `--page-duration-ms`.
 
 Interactive stdout is one JSON object. It contains `completed_segments` in capture order, with half-open `[start, end]` `sample_range` pairs in 16 kHz input samples. If every segment projects usable text, `type: "result"` and `outcome: "usable_text"` carry joined `text` (exit 0).
 

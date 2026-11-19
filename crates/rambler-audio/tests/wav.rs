@@ -195,10 +195,8 @@ async fn unknown_odd_metadata_chunks_skip_padding_without_changing_audio() {
     );
 }
 
-#[tokio::test]
-async fn pcm_extensible_accepts_pcm_guid_16validbits_and_rejects_other_subformats() {
-    let original = pcm(17);
-    let standard = wav(&original);
+fn extensible_wav(pcm: &[u8]) -> Vec<u8> {
+    let standard = wav(pcm);
     let mut bytes = standard[..36].to_vec();
     set16(&mut bytes, 20, 0xfffe);
     set32(&mut bytes, 16, 40);
@@ -211,6 +209,13 @@ async fn pcm_extensible_accepts_pcm_guid_16validbits_and_rejects_other_subformat
     bytes.extend(&standard[36..]);
     let size = bytes.len() as u32 - 8;
     set32(&mut bytes, 4, size);
+    bytes
+}
+
+#[tokio::test]
+async fn pcm_extensible_accepts_pcm_guid_16validbits_and_rejects_other_subformats() {
+    let original = pcm(17);
+    let bytes = extensible_wav(&original);
     let (_dir, mut source) = open_bytes(&bytes, WavConfig::default()).await.unwrap();
     assert_eq!(collect(&mut source).await.unwrap(), original);
     for (offset, value) in [(36, 21), (36, 23), (38, 12), (44, 3)] {
@@ -275,6 +280,45 @@ async fn pacing_starts_on_first_next_not_open_and_has_no_final_sleep() {
     assert_eq!(start.elapsed(), Duration::from_millis(1));
     assert_eq!(source.next().await.unwrap().unwrap().len(), 2);
     assert_eq!(start.elapsed(), Duration::from_millis(2));
+    assert!(source.next().await.unwrap().is_none());
+    assert_eq!(start.elapsed(), Duration::from_millis(2));
+}
+
+#[tokio::test(start_paused = true)]
+async fn opt_in_48k_paces_extensible_pcm_at_the_original_rate_without_rewriting_bytes() {
+    let original = pcm(97);
+    let mut wave = extensible_wav(&original);
+    set32(&mut wave, 24, 48_000);
+    set32(&mut wave, 28, 96_000);
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("48k.wav");
+    tokio::fs::write(&path, wave).await.unwrap();
+    assert!(matches!(
+        WavAudio::open(&path, WavConfig::default()).await,
+        Err(AudioError::InvalidWav)
+    ));
+    let mut config = WavConfig {
+        chunk_ms: MAX_INPUT_BYTES as u32 / 96 + 1,
+        realtime: true,
+    };
+    assert!(matches!(
+        WavAudio::open_16_or_48k(&path, config).await,
+        Err(AudioError::InvalidConfig)
+    ));
+    config.chunk_ms = 1;
+    let mut source = WavAudio::open_16_or_48k(&path, config).await.unwrap();
+    assert_eq!(source.format.sample_rate, 48_000);
+    assert_eq!(source.frame_count, 97);
+    assert_eq!(source.duration, Duration::from_nanos(2_020_833));
+
+    // Public descriptive fields cannot change private read bounds or pacing.
+    source.format.sample_rate = 16_000;
+    tokio::time::advance(Duration::from_secs(15)).await;
+    let start = Instant::now();
+    for (millis, expected) in original.chunks(96).enumerate() {
+        assert_eq!(source.next().await.unwrap().unwrap().as_ref(), expected);
+        assert_eq!(start.elapsed(), Duration::from_millis(millis as u64));
+    }
     assert!(source.next().await.unwrap().is_none());
     assert_eq!(start.elapsed(), Duration::from_millis(2));
 }

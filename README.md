@@ -101,8 +101,14 @@ Règles à respecter :
 | Entrée | Chemin | Remarques |
 |---|---|---|
 | Ogg/Opus continu, mono, 16 kHz | `dictate` ; `OggAudio` | Chemin validé principal. Lecteur sans codec natif : pages validées au fil de la lecture, sans cadence temps réel. |
-| WAV PCM16LE mono 16 kHz | `dictate-wav` (feature `audio`) | Encodage Opus 24 kbit/s en pages de 20 ms, flush final. `--realtime` simule une arrivée progressive depuis un fichier, pas un microphone. |
+| WAV PCM16LE mono 16 ou 48 kHz | `dictate-wav` (feature `audio`) | Le 48 kHz est converti en continu vers 16 kHz avant l'encodage ou le découpage `--interactive`. Encodage Opus 24 kbit/s, pages de 20 ms par défaut, flush final. `--realtime` simule une arrivée progressive depuis un fichier, pas un microphone. |
 | PCM 48 kHz mono PCM16LE | `pcm_channel` → `Pcm48kTo16k` → `Pcm16Opus`, puis `collect_dictation` (SDK) | Optionnel, sans changer le chemin 16 kHz. Voir [le guide, section 2](docs/research/sdk-integration-guide.md) et [BUILDING](crates/rambler-audio/BUILDING.md). |
+
+`dictate-wav` rejette le stéréo, le PCM flottant et les autres fréquences,
+notamment 44,1 kHz. Les compteurs `pcm.input_bytes` et `pcm.encoded_input_samples`
+se rapportent à l'entrée PCM16LE 16 kHz de l'encodeur, pas au fichier WAV.
+Les plages `sample_range` en mode interactif sont aussi exprimées en échantillons
+à 16 kHz, après conversion le cas échéant.
 
 Ne pas passer du PCM arbitraire étiqueté Opus, ni concaténer des clips encodés
 séparément : l'entrée doit être **un seul flux Ogg/Opus continu**.
