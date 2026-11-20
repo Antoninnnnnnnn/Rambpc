@@ -92,6 +92,8 @@ export interface TextOptions {
   lightPunctuation: boolean;
   typographicSpaces: boolean;
   sentenceCase: boolean;
+  /** Milestone 5: spoken layout commands ("à la ligne"…). Absent on older native sides. */
+  voiceCommands?: boolean;
 }
 
 export interface IndicatorOptions {
@@ -145,6 +147,8 @@ export interface Settings {
   insertionTarget: InsertionTarget;
   /** Milestone 4. Absent when the native side predates themes. */
   appearance?: AppearanceSettings;
+  /** Milestone 5. At most 50, one per application id. */
+  appStyles?: AppStyle[];
 }
 
 export type ColorSchemeChoice = "system" | "light" | "dark";
@@ -457,6 +461,8 @@ export interface AppShare {
   /** Display name of the target application, e.g. "Word". */
   app: string;
   words: number;
+  /** Milestone 5: the `AppIdentity.id`, to link with per-app styles. */
+  id?: string;
 }
 
 export interface ActivityStats {
@@ -473,6 +479,59 @@ export interface ActivityStats {
   listeningMsTotal: number;
   /** Words per target application, largest first; null when not collected. */
   apps: AppShare[] | null;
+}
+
+// ------------------------------------------------------------------ milestone 5
+//
+// Applications (per-app counters and styles), dictation commands and the
+// Carnet (dictated notes). Proposed by the theme work, implemented natively by
+// the windows-v1 session. Each screen degrades gracefully while a command is
+// missing (the command error is expected and handled).
+
+/**
+ * A target application as Sambler recognises it. `id` is stable (lowercased
+ * executable name without extension, e.g. "winword"); `name` is for display
+ * ("Word").
+ */
+export interface AppIdentity {
+  id: string;
+  name: string;
+}
+
+/**
+ * Text style for one application, applied on top of the global profile and
+ * text options when a take's target is this application.
+ */
+export interface AppStyle {
+  app: AppIdentity;
+  /** Omitted: the global profile. */
+  profile?: RenderProfile;
+  /** Only the listed options are overridden. */
+  text?: Partial<TextOptions>;
+}
+
+/** Spoken layout command ("à la ligne"), applied locally after Rambler. */
+export interface VoiceCommand {
+  /** What the person says, e.g. "à la ligne". */
+  spoken: string;
+  /** What is written, shown to the person, e.g. "↵" or "« ». */
+  result: string;
+  description: string;
+}
+
+export interface NoteMeta {
+  id: string;
+  /** First non-empty line, at most 80 characters, computed natively. */
+  title: string;
+  /** Milliseconds since the Unix epoch. */
+  createdAt: number;
+  updatedAt: number;
+  words: number;
+}
+
+/** A note of the Carnet. Carries text: never in events or logs. */
+export interface Note extends NoteMeta {
+  text: string;
 }
 
 // ------------------------------------------------------------------ commands
@@ -519,6 +578,17 @@ export interface CommandMap {
   get_stats: { args: void; result: UsageStats };
   // milestone 4
   get_activity: { args: void; result: ActivityStats };
+  // milestone 5
+  /** Applications seen in the per-app counters, most used first. */
+  get_known_apps: { args: void; result: AppIdentity[] };
+  /** The fixed French list, for display. */
+  get_voice_commands: { args: void; result: VoiceCommand[] };
+  /** Most recently updated first. */
+  list_notes: { args: void; result: NoteMeta[] };
+  get_note: { args: { id: string }; result: Note };
+  /** `id: null` creates a note. Returns the stored metadata. */
+  save_note: { args: { note: { id: string | null; text: string } }; result: NoteMeta };
+  delete_note: { args: { id: string }; result: void };
 }
 
 export type CommandName = keyof CommandMap;
