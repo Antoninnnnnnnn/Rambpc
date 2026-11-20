@@ -10,6 +10,18 @@ application handles the interface, microphone capture, and text insertion.
 - **Python 0.3** serves as the conformance reference. The `sambler-engine`
   distribution provides the `rambler` module.
 
+The [Windows application dossier (in French)](docs/windows/README.md) describes
+a free Windows 11 x64 app that uses Rambler/Jetson for all speech recognition.
+The planned release includes a per-user installer and a portable ZIP.
+See the [product settings](docs/windows/03-produit-et-priorites.md),
+[acceptance criteria](docs/windows/08-plan-de-construction.md) and
+[packaging guide](docs/windows/09-distribution-et-version-portable.md).
+
+Original Sambler code and documentation are available under the
+[MIT License](LICENSE.md). Third-party components retain their own licenses
+and copyright notices, including the [audio dependency notices](crates/rambler-audio/THIRD_PARTY_LICENSES).
+Access to the hosted Rambler/Jetson service is governed separately.
+
 ## At a glance
 
 | Area | Status | Details |

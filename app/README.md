@@ -4,6 +4,15 @@ Use `app/` for application interfaces. Each project uses the same Rust
 dictation engine in `crates/`. Run the command-line tool and the tests from
 the repository root.
 
+For the Windows application, start with the [product and engineering dossier
+(in French)](../docs/windows/README.md). The first [implementation milestone](../docs/windows/08-plan-de-construction.md)
+connects a real microphone, the existing Rambler SDK and an identified field
+in another app. Loopback servers supply controlled responses in tests.
+The proposed app has its own Cargo workspace under `app/src-tauri/` and ships
+the same dictation features in a per-user installer and a portable ZIP.
+See the [application architecture](../docs/windows/07-architecture-application.md)
+and [Windows packaging guide](../docs/windows/09-distribution-et-version-portable.md).
+
 Start with one project in `app/` if the platforms share an interface. A single
 project can produce builds for multiple operating systems. If you develop
 independent interfaces, create a subdirectory under `app/` for each project and
@@ -22,8 +31,9 @@ cargo test --locked --offline -p rambler-cli --features audio --example minimal_
 
 ## Connect your application
 
-If the application's `Cargo.toml` is in `app/`, add `app` to `members` in the
-root `Cargo.toml` and specify these dependencies.
+An application can also share the SDK workspace. If its `Cargo.toml` is in
+`app/`, add `app` to `members` in the root `Cargo.toml` and specify these
+dependencies.
 
 ```toml
 [dependencies]
@@ -34,12 +44,13 @@ bytes.workspace = true
 tokio.workspace = true
 ```
 
-For a manifest one level deeper, such as `app/src-tauri/Cargo.toml`, add
-`app/src-tauri` to the workspace members and start the paths with `../../crates/`.
+With this shared-workspace layout, a manifest one level deeper uses paths
+starting with `../../crates/`. Add its directory to the workspace members.
 
-For the first screen, start with **Start → Finish → Show text → Copy**. Begin
-with a WAV file as in the [Rust example](../crates/rambler-cli/examples/minimal_app.rs),
-then connect the microphone. The application supplies signed 16-bit mono PCM
+For a standalone SDK exercise, follow **Start → Finish → Show text → Copy**
+with a WAV file as in the [Rust example](../crates/rambler-cli/examples/minimal_app.rs).
+For the Windows product's first milestone, feed the microphone directly.
+The application supplies signed 16-bit mono PCM
 at 16 or 48 kHz, and the engine encodes it as Opus. Close the audio source
 when the user finishes dictating. Handle cancellation, errors, and live
 previews separately as described in the [SDK guide](../docs/research/sdk-integration-guide.md).

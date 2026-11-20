@@ -4,6 +4,11 @@ Date: November 13, 2026.
 
 **Status: recommendation, not a migration decision or implementation commitment.**
 
+The Windows product decisions of November 20 supersede the provider and
+distribution options considered in this earlier cross-platform recommendation.
+Sambler for Windows uses Rambler/Jetson exclusively and targets a per-user
+installer and a portable ZIP from one build. [Windows architecture](../windows/07-architecture-application.md) · [Distribution](../windows/09-distribution-et-version-portable.md)
+
 ## 1. Goal
 
 Evolve Sambler into a dictation application for **Windows first, then macOS and Linux**, with most code shared.
@@ -82,7 +87,7 @@ Memory safety and typing do not guarantee these functional properties.
 
 ### No guarantee of service longevity
 
-The internal Rambler service may still change or become inaccessible. Provide a replaceable provider interface from the outset, without prematurely building multiple integrations.
+The internal Rambler service may still change or become inaccessible. This early study considered a replaceable provider interface. The subsequent Windows design isolates the Rambler SDK for testing and suspends dictation on loss of access. [Windows outage handling](../windows/06-confidentialite-et-continuite.md)
 
 The technical choice does not authorize redistribution of access metadata. Access and distribution terms must be checked separately.
 
@@ -94,7 +99,7 @@ The technical choice does not authorize redistribution of access metadata. Acces
 - Protocol and transport.
 - Encoding and result processing.
 - Deadlines, cancellation and errors.
-- Recognition provider interface.
+- Interface between the session and the recognition SDK.
 
 The core must be exercisable from a diagnostic CLI and tests, without a graphical interface.
 
