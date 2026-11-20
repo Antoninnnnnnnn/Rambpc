@@ -339,15 +339,22 @@ mod recette {
                 }
             }
             _ => {
-                let head: String = text.trim().chars().take(10).collect();
-                let once = !head.is_empty() && text.matches(head.as_str()).count() == 1;
+                // Exactly the rendered draft text, once, and nothing else.
+                let expected = controller.draft().await.and_then(|d| d.full_text);
+                let once = expected.as_deref().is_some_and(|e| !e.is_empty() && text == e);
+                tokio::time::sleep(Duration::from_millis(1500)).await;
+                let later = pad.contents()?;
+                let drafted = controller.draft().await.and_then(|d| d.full_text);
+                if later != text || drafted.as_deref() != Some(text.as_str()) {
+                    println!("  note: field later={later:?}; draft={drafted:?}");
+                }
                 if matches!(outcome, Some(TakeOutcome::Inserted)) && once {
                     Ok(format!(
                         "inserted {text:?}; visible {} ms after the stop gesture",
                         visible_ms.map(|m| m.to_string()).unwrap_or_else(|| "?".into())
                     ))
                 } else {
-                    Err(format!("outcome={outcome:?} field={text:?}"))
+                    Err(format!("outcome={outcome:?} field={text:?} expected={expected:?}"))
                 }
             }
         }
