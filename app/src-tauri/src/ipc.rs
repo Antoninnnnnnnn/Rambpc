@@ -543,13 +543,19 @@ pub struct ActivityStats {
 // | `get_note`           | `id: string`                           | `Note`             |
 // | `save_note`          | `note: { id: string \| null, text }`   | `NoteMeta` (null id creates; ≤ 200 000 chars, ≤ 1 000 notes) |
 // | `delete_note`        | `id: string`                           | `()`               |
-// | `transcribe_file`    | —                                      | `TranscriptionResult \| null` (opens the native file picker itself; null when the person cancels the picker; consent and access required) |
-// | `cancel_transcription` | —                                    | `()`               |
+// | `pick_audio_file`  | —                                      | `string \| null` (native open dialog; the path is remembered as allowed) |
+// | `transcribe_file`    | `path: string` (from `pick_audio_file` or `sambler://file-dropped` only) | `FileTranscription` (one at a time) |
+// | `cancel_transcription` | `id: string`                         | `FileTranscription` |
+// | `list_transcriptions` | —                                     | `FileTranscription[]` (this session, newest first) |
 //
-// Events: `sambler://transcription` → `TranscriptionProgress` (no text).
+// Events: `sambler://transcription` → `FileTranscription` (~4 Hz while running
+// and at the end; never any text); `sambler://file-dropped` → full path of an
+// audio file dropped on the main window (now allowed for `transcribe_file`).
+// A finished transcription becomes a Carnet note « Transcription · <fileName> ».
 // `ActivityStats.apps` is now filled (`AppWords` gains `id`).
 
 pub const EVENT_TRANSCRIPTION: &str = "sambler://transcription";
+pub const EVENT_FILE_DROPPED: &str = "sambler://file-dropped";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -601,43 +607,29 @@ impl std::fmt::Debug for NoteInput {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum TranscriptionPhase {
-    Reading,
-    Recognizing,
+pub enum FileTranscriptionStatus {
+    Running,
     Done,
-    Cancelled,
     Failed,
+    Cancelled,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+/// One audio file transcription of this session. Never carries text.
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TranscriptionProgress {
-    pub phase: TranscriptionPhase,
-    /// Audio processed so far / total, in milliseconds, when known.
-    pub processed_ms: u64,
-    pub total_ms: Option<u64>,
-    /// French, text-free reason when `phase` is `failed`.
-    pub message: Option<String>,
-}
-
-/// Result of `transcribe_file`, returned only to the view that asked for it.
-#[derive(Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TranscriptionResult {
-    /// File name only (no folder path).
+pub struct FileTranscription {
+    pub id: String,
+    /// Base name only, no folder.
     pub file_name: String,
-    pub duration_ms: u64,
-    /// Ranges in order, with the same statuses as a draft.
-    pub parts: Vec<DraftPart>,
-    /// Rendered full text when every range was admitted.
-    pub full_text: Option<String>,
-}
-
-impl std::fmt::Debug for TranscriptionResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TranscriptionResult")
-            .field("duration_ms", &self.duration_ms)
-            .field("parts", &self.parts.len())
-            .finish_non_exhaustive()
-    }
+    pub duration_ms: Option<u64>,
+    pub status: FileTranscriptionStatus,
+    /// 0..=1.
+    pub progress: f32,
+    pub words: u64,
+    /// The Carnet note holding the text (also set for a partial result).
+    pub note_id: Option<String>,
+    /// French, text-free reason when failed.
+    pub error: Option<String>,
+    /// Unix epoch milliseconds.
+    pub started_at: u64,
 }
