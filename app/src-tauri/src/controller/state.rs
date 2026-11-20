@@ -218,6 +218,8 @@ impl State {
             }),
             gesture: take.map_or(self.settings.gesture, |take| take.gesture),
             shortcut: self.settings.shortcut.clone(),
+            // Placeholder until recent results land (milestone 3).
+            recent_count: u32::from(self.draft.is_some()),
         }
     }
 

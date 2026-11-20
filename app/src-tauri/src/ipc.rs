@@ -100,6 +100,9 @@ pub enum KeptReason {
     NotWritten { reason: NotWrittenReason },
     /// Some ranges are missing, need review or are blocked: no automatic insertion.
     Incomplete,
+    /// The field could not be qualified at the trigger (terminal, elevated
+    /// window, unknown control…): the take went to Sambler instead of refusing.
+    UncertainTarget { reason: UncertainReason },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -139,7 +142,8 @@ pub enum RefusalReason {
     UncertainTarget {
         reason: UncertainReason,
     },
-    /// A previous failed take left text pending recovery; offer copy or replace.
+    /// Legacy (no longer produced since 0.10): a pending draft never blocks a
+    /// new take; recent results are kept side by side instead.
     PendingDraft,
     Microphone {
         error: MicError,
@@ -196,6 +200,8 @@ pub struct UiState {
     pub listening_ms: Option<u64>,
     pub gesture: Gesture,
     pub shortcut: String,
+    /// Number of recent results kept in RAM (see `get_recent_drafts`).
+    pub recent_count: u32,
 }
 
 /// Status of one recognized range in the draft.
@@ -449,4 +455,33 @@ fn transcript_debug_is_redacted_without_changing_serialization() {
     assert!(!format!("{draft:?} {entry:?} {query:?}").contains(text));
     assert_eq!(serde_json::to_value(&draft).unwrap()["fullText"], text);
     assert_eq!(serde_json::to_value(&entry).unwrap()["text"], text);
+}
+
+// ---------------------------------------------------------------- milestone 3
+//
+// Instant start, recent results and usage statistics.
+//
+// | command              | args                         | returns              |
+// |----------------------|------------------------------|----------------------|
+// | `get_recent_drafts`  | —                            | `DraftView[]` (newest first, at most 5, RAM only, same lifetime as the draft) |
+// | `copy_draft`         | `take?: number` (default: latest) | `()` or `CommandError` |
+// | `clear_draft`        | `take?: number` (default: all recent) | `UiState` |
+// | `get_stats`          | —                            | `UsageStats`         |
+//
+// Behaviour changes: the take enters `Listening` immediately on the shortcut
+// edge (audio buffered locally until the field is qualified; discarded if the
+// field is protected); an uncertain field sends the take to Sambler with
+// `KeptReason::UncertainTarget` instead of refusing; a pending draft never
+// blocks a new take.
+
+/// Counters only (no text), persisted as plain JSON in the data root.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageStats {
+    pub words_today: u64,
+    pub words_this_week: u64,
+    pub words_total: u64,
+    pub takes_total: u64,
+    /// Words per minute over listening time of completed takes, when known.
+    pub average_wpm: Option<u32>,
 }

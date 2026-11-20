@@ -39,6 +39,23 @@ pub struct Settings {
     pub history: HistoryOptions,
     /// Installed edition only; ignored by the portable edition.
     pub launch_at_startup: bool,
+    /// How text reaches fields without an atomic editor API (browsers,
+    /// Electron apps, Outlook…). Native Edit/RichEdit and Word keep their
+    /// atomic paths whatever this says.
+    pub insertion: InsertionMethod,
+}
+
+/// Insertion for fields without an atomic editor API.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InsertionMethod {
+    /// One paste: the clipboard is saved, the text pasted with Ctrl+V, then the
+    /// previous clipboard restored (excluded from Win+V history and cloud sync).
+    /// Instant, multi-line capable.
+    #[default]
+    Paste,
+    /// Paced Unicode typing, never touches the clipboard; single-line only.
+    Typing,
 }
 
 impl Default for Settings {
@@ -57,6 +74,7 @@ impl Default for Settings {
             draft_minutes: 10,
             history: HistoryOptions::default(),
             launch_at_startup: false,
+            insertion: InsertionMethod::Paste,
         }
     }
 }
