@@ -17,9 +17,11 @@ const root = await mkdtemp(join(scratch, `sambler-paste-${app}-`));
 const profile = join(root, 'profile');
 const html = pathToFileURL(join(root, 'editor.html')).href;
 const code = app === 'code';
+const coldSwitch = !code && process.env.SAMBLER_FIXTURE_SWITCH === '1';
 const one = 'sambler fixture é🦀';
 const two = `${one}\nsecond line`;
-const flags = ['--force-renderer-accessibility', '--disable-background-networking', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'];
+const flags = ['--disable-background-networking', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'];
+if (!coldSwitch) flags.push('--force-renderer-accessibility');
 let processHandle, probeHandle, socket, lines;
 const statuses = Object.create(null);
 function summarize(name, samples) {
@@ -29,7 +31,7 @@ function summarize(name, samples) {
     return `${q(0.5)}/${q(0.95)}`;
   };
   const counts = ['exact', 'caret', 'undo', 'safe'].map(k => `${k}=${samples.filter(s => s[k]).length}/${runs}`).join(' ');
-  const times = ['capture_ms', 'recheck_ms', 'visible_ms', 'insertion_ms'].map(k => `${k}=${percentiles(k)}`).join(' ');
+  const times = ['capture_ms', 'recheck_ms', 'visible_ms', 'insertion_ms', ...(coldSwitch ? ['activation_ms', 'input_ms'] : [])].map(k => `${k}=${percentiles(k)}`).join(' ');
   console.log(`${app} ${name} ${counts} ${times}`);
 }
 async function waitFor(callback, tries = 90, pause = 15) {
@@ -71,11 +73,11 @@ async function native(command) {
   if (result.done) throw Error('Native fixture exited');
   const line = result.value;
   const fields = Object.fromEntries([...line.matchAll(/(\w+)=([\w.()-]+)/g)].map(([,k,v]) => [k, v]));
-  if (fields.foreground_lost || fields.wrong_fixture) throw Error(`Disposable fixture lost foreground during ${command}: ${line}`);
-  for (const key of ['capture_ms', 'recheck_ms', 'epoch', 'visible_ms', 'insertion_ms']) fields[key] = Number(fields[key]);
-  for (const key of ['exact', 'caret', 'restored', 'keys']) fields[key] = fields[key] === 'true';
+  if (fields.foreground_lost || fields.wrong_fixture || fields.switch_failed) throw Error(`Disposable fixture lost foreground during ${command}: ${line}`);
+  for (const key of ['capture_ms', 'recheck_ms', 'epoch', 'visible_ms', 'insertion_ms', 'activation_ms']) fields[key] = Number(fields[key]);
+  for (const key of ['exact', 'caret', 'restored', 'keys', 'ready']) fields[key] = fields[key] === 'true';
   if (line.includes('reason: Unsupported')) fields.unsupported = true;
-  if (line.includes('Uncertain') || line.includes('Err(')) statuses[line.replace(/\d+(\.\d+)?/g, '#')] = true;
+  if (line.includes('Uncertain') || line.includes('Err(') || line.startsWith('msaa=')) statuses[line.replace(/\d+(\.\d+)?/g, '#')] = true;
   return fields;
 }
 async function launchBrowser() {
@@ -104,20 +106,22 @@ async function launchBrowser() {
       el.addEventListener('input', function painted(e) {
         if (e.inputType !== 'insertFromPaste') return;
         el.removeEventListener('input', painted);
-        requestAnimationFrame(() => setTimeout(() => {
-          let caret;
-          if (el.isContentEditable) {
-            const selection = getSelection();
-            if (!selection.rangeCount || !selection.isCollapsed || !el.contains(selection.anchorNode)) caret = false;
-            else {
-              const tail = selection.getRangeAt(0).cloneRange();
-              tail.setEnd(el, el.childNodes.length);
-              caret = tail.toString() === ' right';
-            }
-          } else {
-            caret = el.selectionStart === el.value.length - 6 && el.selectionStart === el.selectionEnd;
+        let caret;
+        if (el.isContentEditable) {
+          const selection = getSelection();
+          if (!selection.rangeCount || !selection.isCollapsed || !el.contains(selection.anchorNode)) caret = false;
+          else {
+            const tail = selection.getRangeAt(0).cloneRange();
+            tail.setEnd(el, el.childNodes.length);
+            caret = tail.toString() === ' right';
           }
-          window.visible = { at: performance.timeOrigin + performance.now(), exactValue: fixtureContents(el), caret };
+        } else {
+          caret = el.selectionStart === el.value.length - 6 && el.selectionStart === el.selectionEnd;
+        }
+        const snapshot = { at: performance.timeOrigin + performance.now(), exactValue: fixtureContents(el), caret };
+        window.visible = snapshot;
+        requestAnimationFrame(() => setTimeout(() => {
+          snapshot.paintAt = performance.timeOrigin + performance.now();
         }, 0));
       }, { signal: (window.fixtureSignal ??= new AbortController()).signal });
       return document.activeElement === el;
@@ -196,13 +200,32 @@ try {
     const focusPoint = await evalJs("(()=>{const r=document.getElementById('single').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()");
     await cdp('Input.dispatchMouseEvent', {...focusPoint, type:'mousePressed', button:'left', clickCount:1});
     await cdp('Input.dispatchMouseEvent', {...focusPoint, type:'mouseReleased', button:'left', clickCount:1});
-    for (const [id, mode] of [['single','one'],['single','two'],['multi','one'],['multi','two'],['rich','one'],['rich','two']]) {
+    if (process.env.SAMBLER_FIXTURE_WARM === '1') {
+      // Measure cold eligibility separately without injecting or timing a paste.
+      let attempts = 0;
+      const started = performance.now();
+      const ready = await waitFor(async () => {
+        attempts++;
+        if (!(await native('foreground')).keys) return false;
+        await evalJs("document.getElementById('single').focus()");
+        return (await native('ready')).ready;
+      }, 16, 100);
+      console.log(`${app} startup readiness eligible=${Boolean(ready)} attempts=${attempts} elapsed_ms=${(performance.now()-started).toFixed(0)}`);
+      if (!ready) throw Error('Disposable fixture never exposed an eligible field');
+    }
+    const cases = coldSwitch ? [['single','one']] : [['single','one'],['single','two'],['multi','one'],['multi','two'],['rich','one'],['rich','two']];
+    for (const [id, mode] of cases) {
       const samples = [];
       for (let i = 0; i < runs; i++) {
         await evalJs(`window.fixtureSignal?.abort(); window.fixtureSignal = null; window.setupFixture('${id}')`);
         await delay(50);
         if (!(await native('foreground')).keys) throw Error('Could not activate the disposable field fixture');
-        const sample = await native(mode);
+        const sample = await native(coldSwitch ? 'cold-one' : mode);
+        if (coldSwitch && !sample.outcome) {
+          const focused = await evalJs("document.hasFocus() && document.activeElement.id === 'single'");
+          statuses[`post-switch DOM focus on capture refusal=${focused}`] = true;
+          if (process.env.SAMBLER_FIXTURE_MSAA === '1') await native('msaa');
+        }
         if (id === 'single' && mode === 'two') {
           sample.exact = sample.unsupported && await evalJs("document.getElementById('single').value === 'left  right' && !window.visible");
         } else if (sample.outcome === 'Delivered') {
@@ -210,7 +233,8 @@ try {
           if (state) {
             sample.exact = state.exactValue === `left ${mode === 'one' ? one : two} right`;
             sample.caret = state.caret;
-            sample.visible_ms = state.at - sample.epoch;
+            sample.visible_ms = Number.isFinite(state.paintAt) ? state.paintAt - sample.epoch : NaN;
+            sample.input_ms = state.at - sample.epoch;
           }
           if ((await native('foreground')).keys
               && await evalJs(`document.activeElement === document.getElementById('${id}')`)
@@ -221,9 +245,9 @@ try {
         sample.safe = (await evalJs('window.submits')) === 0;
         samples.push(sample);
       }
-      summarize(`${id}/${mode}`, samples);
+      summarize(`${id}/${mode}${coldSwitch ? '/after-switch' : ''}`, samples);
     }
-    for (const mode of ['one', 'two']) {
+    for (const mode of coldSwitch ? [] : ['one', 'two']) {
       const samples = [];
       for (let i = 0; i < runs; i++) {
         if (!(await native('foreground')).keys) throw Error('Could not activate the disposable omnibox fixture');

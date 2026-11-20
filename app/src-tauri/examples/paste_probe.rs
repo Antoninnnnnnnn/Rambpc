@@ -14,16 +14,21 @@ mod win {
     use windows::{
         Win32::{
             Foundation::{HWND, LPARAM},
-            System::Com::{
-                CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx,
-                CoUninitialize,
+            System::{
+                Com::{
+                    CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx,
+                    CoUninitialize,
+                },
+                Variant::{VARIANT, VT_DISPATCH, VT_I4, VariantClear},
             },
             UI::{
                 Accessibility::*,
                 Input::KeyboardAndMouse::*,
                 WindowsAndMessaging::{
-                    EnumWindows, GetClassNameW, GetForegroundWindow, GetWindowThreadProcessId,
-                    IsWindowVisible, SetForegroundWindow, SwitchToThisWindow,
+                    EnumChildWindows, EnumWindows, GetClassNameW, GetForegroundWindow,
+                    GetWindowThreadProcessId, IsWindowVisible, OBJID_CLIENT, STATE_SYSTEM_FOCUSED,
+                    STATE_SYSTEM_PROTECTED, STATE_SYSTEM_READONLY, SW_MINIMIZE, SW_RESTORE,
+                    SetForegroundWindow, ShowWindowAsync, SwitchToThisWindow,
                 },
             },
         },
@@ -85,6 +90,31 @@ mod win {
         foreground(pid)
     }
 
+    fn switch_away_and_back(pid: u32) -> Option<f64> {
+        if !foreground(pid) {
+            return None;
+        }
+        let browser = unsafe { GetForegroundWindow() };
+        // Operate on the exact browser window we own. Never send anything to
+        // whatever window the OS reveals while this one is minimized.
+        let _ = unsafe { ShowWindowAsync(browser, SW_MINIMIZE) };
+        let until = Instant::now() + Duration::from_millis(400);
+        while unsafe { GetForegroundWindow() } == browser && Instant::now() < until {
+            thread::sleep(Duration::from_millis(2));
+        }
+        let switched = unsafe { GetForegroundWindow() } != browser;
+        let back = Instant::now();
+        let _ = unsafe { ShowWindowAsync(browser, SW_RESTORE) };
+        if unsafe { GetForegroundWindow() } != browser {
+            unsafe { SwitchToThisWindow(browser, true) };
+        }
+        let until = Instant::now() + Duration::from_millis(400);
+        while unsafe { GetForegroundWindow() } != browser && Instant::now() < until {
+            thread::yield_now();
+        }
+        (switched && unsafe { GetForegroundWindow() } == browser).then(|| millis(back.elapsed()))
+    }
+
     fn keys(pid: u32, ctrl: bool, key: VIRTUAL_KEY) -> bool {
         let inputs: Vec<_> = [
             (VK_CONTROL, false),
@@ -141,6 +171,85 @@ mod win {
     impl Drop for Automation {
         fn drop(&mut self) {
             unsafe { CoUninitialize() }
+        }
+    }
+
+    // Failure-only diagnostic: no names, titles, text, or values are requested.
+    fn msaa_shape(pid: u32) -> Option<(bool, bool, bool, bool, bool)> {
+        let _apartment = Automation::new()?;
+        if !foreground(pid) {
+            return None;
+        }
+        unsafe extern "system" fn find_render(hwnd: HWND, arg: LPARAM) -> windows::core::BOOL {
+            let mut name = [0u16; 64];
+            let len = unsafe { GetClassNameW(hwnd, &mut name) }.max(0) as usize;
+            if name[..len]
+                .iter()
+                .copied()
+                .eq("Chrome_RenderWidgetHostHWND".encode_utf16())
+                && unsafe { IsWindowVisible(hwnd) }.as_bool()
+            {
+                unsafe {
+                    *(arg.0 as *mut HWND) = hwnd;
+                }
+                return false.into();
+            }
+            true.into()
+        }
+        let root = unsafe { GetForegroundWindow() };
+        let mut render = HWND::default();
+        let _ = unsafe {
+            EnumChildWindows(
+                Some(root),
+                Some(find_render),
+                LPARAM((&mut render as *mut HWND) as isize),
+            )
+        };
+        let has_render = !render.0.is_null();
+        let hwnd = if has_render { render } else { root };
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            AccessibleObjectFromWindow(hwnd, OBJID_CLIENT.0 as u32, &IAccessible::IID, &mut ptr)
+                .ok()?;
+            if ptr.is_null() {
+                return None;
+            }
+            let client = IAccessible::from_raw(ptr);
+            let mut focus = client.accFocus().ok()?;
+            let v = &focus.Anonymous.Anonymous;
+            let mut self_id = VARIANT::default();
+            let self_scalar = &mut *self_id.Anonymous.Anonymous;
+            self_scalar.vt = VT_I4;
+            self_scalar.Anonymous.lVal = 0;
+            let focused = match v.vt {
+                VT_DISPATCH => v
+                    .Anonymous
+                    .pdispVal
+                    .as_ref()
+                    .and_then(|v| v.cast::<IAccessible>().ok())
+                    .map(|el| (el, &self_id)),
+                VT_I4 => Some((client.clone(), &focus)),
+                _ => None,
+            };
+            let shape = focused.and_then(|(el, id)| {
+                let get_i4 = |mut variant: VARIANT| {
+                    let scalar = &variant.Anonymous.Anonymous;
+                    let value = (scalar.vt == VT_I4).then(|| scalar.Anonymous.lVal as u32);
+                    let _ = VariantClear(&mut variant);
+                    value
+                };
+                let role = get_i4(el.get_accRole(id).ok()?)?;
+                let state = get_i4(el.get_accState(id).ok()?)?;
+                Some((
+                    has_render,
+                    role == ROLE_SYSTEM_TEXT,
+                    state & STATE_SYSTEM_FOCUSED != 0,
+                    state & STATE_SYSTEM_PROTECTED != 0,
+                    state & STATE_SYSTEM_READONLY != 0,
+                ))
+            });
+            let _ = VariantClear(&mut focus);
+            shape
         }
     }
 
@@ -209,6 +318,16 @@ mod win {
             return "foreground_lost=true".into();
         }
         match cmd {
+            "msaa" if browser => {
+                let (tx, rx) = std::sync::mpsc::channel();
+                thread::spawn(move || {
+                    let _ = tx.send(msaa_shape(pid));
+                });
+                return format!(
+                    "msaa={:?}",
+                    rx.recv_timeout(Duration::from_millis(300)).ok().flatten()
+                );
+            }
             "address" if browser => return format!("keys={}", keys(pid, true, VK_L)),
             "undo" => return format!("keys={}", keys(pid, true, VK_Z)),
             "escape" if browser => return format!("keys={}", keys(pid, false, VK_ESCAPE)),
@@ -226,7 +345,21 @@ mod win {
             }
             _ => {}
         }
+        if cmd == "ready" {
+            let started = Instant::now();
+            let ready = matches!(probe.capture(), TargetVerdict::Eligible { info, .. } if info.app == app)
+                && foreground(pid);
+            return format!("ready={ready} capture_ms={:.2}", millis(started.elapsed()));
+        }
+        let mut activation_ms = None;
         let text = match cmd {
+            "cold-one" if browser => {
+                activation_ms = switch_away_and_back(pid);
+                if activation_ms.is_none() {
+                    return "switch_failed=true".into();
+                }
+                ONE
+            }
             "one" | "address-one" | "chat-one" => ONE,
             "two" | "address-two" | "chat-two" => TWO,
             _ => return "invalid_command=true".into(),
@@ -234,8 +367,11 @@ mod win {
         let started = Instant::now();
         let verdict = probe.capture();
         let capture_ms = millis(started.elapsed());
+        let activation = activation_ms
+            .map(|ms| format!(" activation_ms={ms:.2}"))
+            .unwrap_or_default();
         let TargetVerdict::Eligible { token, info } = verdict else {
-            return format!("capture_ms={capture_ms:.2} verdict={verdict:?}");
+            return format!("capture_ms={capture_ms:.2} verdict={verdict:?}{activation}");
         };
         if info.app != app || !foreground(pid) {
             return "wrong_fixture=true".into();
@@ -269,7 +405,7 @@ mod win {
         let outcome = SendInputInserter::new().insert_once(&token, text);
         let elapsed = millis(started.elapsed());
         let mut result = format!(
-            "capture_ms={capture_ms:.2} recheck_ms={recheck_ms:.2} multiline={:?} outcome={outcome:?} epoch={start_epoch:.3} insertion_ms={elapsed:.2}",
+            "capture_ms={capture_ms:.2} recheck_ms={recheck_ms:.2} multiline={:?} outcome={outcome:?} epoch={start_epoch:.3} insertion_ms={elapsed:.2}{activation}",
             info.multiline
         );
         if let Some(observed) = observer {
@@ -298,7 +434,8 @@ mod win {
             .next()
             .and_then(|v| v.parse().ok())
             .ok_or("missing fixture pid")?;
-        let probe = UiaTargetProbe::new();
+        let probe =
+            UiaTargetProbe::for_fixture(pid, std::env::var_os("SAMBLER_FIXTURE_PREWARM").is_some());
         let mut stdout = io::stdout().lock();
         for line in io::stdin().lock().lines() {
             let line = line.map_err(|_| "fixture command failed")?;

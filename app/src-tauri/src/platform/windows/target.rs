@@ -13,7 +13,7 @@ use std::{
     collections::HashMap,
     sync::{
         Arc, Mutex, OnceLock, Weak,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU32, Ordering},
         mpsc,
     },
     thread,
@@ -37,8 +37,8 @@ use windows::Win32::{
             UOI_NAME,
         },
         Threading::{
-            GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_NAME_FORMAT,
-            PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
+            GetCurrentProcess, GetCurrentThreadId, OpenProcess, OpenProcessToken,
+            PROCESS_NAME_FORMAT, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
         },
         Variant::{VARIANT, VT_BOOL, VariantClear},
     },
@@ -58,14 +58,33 @@ const CHROMIUM_RECHECK_BUDGET: Duration = Duration::from_millis(500);
 const CHROMIUM_RETRY: Duration = Duration::from_millis(30);
 const WATCH_PERIOD: Duration = Duration::from_millis(75);
 
-#[derive(Default)]
 pub struct UiaTargetProbe {
     worker: Mutex<Option<Arc<Worker>>>,
+    _warmup: Option<ForegroundWarmup>,
+}
+
+impl Default for UiaTargetProbe {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl UiaTargetProbe {
     pub fn new() -> Self {
-        Self::default()
+        Self::with_warmup(ForegroundWarmup::start(None))
+    }
+
+    /// Isolate desktop qualification from all windows except the fixture.
+    #[doc(hidden)]
+    pub fn for_fixture(pid: u32, warmup: bool) -> Self {
+        Self::with_warmup(warmup.then(|| ForegroundWarmup::start(Some(pid))).flatten())
+    }
+
+    fn with_warmup(warmup: Option<ForegroundWarmup>) -> Self {
+        Self {
+            worker: Mutex::new(None),
+            _warmup: warmup,
+        }
     }
 
     fn worker(&self) -> Option<Arc<Worker>> {
@@ -94,6 +113,126 @@ impl Drop for Apartment {
     }
 }
 
+fn automation_client() -> Option<IUIAutomation> {
+    let automation: IUIAutomation =
+        unsafe { CoCreateInstance(&CUIAutomation8, None, CLSCTX_INPROC_SERVER) }.ok()?;
+    if let Ok(settings) = automation.cast::<IUIAutomation2>() {
+        unsafe {
+            let _ = settings.SetConnectionTimeout(250);
+            let _ = settings.SetTransactionTimeout(250);
+        }
+    }
+    Some(automation)
+}
+
+// Keep provider traffic for speculative work off the capture/recheck queue.
+// This MTA pumps only foreground events; it never captures a token or reads text.
+struct ForegroundWarmup(Arc<AtomicU32>);
+const STOP_WARMUP: u32 = u32::MAX;
+const WM_WARM_FOREGROUND: u32 = WM_APP + 1;
+
+impl ForegroundWarmup {
+    fn start(only_pid: Option<u32>) -> Option<Self> {
+        let id = Arc::new(AtomicU32::new(0));
+        let state = id.clone();
+        thread::Builder::new()
+            .name("sambler-uia-foreground".into())
+            .spawn(move || {
+                if unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) }.is_err() {
+                    return;
+                }
+                let _apartment = Apartment;
+                let Some(automation) = automation_client() else {
+                    return;
+                };
+                let mut msg = MSG::default();
+                let _ = unsafe { PeekMessageW(&mut msg, None, 0, 0, PM_NOREMOVE) };
+                let thread_id = unsafe { GetCurrentThreadId() };
+                if state
+                    .compare_exchange(0, thread_id, Ordering::AcqRel, Ordering::Acquire)
+                    .is_err()
+                {
+                    return;
+                }
+                unsafe extern "system" fn foreground_event(
+                    _: HWINEVENTHOOK,
+                    _: u32,
+                    hwnd: HWND,
+                    _: i32,
+                    _: i32,
+                    _: u32,
+                    _: u32,
+                ) {
+                    // Never enter COM from the WinEvent callback; COM can pump messages.
+                    let _ = unsafe {
+                        PostThreadMessageW(
+                            GetCurrentThreadId(),
+                            WM_WARM_FOREGROUND,
+                            WPARAM(hwnd.0 as usize),
+                            LPARAM(0),
+                        )
+                    };
+                }
+                let hook = unsafe {
+                    SetWinEventHook(
+                        EVENT_SYSTEM_FOREGROUND,
+                        EVENT_SYSTEM_FOREGROUND,
+                        None,
+                        Some(foreground_event),
+                        0,
+                        0,
+                        WINEVENT_OUTOFCONTEXT,
+                    )
+                };
+                if !hook.0.is_null() {
+                    let mut last = None;
+                    let mut warm = |hwnd| {
+                        let window = Window::new(hwnd);
+                        if window == last {
+                            return;
+                        }
+                        last = window;
+                        if let Some(window) = window
+                            && window.pid != std::process::id()
+                            && only_pid.is_none_or(|pid| window.pid == pid)
+                            && window.chromium_widget()
+                            && Window::foreground() == Some(window)
+                            && on_default_desktop()
+                        {
+                            let _ = unsafe { automation.GetFocusedElement() };
+                        }
+                    };
+                    warm(unsafe { GetForegroundWindow() });
+                    while state.load(Ordering::Acquire) != STOP_WARMUP
+                        && unsafe { GetMessageW(&mut msg, None, 0, 0) }.0 > 0
+                    {
+                        if state.load(Ordering::Acquire) == STOP_WARMUP {
+                            break;
+                        }
+                        if msg.message == WM_WARM_FOREGROUND {
+                            warm(HWND(msg.wParam.0 as _));
+                        } else {
+                            unsafe { DispatchMessageW(&msg) };
+                        }
+                    }
+                    let _ = unsafe { UnhookWinEvent(hook) };
+                }
+                let _ = state.compare_exchange(thread_id, 0, Ordering::AcqRel, Ordering::Acquire);
+            })
+            .ok()?;
+        Some(Self(id))
+    }
+}
+
+impl Drop for ForegroundWarmup {
+    fn drop(&mut self) {
+        let id = self.0.swap(STOP_WARMUP, Ordering::AcqRel);
+        if id != 0 {
+            let _ = unsafe { PostThreadMessageW(id, WM_QUIT, WPARAM(0), LPARAM(0)) };
+        }
+    }
+}
+
 impl Worker {
     fn spawn() -> Option<Arc<Self>> {
         let (jobs, requests) = mpsc::sync_channel::<Job>(4);
@@ -106,18 +245,9 @@ impl Worker {
                     return;
                 }
                 let _apartment = Apartment;
-                let automation: IUIAutomation = match unsafe {
-                    CoCreateInstance(&CUIAutomation8, None, CLSCTX_INPROC_SERVER)
-                } {
-                    Ok(automation) => automation,
-                    Err(_) => return,
+                let Some(automation) = automation_client() else {
+                    return;
                 };
-                if let Ok(settings) = automation.cast::<IUIAutomation2>() {
-                    unsafe {
-                        let _ = settings.SetConnectionTimeout(250);
-                        let _ = settings.SetTransactionTimeout(250);
-                    }
-                }
                 let mut state = State {
                     automation,
                     records: HashMap::new(),
@@ -1414,7 +1544,7 @@ mod tests {
 
     #[test]
     fn hung_request_retires_its_apartment_without_waiting() {
-        let probe = UiaTargetProbe::new();
+        let probe = UiaTargetProbe::for_fixture(0, false);
         let first = probe.worker().unwrap();
         assert_eq!(first.request(|_| 7), Some(7));
         let (resume, unblock) = mpsc::channel::<()>();
