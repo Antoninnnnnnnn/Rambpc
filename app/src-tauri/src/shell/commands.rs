@@ -265,11 +265,11 @@ pub async fn copy_draft(state: State<'_, AppState>) -> CmdResult<()> {
             "Le presse-papiers est occupé par une autre application. Réessayez.",
         ),
         CopyError::Clipboard(ClipboardError::ExclusionFailed) => CommandError::new(
-            "clipboard-exclusion",
+            "clipboard-exclusion-failed",
             "Copie annulée : impossible d'exclure le texte de l'historique du presse-papiers.",
         ),
         CopyError::Clipboard(ClipboardError::Other) => {
-            CommandError::new("clipboard", "La copie a échoué. Le texte reste dans Sambler.")
+            CommandError::new("clipboard-other", "La copie a échoué. Le texte reste dans Sambler.")
         }
     })
 }
@@ -278,6 +278,16 @@ pub async fn copy_draft(state: State<'_, AppState>) -> CmdResult<()> {
 pub fn clear_draft(state: State<'_, AppState>) -> UiState {
     state.controller.clear_draft();
     current_state(&state)
+}
+
+/// Settings preview of the text rules on a sample sentence (no microphone, no network).
+#[tauri::command]
+pub fn preview_render(sample: String, settings: Settings) -> CmdResult<String> {
+    if sample.chars().count() > 500 {
+        return Err(CommandError::new("too-long", "Phrase d'exemple trop longue."));
+    }
+    let rules = crate::text::TextRules::from_settings(&settings);
+    Ok(crate::text::preview(&sample, &rules))
 }
 
 #[tauri::command]

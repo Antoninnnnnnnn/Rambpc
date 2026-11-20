@@ -82,6 +82,7 @@ pub fn run() {
             commands::copy_draft,
             commands::clear_draft,
             commands::open_mic_privacy_settings,
+            commands::preview_render,
         ])
         .setup(move |app| {
             setup(app, root.clone())?;
