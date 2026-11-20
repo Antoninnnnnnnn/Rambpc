@@ -45,6 +45,38 @@ pub struct Settings {
     pub insertion: InsertionMethod,
     /// Which field receives the text at the end of a take.
     pub insertion_target: InsertionTarget,
+    /// Theme of the main window and the floating bar. Theme ids are defined by
+    /// the web UI; the native side only stores and forwards them.
+    pub appearance: AppearanceSettings,
+}
+
+pub const DEFAULT_THEME: &str = "verre-aurore";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct AppearanceSettings {
+    /// `^[a-z0-9-]{1,32}$`; anything else is replaced by [`DEFAULT_THEME`].
+    pub theme: String,
+    pub color_scheme: ColorSchemeChoice,
+}
+
+impl Default for AppearanceSettings {
+    fn default() -> Self {
+        Self {
+            theme: DEFAULT_THEME.into(),
+            color_scheme: ColorSchemeChoice::System,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ColorSchemeChoice {
+    /// Follow the operating system's light/dark preference.
+    #[default]
+    System,
+    Light,
+    Dark,
 }
 
 /// Where the text goes when the take ends.
@@ -92,6 +124,7 @@ impl Default for Settings {
             launch_at_startup: false,
             insertion: InsertionMethod::Paste,
             insertion_target: InsertionTarget::OriginalField,
+            appearance: AppearanceSettings::default(),
         }
     }
 }
@@ -160,6 +193,19 @@ pub enum SettingsError {
 }
 
 impl Settings {
+    /// Repair values that must never reject a whole settings file: an invalid
+    /// theme id falls back to the default theme.
+    pub fn normalize(&mut self) {
+        let theme = &self.appearance.theme;
+        let valid = (1..=32).contains(&theme.len())
+            && theme
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+        if !valid {
+            self.appearance.theme = DEFAULT_THEME.into();
+        }
+    }
+
     /// Reject values outside the documented choices. The shortcut is only
     /// checked for emptiness here; the shell validates registration.
     pub fn validate(&self) -> Result<(), SettingsError> {
@@ -193,6 +239,21 @@ mod tests {
         assert!(!s.indicator.sound);
         assert!(!s.launch_at_startup);
         assert!(s.validate().is_ok());
+    }
+
+    #[test]
+    fn invalid_theme_falls_back_to_the_default() {
+        let mut s: Settings =
+            serde_json::from_str(r#"{"appearance":{"theme":"Bad Theme!","colorScheme":"dark"}}"#)
+                .unwrap();
+        s.normalize();
+        assert_eq!(s.appearance.theme, DEFAULT_THEME);
+        assert_eq!(s.appearance.color_scheme, ColorSchemeChoice::Dark);
+        let mut ok: Settings =
+            serde_json::from_str(r#"{"appearance":{"theme":"papier-chaud"}}"#).unwrap();
+        ok.normalize();
+        assert_eq!(ok.appearance.theme, "papier-chaud");
+        assert_eq!(Settings::default().appearance.theme, "verre-aurore");
     }
 
     #[test]

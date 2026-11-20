@@ -54,7 +54,8 @@ pub async fn save_settings(app: AppHandle, settings: Settings) -> CmdResult<Sett
     blocking(move || save_settings_inner(&app, settings)).await?
 }
 
-fn save_settings_inner(app: &AppHandle, settings: Settings) -> CmdResult<Settings> {
+fn save_settings_inner(app: &AppHandle, mut settings: Settings) -> CmdResult<Settings> {
+    settings.normalize();
     let state = tauri::Manager::state::<AppState>(app);
     let _write = state.settings_write.lock().map_err(|_| internal_error())?;
     let previous = state.settings.lock().map_err(|_| internal_error())?.clone();
@@ -332,6 +333,11 @@ pub async fn get_recent_drafts(state: State<'_, AppState>) -> CmdResult<Vec<Draf
 #[tauri::command]
 pub async fn get_stats(state: State<'_, AppState>) -> CmdResult<UsageStats> {
     state.controller.stats().await.ok_or_else(internal_error)
+}
+
+#[tauri::command]
+pub async fn get_activity(state: State<'_, AppState>) -> CmdResult<crate::ipc::ActivityStats> {
+    state.controller.activity().await.ok_or_else(internal_error)
 }
 
 #[tauri::command]

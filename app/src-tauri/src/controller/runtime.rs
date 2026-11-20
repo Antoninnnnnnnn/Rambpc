@@ -52,6 +52,7 @@ pub(super) enum Command {
     Draft(oneshot::Sender<Option<DraftView>>),
     Recent(oneshot::Sender<Vec<DraftView>>),
     Stats(oneshot::Sender<UsageStats>),
+    Activity(oneshot::Sender<crate::ipc::ActivityStats>),
     Clear(Option<TakeId>, oneshot::Sender<UiState>),
     Copy(Option<TakeId>, CopyReply),
 }
@@ -175,6 +176,7 @@ impl Inbox {
                 let _ = reply.send(Vec::new());
             }
             (_, Command::Stats(_)) => (),
+            (_, Command::Activity(_)) => (),
             (_, Command::Copy(_, reply)) => {
                 let _ = reply.send(Err(ClipboardError::Busy.into()));
             }
@@ -424,6 +426,9 @@ impl Runtime {
                     }
                     Some(Command::Stats(reply)) => {
                         let _ = reply.send(self.stats.view());
+                    }
+                    Some(Command::Activity(reply)) => {
+                        let _ = reply.send(self.stats.activity());
                     }
                     Some(Command::Clear(id, reply)) => {
                         self.apply(Input::ClearDraft(id));

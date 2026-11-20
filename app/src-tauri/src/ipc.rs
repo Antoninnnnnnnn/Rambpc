@@ -202,6 +202,8 @@ pub struct UiState {
     pub shortcut: String,
     /// Number of recent results kept in RAM (see `get_recent_drafts`).
     pub recent_count: u32,
+    /// Current appearance, so the floating bar (events only) follows it live.
+    pub appearance: crate::settings::AppearanceSettings,
 }
 
 /// Status of one recognized range in the draft.
@@ -484,4 +486,46 @@ pub struct UsageStats {
     pub takes_total: u64,
     /// Words per minute over listening time of completed takes, when known.
     pub average_wpm: Option<u32>,
+}
+
+// ---------------------------------------------------------------- milestone 4
+//
+// | command        | args | returns          |
+// |----------------|------|------------------|
+// | `get_activity` | —    | `ActivityStats`  |
+//
+// Counters only (never text), persisted with the usage statistics.
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityDay {
+    /// Local calendar date, `YYYY-MM-DD`.
+    pub date: String,
+    pub words: u64,
+    pub takes: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppWords {
+    pub app: String,
+    pub words: u64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityStats {
+    /// The last 112 local days, oldest first, ending today, zero days included.
+    pub days: Vec<ActivityDay>,
+    /// Consecutive days with a completed take, ending today (or yesterday when
+    /// there is none today yet).
+    pub current_streak: u32,
+    pub longest_streak: u32,
+    pub longest_streak_end: Option<String>,
+    /// First day with a completed take.
+    pub first_day: Option<String>,
+    /// Captured audio time of completed takes.
+    pub listening_ms_total: u64,
+    /// Words per target application; `None` until the host records it.
+    pub apps: Option<Vec<AppWords>>,
 }

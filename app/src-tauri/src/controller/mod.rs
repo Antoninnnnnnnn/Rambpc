@@ -152,6 +152,13 @@ impl ControllerHandle {
         result.await.unwrap_or_default()
     }
 
+    /// Per-day counters and streaks for the activity screen (no text).
+    pub async fn activity(&self) -> Option<crate::ipc::ActivityStats> {
+        let (reply, result) = oneshot::channel();
+        self.inbox.send(Command::Activity(reply));
+        result.await.ok()
+    }
+
     pub async fn stats(&self) -> Option<UsageStats> {
         let (reply, result) = oneshot::channel();
         self.inbox.send(Command::Stats(reply));
