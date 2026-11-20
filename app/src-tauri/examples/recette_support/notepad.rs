@@ -85,6 +85,18 @@ fn chord(keys: &[(VIRTUAL_KEY, bool)]) -> bool {
     (unsafe { SendInput(&batch, std::mem::size_of::<INPUT>() as i32) }) as usize == batch.len()
 }
 
+/// Test-harness only: a lone Alt tap lifts the foreground lock so that
+/// SetForegroundWindow succeeds for a window this process did not create.
+fn bring_to_front(window: isize) {
+    if modifiers_held() {
+        return;
+    }
+    let _ = chord(&[(VK_MENU, false), (VK_MENU, true)]);
+    let _ = unsafe { ShowWindow(hwnd(window), SW_RESTORE) };
+    let _ = unsafe { SetForegroundWindow(hwnd(window)) };
+    let _ = until(Duration::from_secs(2), || (foreground() == window).then_some(()));
+}
+
 fn modifiers_held() -> bool {
     [VK_CONTROL, VK_SHIFT, VK_MENU, VK_LWIN, VK_RWIN]
         .iter()
@@ -191,10 +203,22 @@ impl Fixture {
         let automation: IUIAutomation =
             unsafe { CoCreateInstance(&CUIAutomation8, None, CLSCTX_INPROC_SERVER) }
                 .map_err(|_| "UIA")?;
+        // Prefer an existing Notepad window brought to the front: a freshly
+        // launched one may be denied the foreground by Windows.
+        if foreground_notepad().is_none() {
+            if let Some(&existing) = notepads().first() {
+                bring_to_front(existing);
+            }
+        }
         let (boot_window, launched) = match foreground_notepad() {
             Some(h) => (h, false),
             None => {
+                // Null stdio: Notepad's launcher must not inherit the harness's
+                // output handles (it outlives the harness and blocks pipes).
                 Command::new("notepad.exe")
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .spawn()
                     .map_err(|_| "cannot launch Notepad")?;
                 let h = until(Duration::from_secs(8), foreground_notepad)
@@ -207,12 +231,9 @@ impl Fixture {
         thread::sleep(Duration::from_millis(400));
         let window = new_window(boot_window)?;
         let close_created = || {
+            // Only the window this fixture created; Notepad may have restored
+            // the person's own tabs in the bootstrap window, which stays open.
             let _ = unsafe { PostMessageW(Some(hwnd(window)), WM_CLOSE, WPARAM(0), LPARAM(0)) };
-            if launched {
-                let _ = unsafe {
-                    PostMessageW(Some(hwnd(boot_window)), WM_CLOSE, WPARAM(0), LPARAM(0))
-                };
-            }
         };
         let Some(first) = until(Duration::from_secs(8), || doc(&automation, window)) else {
             let focused = unsafe { automation.GetFocusedElement() }
@@ -270,16 +291,15 @@ impl Fixture {
         }
     }
 
-    /// Close every window this fixture created (and the bootstrap one if launched here).
+    /// Close every window this fixture created (never the bootstrap window).
     pub fn close(&self) -> bool {
         let mut ok = true;
         if let Some((w2, d2)) = self.second.lock().unwrap().take() {
             ok &= reset_and_close(&d2, w2);
         }
         ok &= reset_and_close(&self.first, self.window);
-        if let Some(boot) = self.boot {
-            let _ = unsafe { PostMessageW(Some(hwnd(boot)), WM_CLOSE, WPARAM(0), LPARAM(0)) };
-        }
+        // The bootstrap window may hold the person's restored tabs: never closed here.
+        let _ = self.boot;
         ok
     }
 }
