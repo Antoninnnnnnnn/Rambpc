@@ -268,6 +268,7 @@ impl State {
             gesture: take.map_or(self.settings.gesture, |take| take.gesture),
             shortcut: self.settings.shortcut.clone(),
             recent_count: self.recents.len() as u32,
+            appearance: self.settings.appearance.clone(),
         }
     }
 

@@ -204,7 +204,10 @@ impl Store {
             return Settings::default();
         };
         match serde_json::from_slice::<Settings>(&bytes) {
-            Ok(settings) if settings.validate().is_ok() => settings,
+            Ok(mut settings) if settings.validate().is_ok() => {
+                settings.normalize();
+                settings
+            }
             _ => {
                 if !self.root.ephemeral {
                     let _ = fs::rename(&path, path.with_extension("json.bad"));

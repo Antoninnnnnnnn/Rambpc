@@ -102,6 +102,7 @@ pub fn run() {
             commands::copy_draft,
             commands::clear_draft,
             commands::get_stats,
+            commands::get_activity,
             commands::open_mic_privacy_settings,
             commands::preview_render,
             commands::get_personal_rules,
