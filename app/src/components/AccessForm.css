@@ -1,0 +1,73 @@
+.access-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 34rem;
+}
+
+.access-form__advanced {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.access-form__advanced > summary {
+  padding: var(--space-1) 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.access-form__advanced[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
+.access-form__remember {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.access-form__remember input {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0.15rem 0 0;
+}
+
+.access-form__remember label {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.access-summary {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.access-summary > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--space-3);
+}
+
+.access-summary dt {
+  color: var(--text-secondary);
+}
+
+.access-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 36rem) {
+  .access-summary > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .access-form__advanced {
+    border-color: CanvasText;
+  }
+}

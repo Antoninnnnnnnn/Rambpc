@@ -1,0 +1,112 @@
+/* Design tokens: calm Windows 11-like palette, light and dark.
+   Sizes in rem so text zoom (up to 200 %) scales the whole layout. */
+
+:root {
+  color-scheme: light dark;
+
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui,
+    sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+
+  --text-caption: 0.75rem;
+  --text-small: 0.8125rem;
+  --text-body: 0.875rem;
+  --text-body-large: 1.125rem;
+  --text-subtitle: 1.25rem;
+  --text-title: 1.75rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius: 8px;
+  --radius-small: 4px;
+  --control-height: 2rem;
+
+  /* Light */
+  --bg: #f3f3f3;
+  --sidebar: #ebebeb;
+  --surface: #fbfbfb;
+  --surface-raised: #ffffff;
+  --surface-hover: #f5f5f5;
+  --surface-pressed: #ececec;
+  --border: #e3e3e3;
+  --border-strong: #c4c4c4;
+  --control: #ffffff;
+  --control-hover: #f9f9f9;
+  --control-border: #d6d6d6;
+  --control-border-bottom: #9a9a9a;
+  --control-strong: #d7d7d7;
+  --text: #1b1b1b;
+  --text-secondary: #5a5a5a;
+  --text-disabled: #8f8f8f;
+  --accent: #005fb8;
+  --accent-hover: #1a6dbd;
+  --accent-pressed: #2f7cc6;
+  --on-accent: #ffffff;
+  --focus: #1b1b1b;
+  --focus-inner: #ffffff;
+  --selection-nav: rgba(0, 0, 0, 0.055);
+
+  --success: #0e700e;
+  --success-bg: #dff6dd;
+  --warning: #8a4f00;
+  --warning-bg: #fff4ce;
+  --error: #b42318;
+  --error-bg: #fde7e9;
+  --info: #005fb8;
+  --info-bg: #e8f1fa;
+
+  --gap-missing: #8a4f00;
+  --gap-bg: #fff4ce;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #202020;
+    --sidebar: #1c1c1c;
+    --surface: #2b2b2b;
+    --surface-raised: #2f2f2f;
+    --surface-hover: #323232;
+    --surface-pressed: #282828;
+    --border: #3a3a3a;
+    --border-strong: #5a5a5a;
+    --control: #2d2d2d;
+    --control-hover: #333333;
+    --control-border: #444444;
+    --control-border-bottom: #8a8a8a;
+    --control-strong: #4a4a4a;
+    --text: #ffffff;
+    --text-secondary: #c8c8c8;
+    --text-disabled: #8a8a8a;
+    --accent: #60cdff;
+    --accent-hover: #5abce9;
+    --accent-pressed: #52abd4;
+    --on-accent: #000000;
+    --focus: #ffffff;
+    --focus-inner: #000000;
+    --selection-nav: rgba(255, 255, 255, 0.07);
+
+    --success: #6ccb5f;
+    --success-bg: #2a3a27;
+    --warning: #fce100;
+    --warning-bg: #433a17;
+    --error: #ff99a4;
+    --error-bg: #442726;
+    --info: #60cdff;
+    --info-bg: #213440;
+
+    --gap-missing: #fce100;
+    --gap-bg: #433a17;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+}
