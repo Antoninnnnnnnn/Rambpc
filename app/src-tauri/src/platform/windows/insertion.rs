@@ -336,7 +336,11 @@ impl Inserter for SendInputInserter {
         if !use_paste && !self.force_paced && target::outlook_paste_only(token) {
             return not_written(NotWrittenReason::Unsupported);
         }
-        let lines = match direct {
+        let late = target::is_late(token);
+        if late && !paste {
+            return not_written(NotWrittenReason::Unsupported);
+        }
+        let lines = || match direct {
             _ if office => LineEnds::Rich,
             _ if self.fixture_lf => LineEnds::Lf,
             Some(edit) if edit.multiline && edit.rich => LineEnds::Rich,
@@ -344,8 +348,13 @@ impl Inserter for SendInputInserter {
             _ if paste && target::known_multiline(token) => LineEnds::Edit,
             _ => LineEnds::Single,
         };
-        let Some(mut units) = utf16(text, lines) else {
-            return not_written(NotWrittenReason::Unsupported);
+        let initial_units = if late {
+            None
+        } else {
+            let Some(units) = utf16(text, lines()) else {
+                return not_written(NotWrittenReason::Unsupported);
+            };
+            Some(units)
         };
         let deadline = Instant::now() + Duration::from_millis(1500);
         while modifiers_held() {
@@ -361,6 +370,9 @@ impl Inserter for SendInputInserter {
         if target::revalidate_token(token).is_err() {
             return not_written(NotWrittenReason::TargetChanged);
         }
+        let Some(mut units) = initial_units.or_else(|| utf16(text, lines())) else {
+            return not_written(NotWrittenReason::Unsupported);
+        };
         if modifiers_held() {
             return not_written(NotWrittenReason::ModifiersHeld);
         }
@@ -371,10 +383,17 @@ impl Inserter for SendInputInserter {
         if office {
             return target::insert_office(token, units);
         }
-        match direct {
-            Some(edit) => insert_native(token, edit, &mut units),
-            None if paste => insert_paste(token, &mut units),
-            None => insert_paced(token, edit, &units, self.fixture_pair),
+        let current_edit = target::native_edit(token);
+        if direct.is_some() {
+            return current_edit.map_or_else(
+                || not_written(NotWrittenReason::TargetChanged),
+                |edit| insert_native(token, edit, &mut units),
+            );
+        }
+        if paste {
+            insert_paste(token, &mut units)
+        } else {
+            insert_paced(token, current_edit, &units, self.fixture_pair)
         }
     }
 }

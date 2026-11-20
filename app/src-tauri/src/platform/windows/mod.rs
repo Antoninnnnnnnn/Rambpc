@@ -16,8 +16,8 @@ pub use dpapi::Dpapi;
 pub use events::WtsSystemEvents;
 pub use insertion::SendInputInserter;
 pub use microphone::{CaptureFormat, WasapiMicrophone};
-pub use target::UiaTargetProbe;
-pub(crate) use target::{TriggerFocus, bind_protection, bind_write_permission};
+pub use target::{UiaTargetProbe, is_late};
+pub(crate) use target::{TriggerFocus, bind_protection, bind_write_permission, revalidate_after_install};
 
 use windows::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
 use windows::core::{PCWSTR, w};

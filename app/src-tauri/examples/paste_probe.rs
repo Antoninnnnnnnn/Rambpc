@@ -3,7 +3,7 @@
 #[cfg(windows)]
 mod win {
     use sambler_lib::{
-        platform::windows::{SendInputInserter, UiaTargetProbe},
+        platform::windows::{SendInputInserter, UiaTargetProbe, is_late},
         ports::{AppKind, Inserter, TargetProbe, TargetVerdict},
     };
     use std::{
@@ -25,10 +25,11 @@ mod win {
                 Accessibility::*,
                 Input::KeyboardAndMouse::*,
                 WindowsAndMessaging::{
-                    EnumChildWindows, EnumWindows, GetClassNameW, GetForegroundWindow,
-                    GetWindowThreadProcessId, IsWindowVisible, OBJID_CLIENT, STATE_SYSTEM_FOCUSED,
-                    STATE_SYSTEM_PROTECTED, STATE_SYSTEM_READONLY, SW_MINIMIZE, SW_RESTORE,
-                    SetForegroundWindow, ShowWindowAsync, SwitchToThisWindow,
+                    EnumChildWindows, EnumWindows, GUITHREADINFO, GetClassNameW,
+                    GetForegroundWindow, GetGUIThreadInfo, GetWindowThreadProcessId,
+                    IsIconic, IsWindowVisible, OBJID_CLIENT, STATE_SYSTEM_FOCUSED, STATE_SYSTEM_PROTECTED,
+                    STATE_SYSTEM_READONLY, SW_MINIMIZE, SW_RESTORE, SetForegroundWindow,
+                    ShowWindowAsync, SwitchToThisWindow,
                 },
             },
         },
@@ -42,6 +43,25 @@ mod win {
         let mut current = 0;
         unsafe { GetWindowThreadProcessId(GetForegroundWindow(), Some(&mut current)) };
         pid != 0 && current == pid
+    }
+
+    fn render_hwnd_focused(pid: u32) -> bool {
+        if !foreground(pid) {
+            return false;
+        }
+        let thread = unsafe { GetWindowThreadProcessId(GetForegroundWindow(), None) };
+        let mut info = GUITHREADINFO {
+            cbSize: size_of::<GUITHREADINFO>() as u32,
+            ..Default::default()
+        };
+        let mut class = [0u16; 64];
+        unsafe { GetGUIThreadInfo(thread, &mut info) }.is_ok() && {
+            let n = unsafe { GetClassNameW(info.hwndFocus, &mut class) }.max(0) as usize;
+            class[..n]
+                .iter()
+                .copied()
+                .eq("Chrome_RenderWidgetHostHWND".encode_utf16())
+        }
     }
 
     fn foreground_fixture(pid: u32) -> bool {
@@ -75,6 +95,9 @@ mod win {
             let _ =
                 unsafe { EnumWindows(Some(find), LPARAM((&mut search as *mut Search) as isize)) };
             if !search.hwnd.0.is_null() {
+                if unsafe { IsIconic(search.hwnd) }.as_bool() {
+                    let _ = unsafe { ShowWindowAsync(search.hwnd, SW_RESTORE) };
+                }
                 let _ = unsafe { SetForegroundWindow(search.hwnd) };
                 if !foreground(pid) {
                     // Fixture only: ask the shell to switch to this owned window.
@@ -90,7 +113,7 @@ mod win {
         foreground(pid)
     }
 
-    fn switch_away_and_back(pid: u32) -> Option<f64> {
+    fn switch_away_and_back(pid: u32, away: Duration) -> Option<f64> {
         if !foreground(pid) {
             return None;
         }
@@ -103,6 +126,9 @@ mod win {
             thread::sleep(Duration::from_millis(2));
         }
         let switched = unsafe { GetForegroundWindow() } != browser;
+        if switched && !away.is_zero() {
+            thread::sleep(away);
+        }
         let back = Instant::now();
         let _ = unsafe { ShowWindowAsync(browser, SW_RESTORE) };
         if unsafe { GetForegroundWindow() } != browser {
@@ -309,7 +335,13 @@ mod win {
         millis(SystemTime::now().duration_since(UNIX_EPOCH).unwrap())
     }
 
-    fn run(app: AppKind, pid: u32, cmd: &str, probe: &UiaTargetProbe) -> String {
+    fn run(
+        app: AppKind,
+        pid: u32,
+        cmd: &str,
+        probe: &UiaTargetProbe,
+        fixture_phase: impl FnOnce(&str) -> bool,
+    ) -> String {
         let browser = app != AppKind::VsCode;
         if cmd == "foreground" {
             return format!("keys={}", foreground_fixture(pid));
@@ -318,6 +350,7 @@ mod win {
             return "foreground_lost=true".into();
         }
         match cmd {
+            "fixture-window" if browser => return format!("window={}", unsafe { GetForegroundWindow() }.0 as usize),
             "msaa" if browser => {
                 let (tx, rx) = std::sync::mpsc::channel();
                 thread::spawn(move || {
@@ -354,21 +387,33 @@ mod win {
         let mut activation_ms = None;
         let text = match cmd {
             "cold-one" if browser => {
-                activation_ms = switch_away_and_back(pid);
+                activation_ms = switch_away_and_back(pid, Duration::ZERO);
                 if activation_ms.is_none() {
                     return "switch_failed=true".into();
                 }
                 ONE
             }
-            "one" | "address-one" | "chat-one" => ONE,
+            "cold-current" if browser => {
+                // The driver verified two different owned HWNDs around the switch.
+                activation_ms = Some(0.0);
+                ONE
+            }
+            "one" | "address-one" | "chat-one" | "late-password" | "leave-return"
+            | "move-caret" | "different-field" => ONE,
             "two" | "address-two" | "chat-two" => TWO,
             _ => return "invalid_command=true".into(),
         };
+        let native_render = activation_ms.map(|_| render_hwnd_focused(pid));
         let started = Instant::now();
         let verdict = probe.capture();
         let capture_ms = millis(started.elapsed());
         let activation = activation_ms
-            .map(|ms| format!(" activation_ms={ms:.2}"))
+            .map(|ms| {
+                format!(
+                    " activation_ms={ms:.2} native_render={}",
+                    native_render.unwrap_or(false)
+                )
+            })
             .unwrap_or_default();
         let TargetVerdict::Eligible { token, info } = verdict else {
             return format!("capture_ms={capture_ms:.2} verdict={verdict:?}{activation}");
@@ -376,12 +421,54 @@ mod win {
         if info.app != app || !foreground(pid) {
             return "wrong_fixture=true".into();
         }
+        let late = is_late(&token);
+        let changed = std::sync::Arc::new(std::sync::OnceLock::new());
+        let focus_test = matches!(cmd, "leave-return" | "move-caret" | "different-field");
+        if focus_test && late { return "strict_fixture=false".into(); }
+        let _watch = (activation_ms.is_some() || focus_test).then(|| {
+            let changed = changed.clone();
+            probe.watch(
+                &token,
+                Box::new(move |change| {
+                    let _ = changed.set(change);
+                }),
+            )
+        });
+        if cmd == "late-password" {
+            if !late || !fixture_phase("password") {
+                return format!("late={late} protected=false blocked=false");
+            }
+            let protected =
+                probe.revalidate(&token) == Err(sambler_lib::ports::TargetChange::Protected);
+            let blocked = matches!(
+                SendInputInserter::new().insert_once(&token, text),
+                sambler_lib::ports::InsertOutcome::NotWritten { .. }
+            );
+            return format!("late={late} protected={protected} blocked={blocked}");
+        }
+        if activation_ms.is_some() {
+            let hold_ms = std::env::var("SAMBLER_FIXTURE_HOLD_MS").ok()
+                .and_then(|value| value.parse::<u64>().ok()).filter(|ms| *ms <= 10_000).unwrap_or(750);
+            thread::sleep(Duration::from_millis(hold_ms));
+        }
+        if focus_test {
+            let moved = if cmd == "leave-return" {
+                switch_away_and_back(pid, Duration::from_millis(200)).is_some()
+            } else {
+                fixture_phase(cmd)
+            };
+            if !moved { return "switch_failed=true".into(); }
+            thread::sleep(Duration::from_millis(175));
+        }
         let started = Instant::now();
         let revalidated = probe.revalidate(&token);
+        if focus_test && cmd == "different-field" {
+            return format!("recheck={revalidated:?} observed={}", changed.get().is_some());
+        }
         let recheck_ms = millis(started.elapsed());
         if revalidated.is_err() {
             return format!(
-                "capture_ms={capture_ms:.2} recheck_ms={recheck_ms:.2} recheck={revalidated:?}"
+                "capture_ms={capture_ms:.2} recheck_ms={recheck_ms:.2} late={late} recheck={revalidated:?}{activation}"
             );
         }
         let observer = (cmd == "address-one" || cmd.starts_with("chat-")).then(|| {
@@ -405,8 +492,8 @@ mod win {
         let outcome = SendInputInserter::new().insert_once(&token, text);
         let elapsed = millis(started.elapsed());
         let mut result = format!(
-            "capture_ms={capture_ms:.2} recheck_ms={recheck_ms:.2} multiline={:?} outcome={outcome:?} epoch={start_epoch:.3} insertion_ms={elapsed:.2}{activation}",
-            info.multiline
+            "capture_ms={capture_ms:.2} recheck_ms={recheck_ms:.2} late={late} multiline={:?} outcome={outcome:?} epoch={start_epoch:.3} insertion_ms={elapsed:.2} observed={}{activation}",
+            info.multiline, changed.get().is_some()
         );
         if let Some(observed) = observer {
             if let Ok(Some((visible_epoch, exact, caret))) = observed.join() {
@@ -437,10 +524,17 @@ mod win {
         let probe =
             UiaTargetProbe::for_fixture(pid, std::env::var_os("SAMBLER_FIXTURE_PREWARM").is_some());
         let mut stdout = io::stdout().lock();
-        for line in io::stdin().lock().lines() {
+        let mut lines = io::stdin().lock().lines();
+        while let Some(line) = lines.next() {
             let line = line.map_err(|_| "fixture command failed")?;
-            writeln!(stdout, "{}", run(app, pid, &line, &probe))
-                .map_err(|_| "fixture output failed")?;
+            let output = run(app, pid, &line, &probe, |phase| {
+                writeln!(stdout, "phase={phase}").is_ok()
+                    && stdout.flush().is_ok()
+                    && lines
+                        .next()
+                        .is_some_and(|line| line.is_ok_and(|line| line == "finish"))
+            });
+            writeln!(stdout, "{output}").map_err(|_| "fixture output failed")?;
             stdout.flush().map_err(|_| "fixture output failed")?;
         }
         Ok(())
