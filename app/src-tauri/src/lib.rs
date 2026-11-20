@@ -21,7 +21,5 @@ pub mod storage;
 pub mod text;
 
 pub fn run() {
-    tauri::Builder::default()
-        .run(tauri::generate_context!())
-        .expect("error while running Sambler");
+    shell::run();
 }
