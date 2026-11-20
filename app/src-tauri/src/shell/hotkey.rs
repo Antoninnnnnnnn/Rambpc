@@ -64,8 +64,33 @@ pub fn rebind_dictation<R: Runtime>(app: &AppHandle<R>, old: &str, new: &str) ->
     }
 }
 
-/// Register Escape as "cancel the current take" only while a take is active.
+#[cfg(windows)]
+static CANCEL_HOOK: std::sync::Mutex<Option<crate::platform::windows::CancelKeyHookGuard>> =
+    std::sync::Mutex::new(None);
+
+/// Escape cancels the current take, only while a take is active.
+///
+/// A low-level hook catches the physical Escape even while the hold-mode
+/// shortcut keeps Ctrl+Shift down (Ctrl+Shift+Esc would otherwise open Task
+/// Manager) and swallows it. The plain global Escape shortcut stays as well,
+/// for injected keystrokes (accessibility tools, acceptance harnesses).
 pub fn set_escape_active<R: Runtime>(app: &AppHandle<R>, active: bool) {
+    #[cfg(windows)]
+    {
+        let mut hook = CANCEL_HOOK.lock().unwrap_or_else(|e| e.into_inner());
+        if active && hook.is_none() {
+            let handle = app.clone();
+            *hook = Some(crate::platform::windows::CancelKeyHook::start(Box::new(
+                move || {
+                    if let Some(state) = handle.try_state::<AppState>() {
+                        state.controller.cancel(None);
+                    }
+                },
+            )));
+        } else if !active {
+            hook.take();
+        }
+    }
     let shortcuts = app.global_shortcut();
     if active && !ESCAPE_REGISTERED.load(Ordering::SeqCst) {
         let ok = shortcuts
