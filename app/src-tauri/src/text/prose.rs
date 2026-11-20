@@ -1,8 +1,8 @@
 //! Conservative formatting of ordinary prose, not a parser or a rewriter.
 
-use super::{Language, Piece, TextOptions, TextRules};
+use super::{Language, Piece, TextOptions, TextRules, voice::Layout};
 use regex::Regex;
-use std::sync::LazyLock;
+use std::{ops::Range, sync::LazyLock};
 use unicode_segmentation::UnicodeSegmentation;
 
 // First recognize literal-looking spans. A dotted run with no separator
@@ -57,12 +57,13 @@ static SPECIAL: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Kind {
+pub(super) enum Kind {
     Plain,
     Space,
     Opaque,
     Abbreviation,
     Literal,
+    Layout(Layout),
 }
 
 #[derive(Clone, Copy)]
@@ -73,7 +74,7 @@ struct Unit<'a> {
 
 impl Unit<'_> {
     fn mark(self) -> Option<char> {
-        (self.kind == Kind::Plain).then_some(())?;
+        matches!(self.kind, Kind::Plain | Kind::Layout(_)).then_some(())?;
         match self.text {
             "." | "," | ";" | ":" | "!" | "?" | "«" | "»" | "…" => self.first(),
             _ => None,
@@ -117,34 +118,37 @@ fn push_plain<'a>(units: &mut Vec<Unit<'a>>, text: &'a str, light: bool) {
     }
 }
 
+pub(super) fn special_units(text: &str) -> impl Iterator<Item = (Range<usize>, Kind)> + '_ {
+    SPECIAL.captures_iter(text).map(|spans| {
+        let span = spans.get(0).expect("whole match");
+        let dotted = spans.name("dotted").is_some();
+        let kind = if spans.name("abbreviation").is_some()
+            || dotted && dotted_abbreviation(span.as_str())
+        {
+            Kind::Abbreviation
+        } else {
+            Kind::Opaque
+        };
+        // Ordinary filenames and bare domains exclude the adjacent sentence
+        // stop. Abbreviations include it.
+        let end = span.end()
+            - usize::from(kind == Kind::Opaque && dotted && span.as_str().ends_with('.'));
+        (span.start()..end, kind)
+    })
+}
+
 fn units<'a>(pieces: &'a [Piece<'_>], light: bool) -> Vec<Unit<'a>> {
     let mut units = Vec::new();
     for piece in pieces {
         match piece {
             Piece::Prose(text) => {
                 let mut start = 0;
-                for spans in SPECIAL.captures_iter(text) {
-                    let span = spans.get(0).expect("whole match");
-                    push_plain(&mut units, &text[start..span.start()], light);
-                    let kind = if spans.name("abbreviation").is_some()
-                        || spans.name("dotted").is_some() && dotted_abbreviation(span.as_str())
-                    {
-                        Kind::Abbreviation
-                    } else {
-                        Kind::Opaque
-                    };
-                    start = span.end();
-                    if kind == Kind::Opaque
-                        && spans.name("dotted").is_some()
-                        && span.as_str().ends_with('.')
-                    {
-                        // Ordinary filenames and bare domains do not include
-                        // the adjacent sentence stop. Abbreviations do.
-                        start -= 1;
-                    }
+                for (range, kind) in special_units(text) {
+                    push_plain(&mut units, &text[start..range.start], light);
+                    start = range.end;
                     units.push(Unit {
                         kind,
-                        text: &text[span.start()..start],
+                        text: &text[range],
                     });
                 }
                 push_plain(&mut units, &text[start..], light);
@@ -152,6 +156,10 @@ fn units<'a>(pieces: &'a [Piece<'_>], light: bool) -> Vec<Unit<'a>> {
             Piece::Literal(text) => units.push(Unit {
                 kind: Kind::Literal,
                 text,
+            }),
+            Piece::Layout(layout) => units.push(Unit {
+                kind: Kind::Layout(*layout),
+                text: layout.text(),
             }),
         }
     }
@@ -187,6 +195,37 @@ fn spacing<'a>(
     }
     let lmark = left.mark();
     let rmark = right.mark();
+    // The voice pass removed the command's adjacent ASR padding. Restore
+    // only the spaces appropriate for each side of a generated delimiter.
+    if left.kind == Kind::Layout(Layout::OpenQuote)
+        || right.kind == Kind::Layout(Layout::CloseQuote)
+    {
+        return if options.typographic_spaces {
+            "\u{202f}"
+        } else {
+            ""
+        };
+    }
+    if left.kind == Kind::Layout(Layout::OpenParen)
+        || right.kind == Kind::Layout(Layout::CloseParen)
+    {
+        return "";
+    }
+    if matches!(
+        right.kind,
+        Kind::Layout(Layout::OpenQuote | Layout::OpenParen)
+    ) && !left
+        .last()
+        .is_some_and(|c| matches!(c, '(' | '[' | '{' | '«' | '\'' | '’' | 'ʼ'))
+        || matches!(
+            left.kind,
+            Kind::Layout(Layout::CloseQuote | Layout::CloseParen)
+        ) && !right
+            .first()
+            .is_some_and(|c| is_punctuation(c) || matches!(c, ')' | ']' | '}' | '»' | '…'))
+    {
+        return " ";
+    }
     // Leave expressive clusters and spaced ellipses alone. In particular,
     // inserting a French space inside `?!` would change the cluster.
     if lmark.is_some_and(|c| matches!(c, '.' | ',' | '!' | '?' | '…'))
@@ -295,7 +334,8 @@ pub(super) fn format(pieces: &[Piece<'_>], rules: &TextRules, capacity: usize) -
                 ));
             }
             write_unit(&mut output, unit, &mut pending, rules.options.sentence_case);
-            if matches!(unit.mark(), Some('!' | '?'))
+            if matches!(unit.kind, Kind::Layout(layout) if layout.is_break())
+                || matches!(unit.mark(), Some('!' | '?'))
                 || (unit.mark() == Some('.') && !ellipsis(&units, i))
             {
                 pending = true;
