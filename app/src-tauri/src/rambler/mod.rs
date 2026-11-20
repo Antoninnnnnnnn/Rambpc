@@ -47,7 +47,11 @@ impl RamblerAccess {
         android_package: Zeroizing<String>,
         android_cert: Zeroizing<String>,
     ) -> Result<Self, AccessError> {
-        let authority = authority.trim().to_owned();
+        // An empty address means the SDK's default service target.
+        let authority = match authority.trim() {
+            "" => rambler_transport::DEFAULT_TARGET.to_owned(),
+            other => other.to_owned(),
+        };
         TransportConfig::tls(authority.clone()).map_err(|_| AccessError::InvalidAuthority)?;
         let metadata = EnvironmentCredentials
             .required_snapshot_with(|name| {
@@ -76,7 +80,8 @@ impl RamblerAccess {
             get("RAMBLER_ANDROID_PACKAGE"),
             get("RAMBLER_ANDROID_CERT"),
         );
-        if authority.is_empty() && key.is_empty() && package.is_empty() && cert.is_empty() {
+        // The service address alone does not configure access.
+        if key.is_empty() && package.is_empty() && cert.is_empty() {
             return Ok(None);
         }
         Self::new(&authority, key, package, cert).map(Some)

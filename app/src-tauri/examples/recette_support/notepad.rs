@@ -201,12 +201,33 @@ impl Fixture {
                 (h, true)
             }
         };
+        // Let a freshly launched Notepad finish restoring its tabs first.
+        let _ = until(Duration::from_secs(8), || doc(&automation, boot_window));
         thread::sleep(Duration::from_millis(400));
         let window = new_window(boot_window)?;
-        let first =
-            until(Duration::from_secs(3), || doc(&automation, window)).ok_or("no RichEdit")?;
+        let close_created = || {
+            let _ = unsafe { PostMessageW(Some(hwnd(window)), WM_CLOSE, WPARAM(0), LPARAM(0)) };
+            if launched {
+                let _ = unsafe {
+                    PostMessageW(Some(hwnd(boot_window)), WM_CLOSE, WPARAM(0), LPARAM(0))
+                };
+            }
+        };
+        let Some(first) = until(Duration::from_secs(8), || doc(&automation, window)) else {
+            let focused = unsafe { automation.GetFocusedElement() }
+                .ok()
+                .and_then(|e| unsafe { e.CurrentNativeWindowHandle() }.ok())
+                .map(class)
+                .unwrap_or_default();
+            let fg_ok = foreground() == window;
+            close_created();
+            return Err(format!(
+                "no RichEdit in the new window (foreground={fg_ok}, focused class={focused:?})"
+            ));
+        };
         thread::sleep(Duration::from_millis(250));
         if !read(&first)?.is_empty() {
+            close_created();
             return Err("fresh window not empty".into());
         }
         Ok(Self {
