@@ -98,8 +98,10 @@ pub fn run() {
             commands::finish_take,
             commands::cancel_take,
             commands::get_draft,
+            commands::get_recent_drafts,
             commands::copy_draft,
             commands::clear_draft,
+            commands::get_stats,
             commands::open_mic_privacy_settings,
             commands::preview_render,
             commands::get_personal_rules,
@@ -207,6 +209,8 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
             .unwrap_or_default()
     };
     settings.launch_at_startup = storage::startup_enabled(&root);
+    #[cfg(windows)]
+    crate::platform::windows::set_insertion_method(settings.insertion);
     let consent = !foreign && store.load_consent();
     let personal_rules = Arc::new(if foreign {
         store.withheld_personal_rules()
@@ -238,8 +242,9 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
     };
     let controller_rules = personal_rules.clone();
     let controller_history = history.clone();
+    let stats = storage::stats::Stats::load(&root);
     let controller = tauri::async_runtime::block_on(async move {
-        Controller::spawn_with_profile(deps, init, controller_rules, controller_history)
+        Controller::spawn_with_profile(deps, init, controller_rules, controller_history, stats)
     });
 
     let mic_test = Arc::new(mic_test::MicTest::default());

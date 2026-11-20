@@ -5,12 +5,12 @@ pub mod level;
 mod runtime;
 mod state;
 
-use crate::ipc::{DraftView, PersonalRules, UiState};
+use crate::ipc::{DraftView, PersonalRules, UiState, UsageStats};
 use crate::model::{KeyEdge, SystemEvent, TakeId};
 use crate::ports::{Clipboard, ClipboardError, Inserter, Microphone, TargetProbe};
 use crate::rambler::RamblerAccess;
 use crate::settings::Settings;
-use crate::storage::history::History;
+use crate::storage::{history::History, stats::Stats};
 use runtime::{Command, Inbox};
 use state::Input;
 use std::sync::Arc;
@@ -45,7 +45,7 @@ pub struct Controller;
 impl Controller {
     /// Spawn the controller task on the current Tokio runtime.
     pub fn spawn(deps: ControllerDeps, init: ControllerInit) -> ControllerHandle {
-        runtime::spawn(deps, init, None)
+        runtime::spawn(deps, init, None, Stats::default())
     }
 
     pub(crate) fn spawn_with_profile(
@@ -53,8 +53,9 @@ impl Controller {
         init: ControllerInit,
         rules: Arc<PersonalRules>,
         history: History,
+        stats: Stats,
     ) -> ControllerHandle {
-        runtime::spawn(deps, init, Some((rules, history)))
+        runtime::spawn(deps, init, Some((rules, history)), stats)
     }
 }
 
@@ -144,15 +145,32 @@ impl ControllerHandle {
         result.await.ok().flatten()
     }
 
-    /// Explicit "Copier" of the draft's available text.
-    pub async fn copy_draft(&self) -> Result<(), CopyError> {
+    /// Up to five unexpired results, newest first.
+    pub async fn recent_drafts(&self) -> Vec<DraftView> {
         let (reply, result) = oneshot::channel();
-        self.inbox.send(Command::Copy(reply));
+        self.inbox.send(Command::Recent(reply));
+        result.await.unwrap_or_default()
+    }
+
+    pub async fn stats(&self) -> Option<UsageStats> {
+        let (reply, result) = oneshot::channel();
+        self.inbox.send(Command::Stats(reply));
+        result.await.ok()
+    }
+
+    /// Explicit "Copier" of the identified result or the latest one.
+    pub async fn copy_draft(&self, take: Option<TakeId>) -> Result<(), CopyError> {
+        let (reply, result) = oneshot::channel();
+        self.inbox.send(Command::Copy(take, reply));
         result.await.unwrap_or(Err(CopyError::NoDraft))
     }
 
-    pub fn clear_draft(&self) {
-        self.inbox.send(Command::Input(Input::ClearDraft));
+    pub async fn clear_draft(&self, take: Option<TakeId>) -> UiState {
+        let (reply, result) = oneshot::channel();
+        self.inbox.send(Command::Clear(take, reply));
+        result
+            .await
+            .unwrap_or_else(|_| self.state_rx.borrow().clone())
     }
 
     pub(crate) fn request_shutdown(&self) {

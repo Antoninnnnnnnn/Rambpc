@@ -7,15 +7,21 @@ use super::{
 };
 use crate::{
     ipc::PersonalRules,
-    ipc::{DraftView, InterruptReason, Phase, UiState, UnavailableReason},
+    ipc::{
+        DraftView, InterruptReason, Phase, RefusalReason, UiState, UnavailableReason, UsageStats,
+    },
     model::TakeId,
     ports::{
-        ClipboardError, InsertOutcome, MicError, NotWrittenReason, TargetChange, TargetVerdict,
-        WatchGuard,
+        ClipboardError, InsertOutcome, MicError, NotWrittenReason, PcmRate, TargetChange,
+        TargetVerdict, UncertainReason, WatchGuard,
     },
     rambler::{self, CaptureHealth, OpenedMic, RamblerAccess, Segment},
-    storage::history::{History, Ticket},
+    storage::{
+        history::{History, Ticket},
+        stats::Stats,
+    },
 };
+use rambler_audio::CaptureInput;
 use rambler_engine::Engine;
 use std::{
     collections::VecDeque,
@@ -44,7 +50,10 @@ pub(super) enum Command {
     WindowsPress(crate::platform::windows::TriggerFocus),
     Access(Option<RamblerAccess>),
     Draft(oneshot::Sender<Option<DraftView>>),
-    Copy(CopyReply),
+    Recent(oneshot::Sender<Vec<DraftView>>),
+    Stats(oneshot::Sender<UsageStats>),
+    Clear(Option<TakeId>, oneshot::Sender<UiState>),
+    Copy(Option<TakeId>, CopyReply),
 }
 
 // The shell methods are synchronous and cannot backpressure their callers.
@@ -143,7 +152,11 @@ impl Inbox {
             (_, Command::Draft(reply)) => {
                 let _ = reply.send(None);
             }
-            (_, Command::Copy(reply)) => {
+            (_, Command::Recent(reply)) => {
+                let _ = reply.send(Vec::new());
+            }
+            (_, Command::Stats(_)) => (),
+            (_, Command::Copy(_, reply)) => {
                 let _ = reply.send(Err(ClipboardError::Busy.into()));
             }
             (_, Command::Input(Input::StartInternal | Input::Retry)) => (),
@@ -193,7 +206,7 @@ struct TakeIo {
     guard: Option<WatchGuard>,
     health: Arc<CaptureHealth>,
     history: Option<Ticket>,
-    pending_open: Option<OpenedMic>,
+    capture: Option<(PcmRate, CaptureInput)>,
     stream: Option<Box<dyn crate::ports::MicStream>>,
 }
 
@@ -217,7 +230,7 @@ impl TakeIo {
             guard: None,
             health: Arc::new(CaptureHealth::new(origin)),
             history: None,
-            pending_open: None,
+            capture: None,
             stream: None,
         }
     }
@@ -225,7 +238,6 @@ impl TakeIo {
 
 struct Probe {
     id: TakeId,
-    watch: bool,
     #[cfg(windows)]
     trigger: Option<crate::platform::windows::TriggerFocus>,
     live: Arc<AtomicBool>,
@@ -235,11 +247,15 @@ struct Probe {
 }
 
 enum Work {
-    Target(TakeId, TargetVerdict, Option<WatchGuard>),
+    Target(
+        TakeId,
+        Result<TargetVerdict, RefusalReason>,
+        Option<WatchGuard>,
+    ),
     Opened(TakeId, Result<OpenedMic, MicError>),
     MicFree(TakeId),
     Inserted(TakeId, InsertOutcome, Option<TargetChange>),
-    Copied(TakeId, Result<(), CopyError>, CopyReply),
+    Copied(Result<(), CopyError>, CopyReply),
     Cleaned,
 }
 
@@ -256,6 +272,7 @@ struct Runtime {
     overflow: Overflow,
     state: State,
     history: Option<History>,
+    stats: Stats,
     state_tx: watch::Sender<UiState>,
     level_tx: watch::Sender<f32>,
     origin: Instant,
@@ -280,11 +297,13 @@ pub(super) fn spawn(
     deps: ControllerDeps,
     init: ControllerInit,
     profile: Option<(Arc<PersonalRules>, History)>,
+    stats: Stats,
 ) -> ControllerHandle {
     make(
         deps,
         init,
         profile,
+        stats,
         #[cfg(test)]
         None,
     )
@@ -294,6 +313,7 @@ fn make(
     deps: ControllerDeps,
     init: ControllerInit,
     profile: Option<(Arc<PersonalRules>, History)>,
+    stats: Stats,
     #[cfg(test)] test_config: Option<TestConnection>,
 ) -> ControllerHandle {
     let mut state = State::new(init.settings, init.consent, init.access.is_some());
@@ -311,6 +331,7 @@ fn make(
         overflow: overflow.clone(),
         state,
         history,
+        stats,
         state_tx,
         level_tx,
         origin: Instant::now(),
@@ -388,9 +409,21 @@ impl Runtime {
                         self.inspect();
                         let _ = reply.send(self.state.draft());
                     }
-                    Some(Command::Copy(reply)) => {
+                    Some(Command::Recent(reply)) => {
                         self.inspect();
-                        self.copy(reply);
+                        let _ = reply.send(self.state.recent_drafts());
+                    }
+                    Some(Command::Stats(reply)) => {
+                        let _ = reply.send(self.stats.view());
+                    }
+                    Some(Command::Clear(id, reply)) => {
+                        self.apply(Input::ClearDraft(id));
+                        self.publish();
+                        let _ = reply.send(self.state_tx.borrow().clone());
+                    }
+                    Some(Command::Copy(id, reply)) => {
+                        self.inspect();
+                        self.copy(id, reply);
                     }
                 },
                 _ = timer.tick() => self.inspect(),
@@ -436,6 +469,7 @@ impl Runtime {
             // A FIFO status request is also a barrier for completed takes.
             let _ = tokio::task::spawn_blocking(move || history.status()).await;
         }
+        self.stats.close().await;
     }
 
     fn publish(&self) {
@@ -493,7 +527,7 @@ impl Runtime {
     fn apply(&mut self, input: Input) {
         let effects = self.state.step(input, self.now());
         if let Some((id, live)) = &self.copy
-            && self.state.draft_id() != Some(*id)
+            && !self.state.has_draft(*id)
         {
             live.store(false, Ordering::Release);
         }
@@ -520,13 +554,12 @@ impl Runtime {
                 self.reconfigure = true;
                 self.warm_if_idle();
             }
-            Effect::Probe { take, watch } => {
+            Effect::Probe(take) => {
                 #[cfg(windows)]
                 let trigger = self.trigger.take();
                 let io = self.take_io(take);
                 self.probe_next = Some(Probe {
                     id: take,
-                    watch,
                     #[cfg(windows)]
                     trigger,
                     live: io.live.clone(),
@@ -547,51 +580,58 @@ impl Runtime {
                 });
             }
             Effect::Collect { take, language } => {
-                let OpenedMic {
-                    stream,
-                    rate,
-                    input,
-                } = self.io.as_mut().unwrap().pending_open.take().unwrap();
-                self.io.as_mut().unwrap().stream = Some(stream);
-                let (engine, access) = (
-                    self.engine.as_ref().unwrap().clone(),
-                    self.access.as_ref().unwrap().clone(),
-                );
+                let io = self.io.as_mut().unwrap();
+                debug_assert_eq!(io.id, take);
+                let (rate, input) = io.capture.take().unwrap();
+                let live = io.live.clone();
+                let engine = self.engine.as_ref().unwrap().clone();
+                let access = self.access.as_ref().unwrap().clone();
                 let (tx, rx) = mpsc::channel(SEGMENT_CAPACITY);
                 self.collector = Some(Collector {
                     id: take,
-                    task: tokio::spawn(rambler::collect(
-                        engine,
-                        access,
-                        language,
-                        rate,
-                        input,
-                        tx,
-                        #[cfg(test)]
-                        self.test_config
-                            .as_ref()
-                            .and_then(|test| test.segment_budget),
+                    task: tokio::spawn(while_live(
+                        live,
+                        rambler::collect(
+                            engine,
+                            access,
+                            language,
+                            rate,
+                            input,
+                            tx,
+                            #[cfg(test)]
+                            self.test_config
+                                .as_ref()
+                                .and_then(|test| test.segment_budget),
+                        ),
                     )),
                     rx,
                 });
             }
             Effect::Stop(id) => {
-                if let Some(stream) = self.io.as_mut().and_then(|io| io.stream.take()) {
-                    self.jobs.spawn_blocking(move || {
-                        stream.stop();
-                        Work::MicFree(id)
-                    });
+                if let Some(io) = &mut self.io {
+                    debug_assert_eq!(io.id, id);
+                    io.health.stop_before_first_frame();
+                    if let Some(stream) = io.stream.take() {
+                        self.jobs.spawn_blocking(move || {
+                            // The sink rechecks permission while finalizing PCM.
+                            stream.stop();
+                            Work::MicFree(id)
+                        });
+                    }
                 }
             }
             Effect::Retire(id) => self.retire(id),
-            Effect::Archive(take) => {
-                if let Some(history) = &self.history
-                    && let Some(io) = &mut self.io
-                    && io.id == take.id
+            Effect::Completed(completion) => {
+                if let Some(io) = &mut self.io
+                    && io.id == completion.id
                     && io.live.load(Ordering::Acquire)
-                    && let Some(ticket) = io.history.take()
                 {
-                    history.archive(ticket, take);
+                    self.stats.record(completion.words, completion.listening_ms);
+                    if let (Some(history), Some(ticket), Some(take)) =
+                        (&self.history, io.history.take(), completion.archive)
+                    {
+                        history.archive(ticket, take);
+                    }
                 }
             }
             Effect::Insert(id, token, text) => {
@@ -641,9 +681,7 @@ impl Runtime {
                 .unwrap_or_else(|e| e.into_inner())
                 .active = None;
             self.drop_watch(io.guard);
-            if let Some(opened) = io.pending_open {
-                self.abort(id, opened.stream);
-            }
+            drop(io.capture);
             if let Some(stream) = io.stream {
                 self.abort(id, stream);
             }
@@ -694,21 +732,20 @@ impl Runtime {
                     true
                 }
             };
-            let verdict = capture_in_trigger_focus(&*target, current);
+            let verdict = capture_in_trigger_focus(&*target, || {
+                probe.live.load(Ordering::Acquire) && current()
+            });
             #[cfg(windows)]
             let verdict = match (probe.trigger, verdict) {
-                (Some(trigger), TargetVerdict::Eligible { ref token, .. })
+                (Some(trigger), Ok(TargetVerdict::Eligible { ref token, .. }))
                     if !trigger.identifies(token) =>
                 {
-                    TargetVerdict::Uncertain {
-                        reason: crate::ports::UncertainReason::NoFocusedField,
-                    }
+                    Err(displaced_trigger())
                 }
                 (_, verdict) => verdict,
             };
-            let guard = if probe.watch
-                && probe.live.load(Ordering::Acquire)
-                && let TargetVerdict::Eligible { token, .. } = &verdict
+            let guard = if probe.live.load(Ordering::Acquire)
+                && let Ok(TargetVerdict::Eligible { token, .. }) = &verdict
             {
                 let (live, signal) = (probe.live.clone(), probe.change.clone());
                 let protected = probe.protected.clone();
@@ -759,15 +796,20 @@ impl Runtime {
                 self.probe_if_idle();
             }
             Work::Opened(id, result) => match result {
-                Ok(opened) => {
+                Ok(OpenedMic {
+                    stream,
+                    rate,
+                    input,
+                }) => {
                     if let Some(io) = &mut self.io
                         && id == io.id
                         && io.live.load(Ordering::Acquire)
                     {
-                        io.pending_open = Some(opened);
+                        io.stream = Some(stream);
+                        io.capture = Some((rate, input));
                         self.apply(Input::MicOpened(id));
                     } else {
-                        self.abort(id, opened.stream);
+                        self.abort(id, stream);
                     }
                 }
                 Err(error) => {
@@ -794,21 +836,18 @@ impl Runtime {
                     self.apply(Input::Insertion(id, outcome));
                 }
             }
-            Work::Copied(id, result, reply) => {
+            Work::Copied(result, reply) => {
                 self.copy = None;
-                if result.is_ok() {
-                    self.apply(Input::Copied(id));
-                }
                 let _ = reply.send(result);
             }
             Work::Cleaned => (),
         }
     }
 
-    fn copy(&mut self, reply: CopyReply) {
+    fn copy(&mut self, take: Option<TakeId>, reply: CopyReply) {
         if self.copy.is_some() {
             let _ = reply.send(Err(ClipboardError::Busy.into()));
-        } else if let Some((id, text)) = self.state.copy_text() {
+        } else if let Some((id, text)) = self.state.copy_text(take) {
             let clipboard = self.deps.clipboard.clone();
             let live = Arc::new(AtomicBool::new(true));
             self.copy = Some((id, live.clone()));
@@ -818,7 +857,7 @@ impl Runtime {
                 } else {
                     Err(CopyError::NoDraft)
                 };
-                Work::Copied(id, result, reply)
+                Work::Copied(result, reply)
             });
         } else {
             let _ = reply.send(Err(CopyError::NoDraft));
@@ -900,18 +939,44 @@ impl Runtime {
     }
 }
 
+fn displaced_trigger() -> RefusalReason {
+    // Unlike a non-Protected verdict for the trigger field, a probe of some
+    // other field says nothing about whether the original field was protected.
+    RefusalReason::UncertainTarget {
+        reason: UncertainReason::NoFocusedField,
+    }
+}
+
 fn capture_in_trigger_focus(
     target: &dyn crate::ports::TargetProbe,
     current: impl Fn() -> bool,
-) -> TargetVerdict {
-    let displaced = TargetVerdict::Uncertain {
-        reason: crate::ports::UncertainReason::NoFocusedField,
-    };
+) -> Result<TargetVerdict, RefusalReason> {
     if !current() {
-        return displaced;
+        return Err(displaced_trigger());
     }
     let verdict = target.capture();
-    if current() { verdict } else { displaced }
+    if matches!(verdict, TargetVerdict::Protected) || current() {
+        Ok(verdict)
+    } else {
+        Err(displaced_trigger())
+    }
+}
+
+async fn while_live(
+    live: Arc<AtomicBool>,
+    work: impl Future<Output = Result<(), InterruptReason>>,
+) -> Result<(), InterruptReason> {
+    let mut work = std::pin::pin!(work);
+    std::future::poll_fn(|cx| {
+        if live.load(Ordering::Acquire) {
+            work.as_mut().poll(cx)
+        } else {
+            // Command ingress can revoke before the collector's first poll,
+            // even if the actor already handed it the buffered audio.
+            std::task::Poll::Ready(Err(InterruptReason::SystemInterrupted))
+        }
+    })
+    .await
 }
 
 async fn join<T>(task: &mut Option<JoinHandle<T>>) -> Result<T, JoinError> {
@@ -960,12 +1025,12 @@ fn trigger_displacement_before_or_during_probe_never_qualifies_new_target() {
     let probe = ProbeStub(AtomicU32::new(0));
     assert!(matches!(
         capture_in_trigger_focus(&probe, || false),
-        TargetVerdict::Uncertain { .. }
+        Err(RefusalReason::UncertainTarget { .. })
     ));
     assert_eq!(probe.0.load(Ordering::Relaxed), 0);
     assert!(matches!(
         capture_in_trigger_focus(&probe, || probe.0.load(Ordering::Relaxed) == 0),
-        TargetVerdict::Uncertain { .. }
+        Err(RefusalReason::UncertainTarget { .. })
     ));
     assert_eq!(probe.0.load(Ordering::Relaxed), 1);
 }
@@ -996,6 +1061,18 @@ fn safety_commands_revoke_capture_and_insertion_before_the_actor_reads_them() {
         assert!(!io.live.load(Ordering::Acquire));
         assert!(!io.write_allowed.load(Ordering::Acquire));
     }
+}
+
+#[cfg(test)]
+#[tokio::test]
+async fn cancellation_at_ingress_blocks_an_already_queued_collectors_first_poll() {
+    let (tx, _rx) = mpsc::channel(1);
+    let overflow = Overflow::default();
+    let io = TakeIo::new(TakeId(1), Instant::now());
+    overflow.lock().unwrap().active = Some(io.safety());
+    let collector = while_live(io.live.clone(), async { panic!("collector was polled") });
+    Inbox { tx, overflow }.send(Command::Input(Input::Cancel(Some(io.id))));
+    assert_eq!(collector.await, Err(InterruptReason::SystemInterrupted));
 }
 
 #[cfg(test)]
@@ -1052,6 +1129,7 @@ pub(super) fn spawn_loopback(
         deps,
         init,
         None,
+        Stats::default(),
         Some(TestConnection {
             config,
             segment_budget,

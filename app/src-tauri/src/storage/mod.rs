@@ -19,6 +19,7 @@
 pub(crate) mod history;
 mod personal;
 mod startup;
+pub(crate) mod stats;
 
 pub(crate) use startup::{StartupError, set_startup, startup_enabled};
 

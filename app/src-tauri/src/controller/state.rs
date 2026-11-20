@@ -12,11 +12,15 @@ use crate::{
     text::{self, TextRules},
 };
 use rambler_audio::join_segment_texts;
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, VecDeque},
+    sync::Arc,
+};
+use unicode_segmentation::UnicodeSegmentation;
 
 const OPEN_MS: u64 = 3_000;
 const MAX_LISTENING_MS: u64 = 300_000;
-const REPLACE_MS: u64 = 15_000;
+const MAX_RECENT: usize = 5;
 const MAX_PARTS: usize = 64;
 
 #[derive(Clone, Copy)]
@@ -37,7 +41,7 @@ pub(super) enum Input {
     Retry,
     System(SystemEvent),
     Connected(u64, Result<(), UnavailableReason>),
-    Target(TakeId, TargetVerdict),
+    Target(TakeId, Result<TargetVerdict, RefusalReason>),
     TargetChanged(TakeId, TargetChange),
     MicOpened(TakeId),
     MicOpenFailed(TakeId, MicError),
@@ -47,28 +51,31 @@ pub(super) enum Input {
     Delivered(TakeId, Segment),
     Collection(TakeId, Result<(), InterruptReason>),
     Insertion(TakeId, InsertOutcome),
-    Copied(TakeId),
-    ClearDraft,
+    ClearDraft(Option<TakeId>),
     Shutdown,
 }
 
 pub(super) enum Effect {
     Reconfigure(Option<u64>),
-    Probe { take: TakeId, watch: bool },
+    Probe(TakeId),
     Open { take: TakeId, mic: MicChoice },
     Collect { take: TakeId, language: Language },
     Stop(TakeId),
     Retire(TakeId),
-    Archive(crate::storage::history::CompletedTake),
+    Completed(Completion),
     Insert(TakeId, TargetToken, Arc<str>),
+}
+
+pub(super) struct Completion {
+    pub id: TakeId,
+    pub words: u64,
+    pub listening_ms: u64,
+    pub archive: Option<crate::storage::history::CompletedTake>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Stage {
-    Checking,
-    Opening,
-    AwaitingFrames { opened: u64 },
-    Listening { since: u64 },
+    Listening,
     Finalizing { collected: bool },
     Inserting,
 }
@@ -76,15 +83,14 @@ enum Stage {
 impl Stage {
     fn phase(self) -> Phase {
         match self {
-            Self::Checking | Self::Opening | Self::AwaitingFrames { .. } => Phase::Preparing,
-            Self::Listening { .. } => Phase::Listening,
+            Self::Listening => Phase::Listening,
             Self::Finalizing { .. } | Self::Inserting => Phase::Finalizing,
         }
     }
 }
 
 enum Destination {
-    Sambler,
+    Sambler(KeptReason),
     Field(TargetToken),
 }
 
@@ -96,11 +102,13 @@ struct Take {
     mic: MicChoice,
     rules: TextRules,
     always_keep: bool,
-    replace: Option<TakeId>,
     destination: Option<Destination>,
     change: Option<TargetChange>,
-    pending_archive: Option<crate::storage::history::CompletedTake>,
-    open_deadline: Option<u64>,
+    pending_insert: Option<(Draft, Completion)>,
+    started: u64,
+    opened: Option<u64>,
+    collecting: bool,
+    listening_ms: u64,
     segments: BTreeMap<usize, Segment>,
     bytes: usize,
 }
@@ -110,11 +118,30 @@ struct Draft {
     expires_mono: u64,
     parts: Vec<DraftPart>,
     full: Option<Arc<str>>,
-    pending: bool,
-    replace_by: Option<u64>,
 }
 
 impl Draft {
+    fn new(take: TakeId, parts: Vec<DraftPart>, full: Option<Arc<str>>) -> Self {
+        Self {
+            meta: DraftMeta {
+                take,
+                created_at_ms: 0,
+                expires_at_ms: 0,
+                complete: full.is_some(),
+            },
+            expires_mono: 0,
+            parts,
+            full,
+        }
+    }
+
+    fn set_lifetime(&mut self, now: Now, minutes: u8) {
+        let life = u64::from(minutes.clamp(1, 10)) * 60_000;
+        self.meta.created_at_ms = now.unix;
+        self.meta.expires_at_ms = now.unix.saturating_add(life);
+        self.expires_mono = now.mono.saturating_add(life);
+    }
+
     fn view(&self) -> DraftView {
         DraftView {
             meta: self.meta,
@@ -151,7 +178,7 @@ pub(super) struct State {
     next_take: u64,
     take: Option<Take>,
     mic_owner: Option<TakeId>,
-    draft: Option<Draft>,
+    recents: VecDeque<Draft>,
     outcome: Option<TakeOutcome>,
     key_down: bool,
     locked: bool,
@@ -178,7 +205,7 @@ impl State {
             next_take: 0,
             take: None,
             mic_owner: None,
-            draft: None,
+            recents: VecDeque::new(),
             outcome: None,
             key_down: false,
             locked: false,
@@ -206,52 +233,51 @@ impl State {
             take: self.take_id(),
             destination: take.and_then(|take| match take.destination {
                 Some(Destination::Field(_)) => Some(DestinationKind::Field),
-                Some(Destination::Sambler) => Some(DestinationKind::Sambler),
+                Some(Destination::Sambler(_)) => Some(DestinationKind::Sambler),
                 None => None,
             }),
             availability: self.availability.clone(),
             last_outcome: self.outcome.clone(),
-            draft: self.draft.as_ref().map(|draft| draft.meta),
-            listening_ms: take.and_then(|take| match take.stage {
-                Stage::Listening { since } => Some(now.mono.saturating_sub(since)),
-                _ => None,
+            draft: self.recents.front().map(|draft| draft.meta),
+            listening_ms: take.and_then(|take| {
+                (take.stage == Stage::Listening).then(|| now.mono.saturating_sub(take.started))
             }),
             gesture: take.map_or(self.settings.gesture, |take| take.gesture),
             shortcut: self.settings.shortcut.clone(),
-            // Placeholder until recent results land (milestone 3).
-            recent_count: u32::from(self.draft.is_some()),
+            recent_count: self.recents.len() as u32,
         }
     }
 
     pub(super) fn draft(&self) -> Option<DraftView> {
-        self.draft.as_ref().map(Draft::view)
+        self.recents.front().map(Draft::view)
     }
 
-    pub(super) fn draft_id(&self) -> Option<TakeId> {
-        self.draft.as_ref().map(|draft| draft.meta.take)
+    pub(super) fn recent_drafts(&self) -> Vec<DraftView> {
+        self.recents.iter().map(Draft::view).collect()
     }
 
-    pub(super) fn copy_text(&self) -> Option<(TakeId, Arc<str>)> {
-        let draft = self.draft.as_ref()?;
+    pub(super) fn has_draft(&self, id: TakeId) -> bool {
+        self.recents.iter().any(|draft| draft.meta.take == id)
+    }
+
+    pub(super) fn copy_text(&self, id: Option<TakeId>) -> Option<(TakeId, Arc<str>)> {
+        let draft = self
+            .recents
+            .iter()
+            .find(|d| id.is_none_or(|id| d.meta.take == id))?;
         Some((draft.meta.take, draft.copy_text()?))
     }
 
     pub(super) fn step(&mut self, input: Input, now: Now) -> Vec<Effect> {
         let mut effects = Vec::new();
-        if self
-            .draft
-            .as_ref()
-            .is_some_and(|draft| now.mono >= draft.expires_mono)
-        {
-            self.draft = None;
-        }
+        self.recents.retain(|draft| now.mono < draft.expires_mono);
         match input {
             Input::Hotkey(KeyEdge::Pressed) if !self.key_down => {
                 self.key_down = true;
                 match &self.take {
                     None => self.start(true, now, &mut effects),
                     Some(take) if take.gesture == Gesture::Toggle => {
-                        self.finish(false, &mut effects)
+                        self.finish(false, now, &mut effects)
                     }
                     _ => (),
                 }
@@ -263,20 +289,21 @@ impl State {
                     .as_ref()
                     .is_some_and(|t| t.hotkey && t.gesture == Gesture::Hold)
                 {
-                    self.finish(false, &mut effects);
+                    self.finish(false, now, &mut effects);
                 }
             }
             Input::Hotkey(_) => (),
             Input::StartInternal => self.start(false, now, &mut effects),
-            Input::Finish(id) if self.take_id() == Some(id) => self.finish(false, &mut effects),
+            Input::Finish(id) if self.take_id() == Some(id) => {
+                self.finish(false, now, &mut effects)
+            }
             Input::Cancel(id) => {
-                if (id.is_none() && self.take.is_some()) || (id.is_some() && id == self.take_id()) {
-                    if self.take_id() == self.draft_id() {
-                        self.draft = None;
+                let id = id.or(self.take_id());
+                if let Some(id) = id {
+                    self.recents.retain(|draft| draft.meta.take != id);
+                    if self.take_id() == Some(id) {
+                        self.end(TakeOutcome::Cancelled, &mut effects);
                     }
-                    self.end(TakeOutcome::Cancelled, &mut effects);
-                } else if id.is_some() && id == self.draft_id() {
-                    self.draft = None;
                 }
             }
             Input::System(event) => {
@@ -288,7 +315,7 @@ impl State {
                 }
                 if matches!(event, SystemEvent::SessionLocked | SystemEvent::Suspending) {
                     self.key_down = false;
-                    self.draft = None;
+                    self.recents.clear();
                     if self.take.is_some() {
                         self.end(
                             TakeOutcome::Interrupted {
@@ -347,21 +374,22 @@ impl State {
                 }
             },
             Input::Target(id, verdict) if self.take_id() == Some(id) => {
-                if let Some(take) = &mut self.take
-                    && take.stage == Stage::Checking
-                    && take.destination.is_none()
-                {
-                    let destination = match verdict {
+                let take = self.take.as_mut().unwrap();
+                if take.destination.is_none() {
+                    let destination = verdict.and_then(|verdict| match verdict {
                         TargetVerdict::Protected => Err(RefusalReason::ProtectedField),
                         TargetVerdict::Uncertain { reason } => {
-                            Err(RefusalReason::UncertainTarget { reason })
+                            Ok(Destination::Sambler(KeptReason::UncertainTarget { reason }))
                         }
-                        TargetVerdict::Sambler => Ok(Destination::Sambler),
-                        TargetVerdict::Eligible { .. } if take.always_keep => {
-                            Ok(Destination::Sambler)
+                        TargetVerdict::Eligible { token, .. }
+                            if take.hotkey && !take.always_keep =>
+                        {
+                            Ok(Destination::Field(token))
                         }
-                        TargetVerdict::Eligible { token, .. } => Ok(Destination::Field(token)),
-                    };
+                        TargetVerdict::Sambler | TargetVerdict::Eligible { .. } => {
+                            Ok(Destination::Sambler(KeptReason::SamblerDestination))
+                        }
+                    });
                     match destination {
                         Ok(destination) => take.destination = Some(destination),
                         Err(reason) => self.end(TakeOutcome::Refused { reason }, &mut effects),
@@ -369,20 +397,28 @@ impl State {
                 }
             }
             Input::TargetChanged(id, change) if self.take_id() == Some(id) => {
-                if change == TargetChange::Protected {
-                    self.interrupt(InterruptReason::SystemInterrupted, now, &mut effects);
-                } else if let Some(take) = &mut self.take {
+                let take = self.take.as_mut().unwrap();
+                if change != TargetChange::Protected {
                     take.change.get_or_insert(change);
+                } else if take.destination.is_none() {
+                    self.end(
+                        TakeOutcome::Refused {
+                            reason: RefusalReason::ProtectedField,
+                        },
+                        &mut effects,
+                    );
+                } else {
+                    self.interrupt(InterruptReason::SystemInterrupted, now, &mut effects);
                 }
             }
             Input::MicOpened(id) if self.take_id() == Some(id) => {
                 let take = self.take.as_mut().unwrap();
-                if take.stage == Stage::Opening {
-                    take.stage = Stage::AwaitingFrames { opened: now.mono };
-                    effects.push(Effect::Collect {
-                        take: id,
-                        language: take.rules.language,
-                    });
+                if take.opened.replace(now.mono).is_none()
+                    && matches!(take.stage, Stage::Finalizing { .. })
+                {
+                    // Release can win the race with open. Stop independently of
+                    // the verdict, leaving the closed PCM source available locally.
+                    effects.push(Effect::Stop(id));
                 }
             }
             Input::MicOpenFailed(id, error) if self.take_id() == Some(id) => {
@@ -396,22 +432,16 @@ impl State {
             Input::MicFault(id, reason) if self.take_id() == Some(id) => {
                 self.interrupt(reason, now, &mut effects)
             }
-            Input::MicFree(id) if self.mic_owner == Some(id) => {
-                self.mic_owner = None;
-                self.complete_if_stopped(now, &mut effects);
-            }
+            Input::MicFree(id) if self.mic_owner == Some(id) => self.mic_owner = None,
             Input::Tick { last_frame } => self.tick(now, last_frame, &mut effects),
             Input::Delivered(id, segment) if self.take_id() == Some(id) => {
                 let take = self.take.as_mut().unwrap();
-                if matches!(
-                    take.stage,
-                    Stage::AwaitingFrames { .. }
-                        | Stage::Listening { .. }
-                        | Stage::Finalizing {
-                            collected: false,
-                            ..
-                        }
-                ) && !take.segments.contains_key(&segment.index)
+                if take.collecting
+                    && matches!(
+                        take.stage,
+                        Stage::Listening | Stage::Finalizing { collected: false }
+                    )
+                    && !take.segments.contains_key(&segment.index)
                 {
                     let bytes = segment.part.text.as_ref().map_or(0, String::len);
                     if take.segments.len() >= MAX_PARTS || take.bytes + bytes > MAX_DRAFT_BYTES {
@@ -425,11 +455,10 @@ impl State {
             Input::Collection(id, result)
                 if self.take.as_ref().is_some_and(|t| {
                     t.id == id
+                        && t.collecting
                         && matches!(
                             t.stage,
-                            Stage::AwaitingFrames { .. }
-                                | Stage::Listening { .. }
-                                | Stage::Finalizing { collected: false }
+                            Stage::Listening | Stage::Finalizing { collected: false }
                         )
                 }) =>
             {
@@ -438,7 +467,6 @@ impl State {
                         let take = self.take.as_mut().unwrap();
                         if take.stage == (Stage::Finalizing { collected: false }) {
                             take.stage = Stage::Finalizing { collected: true };
-                            self.complete_if_stopped(now, &mut effects);
                         } else {
                             // A clean EOF without a requested normal stop is not valid.
                             self.interrupt(InterruptReason::Service, now, &mut effects);
@@ -468,18 +496,11 @@ impl State {
                     .as_ref()
                     .is_some_and(|t| t.id == id && t.stage == Stage::Inserting) =>
             {
-                if let Some(draft) = &mut self.draft
-                    && draft.meta.take == id
-                {
-                    draft.pending &= outcome != InsertOutcome::Delivered;
-                }
-                if let Some(value) = self
-                    .take
-                    .as_mut()
-                    .and_then(|take| take.pending_archive.take())
-                {
-                    effects.push(Effect::Archive(value));
-                }
+                let (mut draft, completion) =
+                    self.take.as_mut().unwrap().pending_insert.take().unwrap();
+                draft.set_lifetime(now, self.settings.draft_minutes);
+                self.save_draft(draft);
+                effects.push(Effect::Completed(completion));
                 self.end(
                     match outcome {
                         InsertOutcome::Delivered => TakeOutcome::Inserted,
@@ -496,14 +517,11 @@ impl State {
                     &mut effects,
                 );
             }
-            Input::Copied(id) if self.draft_id() == Some(id) => {
-                let draft = self.draft.as_mut().unwrap();
-                draft.pending = false;
-                draft.replace_by = None;
-            }
-            Input::ClearDraft => self.draft = None,
+            Input::ClearDraft(id) => self
+                .recents
+                .retain(|draft| id.is_some_and(|id| draft.meta.take != id)),
             Input::Shutdown => {
-                self.draft = None;
+                self.recents.clear();
                 if self.take.is_some() {
                     self.end(TakeOutcome::Cancelled, &mut effects);
                 }
@@ -511,7 +529,8 @@ impl State {
             }
             _ => (), // Stale or out-of-phase notification.
         }
-        self.maybe_open(now, &mut effects);
+        self.advance_capture(&mut effects);
+        self.complete_if_stopped(now, &mut effects);
         effects
     }
 
@@ -519,47 +538,31 @@ impl State {
         if self.take.is_some() || self.locked || self.suspended {
             return;
         }
-        self.next_take = self
-            .next_take
-            .checked_add(1)
-            .expect("take id space exhausted");
-        let id = TakeId(self.next_take);
-        let reconnect = matches!(
-            self.availability,
-            Availability::Unavailable {
-                reason: UnavailableReason::Network | UnavailableReason::Service
-            }
-        );
         let refusal = match self.availability {
             Availability::NeedsConsent => Some(RefusalReason::NeedsConsent),
             Availability::NeedsAccess => Some(RefusalReason::NeedsAccess),
-            Availability::Unavailable { reason } if !reconnect => {
+            // The availability banner already reports the connection in progress.
+            Availability::Connecting => return,
+            Availability::Unavailable { reason } => {
+                if matches!(
+                    reason,
+                    UnavailableReason::Network | UnavailableReason::Service
+                ) {
+                    self.reconfigure(effects);
+                }
                 Some(RefusalReason::Unavailable { reason })
             }
-            _ => None,
+            Availability::Ready => None,
         };
         if let Some(reason) = refusal {
             self.outcome = Some(TakeOutcome::Refused { reason });
             return;
         }
-        let replace = match &mut self.draft {
-            Some(draft) if draft.pending => {
-                if draft
-                    .replace_by
-                    .take()
-                    .is_some_and(|deadline| now.mono <= deadline)
-                {
-                    Some(draft.meta.take)
-                } else {
-                    draft.replace_by = Some(now.mono + REPLACE_MS);
-                    self.outcome = Some(TakeOutcome::Refused {
-                        reason: RefusalReason::PendingDraft,
-                    });
-                    return;
-                }
-            }
-            _ => None,
-        };
+        self.next_take = self
+            .next_take
+            .checked_add(1)
+            .expect("take id space exhausted");
+        let id = TakeId(self.next_take);
         let mut rules = TextRules::from_settings(&self.settings);
         if let Some(personal) = &self.personal_rules {
             rules.lexicon.clone_from(&personal.lexicon);
@@ -568,29 +571,24 @@ impl State {
         self.outcome = None;
         self.take = Some(Take {
             id,
-            stage: Stage::Checking,
+            stage: Stage::Listening,
             gesture: self.settings.gesture,
             hotkey,
             mic: self.settings.microphone.clone(),
             rules,
             always_keep: self.settings.always_keep_in_sambler,
-            replace,
-            destination: (!hotkey).then_some(Destination::Sambler),
+            destination: None,
             change: None,
-            pending_archive: None,
-            open_deadline: None,
+            pending_insert: None,
+            started: now.mono,
+            opened: None,
+            collecting: false,
+            listening_ms: 0,
             segments: BTreeMap::new(),
             bytes: 0,
         });
-        if hotkey {
-            effects.push(Effect::Probe {
-                take: id,
-                watch: true, // Protection still matters when insertion is disabled.
-            });
-        }
-        if reconnect {
-            self.reconfigure(effects);
-        }
+        // Protection still matters when insertion is disabled.
+        effects.push(Effect::Probe(id));
     }
 
     fn reconfigure(&mut self, effects: &mut Vec<Effect>) {
@@ -613,95 +611,86 @@ impl State {
         effects.push(Effect::Reconfigure(epoch));
     }
 
-    fn maybe_open(&mut self, now: Now, effects: &mut Vec<Effect>) {
-        if self.availability != Availability::Ready {
-            return;
-        }
+    fn advance_capture(&mut self, effects: &mut Vec<Effect>) {
         let Some(take) = &mut self.take else {
             return;
         };
-        if take.stage != Stage::Checking || take.destination.is_none() {
-            return;
+        if take.stage == Stage::Listening && take.opened.is_none() && self.mic_owner.is_none() {
+            self.mic_owner = Some(take.id);
+            effects.push(Effect::Open {
+                take: take.id,
+                mic: take.mic.clone(),
+            });
         }
-        take.open_deadline.get_or_insert(now.mono + OPEN_MS);
-        if self.mic_owner.is_some() {
-            return;
+        if take.destination.is_some() && !take.collecting {
+            if take.opened.is_some() {
+                take.collecting = true;
+                effects.push(Effect::Collect {
+                    take: take.id,
+                    language: take.rules.language,
+                });
+            } else if matches!(take.stage, Stage::Finalizing { .. })
+                && self.mic_owner != Some(take.id)
+            {
+                // The take was released while a previous microphone was being joined.
+                take.stage = Stage::Finalizing { collected: true };
+            }
         }
-        if take.replace.is_some()
-            && take.replace == self.draft.as_ref().map(|draft| draft.meta.take)
-        {
-            self.draft = None;
-        }
-        take.stage = Stage::Opening;
-        self.mic_owner = Some(take.id);
-        effects.push(Effect::Open {
-            take: take.id,
-            mic: take.mic.clone(),
-        });
     }
 
     fn tick(&mut self, now: Now, last_frame: Option<u64>, effects: &mut Vec<Effect>) {
         let Some(take) = &mut self.take else {
             return;
         };
-        match take.stage {
-            Stage::Checking | Stage::Opening
-                if take.open_deadline.is_some_and(|d| now.mono >= d) =>
-            {
-                self.end(
-                    TakeOutcome::Refused {
-                        reason: RefusalReason::Microphone {
-                            error: MicError::OpenTimeout,
-                        },
+        let elapsed = now.mono.saturating_sub(take.started);
+        if take.opened.is_none()
+            && elapsed >= OPEN_MS
+            && (take.stage == Stage::Listening || self.mic_owner == Some(take.id))
+        {
+            self.end(
+                TakeOutcome::Refused {
+                    reason: RefusalReason::Microphone {
+                        error: MicError::OpenTimeout,
                     },
-                    effects,
-                );
+                },
+                effects,
+            );
+        } else if take.stage == Stage::Listening {
+            if let Some(opened) = take.opened
+                && now.mono.saturating_sub(last_frame.unwrap_or(opened)) >= FRAME_WAIT_MS
+            {
+                self.interrupt(InterruptReason::MicrophoneStalled, now, effects);
+            } else if elapsed >= MAX_LISTENING_MS {
+                self.finish(true, now, effects);
             }
-            Stage::AwaitingFrames { opened } => {
-                if now.mono.saturating_sub(last_frame.unwrap_or(opened)) >= FRAME_WAIT_MS {
-                    self.interrupt(InterruptReason::MicrophoneStalled, now, effects);
-                } else if last_frame.is_some() {
-                    take.stage = Stage::Listening { since: opened };
-                }
-            }
-            Stage::Listening { since } => {
-                if now.mono.saturating_sub(last_frame.unwrap_or(since)) >= FRAME_WAIT_MS {
-                    self.interrupt(InterruptReason::MicrophoneStalled, now, effects);
-                } else if now.mono.saturating_sub(since) >= MAX_LISTENING_MS {
-                    self.finish(true, effects);
-                }
-            }
-            _ => (),
         }
     }
 
-    fn finish(&mut self, limited: bool, effects: &mut Vec<Effect>) {
+    fn finish(&mut self, limited: bool, now: Now, effects: &mut Vec<Effect>) {
         let take = self.take.as_mut().unwrap();
-        match take.stage.phase() {
-            Phase::Preparing => self.end(TakeOutcome::Cancelled, effects),
-            Phase::Listening => {
-                take.stage = Stage::Finalizing { collected: false };
-                if limited {
-                    // IPC has one outcome; show the limit during finalization,
-                    // then publish the actual terminal delivery result.
-                    self.outcome = Some(TakeOutcome::Interrupted {
-                        reason: InterruptReason::DurationLimit,
-                        recovered: false,
-                    });
-                }
-                effects.push(Effect::Stop(take.id));
-            }
-            _ => (),
+        if take.stage != Stage::Listening {
+            return;
         }
+        take.listening_ms = now.mono.saturating_sub(take.started);
+        take.stage = Stage::Finalizing { collected: false };
+        if limited {
+            // IPC has one outcome; show the limit during finalization,
+            // then publish the actual terminal delivery result.
+            self.outcome = Some(TakeOutcome::Interrupted {
+                reason: InterruptReason::DurationLimit,
+                recovered: false,
+            });
+        }
+        effects.push(Effect::Stop(take.id));
     }
 
     fn complete_if_stopped(&mut self, now: Now, effects: &mut Vec<Effect>) {
-        if self.mic_owner.is_some() {
-            return;
-        }
         let Some(take) = &mut self.take else {
             return;
         };
+        if self.mic_owner == Some(take.id) {
+            return;
+        }
         let Stage::Finalizing {
             collected: true, ..
         } = take.stage
@@ -740,95 +729,71 @@ impl State {
                     (Some(Destination::Field(_)), Some(change)) => {
                         KeptReason::TargetChanged { change }
                     }
-                    _ => KeptReason::SamblerDestination,
+                    (Some(Destination::Sambler(reason)), _) => *reason,
+                    (None, _) => unreachable!("collection requires a verdict"),
                 };
                 TakeOutcome::KeptInSambler { reason }
             }
         };
         let id = take.id;
-        if self.archive
-            && let Some(text) = &full
-        {
-            let value = crate::storage::history::CompletedTake {
-                id,
-                created: now.unix,
-                text: text.clone(),
-                language: take.rules.language,
-                profile: take.rules.profile,
-            };
-            if insert.is_some() {
-                take.pending_archive = Some(value);
-            } else {
-                effects.push(Effect::Archive(value));
-            }
-        }
-        let pending = has_text
-            && !matches!(
-                outcome,
-                TakeOutcome::NoText
-                    | TakeOutcome::KeptInSambler {
-                        reason: KeptReason::SamblerDestination
-                    }
-            );
-        if !matches!(outcome, TakeOutcome::NoText)
-            || parts.iter().any(|p| {
-                matches!(
-                    p.status,
-                    PartStatus::Blocked | PartStatus::NeedsReview | PartStatus::Missing
-                )
-            })
-        {
-            self.save_draft(id, parts, full.clone(), pending, now);
-        }
+        let completion = full.as_ref().map(|text| Completion {
+            id,
+            words: text.unicode_words().count() as u64,
+            listening_ms: take.listening_ms,
+            archive: self
+                .archive
+                .then(|| crate::storage::history::CompletedTake {
+                    id,
+                    created: now.unix,
+                    text: text.clone(),
+                    language: take.rules.language,
+                    profile: take.rules.profile,
+                }),
+        });
         if let Some(token) = insert {
-            effects.push(Effect::Insert(
-                id,
-                token,
-                full.expect("complete text for insertion"),
-            ));
+            // Do not displace any recent result until the insertion settles.
+            take.pending_insert = Some((Draft::new(id, parts, full.clone()), completion.unwrap()));
+            effects.push(Effect::Insert(id, token, full.unwrap()));
         } else {
+            if !matches!(outcome, TakeOutcome::NoText)
+                || parts.iter().any(|p| {
+                    matches!(
+                        p.status,
+                        PartStatus::Blocked | PartStatus::NeedsReview | PartStatus::Missing
+                    )
+                })
+            {
+                let mut draft = Draft::new(id, parts, full);
+                draft.set_lifetime(now, self.settings.draft_minutes);
+                self.save_draft(draft);
+            }
+            if let Some(completion) = completion {
+                effects.push(Effect::Completed(completion));
+            }
             self.end(outcome, effects);
         }
     }
 
     fn interrupt(&mut self, reason: InterruptReason, now: Now, effects: &mut Vec<Effect>) {
         let take = self.take.as_mut().unwrap();
-        let id = take.id;
-        if take.stage != Stage::Inserting {
+        let draft = if let Some((draft, _)) = take.pending_insert.take() {
+            Some(draft)
+        } else {
             let parts = parts(std::mem::take(&mut take.segments), true);
-            if parts.len() > 1 {
-                let recovered = parts.iter().any(|p| p.status == PartStatus::Admitted);
-                self.save_draft(id, parts, None, recovered, now);
-            }
+            (parts.len() > 1).then(|| Draft::new(take.id, parts, None))
+        };
+        let mut recovered = false;
+        if let Some(mut draft) = draft {
+            recovered = draft.parts.iter().any(|p| p.status == PartStatus::Admitted);
+            draft.set_lifetime(now, self.settings.draft_minutes);
+            self.save_draft(draft);
         }
-        let recovered = self.draft.as_ref().is_some_and(|d| {
-            d.meta.take == id && d.parts.iter().any(|p| p.status == PartStatus::Admitted)
-        });
         self.end(TakeOutcome::Interrupted { reason, recovered }, effects);
     }
 
-    fn save_draft(
-        &mut self,
-        take: TakeId,
-        parts: Vec<DraftPart>,
-        full: Option<Arc<str>>,
-        pending: bool,
-        now: Now,
-    ) {
-        let life = u64::from(self.settings.draft_minutes.clamp(1, 10)) * 60_000;
-        self.draft = Some(Draft {
-            meta: DraftMeta {
-                take,
-                created_at_ms: now.unix,
-                expires_at_ms: now.unix.saturating_add(life),
-                complete: full.is_some(),
-            },
-            expires_mono: now.mono + life,
-            parts,
-            full,
-            pending,
-            replace_by: None,
-        });
+    fn save_draft(&mut self, draft: Draft) {
+        self.recents.truncate(MAX_RECENT - 1);
+        self.recents.push_front(draft);
     }
 
     fn end(&mut self, outcome: TakeOutcome, effects: &mut Vec<Effect>) {

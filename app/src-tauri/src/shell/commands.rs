@@ -5,7 +5,7 @@ use crate::controller::CopyError;
 use crate::ipc::{
     AccessInput, AccessSource, AccessStatus, CommandError, DraftView, EVENT_MIC_TEST_LEVEL,
     HistoryPage, HistoryQuery, HistoryStatus, PersonalRules, PersonalRulesInput, SaveRulesResult,
-    UiState,
+    UiState, UsageStats,
 };
 use crate::model::TakeId;
 use crate::ports::{ClipboardError, MicError, MicInfo};
@@ -106,6 +106,8 @@ fn save_settings_inner(app: &AppHandle, settings: Settings) -> CmdResult<Setting
     }
     let persisted = state.store.save_settings(&settings);
     *state.settings.lock().map_err(|_| internal_error())? = settings.clone();
+    #[cfg(windows)]
+    crate::platform::windows::set_insertion_method(settings.insertion);
     state.controller.apply_settings(settings.clone());
     history_result?;
     match persisted {
@@ -323,10 +325,20 @@ pub async fn get_draft(state: State<'_, AppState>) -> CmdResult<Option<DraftView
 }
 
 #[tauri::command]
-pub async fn copy_draft(state: State<'_, AppState>) -> CmdResult<()> {
+pub async fn get_recent_drafts(state: State<'_, AppState>) -> CmdResult<Vec<DraftView>> {
+    Ok(state.controller.recent_drafts().await)
+}
+
+#[tauri::command]
+pub async fn get_stats(state: State<'_, AppState>) -> CmdResult<UsageStats> {
+    state.controller.stats().await.ok_or_else(internal_error)
+}
+
+#[tauri::command]
+pub async fn copy_draft(state: State<'_, AppState>, take: Option<u64>) -> CmdResult<()> {
     state
         .controller
-        .copy_draft()
+        .copy_draft(take.map(TakeId))
         .await
         .map_err(|error| match error {
             CopyError::NoDraft => CommandError::new("no-draft", "Aucun texte à copier."),
@@ -346,9 +358,8 @@ pub async fn copy_draft(state: State<'_, AppState>) -> CmdResult<()> {
 }
 
 #[tauri::command]
-pub fn clear_draft(state: State<'_, AppState>) -> UiState {
-    state.controller.clear_draft();
-    current_state(&state)
+pub async fn clear_draft(state: State<'_, AppState>, take: Option<u64>) -> CmdResult<UiState> {
+    Ok(state.controller.clear_draft(take.map(TakeId)).await)
 }
 
 /// Settings preview of the text rules on a sample sentence (no microphone, no network).
