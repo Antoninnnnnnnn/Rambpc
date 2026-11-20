@@ -11,7 +11,7 @@ use cpal::{
 };
 use std::{
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicBool, AtomicU8, Ordering},
         mpsc::{self, Receiver, SyncSender},
     },
@@ -25,7 +25,11 @@ const START_POLL: Duration = Duration::from_millis(3);
 const FAULT_POLL: Duration = Duration::from_millis(10);
 
 #[derive(Default)]
-pub struct WasapiMicrophone;
+pub struct WasapiMicrophone {
+    // A bounded caller timeout must not detach a driver still negotiating or
+    // unwinding. Do not start a second open while this worker holds the device.
+    late_open: Mutex<Option<JoinHandle<()>>>,
+}
 
 /// Audio format only, for the local diagnostic harness.
 #[derive(Clone, Copy, Debug)]
@@ -38,7 +42,18 @@ pub struct CaptureFormat {
 
 impl WasapiMicrophone {
     pub fn new() -> Self {
-        Self
+        Self::default()
+    }
+
+    pub(crate) fn join_late_open(&self) {
+        let worker = self
+            .late_open
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take();
+        if let Some(worker) = worker {
+            let _ = worker.join();
+        }
     }
 
     pub fn open_with_format(
@@ -47,6 +62,19 @@ impl WasapiMicrophone {
         sink_for: SinkFactory,
         on_fault: FaultCallback,
     ) -> Result<(Box<dyn MicStream>, CaptureFormat), MicError> {
+        let mut late_open = self
+            .late_open
+            .try_lock()
+            .map_err(|_| MicError::OpenTimeout)?;
+        if late_open
+            .as_ref()
+            .is_some_and(|worker| !worker.is_finished())
+        {
+            return Err(MicError::OpenTimeout);
+        }
+        if let Some(worker) = late_open.take() {
+            let _ = worker.join();
+        }
         let deadline = Instant::now() + OPEN_TIMEOUT;
         // A rendezvous acknowledges a running stream only if the caller still waits.
         let (ready, started) = mpsc::sync_channel(0);
@@ -76,13 +104,15 @@ impl WasapiMicrophone {
                 }),
                 format,
             )),
-            Ok(Err(error)) => Err(error),
+            Ok(Err(error)) => {
+                let _ = thread.join();
+                Err(error)
+            }
             Err(error) => {
-                // Do not join a blocked driver here. The thread owns all driver
-                // resources and will drop a late stream without delivering PCM.
                 status.cancelled.store(true, Ordering::Release);
                 drop(started);
                 drop(stop_tx);
+                *late_open = Some(thread);
                 Err(match error {
                     mpsc::RecvTimeoutError::Timeout => MicError::OpenTimeout,
                     _ => MicError::Other,

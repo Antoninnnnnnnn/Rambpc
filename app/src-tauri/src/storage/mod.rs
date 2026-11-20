@@ -44,7 +44,7 @@ pub enum Edition {
     Portable,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DataRoot {
     pub edition: Edition,
     /// Where settings and protected files live (may be unwritable if ephemeral).
@@ -53,6 +53,15 @@ pub struct DataRoot {
     pub webview_dir: PathBuf,
     /// Nothing is persisted this session.
     pub ephemeral: bool,
+}
+
+impl std::fmt::Debug for DataRoot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DataRoot")
+            .field("edition", &self.edition)
+            .field("ephemeral", &self.ephemeral)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -105,29 +114,27 @@ pub fn ephemeral_root(mut root: DataRoot) -> DataRoot {
 
 fn probe_writable(dir: &Path) -> io::Result<()> {
     fs::create_dir_all(dir)?;
-    let probe = dir.join(".write-probe.tmp");
-    let renamed = dir.join(".write-probe.ok");
-    {
-        let mut file = fs::File::create(&probe)?;
-        file.write_all(b"ok")?;
-        file.sync_all()?;
-    }
-    fs::rename(&probe, &renamed)?;
-    fs::remove_file(&renamed)?;
-    Ok(())
+    let probe = dir.join(format!(".write-probe-{}", uuid::Uuid::new_v4()));
+    write_atomic(&probe, b"ok")?;
+    fs::remove_file(probe)
 }
 
 /// Write `bytes` to `path` atomically (temp file in the same folder + rename).
 fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(dir)?;
-    let tmp = path.with_extension("tmp");
-    {
-        let mut file = fs::File::create(&tmp)?;
-        file.write_all(bytes)?;
-        file.sync_all()?;
+    let tmp = dir.join(format!(".sambler-write-{}.tmp", uuid::Uuid::new_v4()));
+    let mut file = fs::File::options()
+        .write(true)
+        .create_new(true)
+        .open(&tmp)?;
+    let written = file.write_all(bytes).and_then(|()| file.sync_all());
+    drop(file);
+    let result = written.and_then(|()| fs::rename(&tmp, path));
+    if result.is_err() {
+        let _ = fs::remove_file(&tmp);
     }
-    fs::rename(&tmp, path)
+    result
 }
 
 #[derive(Serialize, Deserialize)]
@@ -280,6 +287,9 @@ impl Store {
     }
 
     pub fn forget_access(&self) -> Result<(), StoreError> {
+        if !self.can_remember_access() {
+            return Ok(()); // This session has no authority to modify remembered access.
+        }
         match fs::remove_file(self.root.dir.join(ACCESS_FILE)) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
@@ -287,11 +297,9 @@ impl Store {
         }
     }
 
-    /// Remove the private WebView2 folder of an ephemeral session.
-    pub fn cleanup_ephemeral(&self) {
-        if self.root.ephemeral {
-            let _ = fs::remove_dir_all(&self.root.webview_dir);
-        }
+    /// Return the temporary folder to remove after the WebView has shut down.
+    pub fn ephemeral_webview_dir(&self) -> Option<PathBuf> {
+        self.root.ephemeral.then(|| self.root.webview_dir.clone())
     }
 }
 
@@ -489,6 +497,39 @@ mod tests {
         assert!(store.protected_profile_unreadable());
         assert_eq!(fs::read(&path).unwrap(), b"foreign profile");
         let _ = fs::remove_dir_all(&root.dir);
+    }
+
+    #[test]
+    fn ephemeral_and_portable_sessions_leave_existing_access_untouched() {
+        for (edition, ephemeral) in [(Edition::Installed, true), (Edition::Portable, false)] {
+            let mut root = temp_root(edition);
+            root.ephemeral = ephemeral;
+            let path = root.dir.join(ACCESS_FILE);
+            fs::write(&path, b"existing protected profile").unwrap();
+            let store = Store::new(root.clone(), Arc::new(XorProtector));
+            store.forget_access().unwrap();
+            let preserved = fs::read(path).ok();
+            fs::remove_dir_all(&root.dir).unwrap();
+            assert_eq!(
+                preserved.as_deref(),
+                Some(b"existing protected profile".as_slice())
+            );
+        }
+    }
+
+    #[test]
+    fn atomic_write_does_not_touch_a_preexisting_temp_file() {
+        let root = temp_root(Edition::Installed);
+        let path = root.dir.join(SETTINGS_FILE);
+        let temp = path.with_extension("tmp");
+        fs::write(&temp, b"other writer").unwrap();
+        write_atomic(&path, b"updated").unwrap();
+        let result = (fs::read(&path).unwrap(), fs::read(&temp).ok());
+        fs::remove_dir_all(&root.dir).unwrap();
+        assert_eq!(
+            result,
+            (b"updated".to_vec(), Some(b"other writer".to_vec()))
+        );
     }
 
     #[test]

@@ -15,7 +15,8 @@ mod webview2;
 
 use crate::controller::{Controller, ControllerDeps, ControllerHandle, ControllerInit};
 use crate::ipc::{AccessSource, PersonalRules};
-use crate::ports::{MicStream, Microphone, SystemEvents};
+use crate::model::SystemEvent;
+use crate::ports::{Microphone, SystemEvents};
 use crate::rambler::RamblerAccess;
 use crate::settings::Settings;
 use crate::storage::history::History;
@@ -39,9 +40,16 @@ pub struct AppState {
     pub(crate) personal_rules: Mutex<Arc<PersonalRules>>,
     pub(crate) history: History,
     pub consent: Mutex<bool>,
+    consent_write: Mutex<()>,
+    settings_write: Mutex<()>,
+    access_write: Mutex<()>,
+    rules_write: Mutex<()>,
+    exit_ready: std::sync::atomic::AtomicBool,
     pub access: Mutex<AccessState>,
     pub microphone: Arc<dyn Microphone>,
-    pub mic_test: Mutex<Option<Box<dyn MicStream>>>,
+    mic_test: Arc<mic_test::MicTest>,
+    #[cfg(windows)]
+    wasapi: Arc<crate::platform::windows::WasapiMicrophone>,
     /// Keeps the lock/suspend subscription alive.
     pub _system_events: Mutex<Option<crate::ports::Subscription>>,
 }
@@ -66,6 +74,8 @@ pub fn run() {
         }
     };
 
+    let (cleanup, temporary_dirs) = std::sync::mpsc::channel();
+    let mut shutting_down = false;
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main_window(app);
@@ -107,15 +117,60 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building Sambler")
-        .run(|app, event| {
-            if let tauri::RunEvent::ExitRequested { .. } = event {
+        .run_return(move |app, event| match event {
+            tauri::RunEvent::ExitRequested { api, code, .. } => {
                 if let Some(state) = app.try_state::<AppState>() {
-                    let controller = state.controller.clone();
-                    tauri::async_runtime::block_on(controller.shutdown());
-                    state.store.cleanup_ephemeral();
+                    if state.exit_ready.load(std::sync::atomic::Ordering::Acquire) {
+                        return;
+                    }
+                    api.prevent_exit();
+                    if !std::mem::replace(&mut shutting_down, true) {
+                        state.mic_test.close();
+                        state.controller.request_shutdown();
+                        let app = app.clone();
+                        // Keep the event loop pumping while capture, the engine,
+                        // and storage finish their blocking work.
+                        tauri::async_runtime::spawn(async move {
+                            let state = app.state::<AppState>();
+                            tokio::join!(state.controller.shutdown(), state.mic_test.drain());
+                            #[cfg(windows)]
+                            {
+                                let wasapi = state.wasapi.clone();
+                                let _ = tauri::async_runtime::spawn_blocking(move || {
+                                    wasapi.join_late_open()
+                                })
+                                .await;
+                            }
+                            state
+                                .exit_ready
+                                .store(true, std::sync::atomic::Ordering::Release);
+                            app.exit(code.unwrap_or(0));
+                        });
+                    }
                 }
             }
+            tauri::RunEvent::Exit => {
+                if let Some(dir) = app
+                    .try_state::<AppState>()
+                    .and_then(|state| state.store.ephemeral_webview_dir())
+                {
+                    let _ = cleanup.send(dir);
+                }
+            }
+            _ => (),
         });
+    // WebView2 may release its user-data locks shortly after its controller
+    // closes. Never attempt this while the live WebView still owns the files.
+    if let Ok(dir) = temporary_dirs.try_recv() {
+        for _ in 0..20 {
+            match std::fs::remove_dir_all(&dir) {
+                Ok(()) => return,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
+                Err(_) => std::thread::sleep(std::time::Duration::from_millis(50)),
+            }
+        }
+        eprintln!("Sambler: temporary WebView profile cleanup failed");
+    }
 }
 
 fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error::Error>> {
@@ -186,11 +241,16 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         Controller::spawn_with_profile(deps, init, controller_rules, controller_history)
     });
 
+    let mic_test = Arc::new(mic_test::MicTest::default());
     let system_events = {
         let controller = controller.clone();
-        platform
-            .system_events
-            .subscribe(Box::new(move |event| controller.system(event)))
+        let mic_test = mic_test.clone();
+        platform.system_events.subscribe(Box::new(move |event| {
+            controller.system(event);
+            if matches!(event, SystemEvent::SessionLocked | SystemEvent::Suspending) {
+                mic_test.stop();
+            }
+        }))
     };
 
     app.manage(AppState {
@@ -200,9 +260,16 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         personal_rules: Mutex::new(personal_rules),
         history,
         consent: Mutex::new(consent),
+        consent_write: Mutex::new(()),
+        settings_write: Mutex::new(()),
+        access_write: Mutex::new(()),
+        rules_write: Mutex::new(()),
+        exit_ready: std::sync::atomic::AtomicBool::new(false),
         access: Mutex::new(AccessState { access, source }),
         microphone: platform.microphone.clone(),
-        mic_test: Mutex::new(None),
+        #[cfg(windows)]
+        wasapi: platform.wasapi.clone(),
+        mic_test: mic_test.clone(),
         _system_events: Mutex::new(Some(system_events)),
     });
 
@@ -215,15 +282,18 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         .find(|w| w.label == MAIN_WINDOW)
         .cloned()
         .ok_or("missing main window config")?;
-    let window = WebviewWindowBuilder::from_config(app.handle(), &config)?
+    let window = WebviewWindowBuilder::from_config(app.handle(), &config)
+        .map_err(|_| "cannot configure the Sambler window")?
         .data_directory(root.webview_dir.clone())
-        .build()?;
+        .build()
+        .map_err(|_| "cannot create the Sambler window")?;
     {
         let window_for_close = window.clone();
         window.on_window_event(move |event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 // Closing the window keeps Sambler available in the tray.
                 api.prevent_close();
+                mic_test.stop();
                 let _ = window_for_close.hide();
             }
         });
@@ -251,6 +321,8 @@ pub fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 /// Real Windows implementations of the ports.
 struct Platform {
     microphone: Arc<dyn Microphone>,
+    #[cfg(windows)]
+    wasapi: Arc<crate::platform::windows::WasapiMicrophone>,
     target: Arc<dyn crate::ports::TargetProbe>,
     inserter: Arc<dyn crate::ports::Inserter>,
     clipboard: Arc<dyn crate::ports::Clipboard>,
@@ -262,8 +334,10 @@ impl Platform {
     #[cfg(windows)]
     fn new() -> Self {
         use crate::platform::windows as w;
+        let wasapi = Arc::new(w::WasapiMicrophone::new());
         Self {
-            microphone: Arc::new(w::WasapiMicrophone::new()),
+            microphone: wasapi.clone(),
+            wasapi,
             target: Arc::new(w::UiaTargetProbe::new()),
             inserter: Arc::new(w::SendInputInserter::new()),
             clipboard: Arc::new(w::WinClipboard::new()),
@@ -279,7 +353,10 @@ impl Platform {
 }
 
 #[cfg(windows)]
-fn message_box(text: &str, flags: windows::Win32::UI::WindowsAndMessaging::MESSAGEBOX_STYLE) -> i32 {
+fn message_box(
+    text: &str,
+    flags: windows::Win32::UI::WindowsAndMessaging::MESSAGEBOX_STYLE,
+) -> i32 {
     use windows::Win32::UI::WindowsAndMessaging::MessageBoxW;
     use windows::core::HSTRING;
     unsafe { MessageBoxW(None, &HSTRING::from(text), &HSTRING::from("Sambler"), flags).0 }

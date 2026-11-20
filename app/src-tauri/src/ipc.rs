@@ -68,7 +68,9 @@ pub enum Availability {
     Connecting,
     Ready,
     /// "Dictée indisponible". Settings, draft and history stay usable.
-    Unavailable { reason: UnavailableReason },
+    Unavailable {
+        reason: UnavailableReason,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -105,7 +107,9 @@ pub enum KeptReason {
 pub enum InterruptReason {
     /// No microphone frames within the watchdog delay.
     MicrophoneStalled,
-    Microphone { error: MicError },
+    Microphone {
+        error: MicError,
+    },
     /// PCM handoff overflow: capture incomplete.
     CaptureOverflow,
     Network,
@@ -126,14 +130,20 @@ pub enum InterruptReason {
 pub enum RefusalReason {
     NeedsConsent,
     NeedsAccess,
-    Unavailable { reason: UnavailableReason },
+    Unavailable {
+        reason: UnavailableReason,
+    },
     /// Password field or secure desktop: microphone not opened.
     ProtectedField,
     /// Target uncertain: offer "Dicter dans Sambler" instead.
-    UncertainTarget { reason: UncertainReason },
+    UncertainTarget {
+        reason: UncertainReason,
+    },
     /// A previous failed take left text pending recovery; offer copy or replace.
     PendingDraft,
-    Microphone { error: MicError },
+    Microphone {
+        error: MicError,
+    },
 }
 
 /// Result of the latest take. Text-free.
@@ -145,14 +155,21 @@ pub enum TakeOutcome {
     /// "Vérifiez le champ, une partie du texte a pu être saisie."
     InsertedPartially,
     /// "Texte disponible" in Sambler with Copier / Effacer.
-    KeptInSambler { reason: KeptReason },
+    KeptInSambler {
+        reason: KeptReason,
+    },
     /// "Aucun texte obtenu".
     NoText,
     Cancelled,
     /// The take stopped early; `recovered` tells whether admitted text is in the draft.
-    Interrupted { reason: InterruptReason, recovered: bool },
+    Interrupted {
+        reason: InterruptReason,
+        recovered: bool,
+    },
     /// The take could not start.
-    Refused { reason: RefusalReason },
+    Refused {
+        reason: RefusalReason,
+    },
 }
 
 /// Draft metadata (no text). Times are Unix epoch milliseconds.
@@ -197,7 +214,7 @@ pub enum PartStatus {
     Missing,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DraftPart {
     pub status: PartStatus,
@@ -205,14 +222,31 @@ pub struct DraftPart {
     pub text: Option<String>,
 }
 
+impl std::fmt::Debug for DraftPart {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DraftPart")
+            .field("status", &self.status)
+            .finish_non_exhaustive()
+    }
+}
+
 /// The draft text, returned only by `get_draft`.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DraftView {
     pub meta: DraftMeta,
     pub parts: Vec<DraftPart>,
     /// The rendered full text when the take is complete; `None` otherwise.
     pub full_text: Option<String>,
+}
+
+impl std::fmt::Debug for DraftView {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DraftView")
+            .field("meta", &self.meta)
+            .field("parts", &self.parts)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -323,7 +357,7 @@ pub struct SaveRulesResult {
     pub conflicts: Vec<RuleConflict>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct HistoryQuery {
     /// Case-insensitive substring search over decrypted text, done in memory
@@ -335,7 +369,15 @@ pub struct HistoryQuery {
     pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+impl std::fmt::Debug for HistoryQuery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HistoryQuery")
+            .field("limit", &self.limit)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoryEntry {
     pub id: String,
@@ -345,6 +387,15 @@ pub struct HistoryEntry {
     pub profile: RenderProfile,
     /// `None` when this entry cannot be decrypted under this account.
     pub text: Option<String>,
+}
+
+impl std::fmt::Debug for HistoryEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HistoryEntry")
+            .field("id", &self.id)
+            .field("created_at_ms", &self.created_at_ms)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -364,4 +415,38 @@ pub struct HistoryStatus {
     pub skip_next: bool,
     /// False in ephemeral sessions (read-only data folder).
     pub available: bool,
+}
+
+#[cfg(test)]
+#[test]
+fn transcript_debug_is_redacted_without_changing_serialization() {
+    let text = "fixture private text";
+    let draft = DraftView {
+        meta: DraftMeta {
+            take: TakeId(1),
+            created_at_ms: 1,
+            expires_at_ms: 2,
+            complete: true,
+        },
+        parts: vec![DraftPart {
+            status: PartStatus::Admitted,
+            text: Some(text.into()),
+        }],
+        full_text: Some(text.into()),
+    };
+    let entry = HistoryEntry {
+        id: "synthetic-id".into(),
+        created_at_ms: 1,
+        expires_at_ms: 2,
+        language: Language::English,
+        profile: RenderProfile::Natural,
+        text: Some(text.into()),
+    };
+    let query = HistoryQuery {
+        search: Some(text.into()),
+        ..HistoryQuery::default()
+    };
+    assert!(!format!("{draft:?} {entry:?} {query:?}").contains(text));
+    assert_eq!(serde_json::to_value(&draft).unwrap()["fullText"], text);
+    assert_eq!(serde_json::to_value(&entry).unwrap()["text"], text);
 }

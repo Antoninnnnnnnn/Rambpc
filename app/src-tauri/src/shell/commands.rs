@@ -1,6 +1,5 @@
 //! Tauri commands of the main window. See `crate::ipc` for the contract.
 
-use super::mic_test::{Level, LevelOnlySink};
 use super::{AppState, hotkey};
 use crate::controller::CopyError;
 use crate::ipc::{
@@ -14,12 +13,20 @@ use crate::rambler::{AccessError, RamblerAccess};
 use crate::settings::Settings;
 use crate::storage::{self, history::HistoryError};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
 use zeroize::Zeroizing;
 
 type CmdResult<T> = Result<T, CommandError>;
+
+fn internal_error() -> CommandError {
+    CommandError::new("internal", "Erreur interne.")
+}
+
+async fn blocking<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> CmdResult<T> {
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|_| internal_error())
+}
 
 fn current_state(state: &AppState) -> UiState {
     state.controller.state().borrow().clone()
@@ -32,21 +39,27 @@ pub fn get_state(state: State<'_, AppState>) -> UiState {
 
 #[tauri::command]
 pub fn get_settings(state: State<'_, AppState>) -> Settings {
-    state.settings.lock().expect("settings lock").clone()
+    state
+        .settings
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
 }
 
 #[tauri::command]
-pub fn save_settings(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    settings: Settings,
-) -> CmdResult<Settings> {
+pub async fn save_settings(app: AppHandle, settings: Settings) -> CmdResult<Settings> {
     settings
         .validate()
         .map_err(|e| CommandError::new("invalid-settings", format!("Réglage invalide : {e}")))?;
-    let mut previous = state.settings.lock().expect("settings lock");
+    blocking(move || save_settings_inner(&app, settings)).await?
+}
+
+fn save_settings_inner(app: &AppHandle, settings: Settings) -> CmdResult<Settings> {
+    let state = tauri::Manager::state::<AppState>(app);
+    let _write = state.settings_write.lock().map_err(|_| internal_error())?;
+    let previous = state.settings.lock().map_err(|_| internal_error())?.clone();
     if !previous.shortcut.eq_ignore_ascii_case(&settings.shortcut) {
-        hotkey::rebind_dictation(&app, &previous.shortcut, &settings.shortcut).map_err(
+        hotkey::rebind_dictation(app, &previous.shortcut, &settings.shortcut).map_err(
             |reason| {
                 CommandError::new(
                     "shortcut",
@@ -92,7 +105,7 @@ pub fn save_settings(
         }
     }
     let persisted = state.store.save_settings(&settings);
-    *previous = settings.clone();
+    *state.settings.lock().map_err(|_| internal_error())? = settings.clone();
     state.controller.apply_settings(settings.clone());
     history_result?;
     match persisted {
@@ -134,68 +147,59 @@ pub async fn list_microphones(state: State<'_, AppState>) -> CmdResult<Vec<MicIn
         .map_err(mic_error)
 }
 
-static MIC_TEST_RUNNING: AtomicBool = AtomicBool::new(false);
-
 #[tauri::command]
 pub async fn start_mic_test(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
-    stop_mic_test_inner(&state);
     let choice = state
         .settings
         .lock()
-        .expect("settings lock")
+        .unwrap_or_else(|e| e.into_inner())
         .microphone
         .clone();
     let microphone = state.microphone.clone();
-    let level = Level::default();
-    let sink_level = level.clone();
-    let stream = tauri::async_runtime::spawn_blocking(move || {
-        microphone.open(
-            &choice,
-            Box::new(move |_rate| Box::new(LevelOnlySink::new(sink_level))),
-            Box::new(|_fault| {}),
-        )
-    })
-    .await
-    .map_err(|_| CommandError::new("internal", "Erreur interne."))?
-    .map_err(mic_error)?;
-    *state.mic_test.lock().expect("mic test lock") = Some(stream);
-    MIC_TEST_RUNNING.store(true, Ordering::SeqCst);
+    let test = state.mic_test.clone();
+    let Some(stopped) = test.request() else {
+        return Ok(());
+    };
+    let (opened, reply) = tokio::sync::oneshot::channel();
+    // The worker, not the invoke future, owns teardown even if the view closes.
     tauri::async_runtime::spawn(async move {
-        // Bounded to 60 s so a forgotten test never keeps the microphone open.
-        for _ in 0..1200 {
-            if !MIC_TEST_RUNNING.load(Ordering::SeqCst) {
-                break;
-            }
-            let _ = app.emit(EVENT_MIC_TEST_LEVEL, level.get());
-            tokio::time::sleep(Duration::from_millis(50)).await;
-        }
-        if MIC_TEST_RUNNING.swap(false, Ordering::SeqCst)
-            && let Some(state) = tauri::Manager::try_state::<AppState>(&app)
-        {
-            stop_mic_test_inner(&state);
-        }
-        let _ = app.emit(EVENT_MIC_TEST_LEVEL, 0.0_f32);
+        test.run(microphone, choice, stopped, opened, |level| {
+            let _ = app.emit(EVENT_MIC_TEST_LEVEL, level);
+        })
+        .await;
     });
-    Ok(())
-}
-
-fn stop_mic_test_inner(state: &AppState) {
-    MIC_TEST_RUNNING.store(false, Ordering::SeqCst);
-    if let Some(stream) = state.mic_test.lock().expect("mic test lock").take() {
-        stream.stop();
-    }
+    reply
+        .await
+        .map_err(|_| CommandError::new("internal", "Erreur interne."))?
+        .map_err(mic_error)
 }
 
 #[tauri::command]
 pub fn stop_mic_test(state: State<'_, AppState>) {
-    stop_mic_test_inner(&state);
+    state.mic_test.stop();
 }
 
 #[tauri::command]
-pub fn set_consent(state: State<'_, AppState>, enabled: bool) -> CmdResult<UiState> {
-    let saved = state.store.save_consent(enabled);
-    *state.consent.lock().expect("consent lock") = enabled;
-    state.controller.set_consent(enabled);
+pub async fn set_consent(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    enabled: bool,
+) -> CmdResult<UiState> {
+    {
+        let mut current = state.consent.lock().unwrap_or_else(|e| e.into_inner());
+        *current = enabled;
+        state.controller.set_consent(enabled);
+    }
+    let saved = blocking(move || {
+        let state = tauri::Manager::state::<AppState>(&app);
+        let _write = state
+            .consent_write
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let current = *state.consent.lock().unwrap_or_else(|e| e.into_inner());
+        state.store.save_consent(current)
+    })
+    .await?;
     match saved {
         Ok(()) | Err(storage::StoreError::Ephemeral) => Ok(current_state(&state)),
         Err(_) => Err(CommandError::new(
@@ -206,7 +210,7 @@ pub fn set_consent(state: State<'_, AppState>, enabled: bool) -> CmdResult<UiSta
 }
 
 fn access_status(state: &AppState) -> AccessStatus {
-    let access = state.access.lock().expect("access lock");
+    let access = state.access.lock().unwrap_or_else(|e| e.into_inner());
     storage::access_status(access.access.as_ref(), access.source, &state.store)
 }
 
@@ -216,7 +220,14 @@ pub fn get_access(state: State<'_, AppState>) -> AccessStatus {
 }
 
 #[tauri::command]
-pub fn set_access(state: State<'_, AppState>, access: AccessInput) -> CmdResult<AccessStatus> {
+pub async fn set_access(app: AppHandle, access: AccessInput) -> CmdResult<AccessStatus> {
+    let access = AccessOnDrop(access);
+    blocking(move || set_access_inner(&app, &access.0)).await?
+}
+
+fn set_access_inner(app: &AppHandle, access: &AccessInput) -> CmdResult<AccessStatus> {
+    let state = tauri::Manager::state::<AppState>(app);
+    let _write = state.access_write.lock().map_err(|_| internal_error())?;
     let parsed = RamblerAccess::new(
         &access.authority,
         Zeroizing::new(access.api_key.clone()),
@@ -234,7 +245,7 @@ pub fn set_access(state: State<'_, AppState>, access: AccessInput) -> CmdResult<
         ),
     })?;
     let source = if access.remember && state.store.can_remember_access() {
-        state.store.save_access(&access).map_err(|_| {
+        state.store.save_access(access).map_err(|_| {
             CommandError::new(
                 "save-failed",
                 "L'accès n'a pas pu être enregistré de façon protégée.",
@@ -244,9 +255,8 @@ pub fn set_access(state: State<'_, AppState>, access: AccessInput) -> CmdResult<
     } else {
         AccessSource::Session
     };
-    zeroize_input(access);
     {
-        let mut current = state.access.lock().expect("access lock");
+        let mut current = state.access.lock().unwrap_or_else(|e| e.into_inner());
         current.access = Some(parsed.clone());
         current.source = source;
     }
@@ -254,23 +264,33 @@ pub fn set_access(state: State<'_, AppState>, access: AccessInput) -> CmdResult<
     Ok(access_status(&state))
 }
 
-fn zeroize_input(mut access: AccessInput) {
-    use zeroize::Zeroize;
-    access.api_key.zeroize();
-    access.android_package.zeroize();
-    access.android_cert.zeroize();
+struct AccessOnDrop(AccessInput);
+impl Drop for AccessOnDrop {
+    fn drop(&mut self) {
+        use zeroize::Zeroize;
+        self.0.api_key.zeroize();
+        self.0.android_package.zeroize();
+        self.0.android_cert.zeroize();
+    }
 }
 
 #[tauri::command]
-pub fn clear_access(state: State<'_, AppState>) -> CmdResult<AccessStatus> {
-    let _ = state.store.forget_access();
-    {
-        let mut current = state.access.lock().expect("access lock");
-        current.access = None;
-        current.source = AccessSource::None;
-    }
-    state.controller.set_access(None);
-    Ok(access_status(&state))
+pub async fn clear_access(app: AppHandle) -> CmdResult<AccessStatus> {
+    blocking(move || {
+        let state = tauri::Manager::state::<AppState>(&app);
+        let _write = state.access_write.lock().map_err(|_| internal_error())?;
+        {
+            let mut current = state.access.lock().unwrap_or_else(|e| e.into_inner());
+            current.access = None;
+            current.source = AccessSource::None;
+        }
+        state.controller.set_access(None);
+        state.store.forget_access().map_err(|_| CommandError::new(
+            "save-failed",
+            "L’accès a été retiré pour cette session, mais la copie protégée n’a pas pu être supprimée.",
+        ))?;
+        Ok(access_status(&state))
+    }).await?
 }
 
 #[tauri::command]
@@ -348,7 +368,7 @@ pub fn preview_render(
     let personal = state
         .personal_rules
         .lock()
-        .expect("personal rules lock")
+        .unwrap_or_else(|e| e.into_inner())
         .clone();
     rules.lexicon.clone_from(&personal.lexicon);
     rules.expressions.clone_from(&personal.expressions);
@@ -362,15 +382,32 @@ pub fn open_mic_privacy_settings() {
 
 #[tauri::command]
 pub fn get_personal_rules(state: State<'_, AppState>) -> PersonalRules {
-    (**state.personal_rules.lock().expect("personal rules lock")).clone()
+    get_rules(&state)
+}
+
+fn get_rules(state: &AppState) -> PersonalRules {
+    let rules = state
+        .personal_rules
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
+    (*rules).clone()
 }
 
 #[tauri::command]
-pub fn save_personal_rules(
-    state: State<'_, AppState>,
+pub async fn save_personal_rules(
+    app: AppHandle,
     rules: PersonalRulesInput,
 ) -> CmdResult<SaveRulesResult> {
-    let mut current = state.personal_rules.lock().expect("personal rules lock");
+    blocking(move || save_personal_rules_inner(&app, rules)).await?
+}
+
+fn save_personal_rules_inner(
+    app: &AppHandle,
+    rules: PersonalRulesInput,
+) -> CmdResult<SaveRulesResult> {
+    let state = tauri::Manager::state::<AppState>(app);
+    let _write = state.rules_write.lock().map_err(|_| internal_error())?;
     let conflicts = state.store.save_personal_rules(&rules).map_err(|_| {
         CommandError::new(
             "save-failed",
@@ -380,7 +417,7 @@ pub fn save_personal_rules(
     if !conflicts.is_empty() {
         return Ok(SaveRulesResult {
             saved: false,
-            rules: (**current).clone(),
+            rules: get_rules(&state),
             conflicts,
         });
     }
@@ -389,7 +426,7 @@ pub fn save_personal_rules(
         expressions: rules.expressions,
         unreadable: false,
     });
-    *current = updated.clone();
+    *state.personal_rules.lock().map_err(|_| internal_error())? = updated.clone();
     state.controller.apply_personal_rules(updated.clone());
     Ok(SaveRulesResult {
         saved: true,
@@ -463,12 +500,14 @@ pub async fn delete_history_entry(
 pub async fn clear_history(app: AppHandle, disable: bool) -> CmdResult<HistoryStatus> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = tauri::Manager::state::<AppState>(&app);
-        let mut settings = state.settings.lock().expect("settings lock");
+        let _write = state.settings_write.lock().map_err(|_| internal_error())?;
+        let mut settings = state.settings.lock().map_err(|_| internal_error())?.clone();
         if disable {
             settings.history.enabled = false;
         }
         state.history.invalidate_for_clear(&settings.history);
         let saved = if disable {
+            *state.settings.lock().map_err(|_| internal_error())? = settings.clone();
             state.controller.apply_settings(settings.clone());
             state.store.save_history_options(&settings.history)
         } else {
@@ -503,8 +542,14 @@ pub async fn skip_history_next_take(
 }
 
 #[tauri::command]
-pub fn set_launch_at_startup(state: State<'_, AppState>, enabled: bool) -> CmdResult<()> {
-    let mut settings = state.settings.lock().expect("settings lock");
+pub async fn set_launch_at_startup(app: AppHandle, enabled: bool) -> CmdResult<()> {
+    blocking(move || set_launch_at_startup_inner(&app, enabled)).await?
+}
+
+fn set_launch_at_startup_inner(app: &AppHandle, enabled: bool) -> CmdResult<()> {
+    let state = tauri::Manager::state::<AppState>(app);
+    let _write = state.settings_write.lock().map_err(|_| internal_error())?;
+    let mut settings = state.settings.lock().map_err(|_| internal_error())?.clone();
     storage::set_startup(state.store.root(), enabled).map_err(|error| match error {
         storage::StartupError::Portable => CommandError::new(
             "portable",
@@ -520,6 +565,7 @@ pub fn set_launch_at_startup(state: State<'_, AppState>, enabled: bool) -> CmdRe
         ),
     })?;
     settings.launch_at_startup = enabled;
+    *state.settings.lock().map_err(|_| internal_error())? = settings.clone();
     state.controller.apply_settings(settings.clone());
     state.store.save_settings(&settings).map_err(|_| {
         CommandError::new(
