@@ -607,6 +607,51 @@ async fn late_a_cannot_insert_or_cancel_b_and_duplicate_stop_inserts_b_once() {
     rig.close().await;
 }
 
+#[test]
+fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
+    use crate::{ipc::PersonalRules, text::LexiconEntry};
+    let rules = |written: &str| {
+        Arc::new(PersonalRules {
+            lexicon: vec![LexiconEntry {
+                id: "test".into(),
+                heard: "texte".into(),
+                written: written.into(),
+                enabled: true,
+                apply_in_faithful: true,
+            }],
+            expressions: vec![],
+            unreadable: false,
+        })
+    };
+    let mut state = ready();
+    state.use_profile(rules("Ancienne règle"));
+    let id = start(&mut state, 0);
+    state.step(Input::PersonalRules(rules("Nouvelle règle")), at(1));
+    state.step(Input::Delivered(id, segment(0, 0..100, "texte")), at(1));
+    state.step(Input::Finish(id), at(2));
+    state.step(Input::MicFree(id), at(3));
+    let effects = state.step(Input::Collection(id, Ok(())), at(4));
+    assert!(
+        matches!(effects.as_slice(), [Effect::Archive(value), Effect::Insert(take, _, text)]
+        if value.id == id && *take == id && value.created == at(4).unix
+            && &*value.text == "Ancienne règle" && Arc::ptr_eq(&value.text, text))
+    );
+    assert_eq!(
+        state.draft().unwrap().full_text.as_deref(),
+        Some("Ancienne règle")
+    );
+    state.step(Input::Insertion(id, InsertOutcome::Delivered), at(5));
+    state.step(Input::Hotkey(KeyEdge::Released), at(5));
+    let next = start(&mut state, 6);
+    state.step(Input::Delivered(next, segment(0, 0..100, "texte")), at(7));
+    state.step(Input::Finish(next), at(7));
+    state.step(Input::MicFree(next), at(8));
+    let effects = state.step(Input::Collection(next, Ok(())), at(9));
+    assert!(
+        matches!(effects.as_slice(), [Effect::Archive(value), Effect::Insert(_, _, _)] if &*value.text == "Nouvelle règle")
+    );
+}
+
 fn at(mono: u64) -> Now {
     Now {
         mono,

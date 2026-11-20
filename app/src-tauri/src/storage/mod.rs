@@ -5,6 +5,7 @@
 //! - `portable.flag` next to the executable → `<exe dir>\Data\` (absolute path,
 //!   independent of the working directory);
 //! - otherwise the installed edition → `%LOCALAPPDATA%\Sambler\`.
+//!
 //! The directory is checked by creating, writing and renaming a small file.
 //! If that fails the app may run in ephemeral mode: readable settings are
 //! loaded, nothing is written, and WebView2 uses a private temp folder.
@@ -12,6 +13,13 @@
 //! Ordinary settings are plain versioned JSON written atomically. Consent and
 //! remembered Rambler access are protected with DPAPI (user scope). In the
 //! portable edition the access is never written to disk.
+
+#[path = "../history/mod.rs"]
+pub(crate) mod history;
+mod personal;
+mod startup;
+
+pub(crate) use startup::{StartupError, set_startup, startup_enabled};
 
 use crate::ipc::{AccessInput, AccessSource, AccessStatus};
 use crate::ports::Protector;
@@ -196,7 +204,10 @@ impl Store {
         if self.root.ephemeral {
             return Err(StoreError::Ephemeral);
         }
-        let bytes = serde_json::to_vec_pretty(settings).map_err(|_| StoreError::Io)?;
+        let mut ordinary = settings.clone();
+        // Consent to archival is profile-bound, never trusted from plain JSON.
+        ordinary.history.enabled = false;
+        let bytes = serde_json::to_vec_pretty(&ordinary).map_err(|_| StoreError::Io)?;
         write_atomic(&self.root.dir.join(SETTINGS_FILE), &bytes).map_err(|_| StoreError::Io)
     }
 
@@ -222,7 +233,10 @@ impl Store {
             rambler_dictation: enabled,
         };
         let plain = Zeroizing::new(serde_json::to_vec(&record).map_err(|_| StoreError::Io)?);
-        let blob = self.protector.protect(&plain).map_err(|_| StoreError::Protect)?;
+        let blob = self
+            .protector
+            .protect(&plain)
+            .map_err(|_| StoreError::Protect)?;
         write_atomic(&self.root.dir.join(CONSENT_FILE), &blob).map_err(|_| StoreError::Io)
     }
 
@@ -258,7 +272,10 @@ impl Store {
             android_cert: input.android_cert.trim().to_owned(),
         };
         let plain = Zeroizing::new(serde_json::to_vec(&record).map_err(|_| StoreError::Io)?);
-        let blob = self.protector.protect(&plain).map_err(|_| StoreError::Protect)?;
+        let blob = self
+            .protector
+            .protect(&plain)
+            .map_err(|_| StoreError::Protect)?;
         write_atomic(&self.root.dir.join(ACCESS_FILE), &blob).map_err(|_| StoreError::Io)
     }
 
@@ -298,7 +315,11 @@ pub fn access_status(
 ) -> AccessStatus {
     AccessStatus {
         configured: access.is_some(),
-        source: if access.is_some() { source } else { AccessSource::None },
+        source: if access.is_some() {
+            source
+        } else {
+            AccessSource::None
+        },
         authority: access.map(|a| a.authority().to_owned()),
         can_remember: store.can_remember_access(),
     }
@@ -344,8 +365,10 @@ mod tests {
         let root = temp_root(Edition::Installed);
         let store = Store::new(root.clone(), Arc::new(XorProtector));
         assert_eq!(store.load_settings(), Settings::default());
-        let mut s = Settings::default();
-        s.draft_minutes = 5;
+        let s = Settings {
+            draft_minutes: 5,
+            ..Settings::default()
+        };
         store.save_settings(&s).unwrap();
         assert_eq!(store.load_settings().draft_minutes, 5);
         fs::write(root.dir.join(SETTINGS_FILE), b"{not json").unwrap();
@@ -377,8 +400,94 @@ mod tests {
             android_cert: "c".into(),
             remember: true,
         };
-        assert!(matches!(store.save_access(&input), Err(StoreError::PortableAccess)));
+        assert!(matches!(
+            store.save_access(&input),
+            Err(StoreError::PortableAccess)
+        ));
         assert!(!root.dir.join(ACCESS_FILE).exists());
+        let _ = fs::remove_dir_all(&root.dir);
+    }
+
+    #[test]
+    fn rules_are_protected_conflicts_never_write_and_explicit_save_replaces_unreadable() {
+        use crate::{ipc::PersonalRulesInput, text::LexiconEntry};
+        let root = temp_root(Edition::Portable);
+        let store = Store::new(root.clone(), Arc::new(XorProtector));
+        let path = root.dir.join("personal-rules.bin");
+        let mut rules = PersonalRulesInput {
+            lexicon: vec![LexiconEntry {
+                id: "one".into(),
+                heard: "melusine".into(),
+                written: "Mélusine privée".into(),
+                enabled: true,
+                apply_in_faithful: true,
+            }],
+            expressions: vec![],
+        };
+        assert!(store.save_personal_rules(&rules).unwrap().is_empty());
+        let sealed = fs::read(&path).unwrap();
+        assert!(
+            !sealed
+                .windows("Mélusine privée".len())
+                .any(|w| w == "Mélusine privée".as_bytes())
+        );
+        assert_eq!(store.load_personal_rules().lexicon, rules.lexicon);
+        let withheld = store.withheld_personal_rules();
+        assert!(withheld.unreadable && withheld.lexicon.is_empty());
+        let duplicate = LexiconEntry {
+            id: "two".into(),
+            written: "Other".into(),
+            ..rules.lexicon[0].clone()
+        };
+        rules.lexicon.push(duplicate);
+        assert!(!store.save_personal_rules(&rules).unwrap().is_empty());
+        assert_eq!(fs::read(&path).unwrap(), sealed);
+        fs::write(&path, b"unreadable profile").unwrap();
+        assert!(store.load_personal_rules().unreadable);
+        assert_eq!(fs::read(&path).unwrap(), b"unreadable profile");
+        rules.lexicon.pop();
+        let mut ephemeral = root.clone();
+        ephemeral.ephemeral = true;
+        assert!(
+            Store::new(ephemeral, Arc::new(XorProtector))
+                .save_personal_rules(&rules)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(fs::read(&path).unwrap(), b"unreadable profile");
+        assert!(store.save_personal_rules(&rules).unwrap().is_empty());
+        assert!(!store.load_personal_rules().unreadable);
+        assert!(matches!(
+            set_startup(&root, true),
+            Err(StartupError::Portable)
+        ));
+        let _ = fs::remove_dir_all(&root.dir);
+    }
+
+    #[test]
+    fn history_opt_in_is_profile_bound_and_invalid_policy_is_preserved() {
+        let root = temp_root(Edition::Portable);
+        let store = Store::new(root.clone(), Arc::new(XorProtector));
+        let settings = Settings {
+            history: crate::settings::HistoryOptions {
+                enabled: true,
+                retention_days: 30,
+            },
+            ..Settings::default()
+        };
+        store.save_settings(&settings).unwrap();
+        assert!(!store.load_settings().history.enabled);
+        assert!(store.load_history_options().unwrap().is_none());
+        store.save_history_options(&settings.history).unwrap();
+        assert_eq!(
+            store.load_history_options().unwrap(),
+            Some(settings.history)
+        );
+        assert!(!store.protected_profile_unreadable());
+        let path = root.dir.join("history-policy.bin");
+        fs::write(&path, b"foreign profile").unwrap();
+        assert!(store.protected_profile_unreadable());
+        assert_eq!(fs::read(&path).unwrap(), b"foreign profile");
         let _ = fs::remove_dir_all(&root.dir);
     }
 

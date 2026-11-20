@@ -5,11 +5,12 @@ pub mod level;
 mod runtime;
 mod state;
 
-use crate::ipc::{DraftView, UiState};
+use crate::ipc::{DraftView, PersonalRules, UiState};
 use crate::model::{KeyEdge, SystemEvent, TakeId};
 use crate::ports::{Clipboard, ClipboardError, Inserter, Microphone, TargetProbe};
 use crate::rambler::RamblerAccess;
 use crate::settings::Settings;
+use crate::storage::history::History;
 use runtime::{Command, Inbox};
 use state::Input;
 use std::sync::Arc;
@@ -44,7 +45,16 @@ pub struct Controller;
 impl Controller {
     /// Spawn the controller task on the current Tokio runtime.
     pub fn spawn(deps: ControllerDeps, init: ControllerInit) -> ControllerHandle {
-        runtime::spawn(deps, init)
+        runtime::spawn(deps, init, None)
+    }
+
+    pub(crate) fn spawn_with_profile(
+        deps: ControllerDeps,
+        init: ControllerInit,
+        rules: Arc<PersonalRules>,
+        history: History,
+    ) -> ControllerHandle {
+        runtime::spawn(deps, init, Some((rules, history)))
     }
 }
 
@@ -86,6 +96,10 @@ impl ControllerHandle {
     /// New settings; apply to the next take.
     pub fn apply_settings(&self, settings: Settings) {
         self.inbox.send(Command::Input(Input::Settings(settings)));
+    }
+
+    pub(crate) fn apply_personal_rules(&self, rules: Arc<PersonalRules>) {
+        self.inbox.send(Command::Input(Input::PersonalRules(rules)));
     }
 
     /// Enabling may warm the engine; withdrawing stops any take immediately.
