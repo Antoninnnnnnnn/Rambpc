@@ -9,6 +9,7 @@
 //!
 //!   cargo run --example recette_bloc_notes -- <wav> <fr|en> <scenario>
 //!   scenarios: hold | toggle | switch | cancel | all
+//!   optional 4th argument `mic`: real microphone, the WAV is played on the speakers.
 
 #[cfg(windows)]
 mod recette {
@@ -200,6 +201,9 @@ mod recette {
         let scenario = args.get(3).cloned().unwrap_or_else(|| "all".into());
         let wav = Arc::new(read_wav(wav_path)?);
         let wav_ms = wav.samples.len() as u64 * 1000 / wav.rate.hz() as u64;
+        // "mic": real WASAPI microphone; the WAV is played on the speakers.
+        let real_mic = args.get(4).is_some_and(|a| a == "mic");
+        let speaker_wav = real_mic.then(|| wav_path.clone());
         let access = RamblerAccess::from_environment()
             .map_err(|e| format!("access: {e}"))?
             .ok_or("missing RAMBLER_* access in the environment")?;
@@ -215,7 +219,11 @@ mod recette {
             settings.language = language;
             settings.gesture = if name == "toggle" { Gesture::Toggle } else { Gesture::Hold };
             let deps = ControllerDeps {
-                microphone: Arc::new(WavMicrophone { wav: wav.clone() }),
+                microphone: if real_mic {
+                    Arc::new(sambler_lib::platform::windows::WasapiMicrophone::new())
+                } else {
+                    Arc::new(WavMicrophone { wav: wav.clone() })
+                },
                 target: Arc::new(UiaTargetProbe::new()),
                 inserter: Arc::new(SendInputInserter::new()),
                 clipboard: Arc::new(WinClipboard::new()),
@@ -236,7 +244,8 @@ mod recette {
             .map_err(|e| format!("engine not ready: {e}"))?;
 
             let pad = notepad::Fixture::open().map_err(|e| format!("notepad: {e}"))?;
-            let result = run_scenario(name, &controller, &mut rx, &pad, wav_ms).await;
+            let result =
+                run_scenario(name, &controller, &mut rx, &pad, wav_ms, speaker_wav.as_deref()).await;
             let cleanup = pad.close();
             controller.shutdown().await;
             match result {
@@ -260,6 +269,7 @@ mod recette {
         rx: &mut watch::Receiver<UiState>,
         pad: &notepad::Fixture,
         wav_ms: u64,
+        speaker_wav: Option<&str>,
     ) -> Result<String, String> {
         pad.focus()?;
         tokio::time::sleep(Duration::from_millis(300)).await;
@@ -291,7 +301,20 @@ mod recette {
             };
         }
 
-        tokio::time::sleep(Duration::from_millis(wav_ms + 400)).await;
+        match speaker_wav {
+            Some(path) => {
+                // Play the phrase on the speakers and wait until it ends.
+                let script = format!("(New-Object Media.SoundPlayer '{path}').PlaySync()");
+                let _ = tokio::task::spawn_blocking(move || {
+                    std::process::Command::new("powershell")
+                        .args(["-NoProfile", "-Command", &script])
+                        .status()
+                })
+                .await;
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+            None => tokio::time::sleep(Duration::from_millis(wav_ms + 400)).await,
+        }
         let stop_at = Instant::now();
         match name {
             "toggle" => controller.hotkey(KeyEdge::Pressed),
