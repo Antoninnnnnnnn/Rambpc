@@ -43,6 +43,22 @@ pub struct Settings {
     /// Electron apps, Outlook…). Native Edit/RichEdit and Word keep their
     /// atomic paths whatever this says.
     pub insertion: InsertionMethod,
+    /// Which field receives the text at the end of a take.
+    pub insertion_target: InsertionTarget,
+}
+
+/// Where the text goes when the take ends.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InsertionTarget {
+    /// The field where the take started, provided it has the focus again at
+    /// the end (leaving it and coming back during the take is fine).
+    /// Otherwise the text stays in Sambler.
+    #[default]
+    OriginalField,
+    /// Whatever eligible field has the focus when the take ends (Wispr-like).
+    /// A password field or an unrecognized field keeps the text in Sambler.
+    CursorAtEnd,
 }
 
 /// Insertion for fields without an atomic editor API.
@@ -75,6 +91,7 @@ impl Default for Settings {
             history: HistoryOptions::default(),
             launch_at_startup: false,
             insertion: InsertionMethod::Paste,
+            insertion_target: InsertionTarget::OriginalField,
         }
     }
 }
