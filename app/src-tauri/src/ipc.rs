@@ -543,7 +543,7 @@ pub struct ActivityStats {
 // | `get_note`           | `id: string`                           | `Note`             |
 // | `save_note`          | `note: { id: string \| null, text }`   | `NoteMeta` (null id creates; ≤ 200 000 chars, ≤ 1 000 notes) |
 // | `delete_note`        | `id: string`                           | `()`               |
-// | `transcribe_file`    | —                                      | `DraftView \| null` (opens the native file picker itself; null when the person cancels the picker; the result also joins the recents) |
+// | `transcribe_file`    | —                                      | `TranscriptionResult \| null` (opens the native file picker itself; null when the person cancels the picker; consent and access required) |
 // | `cancel_transcription` | —                                    | `()`               |
 //
 // Events: `sambler://transcription` → `TranscriptionProgress` (no text).
@@ -618,4 +618,26 @@ pub struct TranscriptionProgress {
     pub total_ms: Option<u64>,
     /// French, text-free reason when `phase` is `failed`.
     pub message: Option<String>,
+}
+
+/// Result of `transcribe_file`, returned only to the view that asked for it.
+#[derive(Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranscriptionResult {
+    /// File name only (no folder path).
+    pub file_name: String,
+    pub duration_ms: u64,
+    /// Ranges in order, with the same statuses as a draft.
+    pub parts: Vec<DraftPart>,
+    /// Rendered full text when every range was admitted.
+    pub full_text: Option<String>,
+}
+
+impl std::fmt::Debug for TranscriptionResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TranscriptionResult")
+            .field("duration_ms", &self.duration_ms)
+            .field("parts", &self.parts.len())
+            .finish_non_exhaustive()
+    }
 }
