@@ -31,7 +31,7 @@ mod win {
         }
     }
 
-    fn code_shape(expected_pid: u32, check: Option<&str>) -> bool {
+    fn code_shape(expected_pid: u32, check: Option<&str>, omnibox: bool) -> bool {
         if unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) }.is_err() {
             return false;
         }
@@ -70,6 +70,43 @@ mod win {
         println!(
             "shape: control={control:?} text_pattern={text} app_pid_matches={pid_matches} keyboard_focus={keyboard_focus} terminal_marker={terminal_marker}"
         );
+        if omnibox {
+            if !pid_matches || !keyboard_focus || control != Some(UIA_EditControlTypeId.0) {
+                return false;
+            }
+            let class = unsafe { element.CurrentClassName() }
+                .ok()
+                .map(|value| value.to_string());
+            let class_tag = match class.as_deref() {
+                Some("OmniboxViewViews") => "OmniboxViewViews",
+                Some("Textfield") => "Textfield",
+                Some("") | None => "missing",
+                _ => "other",
+            };
+            let multiline = unsafe { element.CurrentAriaProperties() }
+                .ok()
+                .map(|value| value.to_string())
+                .is_some_and(|value| value.split(';').any(|item| item == "multiline=false"));
+            let value = unsafe {
+                element.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId)
+            }
+            .and_then(|value| unsafe { value.CurrentValue() })
+            .ok()
+            .map(|value| value.to_string());
+            let Some(value) = value else {
+                return false;
+            };
+            let accepted = if check == Some("inserted") {
+                value.starts_with("office-fixture")
+            } else {
+                value.ends_with("editor.html")
+            };
+            let suffix = check == Some("inserted") && accepted && value != "office-fixture";
+            println!(
+                "omnibox class={class_tag} explicit_single_line={multiline} matches={accepted} suffix={suffix}"
+            );
+            return accepted;
+        }
         let Some(expected) = check else {
             return true;
         };
@@ -94,6 +131,7 @@ mod win {
             Some("word") => AppKind::Word,
             Some("edge") => AppKind::Edge,
             Some("chrome") => AppKind::Chrome,
+            Some("brave") => AppKind::Other,
             Some("code") => AppKind::VsCode,
             _ => return Err("unknown app fixture".into()),
         };
@@ -119,7 +157,10 @@ mod win {
         if !focus() {
             return Err("fixture is not foreground".into());
         }
+        let browser = matches!(app, AppKind::Edge | AppKind::Chrome | AppKind::Other);
         let chord = match mode.as_str() {
+            "address" if browser => Some((None, VIRTUAL_KEY(b'L'.into()))),
+            "escape" if browser => Some((None, VK_ESCAPE)),
             "undo" => Some((None, VIRTUAL_KEY(b'Z'.into()))),
             "save" if app == AppKind::VsCode => Some((None, VIRTUAL_KEY(b'S'.into()))),
             "code-editor" if app == AppKind::VsCode => Some((None, VIRTUAL_KEY(b'1'.into()))),
@@ -131,12 +172,12 @@ mod win {
         };
         if let Some((extra, key)) = chord {
             let keys: Vec<_> = [
-                Some((VK_CONTROL, false)),
+                (key != VK_ESCAPE).then_some((VK_CONTROL, false)),
                 extra.map(|key| (key, false)),
                 Some((key, false)),
                 Some((key, true)),
                 extra.map(|key| (key, true)),
-                Some((VK_CONTROL, true)),
+                (key != VK_ESCAPE).then_some((VK_CONTROL, true)),
             ]
             .into_iter()
             .flatten()
@@ -163,6 +204,18 @@ mod win {
             }
             return Ok(());
         }
+        if browser && matches!(mode.as_str(), "address-before" | "address-after") {
+            let check = if mode == "address-after" {
+                "inserted"
+            } else {
+                "restored"
+            };
+            return if code_shape(pid, Some(check), true) {
+                Ok(())
+            } else {
+                Err("address fixture readback mismatch".into())
+            };
+        }
         if app == AppKind::VsCode
             && matches!(mode.as_str(), "code-shape" | "code-read" | "code-empty")
         {
@@ -171,7 +224,7 @@ mod win {
                 "code-empty" => Some(""),
                 _ => None,
             };
-            if !code_shape(pid, check) {
+            if !code_shape(pid, check, false) {
                 return Err("fixture UIA readback failed".into());
             }
             if check.is_some() {

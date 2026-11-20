@@ -246,7 +246,7 @@ struct Snapshot {
 
 enum Caret {
     Text(IUIAutomationTextRange),
-    Edit { hwnd: HWND, index: u32 },
+    Edit { hwnd: HWND, selection: [u32; 2] },
     Office(office::BodyCaret),
 }
 
@@ -326,7 +326,10 @@ impl State {
     fn revalidate(&mut self, id: u64) -> Result<(), TargetChange> {
         use TargetChange::*;
         let old = &self.records.get(&id).ok_or(Unknown)?.1;
-        if chromium_app(old.info.app) && Window::foreground() == Some(old.window) {
+        if old.window.chromium_widget()
+            && Window::foreground() == Some(old.window)
+            && matches!(old.caret, Caret::Text(_))
+        {
             return recheck_chromium(&self.automation, old);
         }
         let now = inspect(&self.automation);
@@ -373,7 +376,16 @@ impl State {
                 }
                 Ok(())
             }
-            (Caret::Edit { hwnd: a, index: i }, Caret::Edit { hwnd: b, index: j }) if a == b => {
+            (
+                Caret::Edit {
+                    hwnd: a,
+                    selection: i,
+                },
+                Caret::Edit {
+                    hwnd: b,
+                    selection: j,
+                },
+            ) if a == b => {
                 if i == j {
                     Ok(())
                 } else {
@@ -476,13 +488,21 @@ pub(super) fn insert_office(token: &TargetToken, text: Zeroizing<Vec<u16>>) -> I
         let Caret::Office(caret) = &saved.caret else {
             return office::Write::NotStarted;
         };
-        office::write(caret, HWND(root as _), HWND(body as _), &text, || {
-            Instant::now() < deadline
-                && write_focus(&token) == Some(HWND(body as _))
-                && worker_phase
-                    .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
-                    .is_ok()
-        })
+        let still_focused =
+            || Instant::now() < deadline && write_focus(&token) == Some(HWND(body as _));
+        office::write(
+            caret,
+            HWND(root as _),
+            HWND(body as _),
+            &text,
+            || {
+                still_focused()
+                    && worker_phase
+                        .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
+                        .is_ok()
+            },
+            still_focused,
+        )
     });
     match answer {
         Some(office::Write::Delivered) => InsertOutcome::Delivered,
@@ -491,10 +511,6 @@ pub(super) fn insert_office(token: &TargetToken, text: Zeroizing<Vec<u16>>) -> I
         None if phase.swap(2, Ordering::AcqRel) == 1 => InsertOutcome::Partial,
         None => not_started,
     }
-}
-
-fn chromium_app(app: AppKind) -> bool {
-    matches!(app, AppKind::Chrome | AppKind::Edge | AppKind::VsCode)
 }
 
 fn checked_chromium_focus(
@@ -536,8 +552,8 @@ fn recheck_chromium(automation: &IUIAutomation, old: &Snapshot) -> Result<(), Ta
     let Caret::Text(saved) = &old.caret else {
         return Err(Unknown);
     };
-    // Revalidate the field and current selection, not the whole ancestry and
-    // process chain. The two verified degenerate ranges need one endpoint comparison.
+    // Revalidate the range endpoints, not the object identity of the range.
+    // A selected single-line range must match at both ends.
     let text: IUIAutomationTextPattern =
         unsafe { focus.GetCurrentPatternAs(UIA_TextPatternId) }.map_err(|_| Unknown)?;
     let selected = unsafe { text.GetSelection() }.map_err(|_| Unknown)?;
@@ -547,8 +563,10 @@ fn recheck_chromium(automation: &IUIAutomation, old: &Snapshot) -> Result<(), Ta
     let range = unsafe { selected.GetElement(0) }.map_err(|_| Unknown)?;
     let start = TextPatternRangeEndpoint_Start;
     let end = TextPatternRangeEndpoint_End;
-    if unsafe { range.CompareEndpoints(start, &range, end) }.map_err(|_| Unknown)? != 0
+    if (old.info.multiline != Some(false)
+        && unsafe { range.CompareEndpoints(start, &range, end) }.map_err(|_| Unknown)? != 0)
         || unsafe { saved.CompareEndpoints(start, &range, start) }.map_err(|_| Unknown)? != 0
+        || unsafe { saved.CompareEndpoints(end, &range, end) }.map_err(|_| Unknown)? != 0
     {
         return Err(SelectionChanged);
     }
@@ -579,7 +597,7 @@ pub(super) fn same_uia_focus(token: &TargetToken) -> bool {
             let Some((_, old)) = state.records.get(&key) else {
                 return false;
             };
-            if chromium_app(old.info.app) {
+            if old.window.chromium_widget() {
                 return checked_chromium_focus(&state.automation, old).is_ok();
             }
             // No caret comparison here: successful earlier packets move it.
@@ -598,7 +616,7 @@ pub(super) fn same_uia_focus(token: &TargetToken) -> bool {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct NativeEdit {
     hwnd: usize,
-    index: u32,
+    selection: [u32; 2],
     pub(super) rich: bool,
     pub(super) multiline: bool,
 }
@@ -621,13 +639,15 @@ impl NativeEdit {
     }
 
     pub(super) fn caret_unchanged(self) -> bool {
-        self.caret_advanced(0)
+        edit_selection(self.hwnd()).is_ok_and(|selection| selection == self.selection)
     }
 
     pub(super) fn caret_advanced(self, units: u32) -> bool {
-        self.index.checked_add(units).is_some_and(|expected| {
-            empty_edit_selection(self.hwnd()).is_ok_and(|index| index == expected)
-        })
+        self.selection[0]
+            .checked_add(units)
+            .is_some_and(|expected| {
+                edit_selection(self.hwnd()).is_ok_and(|selection| selection == [expected, expected])
+            })
     }
 }
 
@@ -641,7 +661,7 @@ fn literal_class(class: &str) -> Option<bool> {
         .then_some(true)
 }
 
-fn empty_edit_selection(hwnd: HWND) -> Result<u32, Reject> {
+fn edit_selection(hwnd: HWND) -> Result<[u32; 2], Reject> {
     // Unlike EM_EXGETSEL (>= WM_USER), EM_GETSEL marshals DWORD pointers
     // across processes. Both Unicode Edit and RichEdit implement it.
     let mut start = u32::MAX;
@@ -652,10 +672,10 @@ fn empty_edit_selection(hwnd: HWND) -> Result<u32, Reject> {
         WPARAM((&mut start as *mut u32) as usize),
         LPARAM((&mut end as *mut u32) as isize),
     )?;
-    if start != end || start == u32::MAX {
+    if start > end || end == u32::MAX {
         return Err(Selection.into());
     }
-    Ok(start)
+    Ok([start, end])
 }
 
 struct Watch {
@@ -1084,7 +1104,7 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
     }
     if let Some(kind) = office_body {
         let body = native_focus.ok_or(NoFocusedField)?;
-        let (caret, _) = office::caret(kind, window.handle(), body).ok_or(Unsupported)?;
+        let (caret, _, _) = office::caret(kind, window.handle(), body).ok_or(Unsupported)?;
         if Window::foreground() != Some(window)
             || focus_hwnd(window) != Some(body)
             || !on_default_desktop()
@@ -1115,6 +1135,28 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
         return Err(ReadOnly.into());
     }
 
+    let multiline = styles
+        .map(|style| style & ES_MULTILINE as u32 != 0)
+        .or(
+            (app == AppKind::Notepad && control == UIA_DocumentControlTypeId || is_code_chat)
+                .then_some(true),
+        )
+        .or_else(|| {
+            if !window.chromium_widget() || control != UIA_EditControlTypeId {
+                return None;
+            }
+            unsafe { element.CurrentAriaProperties() }
+                .ok()
+                .and_then(|properties| aria_multiline(&properties.to_string()))
+        });
+    let allow_selection = multiline == Some(false);
+    let native_selection = |hwnd| -> Result<[u32; 2], Reject> {
+        let [start, end] = edit_selection(hwnd)?;
+        if start != end && !allow_selection {
+            return Err(Selection.into());
+        }
+        Ok([start, end])
+    };
     let caret =
         match unsafe { element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId) }
         {
@@ -1124,15 +1166,16 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
                     return Err(Selection.into());
                 }
                 let range = unsafe { selection.GetElement(0) }.map_err(|_| Selection)?;
-                if unsafe {
-                    range.CompareEndpoints(
-                        TextPatternRangeEndpoint_Start,
-                        &range,
-                        TextPatternRangeEndpoint_End,
-                    )
-                }
-                .map_err(|_| Selection)?
-                    != 0
+                if !allow_selection
+                    && unsafe {
+                        range.CompareEndpoints(
+                            TextPatternRangeEndpoint_Start,
+                            &range,
+                            TextPatternRangeEndpoint_End,
+                        )
+                    }
+                    .map_err(|_| Selection)?
+                        != 0
                 {
                     return Err(Selection.into());
                 }
@@ -1152,7 +1195,7 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
             }
             Err(_) if plain_edit && native_readonly == Some(false) => Caret::Edit {
                 hwnd: element_hwnd,
-                index: empty_edit_selection(element_hwnd)?,
+                selection: native_selection(element_hwnd)?,
             },
             Err(_) => return Err(Unsupported.into()),
         };
@@ -1160,7 +1203,7 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
         (Some(style), Some(rich)) if unsafe { IsWindowUnicode(element_hwnd) }.as_bool() => {
             Some(NativeEdit {
                 hwnd: element_hwnd.0 as usize,
-                index: empty_edit_selection(element_hwnd)?,
+                selection: native_selection(element_hwnd)?,
                 rich,
                 multiline: style & ES_MULTILINE as u32 != 0,
             })
@@ -1173,20 +1216,6 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
     if !on_default_desktop() {
         return Err(Reject::Protected);
     }
-    let multiline = styles
-        .map(|style| style & ES_MULTILINE as u32 != 0)
-        .or(
-            (app == AppKind::Notepad && control == UIA_DocumentControlTypeId || is_code_chat)
-                .then_some(true),
-        )
-        .or_else(|| {
-            if !matches!(app, AppKind::Edge | AppKind::Chrome | AppKind::VsCode) {
-                return None;
-            }
-            unsafe { element.CurrentAriaProperties() }
-                .ok()
-                .and_then(|properties| aria_multiline(&properties.to_string()))
-        });
     Ok(Snapshot {
         window,
         native_focus: native_focus.map(|hwnd| hwnd.0 as usize),

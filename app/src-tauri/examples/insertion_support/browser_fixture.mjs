@@ -8,13 +8,14 @@ import { once } from 'node:events';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const [app, exe, probe, scratch] = process.argv.slice(2);
-assert(['edge', 'chrome'].includes(app) && exe && probe && scratch);
+assert(['edge', 'chrome', 'brave'].includes(app) && exe && probe && scratch);
 const dir = join(scratch, `sambler-${app}-fixture-${process.pid}`);
 const user = join(dir, 'profile');
 await mkdir(dir, { recursive: true });
 const html = join(dir, 'editor.html');
 await writeFile(html, `<!doctype html><meta charset=utf-8><title>Offline typing fixture</title>
 <form style="display:grid;gap:12px;padding:30px" id="form"><label>Input <input id="single" aria-label="Fixture input" type="text"></label>
+<label>Search <input id="search" aria-label="Fixture search" type="search"></label>
 <label>Textarea <textarea id="multi" aria-label="Fixture textarea"></textarea></label>
 <div id="rich" role="textbox" aria-label="Fixture rich editor" aria-multiline="true" contenteditable="true" style="border:1px solid;padding:12px"></div>
 <button>Fixture submit</button></form>
@@ -61,6 +62,46 @@ try {
   await new Promise((resolve, reject) => { sock.addEventListener('open', resolve, { once: true }); sock.addEventListener('error', reject, { once: true }); });
   await call('Page.bringToFront');
   await sleep(350);
+  if (process.env.SAMBLER_FIXTURE_SELECTION === '1') {
+    let addressExact = 0;
+    let suffixes = 0;
+    for (let i = 0; i < 10; i++) {
+      run('address');
+      await sleep(75);
+      const before = run('address-before');
+      if (i === 0) console.log(`${app} before: ${before.trim().split(/\r?\n/).at(-1)}`);
+      try {
+        const written = run('one');
+        if (i === 0) console.log(`${app} address: ${written.trim().replace(/\r?\n/g, '; ')}`);
+        if (!written.includes('outcome=Delivered')) break;
+        await sleep(75);
+        const after = run('address-after');
+        if (after.includes('suffix=true')) suffixes++;
+        addressExact++;
+      } finally {
+        run('escape');
+        await sleep(65);
+        run('escape');
+        await sleep(65);
+        run('address');
+        await sleep(65);
+        run('address-before');
+        run('escape');
+        await sleep(65);
+        run('escape');
+      }
+    }
+    console.log(`${app} address: ${addressExact}/10 prefix readback and Escape restore; ${suffixes} completion suffixes`);
+    let searchExact = 0;
+    for (let i = 0; i < 10; i++) {
+      await js(`(()=>{const el=document.getElementById('search');el.value='before OLD after';el.focus();el.setSelectionRange(7,10);})()`);
+      await sleep(75);
+      const inserted = run('one');
+      if (i === 0) console.log(`${app} search: ${inserted.trim().replace(/\r?\n/g, '; ')}`);
+      if (inserted.includes('outcome=Delivered') && await read('search') === 'before office-fixture after') searchExact++;
+    }
+    console.log(`${app} search: ${searchExact}/10 exact selection replacements; submits=${await js('window.submits')}`);
+  } else {
   const pairMode = process.env.SAMBLER_FIXTURE_PAIR;
   const paired = pairMode === '1' || pairMode === 'all';
   for (const id of pairMode === '1' ? ['single'] : ['single', 'multi', 'rich']) {
@@ -103,6 +144,7 @@ try {
   const change = run(paired ? 'u200-pair' : 'u200');
   const otherEmpty = (await read('multi')) === '';
   console.log(`${app} k=${paired ? 2 : 1} in-window focus switch: ${change.trim().split(/\r?\n/).at(-1)}; other field empty=${otherEmpty}`);
+  }
   assert.equal(await js('window.submits'), 0);
 } finally {
   if (sock?.readyState === WebSocket.OPEN) { try { await Promise.race([call('Browser.close'), sleep(500)]); } catch {} }

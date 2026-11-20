@@ -11,7 +11,9 @@ use windows::{
                 IDispatch,
             },
             Ole::GetActiveObject,
-            Variant::{VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VariantClear, VariantToInt32},
+            Variant::{
+                VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VT_I4, VariantClear, VariantToInt32,
+            },
         },
         UI::{
             Accessibility::AccessibleObjectFromWindow,
@@ -196,7 +198,7 @@ pub(super) fn caret(
     kind: OfficeKind,
     root: HWND,
     focused_body: HWND,
-) -> Option<(BodyCaret, IDispatch)> {
+) -> Option<(BodyCaret, IDispatch, IDispatch)> {
     let window = native_window(focused_body)?;
     let hwnd = HWND(prop(&window, w!("Hwnd"))?.int()? as u32 as usize as _);
     if unsafe { GetAncestor(hwnd, GA_ROOT) } != root {
@@ -230,6 +232,7 @@ pub(super) fn caret(
             index,
         },
         range,
+        selection,
     ))
 }
 
@@ -245,14 +248,18 @@ pub(super) fn write(
     body: HWND,
     text: &[u16],
     begin: impl FnOnce() -> bool,
+    still_focused: impl Fn() -> bool,
 ) -> Write {
-    let Some((now, range)) = caret(saved.kind, root, body) else {
+    let Some((now, range, selection)) = caret(saved.kind, root, body) else {
         return Write::NotStarted;
     };
     if !saved.same(&now) {
         return Write::NotStarted;
     }
     let Some(insert) = name_id(&range, w!("InsertAfter")) else {
+        return Write::NotStarted;
+    };
+    let Some(set_range) = name_id(&selection, w!("SetRange")) else {
         return Write::NotStarted;
     };
     let Some(mut arg) = TextArg::new(text) else {
@@ -263,12 +270,44 @@ pub(super) fn write(
     if !begin() {
         return Write::NotStarted;
     }
-    match invoke(
+    if invoke(
         &range,
         insert,
         DISPATCH_METHOD,
         std::slice::from_mut(&mut arg.0.0),
-    ) {
+    )
+    .is_err()
+    {
+        return Write::Uncertain;
+    }
+    // InsertAfter expands this document-bound range but does not move the
+    // window's Selection. SetRange is navigation, not a second text edit.
+    let Some(end) = prop(&range, w!("End")).and_then(|v| v.int()) else {
+        return Write::Uncertain;
+    };
+    let Some((current, _, current_selection)) = caret(saved.kind, root, body) else {
+        return Write::Uncertain;
+    };
+    if !same_object(&saved.document, &current.document)
+        || !same_object(&selection, &current_selection)
+        || (current.index != saved.index && current.index != end)
+        || end <= saved.index
+        || !still_focused()
+    {
+        return Write::Uncertain;
+    }
+    if current.index == end {
+        return Write::Delivered;
+    }
+    let mut args = [VARIANT::default(), VARIANT::default()];
+    for arg in &mut args {
+        unsafe {
+            let data = &mut *arg.Anonymous.Anonymous;
+            data.vt = VT_I4;
+            data.Anonymous.lVal = end;
+        }
+    }
+    match invoke(&selection, set_range, DISPATCH_METHOD, &mut args) {
         Ok(_) => Write::Delivered,
         Err(_) => Write::Uncertain,
     }
