@@ -6,7 +6,7 @@ import { useEffect, useId, useState } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
 import { useBridge } from "../ipc/bridge";
 import type { DraftMeta, DraftPart, DraftView, PartStatus } from "../ipc/contract";
-import { clipboardErrorText, commandErrorText } from "../labels/fr";
+import { clipboardErrorText, commandErrorText, SAFETY_BLOCK_TEXT } from "../labels/fr";
 import { formatRemaining, isoDuration } from "../lib/time";
 import { useUiCommands } from "../state/commands";
 import { useUiState } from "../state/ui";
@@ -25,7 +25,7 @@ const GAP_LABELS: Record<Exclude<PartStatus, "admitted">, string> = {
 const GAP_HELP: Record<Exclude<PartStatus, "admitted">, string> = {
   missing: "perdu lors d’une coupure ; il faut le redicter.",
   "needs-review": "reconnaissance incertaine, exclue de l’insertion automatique.",
-  blocked: "masqué par le filtre de sécurité du service.",
+  blocked: SAFETY_BLOCK_TEXT,
   "no-text": "aucune parole reconnue sur ce passage.",
 };
 
@@ -149,7 +149,7 @@ export function DraftPanel({ headingLevel = 2, title = "Texte dicté" }: Props) 
       {gaps.length > 0 ? (
         <ul className="draft-panel__legend" aria-label="Signification des repères">
           {gaps.map((kind) => (
-            <li key={kind}>
+            <li key={kind} id={`${textId}-gap-${kind}`} data-testid={`gap-help-${kind}`}>
               <span className={`gap gap--${kind}`}>{GAP_LABELS[kind]}</span> : {GAP_HELP[kind]}
             </li>
           ))}
@@ -173,7 +173,8 @@ export function DraftPanel({ headingLevel = 2, title = "Texte dicté" }: Props) 
         </button>
       </div>
       <p id={`${textId}-copy-help`} className="field-hint">
-        La copie est exclue de l’historique du presse-papiers de Windows (Win+V).
+        Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du presse-papiers
+        de Windows (Win+V).
         {meta.complete ? null : " Les passages manquants ne sont pas copiés."}
       </p>
       {copied ? (

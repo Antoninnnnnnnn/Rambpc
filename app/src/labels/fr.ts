@@ -212,13 +212,18 @@ export function notWrittenText(reason: NotWrittenReason): string {
     case "target-changed":
       return "Le champ a changé juste avant l’écriture : rien n’a été saisi.";
     case "modifiers-held":
-      return "Des touches Ctrl, Maj ou Alt étaient encore enfoncées : rien n’a été saisi.";
+      return "Une touche (Ctrl, Maj, Alt ou Windows) était encore enfoncée : rien n’a été écrit, le texte vous attend ici.";
     case "unsupported":
-      return "Ce champ n’accepte pas ce texte (plusieurs lignes ou longueur) : rien n’a été saisi.";
+      return "Ce champ n’accepte pas l’insertion de plusieurs lignes ou de ce texte : le texte vous attend ici, copiez-le puis collez-le.";
     case "refused":
-      return "Windows a refusé la saisie dans ce champ : rien n’a été saisi.";
+      return "Windows a refusé la saisie dans ce champ (application administrateur ?) : le texte vous attend ici.";
   }
 }
+
+/** Rambler's safety filter refused a passage (a `blocked` draft part). */
+export const SAFETY_BLOCK_TITLE = "Rambler a refusé de transcrire ce passage (filtre du service).";
+export const SAFETY_BLOCK_DETAIL = "Rien n’a été inséré. Reformulez ou dictez à nouveau.";
+export const SAFETY_BLOCK_TEXT = `${SAFETY_BLOCK_TITLE} ${SAFETY_BLOCK_DETAIL}`;
 
 export function keptReasonText(reason: KeptReason): string {
   switch (reason.kind) {
@@ -336,7 +341,11 @@ function refusalView(reason: RefusalReason): OutcomeView {
   }
 }
 
-export function describeOutcome(outcome: TakeOutcome, hasDraft: boolean): OutcomeView {
+/**
+ * `blocked`: the draft of this outcome has a part refused by Rambler's safety
+ * filter (known only from the draft's part statuses, never from its text).
+ */
+export function describeOutcome(outcome: TakeOutcome, hasDraft: boolean, blocked = false): OutcomeView {
   const draftAction: OutcomeAction[] = hasDraft ? ["open-draft"] : [];
   switch (outcome.kind) {
     case "inserted":
@@ -356,6 +365,9 @@ export function describeOutcome(outcome: TakeOutcome, hasDraft: boolean): Outcom
         actions: draftAction,
       };
     case "no-text":
+      if (blocked) {
+        return { tone: "warning", title: SAFETY_BLOCK_TITLE, detail: SAFETY_BLOCK_DETAIL, actions: draftAction };
+      }
       return {
         tone: "info",
         title: "Aucun texte obtenu",

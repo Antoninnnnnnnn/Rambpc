@@ -3,6 +3,8 @@
 import type { TakeOutcome } from "../ipc/contract";
 import { commandErrorText, describeOutcome, type OutcomeAction } from "../labels/fr";
 import { useUiCommands } from "../state/commands";
+import { useSafetyBlocked } from "../state/draftSafety";
+import { useUiState } from "../state/ui";
 import { useNavigation } from "../state/navigation";
 import { useAction } from "../state/useAction";
 import { FieldError } from "./controls";
@@ -18,7 +20,8 @@ interface Props {
 }
 
 export function OutcomeNotice({ outcome, hasDraft, headingLevel = 2, draftVisible = false }: Props) {
-  const view = describeOutcome(outcome, hasDraft);
+  const blocked = useSafetyBlocked(useUiState());
+  const view = describeOutcome(outcome, hasDraft, outcome.kind === "no-text" && blocked);
   const commands = useUiCommands();
   const nav = useNavigation();
   const action = useAction();

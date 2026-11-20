@@ -44,7 +44,7 @@ export function HistoryScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const actions = useAction();
   const listHeading = useRef<HTMLHeadingElement>(null);
-  const ids = { list: useId(), search: useId(), count: useId() };
+  const ids = { list: useId(), search: useId(), count: useId(), copy: useId() };
 
   const refreshStatus = useCallback(() => {
     setStatusError(false);
@@ -347,11 +347,22 @@ export function HistoryScreen() {
                 : "Aucune dictée enregistrée pour le moment."}
             </p>
           ) : (
-            <ul className="history__list" aria-describedby={ids.count} data-testid="history-list">
-              {entries.map((entry, index) => (
-                <HistoryItem key={entry.id} entry={entry} onDelete={() => void removeEntry(entry.id, index)} />
-              ))}
-            </ul>
+            <>
+              <p id={ids.copy} className="field-hint" data-testid="history-copy-note">
+                Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du
+                presse-papiers de Windows (Win+V).
+              </p>
+              <ul className="history__list" aria-describedby={ids.count} data-testid="history-list">
+                {entries.map((entry, index) => (
+                  <HistoryItem
+                    key={entry.id}
+                    entry={entry}
+                    copyNoteId={ids.copy}
+                    onDelete={() => void removeEntry(entry.id, index)}
+                  />
+                ))}
+              </ul>
+            </>
           )}
           <p id={ids.count} className="visually-hidden">
             {entries ? `${entries.length} dictées affichées.` : ""}
@@ -384,7 +395,14 @@ export function HistoryScreen() {
   );
 }
 
-function HistoryItem({ entry, onDelete }: { entry: HistoryEntry; onDelete: () => void }) {
+interface HistoryItemProps {
+  entry: HistoryEntry;
+  /** The shared « Copier remplace… » note. */
+  copyNoteId: string;
+  onDelete: () => void;
+}
+
+function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
   const bridge = useBridge();
   const announce = useAnnounce();
   const copy = useAction();
@@ -423,7 +441,13 @@ function HistoryItem({ entry, onDelete }: { entry: HistoryEntry; onDelete: () =>
           </p>
         )}
         <div className="button-row">
-          <button type="button" className="button" disabled={entry.text === null} onClick={() => void onCopy()}>
+          <button
+            type="button"
+            className="button"
+            disabled={entry.text === null}
+            aria-describedby={copyNoteId}
+            onClick={() => void onCopy()}
+          >
             <Glyph name="copy" />
             Copier<span className="visually-hidden"> la dictée du {date}</span>
           </button>
