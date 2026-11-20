@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 // @ts-expect-error type error without @types/node package
@@ -28,5 +29,14 @@ export default defineConfig(() => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+  },
+
+  // Unit and component tests (jsdom). Test doubles live in src/test/ and in
+  // *.test.tsx files only; nothing there is reachable from src/main.tsx.
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
+    restoreMocks: true,
   },
 }));

@@ -1,0 +1,119 @@
+.draft-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.draft-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.draft-panel__title {
+  font-size: var(--text-body-large);
+}
+
+.draft-panel__expiry {
+  color: var(--text-secondary);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.draft-panel__status {
+  color: var(--text-secondary);
+}
+
+.draft-panel__status--incomplete {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.draft-text {
+  max-height: 22rem;
+  overflow: auto;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-body-large);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-small);
+}
+
+.gap {
+  display: inline-block;
+  padding: 0 0.45em;
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: 1.6;
+  font-style: italic;
+  color: var(--gap-missing);
+  background: var(--gap-bg);
+  border: 1px dashed currentColor;
+  border-radius: var(--radius-small);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.gap--blocked {
+  color: var(--error);
+  background: var(--error-bg);
+  border-style: solid;
+}
+
+.gap--no-text {
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+  border-style: dotted;
+}
+
+.review-text {
+  color: inherit;
+  background: none;
+  text-decoration: underline wavy var(--warning);
+  text-underline-offset: 0.2em;
+}
+
+.draft-panel__legend {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: 0;
+  list-style: none;
+  font-size: var(--text-small);
+  color: var(--text-secondary);
+}
+
+.draft-panel__feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--success);
+  font-weight: 600;
+}
+
+.draft-panel__feedback .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+@media (forced-colors: active) {
+  .draft-text {
+    border-color: CanvasText;
+  }
+  .gap {
+    border-color: CanvasText;
+    color: CanvasText;
+  }
+  .review-text {
+    text-decoration-color: CanvasText;
+  }
+}
