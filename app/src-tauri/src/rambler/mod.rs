@@ -7,6 +7,12 @@
 //! `ContextInput::None`, interpret each segment with `RenderPolicy::AsrOnly`,
 //! and report admitted segments / typed outcome to the controller.
 
+mod capture;
+mod recognition;
+
+pub(crate) use capture::{CaptureHealth, FRAME_WAIT_MS, OpenedMic, open};
+pub(crate) use recognition::{MAX_DRAFT_BYTES, Segment, collect, connection_failure};
+
 use rambler_transport::{EnvironmentCredentials, Metadata, TransportConfig};
 use zeroize::Zeroizing;
 
@@ -20,17 +26,15 @@ pub struct RamblerAccess {
 
 impl std::fmt::Debug for RamblerAccess {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RamblerAccess")
-            .field("authority", &self.authority)
-            .finish_non_exhaustive()
+        f.write_str("RamblerAccess(..)")
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum AccessError {
-    #[error("service address is invalid")]
+    #[error("L’adresse du service est invalide.")]
     InvalidAuthority,
-    #[error("access values are incomplete or invalid")]
+    #[error("Les données d’accès sont incomplètes ou invalides.")]
     InvalidCredentials,
 }
 
