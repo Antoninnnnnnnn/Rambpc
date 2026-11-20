@@ -4,7 +4,7 @@
 //! shortcut through SendInput like a keyboard, plays the WAV on the speakers,
 //! releases, then reads the Notepad window it created.
 //!
-//!   cargo run --example recette_app -- <wav> <hold|toggle|toggle-escape|silence>
+//!   cargo run --example recette_app -- <wav> <hold|toggle|toggle-escape|silence|switch>
 //!
 //! Sambler must already run with consent and Rambler access, with the gesture
 //! matching the scenario (hold or toggle) and the default Ctrl+Shift+F2.
@@ -105,6 +105,22 @@ mod recette {
                         Ok("cancelled with Escape: field untouched after 5 s".into())
                     } else {
                         Err(format!("text written after Escape: {text:?}"))
+                    };
+                }
+                "switch" => {
+                    press_shortcut();
+                    thread::sleep(Duration::from_millis(700));
+                    play(&wav);
+                    thread::sleep(Duration::from_millis(400));
+                    release_shortcut();
+                    // Change window while Rambler finalizes.
+                    pad.open_second()?;
+                    thread::sleep(Duration::from_secs(5));
+                    let (first, second) = (pad.contents()?, pad.second_contents()?);
+                    return if first.is_empty() && second.is_empty() {
+                        Ok("both windows untouched; text expected in Sambler".into())
+                    } else {
+                        Err(format!("written after switch: first={first:?} second={second:?}"))
                     };
                 }
                 "silence" => {
