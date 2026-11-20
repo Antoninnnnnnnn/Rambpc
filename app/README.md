@@ -13,6 +13,52 @@ the same dictation features in a per-user installer and a portable ZIP.
 See the [application architecture](../docs/windows/07-architecture-application.md)
 and [Windows packaging guide](../docs/windows/09-distribution-et-version-portable.md).
 
+## Sambler for Windows (this directory)
+
+Tauri 2 host in Rust (`src-tauri/`, standalone Cargo workspace, SDK crates
+linked by path) with a React/TypeScript interface (`src/`). Rambler/Jetson is
+the only speech engine; the shipped binary contains no simulated recognizer.
+
+| Need | Command (from `app/`) |
+| --- | --- |
+| Run in development | `powershell -ExecutionPolicy Bypass -File scripts\dev.ps1` (loads `RAMBLER_*` from the repository's local `.env` into that process only) |
+| Interface checks | `npm ci`, `npm run typecheck`, `npm test`, `npm run build` |
+| Native tests (offline) | `cd src-tauri` then `cargo test --locked` |
+| Installer + portable ZIP + SHA-256 | `powershell -ExecutionPolicy Bypass -File scripts\package.ps1` → `../dist-windows/` |
+
+Prerequisites: Rust (MSVC, 1.90+), Node 24, Visual Studio C++ tools and CMake
+for the bundled Opus build (see [BUILDING](../crates/rambler-audio/BUILDING.md)).
+End users need only Windows 11 x64 with the WebView2 Evergreen runtime.
+
+Access to Rambler is configured by the person, never built in: the three
+`RAMBLER_*` values (and optionally `RAMBLER_AUTHORITY`, otherwise the SDK
+default) come from the environment or are entered in the app. The installed
+edition can remember them with DPAPI; the portable edition keeps them in
+memory only.
+
+Module map (`src-tauri/src/`): `controller/` (take state machine, single
+Tokio task), `rambler/` (SDK adapter, capture handoff, watchdog), `text/`
+(Naturel/Fidèle rendering, lexicon, expressions), `platform/windows/`
+(WASAPI capture, UI Automation target, insertion, private clipboard, DPAPI,
+session events), `storage/` and `history/` (data root, settings, protected
+rules, encrypted SQLite history), `shell/` (Tauri commands, global shortcut,
+tray, native capsule). Shared contracts: `model.rs`, `ports.rs`, `ipc.rs`
+(mirrored in `src/ipc/contract.ts`), `settings.rs`.
+
+Acceptance harnesses (not part of the app; they call the real service and
+drive a fresh Notepad window):
+
+```text
+cd src-tauri
+cargo run --example recette_bloc_notes -- <wav> <fr|en> <hold|toggle|switch|cancel|all> [mic]
+cargo run --example recette_app -- <wav> <hold|toggle|toggle-escape|silence|switch>
+```
+
+`recette_bloc_notes` drives the real controller with a WAV as microphone (or
+the real microphone with `mic`, playing the WAV on the speakers);
+`recette_app` presses the real global shortcut against a running Sambler.
+Offline platform harnesses: `target_harness`, `notepad_harness`, `mic_probe`.
+
 Start with one project in `app/` if the platforms share an interface. A single
 project can produce builds for multiple operating systems. If you develop
 independent interfaces, create a subdirectory under `app/` for each project and
