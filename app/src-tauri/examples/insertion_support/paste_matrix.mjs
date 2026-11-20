@@ -22,7 +22,9 @@ const twoWindows = coldSwitch && process.env.SAMBLER_FIXTURE_TWO_WINDOWS === '1'
 const one = 'sambler fixture é🦀';
 const two = `${one}\nsecond line`;
 const flags = ['--disable-background-networking', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'];
-if (!coldSwitch) flags.push('--force-renderer-accessibility');
+if (!coldSwitch || process.env.SAMBLER_FIXTURE_FORCE_ACCESSIBILITY === '1') {
+  flags.push('--force-renderer-accessibility');
+}
 let processHandle, probeHandle, socket, lines;
 const statuses = Object.create(null);
 function summarize(name, samples) {
