@@ -11,6 +11,7 @@ mod indicator;
 mod mic_test;
 mod relay;
 mod tray;
+mod webview2;
 
 use crate::controller::{Controller, ControllerDeps, ControllerHandle, ControllerInit};
 use crate::ipc::AccessSource;
@@ -43,6 +44,10 @@ pub struct AppState {
 }
 
 pub fn run() {
+    if !webview2::runtime_present() {
+        show_fatal(webview2::MISSING_MESSAGE);
+        return;
+    }
     let root = match storage::resolve_root() {
         Ok(root) => root,
         Err(RootError::NotWritable { root }) => {
