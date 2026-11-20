@@ -82,7 +82,8 @@ impl Capsule {
 }
 
 /// How long an outcome stays visible in the bar.
-const OUTCOME_VISIBLE: Duration = Duration::from_millis(2500);
+/// 2.5 s flash plus the page's 0.3 s fade-out.
+const OUTCOME_VISIBLE: Duration = Duration::from_millis(2900);
 
 /// The floating bar: the cross-platform WebView overlay, or the native Win32
 /// capsule as a fallback when the overlay window cannot be created.

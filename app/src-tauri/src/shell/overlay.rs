@@ -14,7 +14,7 @@ pub const OVERLAY_WINDOW: &str = "overlay";
 const WIDTH: f64 = 360.0;
 const HEIGHT: f64 = 72.0;
 /// Gap between the bar and the bottom of the work area, in logical pixels.
-const MARGIN: f64 = 28.0;
+const MARGIN: f64 = 16.0;
 
 pub struct Overlay<R: Runtime> {
     window: WebviewWindow<R>,

@@ -15,12 +15,13 @@
       {
         "label": "main",
         "title": "Sambler",
-        "width": 920,
-        "height": 680,
+        "width": 1040,
+        "height": 720,
         "minWidth": 560,
         "minHeight": 480,
         "create": false,
-        "visible": false
+        "visible": false,
+        "decorations": false
       }
     ],
     "security": {
@@ -29,7 +30,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "publisher": "Sambler contributors",
     "copyright": "MIT License",
     "category": "Productivity",
@@ -44,9 +47,14 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["French", "English"]
+        "languages": [
+          "French",
+          "English"
+        ]
       },
-      "webviewInstallMode": { "type": "downloadBootstrapper" }
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
     }
   }
 }
