@@ -1,7 +1,13 @@
-use super::office::{self, OfficeKind};
-use crate::ports::{
-    AppKind, InsertOutcome, NotWrittenReason, TargetChange, TargetInfo, TargetProbe, TargetToken,
-    TargetVerdict, UncertainReason, WatchGuard,
+use super::{
+    insertion_method,
+    office::{self, OfficeKind},
+};
+use crate::{
+    ports::{
+        AppKind, InsertOutcome, NotWrittenReason, TargetChange, TargetInfo, TargetProbe,
+        TargetToken, TargetVerdict, UncertainReason, WatchGuard,
+    },
+    settings::InsertionMethod,
 };
 use std::{
     collections::HashMap,
@@ -240,6 +246,7 @@ struct Identity {
     native_focus: Option<usize>,
     native_edit: Option<NativeEdit>,
     office: bool,
+    info: TargetInfo,
     attempted: AtomicBool,
     write_permission: OnceLock<Arc<AtomicBool>>,
     protection: OnceLock<Protection>,
@@ -338,6 +345,7 @@ impl State {
             native_focus: snapshot.native_focus,
             native_edit: snapshot.native_edit,
             office: matches!(snapshot.caret, Caret::Office(_)),
+            info: snapshot.info,
             attempted: AtomicBool::new(false),
             write_permission: OnceLock::new(),
             protection: OnceLock::new(),
@@ -527,6 +535,14 @@ pub(super) fn native_edit(token: &TargetToken) -> Option<NativeEdit> {
 
 pub(super) fn office_body(token: &TargetToken) -> bool {
     identity(token).is_some_and(|id| id.office)
+}
+
+pub(super) fn known_multiline(token: &TargetToken) -> bool {
+    identity(token).is_some_and(|id| id.info.multiline == Some(true))
+}
+
+pub(super) fn outlook_paste_only(token: &TargetToken) -> bool {
+    identity(token).is_some_and(|id| id.info.app == AppKind::Outlook && !id.office)
 }
 
 pub(super) fn insert_office(token: &TargetToken, text: Zeroizing<Vec<u16>>) -> InsertOutcome {
@@ -1065,10 +1081,11 @@ fn aria_multiline(properties: &str) -> Option<bool> {
 fn belongs(
     automation: &IUIAutomation,
     element: &IUIAutomationElement,
+    mut hwnd: HWND,
     window: Window,
     app: AppKind,
 ) -> Result<bool, Reject> {
-    let walk = unsafe { automation.RawViewWalker() }.map_err(|_| Unsupported)?;
+    let mut walk = None;
     let mut current = element.clone();
     let mut matches_window = false;
     let mut is_chat = false;
@@ -1087,7 +1104,6 @@ fn belongs(
                 }
             }
         }
-        let hwnd = unsafe { current.CurrentNativeWindowHandle() }.map_err(|_| NoFocusedField)?;
         if let Some(native) = Window::new(hwnd) {
             if native.pid != window.pid || unsafe { GetAncestor(hwnd, GA_ROOT) } != window.handle()
             {
@@ -1102,10 +1118,15 @@ fn belongs(
                 return Ok(is_chat);
             }
         }
-        match unsafe { walk.GetParentElement(&current) } {
+        let walker = match &walk {
+            Some(walker) => walker,
+            None => walk.insert(unsafe { automation.RawViewWalker() }.map_err(|_| Unsupported)?),
+        };
+        match unsafe { walker.GetParentElement(&current) } {
             Ok(parent) => current = parent,
             Err(_) => break,
         }
+        hwnd = unsafe { current.CurrentNativeWindowHandle() }.map_err(|_| NoFocusedField)?;
     }
     if matches_window {
         Ok(is_chat)
@@ -1172,10 +1193,9 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
         return Err(NoFocusedField.into());
     }
     let app = app_kind(process.0);
-    let is_code_chat = belongs(automation, &element, window, app)?;
-
     let element_hwnd =
         unsafe { element.CurrentNativeWindowHandle() }.map_err(|_| NoFocusedField)?;
+    let is_code_chat = belongs(automation, &element, element_hwnd, window, app)?;
     // Only trust Win32 styles or messages for the exact native element with focus.
     let styles = native_style.filter(|_| native_editor == Some(element_hwnd));
     let office_body = match (app, native_class.as_deref()) {
@@ -1190,10 +1210,6 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
         }
         _ => None,
     };
-    // Never put keyboard packets into the new Outlook or an Outlook header.
-    if app == AppKind::Outlook && office_body.is_none() {
-        return Err(Unsupported.into());
-    }
     if password != Some(false) && !(plain_edit && styles.is_some()) && office_body.is_none() {
         return Err(Unsupported.into());
     }
@@ -1253,13 +1269,20 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
                 .then_some(true),
         )
         .or_else(|| {
-            if !window.chromium_widget() || control != UIA_EditControlTypeId {
+            if !window.chromium_widget() && app != AppKind::Outlook {
                 return None;
             }
             unsafe { element.CurrentAriaProperties() }
                 .ok()
                 .and_then(|properties| aria_multiline(&properties.to_string()))
         });
+    // Without WordEditor, restrict Outlook paste to verified multiline
+    // editors; recipient widgets and other header controls stay excluded.
+    if app == AppKind::Outlook
+        && (multiline != Some(true) || insertion_method() != InsertionMethod::Paste)
+    {
+        return Err(Unsupported.into());
+    }
     let allow_selection = multiline == Some(false);
     let native_selection = |hwnd| -> Result<[u32; 2], Reject> {
         let [start, end] = edit_selection(hwnd)?;
@@ -1372,6 +1395,10 @@ mod tests {
             native_focus: None,
             native_edit: None,
             office: false,
+            info: TargetInfo {
+                app: AppKind::Other,
+                multiline: None,
+            },
             attempted: AtomicBool::new(true),
             write_permission: OnceLock::new(),
             protection: OnceLock::new(),

@@ -1,5 +1,12 @@
-use super::target::{self, NativeEdit};
-use crate::ports::{InsertOutcome, Inserter, NotWrittenReason, TargetToken};
+use super::{
+    clipboard::PasteClipboard,
+    insertion_method,
+    target::{self, NativeEdit},
+};
+use crate::{
+    ports::{InsertOutcome, Inserter, NotWrittenReason, TargetToken},
+    settings::InsertionMethod,
+};
 use std::{
     thread,
     time::{Duration, Instant},
@@ -14,7 +21,7 @@ use windows::Win32::{
         Input::KeyboardAndMouse::{
             GetAsyncKeyState, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
             KEYEVENTF_UNICODE, SendInput, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN,
-            VK_SHIFT,
+            VK_SHIFT, VK_V,
         },
         WindowsAndMessaging::{
             SMTO_ABORTIFHUNG, SMTO_BLOCK, SMTO_ERRORONEXIT, SendMessageTimeoutW, WM_NULL,
@@ -264,16 +271,77 @@ fn insert_paced(
     InsertOutcome::Delivered
 }
 
+fn paste_chord() -> [INPUT; 4] {
+    [
+        (VK_CONTROL, false),
+        (VK_V, false),
+        (VK_V, true),
+        (VK_CONTROL, true),
+    ]
+    .map(|(key, released)| INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: key,
+                dwFlags: if released {
+                    KEYEVENTF_KEYUP
+                } else {
+                    Default::default()
+                },
+                ..Default::default()
+            },
+        },
+    })
+}
+
+fn insert_paste(token: &TargetToken, units: &mut Vec<u16>) -> InsertOutcome {
+    units.push(0);
+    let Ok(clipboard) = PasteClipboard::stage(units) else {
+        return not_written(NotWrittenReason::Refused);
+    };
+    // The snapshot may have opened a busy clipboard or requested a delayed
+    // format. Recheck the actual UIA field and caret, not just the window.
+    if target::revalidate_token(token).is_err() {
+        return not_written(NotWrittenReason::TargetChanged);
+    }
+    let batch = paste_chord();
+    if !clipboard.is_current() {
+        return not_written(NotWrittenReason::Refused);
+    }
+    if target::write_focus(token).is_none() {
+        return not_written(NotWrittenReason::TargetChanged);
+    }
+    if modifiers_held() {
+        return not_written(NotWrittenReason::ModifiersHeld);
+    }
+    let accepted = unsafe { SendInput(&batch, std::mem::size_of::<INPUT>() as i32) } as usize;
+    if accepted >= 2 {
+        // A V down may already have triggered paste even if key ups failed.
+        clipboard.wait_for_paste();
+    }
+    if accepted == batch.len() {
+        InsertOutcome::Delivered
+    } else {
+        InsertOutcome::Partial
+    }
+}
+
 impl Inserter for SendInputInserter {
     fn insert_once(&self, token: &TargetToken, text: &str) -> InsertOutcome {
         let edit = target::native_edit(token);
         let direct = edit.filter(|_| !self.force_paced);
         let office = !self.force_paced && target::office_body(token);
+        let use_paste = insertion_method() == InsertionMethod::Paste;
+        let paste = !self.force_paced && direct.is_none() && !office && use_paste;
+        if !use_paste && !self.force_paced && target::outlook_paste_only(token) {
+            return not_written(NotWrittenReason::Unsupported);
+        }
         let lines = match direct {
             _ if office => LineEnds::Rich,
             _ if self.fixture_lf => LineEnds::Lf,
             Some(edit) if edit.multiline && edit.rich => LineEnds::Rich,
             Some(edit) if edit.multiline => LineEnds::Edit,
+            _ if paste && target::known_multiline(token) => LineEnds::Edit,
             _ => LineEnds::Single,
         };
         let Some(mut units) = utf16(text, lines) else {
@@ -305,6 +373,7 @@ impl Inserter for SendInputInserter {
         }
         match direct {
             Some(edit) => insert_native(token, edit, &mut units),
+            None if paste => insert_paste(token, &mut units),
             None => insert_paced(token, edit, &units, self.fixture_pair),
         }
     }
@@ -313,6 +382,25 @@ impl Inserter for SendInputInserter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn paste_batch_contains_only_a_single_ctrl_v_chord() {
+        let keys = paste_chord().map(|input| {
+            assert_eq!(input.r#type, INPUT_KEYBOARD);
+            let key = unsafe { input.Anonymous.ki };
+            assert_eq!(key.wScan, 0);
+            (key.wVk, key.dwFlags)
+        });
+        assert_eq!(
+            keys,
+            [
+                (VK_CONTROL, Default::default()),
+                (VK_V, Default::default()),
+                (VK_V, KEYEVENTF_KEYUP),
+                (VK_CONTROL, KEYEVENTF_KEYUP),
+            ]
+        );
+    }
 
     #[test]
     fn each_unicode_unit_is_a_separate_down_up_packet() {
