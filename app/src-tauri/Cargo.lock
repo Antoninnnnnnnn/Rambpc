@@ -3344,9 +3344,11 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "cpal",
+ "icu_normalizer",
  "rambler-audio",
  "rambler-engine",
  "rambler-transport",
+ "regex",
  "serde",
  "serde_json",
  "tauri",
@@ -3355,6 +3357,8 @@ dependencies = [
  "tauri-plugin-single-instance",
  "thiserror 2.0.21",
  "tokio",
+ "unicase",
+ "unicode-segmentation",
  "windows 0.62.2",
  "zeroize",
 ]
@@ -4698,6 +4702,12 @@ checksum = "96bd2f2237fe450fcd0a1d2f5f4e91711124f7857ba2e964247776ebeeb7b0c4"
 dependencies = [
  "unic-common",
 ]
+
+[[package]]
+name = "unicase"
+version = "2.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbc4bc3a9f746d862c45cb89d705aa10f187bb96c76001afab07a0d35ce60142"
 
 [[package]]
 name = "unicode-ident"
