@@ -22,7 +22,11 @@ mod fixture {
     use windows::Win32::{
         Foundation::{HWND, LPARAM, LRESULT, WPARAM},
         System::LibraryLoader::{GetModuleHandleW, LoadLibraryW},
-        UI::{Controls::EM_SETSEL, Input::KeyboardAndMouse::SetFocus, WindowsAndMessaging::*},
+        UI::{
+            Controls::{EM_GETSEL, EM_SETSEL},
+            Input::KeyboardAndMouse::SetFocus,
+            WindowsAndMessaging::*,
+        },
     };
     use windows::core::{PCWSTR, w};
 
@@ -61,6 +65,7 @@ mod fixture {
                 3 => (SINGLE, (0, 2)),
                 4 => (SINGLE, (2, 2)),
                 5 => (RICH, (0, 0)),
+                6 => (MULTI, (0, 2)),
                 _ => return LRESULT(0),
             };
             if let Ok(edit) = unsafe { GetDlgItem(Some(hwnd), id) } {
@@ -288,6 +293,19 @@ mod fixture {
         println!("accents and emoji: exact readback");
 
         select(3);
+        let selected = capture(&target, false);
+        assert!(target.revalidate(&selected).is_ok());
+        select(4);
+        assert_eq!(
+            target.revalidate(&selected),
+            Err(TargetChange::SelectionChanged)
+        );
+        println!("single-line selection: Eligible; changed endpoints refused");
+
+        select(1);
+        let multi = unsafe { GetDlgItem(Some(hwnd), MULTI) }.unwrap();
+        super::stress::set_contents(multi, "ab").unwrap();
+        select(6);
         let verdict = target.capture();
         assert!(
             matches!(
@@ -343,6 +361,17 @@ mod fixture {
             "stale token wrote to the fixture"
         );
         println!("focus change and return: FocusMoved; stale insertion refused");
+
+        select(3);
+        let selected = capture(&target, false);
+        assert_eq!(
+            inserter.insert_once(&selected, "OK"),
+            InsertOutcome::Delivered
+        );
+        assert!(edit_text(single) == format!("OK{}", &expected[2..]));
+        let caret = message(single, EM_GETSEL, WPARAM(0), LPARAM(0));
+        assert_eq!(caret, 2 | (2 << 16));
+        println!("native EM_REPLACESEL: replaced selection, caret at insertion end");
 
         for (case, id, label) in [(1, MULTI, "Win32 Edit"), (5, RICH, "Win32 RICHEDIT50W")] {
             select(case);

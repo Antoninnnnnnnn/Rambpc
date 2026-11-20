@@ -38,6 +38,8 @@ try {
         $insert = if ($case -eq 'one') { 'office-fixture' } else { "office-fixture`rsecond-fixture" }
         $expected = $original.Insert($position, $insert)
         if ($doc.Content.Text -cne $expected) { throw 'Word fixture text mismatch' }
+        $expectedCaret = $position + $insert.Length
+        if ($win.Selection.Start -ne $expectedCaret -or $win.Selection.End -ne $expectedCaret) { throw 'Word caret did not collapse after the inserted text' }
         $expectedCount = if ($case -eq 'one') { $n } else { $n + 1 }
         if ($doc.Paragraphs.Count -ne $expectedCount -or $doc.Paragraphs.Item(1).Style.NameLocal -cne $firstStyle -or $doc.Paragraphs.Item(2).Style.NameLocal -cne $lastStyle) { throw 'Word fixture paragraph/style mismatch' }
         & $Probe word $pidWord undo $hwnd
@@ -45,7 +47,7 @@ try {
         $until = [DateTime]::UtcNow.AddSeconds(2)
         while ($doc.Content.Text -cne $original -and [DateTime]::UtcNow -lt $until) { Start-Sleep -Milliseconds 25 }
         if ($doc.Content.Text -cne $original) { throw 'One Ctrl+Z did not restore the Word fixture' }
-        Write-Output "Word $case`: exact; paragraph count and marker styles verified; one Ctrl+Z restored both markers"
+        Write-Output "Word $case`: exact; caret at insertion end; paragraph count and marker styles verified; one Ctrl+Z restored both markers"
     }
 } finally {
     if ($null -ne $doc) { $doc.Close(0); Write-Output 'Word fixture: closed without saving' }
