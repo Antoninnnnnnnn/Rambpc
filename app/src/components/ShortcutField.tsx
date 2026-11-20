@@ -8,6 +8,7 @@ import { DEFAULT_SHORTCUT, type CommandError } from "../ipc/contract";
 import { shortcutRejectionText, shortcutSaveErrorText } from "../labels/fr";
 import { captureShortcut, formatShortcut, sameShortcut, type ShortcutRejection } from "../lib/shortcut";
 import { FieldError, Keys } from "./controls";
+import { Glyph } from "./Icon";
 import "./ShortcutField.css";
 
 interface Props {
@@ -106,23 +107,19 @@ export function ShortcutField({ value, onChange, error, label = "Raccourci" }: P
     if (held.length > 0 && released) reject("modifier-only");
   };
 
-  const describedBy = [
-    `${id}-hint`,
-    rejection ? `${id}-rejection` : "",
-    error ? `${id}-error` : "",
-  ]
+  const describedBy = [`${id}-hint`, rejection ? `${id}-rejection` : "", error ? `${id}-error` : ""]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className="shortcut-field" role="group" aria-labelledby={`${id}-label`} data-testid="shortcut-field">
+    <div className="shortcut" role="group" aria-labelledby={`${id}-label`} data-testid="shortcut-field">
       <span id={`${id}-label`} className="field__label">
         {label}
       </span>
       {capturing ? (
         <div
           ref={captureRef}
-          className="shortcut-field__capture"
+          className={rejection ? "shortcut__capture shortcut__capture--invalid" : "shortcut__capture"}
           role="textbox"
           aria-label="Nouvelle combinaison"
           aria-describedby={describedBy}
@@ -133,17 +130,21 @@ export function ShortcutField({ value, onChange, error, label = "Raccourci" }: P
           onBlur={() => stopCapture(false)}
           data-testid="shortcut-capture"
         >
-          {held.length > 0 ? <Keys shortcut={[...held, "…"].join("+")} /> : "Appuyez sur la nouvelle combinaison…"}
+          {held.length > 0 ? (
+            <Keys shortcut={[...held, "…"].join("+")} />
+          ) : (
+            <span className="shortcut__placeholder">Appuyez sur la nouvelle combinaison…</span>
+          )}
         </div>
       ) : (
-        <div className="shortcut-field__current">
-          <span className="shortcut-field__value" data-testid="shortcut-value">
+        <div className="shortcut__current">
+          <span className="shortcut__value" data-testid="shortcut-value">
             <Keys shortcut={value} />
           </span>
           <button
             ref={buttonRef}
             type="button"
-            className="button"
+            className="btn btn--sm"
             onClick={() => {
               if (saving) return;
               setRejection(null);
@@ -152,17 +153,18 @@ export function ShortcutField({ value, onChange, error, label = "Raccourci" }: P
             aria-describedby={describedBy}
             aria-disabled={saving || undefined}
           >
+            <Glyph name="keyboard" />
             Modifier le raccourci
           </button>
-          {saving ? <span className="field-hint">Enregistrement…</span> : null}
+          {saving ? <span className="hint">Enregistrement…</span> : null}
           {!sameShortcut(value, DEFAULT_SHORTCUT) ? (
-            <button type="button" className="button button--subtle" onClick={() => void save(DEFAULT_SHORTCUT)}>
+            <button type="button" className="btn btn--sm btn--ghost" onClick={() => void save(DEFAULT_SHORTCUT)}>
               Rétablir {formatShortcut(DEFAULT_SHORTCUT)}
             </button>
           ) : null}
         </div>
       )}
-      <p id={`${id}-hint`} className="field-hint">
+      <p id={`${id}-hint`} className="hint">
         {capturing
           ? "Maintenez Ctrl, Alt ou Maj puis appuyez sur une touche, par exemple Ctrl+Maj+F2. Échap pour annuler."
           : "Les combinaisons avec la touche Windows, F12, Ctrl+Alt et les modificateurs seuls sont refusés."}

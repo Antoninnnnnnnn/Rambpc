@@ -1,24 +1,44 @@
-// Thin typed wrapper over Tauri's `invoke` / `listen`, handed to components
-// through a React context so tests (and the dev-only browser preview) can
-// inject another implementation. This module never simulates anything.
+// Thin typed wrapper over Tauri's `invoke` / `listen` and the frameless main
+// window's own controls, handed to components through a React context so
+// tests (and the dev-only browser preview) can inject another implementation.
+// This module never simulates anything.
 
 import { createContext, createElement, useContext, type ReactNode } from "react";
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { CommandError, CommandMap, CommandName, EventMap, EventName } from "./contract";
 
+/** No arguments, optional arguments (`copy_draft`, `clear_draft`) or required ones. */
 type ArgsOf<C extends CommandName> = CommandMap[C] extends { args: void }
   ? []
   : CommandMap[C] extends { args: infer A }
-    ? [A]
+    ? object extends A
+      ? [A?]
+      : [A]
     : never;
 
 export type Unlisten = () => void;
+
+/**
+ * The main window draws its own title bar (`decorations: false`). Allowed by
+ * capabilities/main.json: start-dragging (drag region), minimize,
+ * toggle-maximize, close (hides to the tray natively) and is-maximized.
+ */
+export interface WindowControls {
+  minimize(): Promise<void>;
+  toggleMaximize(): Promise<void>;
+  close(): Promise<void>;
+  isMaximized(): Promise<boolean>;
+  /** Called after every resize (maximize and restore included). */
+  onResized(handler: () => void): Promise<Unlisten>;
+}
 
 export interface Bridge {
   /** Rejects with a `CommandError` (normalized). */
   invoke<C extends CommandName>(command: C, ...args: ArgsOf<C>): Promise<CommandMap[C]["result"]>;
   listen<E extends EventName>(event: E, handler: (payload: EventMap[E]) => void): Promise<Unlisten>;
+  appWindow: WindowControls;
 }
 
 export function isCommandError(value: unknown): value is CommandError {
@@ -50,6 +70,13 @@ export function createTauriBridge(): Bridge {
     },
     async listen(event, handler) {
       return tauriListen(event, (message) => handler(message.payload as EventMap[typeof event]));
+    },
+    appWindow: {
+      minimize: () => getCurrentWindow().minimize(),
+      toggleMaximize: () => getCurrentWindow().toggleMaximize(),
+      close: () => getCurrentWindow().close(),
+      isMaximized: () => getCurrentWindow().isMaximized(),
+      onResized: (handler) => getCurrentWindow().onResized(() => handler()),
     },
   } as Bridge;
 }

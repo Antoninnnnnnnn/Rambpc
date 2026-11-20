@@ -1,4 +1,4 @@
-// "Dictée indisponible" with its human reason and « Réessayer », or the
+// "Dictée indisponible" with its human reason and « Réessayer », or the
 // call to action when consent or access is missing. Nothing while ready.
 
 import { commandErrorText, unavailableReasonText } from "../labels/fr";
@@ -7,7 +7,7 @@ import { useNavigation } from "../state/navigation";
 import { useUiState } from "../state/ui";
 import { useAction } from "../state/useAction";
 import { FieldError } from "./controls";
-import { InfoBar } from "./InfoBar";
+import { Notice } from "./Notice";
 
 export function AvailabilityBanner({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
   const { availability } = useUiState();
@@ -21,40 +21,40 @@ export function AvailabilityBanner({ headingLevel = 2 }: { headingLevel?: 2 | 3 
       return null;
     case "needs-consent":
       return (
-        <InfoBar
+        <Notice
           tone="info"
           title="La dictée n’est pas activée"
           headingLevel={headingLevel}
           testId="availability-banner"
           actions={
-            <button type="button" className="button button--primary" onClick={() => nav.openFirstRun("voice")}>
+            <button type="button" className="btn btn--sm btn--primary" onClick={() => nav.openFirstRun("consent")}>
               Activer la dictée…
             </button>
           }
         >
           <p>Votre voix est transmise à Google pendant que vous parlez. Activez la dictée pour commencer.</p>
-        </InfoBar>
+        </Notice>
       );
     case "needs-access":
       return (
-        <InfoBar
+        <Notice
           tone="info"
           title="Accès à Rambler requis"
           headingLevel={headingLevel}
           testId="availability-banner"
           actions={
-            <button type="button" className="button button--primary" onClick={() => nav.go("settings", "access")}>
+            <button type="button" className="btn btn--sm btn--primary" onClick={() => nav.go("settings", "access")}>
               Configurer l’accès
             </button>
           }
         >
           <p>Renseignez vos données d’accès au service pour dicter.</p>
-        </InfoBar>
+        </Notice>
       );
     case "unavailable": {
       const accessProblem = availability.reason === "access-refused" || availability.reason === "invalid-access";
       return (
-        <InfoBar
+        <Notice
           tone="error"
           title="Dictée indisponible"
           headingLevel={headingLevel}
@@ -63,7 +63,7 @@ export function AvailabilityBanner({ headingLevel = 2 }: { headingLevel?: 2 | 3 
             <>
               <button
                 type="button"
-                className="button button--primary"
+                className="btn btn--sm btn--primary"
                 aria-disabled={retry.busy || undefined}
                 onClick={() => {
                   if (!retry.busy) void retry.run(commands.retryConnection);
@@ -72,7 +72,7 @@ export function AvailabilityBanner({ headingLevel = 2 }: { headingLevel?: 2 | 3 
                 {retry.busy ? "Nouvelle tentative…" : "Réessayer"}
               </button>
               {accessProblem ? (
-                <button type="button" className="button" onClick={() => nav.go("settings", "access")}>
+                <button type="button" className="btn btn--sm" onClick={() => nav.go("settings", "access")}>
                   Modifier l’accès
                 </button>
               ) : null}
@@ -80,9 +80,9 @@ export function AvailabilityBanner({ headingLevel = 2 }: { headingLevel?: 2 | 3 
           }
         >
           <p>{unavailableReasonText(availability.reason)}</p>
-          <p className="muted">Les réglages, le brouillon et la copie restent disponibles.</p>
+          <p>Les réglages, les textes récents et la copie restent disponibles.</p>
           {retry.error ? <FieldError>{commandErrorText(retry.error)}</FieldError> : null}
-        </InfoBar>
+        </Notice>
       );
     }
   }

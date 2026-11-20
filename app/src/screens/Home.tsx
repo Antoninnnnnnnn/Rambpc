@@ -1,87 +1,58 @@
-import { useId } from "react";
-import { AvailabilityBanner } from "../components/AvailabilityBanner";
-import { FieldError } from "../components/controls";
-import { Glyph } from "../components/Icon";
-import { InfoBar } from "../components/InfoBar";
-import { OutcomeNotice } from "../components/OutcomeNotice";
-import { StatusCard } from "../components/StatusCard";
-import { canStartTake, commandErrorText, describeOutcome, isTakeActive } from "../labels/fr";
-import { useUiCommands } from "../state/commands";
-import { useNavigation } from "../state/navigation";
-import { useUiState } from "../state/ui";
-import { useAction } from "../state/useAction";
-import { ScreenHeader } from "./ScreenHeader";
-import "./screens.css";
+// Accueil: greeting, live dictation state, last result, usage counters and
+// the « Récents » list (the only text this screen shows, asked on demand).
 
-export function Home() {
+import { useEffect, useId, useRef } from "react";
+import { AvailabilityBanner } from "../components/AvailabilityBanner";
+import { OutcomeNotice } from "../components/OutcomeNotice";
+import { RecentList, type RecentListHandle } from "../components/RecentList";
+import { StatsRow } from "../components/StatsRow";
+import { StatusCard } from "../components/StatusCard";
+import { greeting, isTakeActive } from "../labels/fr";
+import { useRecents } from "../state/recents";
+import { useSettings } from "../state/settings";
+import { useUiState } from "../state/ui";
+import "./Home.css";
+
+/** `focusRecents`: a navigation nonce asking to bring « Récents » into view. */
+export function Home({ focusRecents = 0 }: { focusRecents?: number }) {
   const state = useUiState();
-  const commands = useUiCommands();
-  const nav = useNavigation();
-  const dictate = useAction();
+  const { settings } = useSettings();
+  const recents = useRecents();
+  const listRef = useRef<RecentListHandle>(null);
   const outcomeHeading = useId();
   const active = isTakeActive(state);
-  const startable = canStartTake(state.availability);
-  const hasDraft = state.draft !== null;
-  // The outcome already points to the draft when it is the reason the text waits.
-  const outcomeOffersDraft =
-    state.lastOutcome !== null && describeOutcome(state.lastOutcome, hasDraft).actions.includes("open-draft");
+  const minutes = settings?.draftMinutes ?? 10;
+
+  useEffect(() => {
+    if (focusRecents) listRef.current?.focus();
+  }, [focusRecents]);
 
   return (
-    <div className="screen">
-      <ScreenHeader title="Accueil">
-        Dictez au curseur dans n’importe quelle application. Le texte est inséré une seule fois, dans le champ où
-        vous avez commencé.
-      </ScreenHeader>
+    <div className="screen home">
+      <header className="screen__header home__header">
+        <h1 tabIndex={-1} data-screen-title className="home__greeting">
+          <span className="visually-hidden">Accueil, </span>
+          {greeting()}
+        </h1>
+        <p className="screen__lead">Votre voix, au curseur, dans toutes vos applications.</p>
+      </header>
 
       <AvailabilityBanner />
 
       <StatusCard />
 
       {state.lastOutcome && !active ? (
-        <section className="screen__section" aria-labelledby={outcomeHeading}>
-          <h2 id={outcomeHeading} className="screen__section-title">
+        <section aria-labelledby={outcomeHeading} className="home__outcome">
+          <h2 id={outcomeHeading} className="visually-hidden">
             Dernière dictée
           </h2>
-          <OutcomeNotice outcome={state.lastOutcome} hasDraft={hasDraft} headingLevel={3} />
+          <OutcomeNotice outcome={state.lastOutcome} hasDraft={state.draft !== null} headingLevel={3} />
         </section>
       ) : null}
 
-      {hasDraft && !active && !outcomeOffersDraft ? (
-        <InfoBar
-          tone="info"
-          title="Un texte attend dans Sambler"
-          testId="draft-callout"
-          actions={
-            <button type="button" className="button button--primary" onClick={() => nav.go("draft")}>
-              <Glyph name="draft" />
-              Ouvrir le brouillon
-            </button>
-          }
-        >
-          <p>Vous pouvez le copier ou l’effacer. Il est effacé automatiquement à l’expiration du délai.</p>
-        </InfoBar>
-      ) : null}
+      <StatsRow />
 
-      {!active ? (
-        <div className="screen__actions">
-          <button
-            type="button"
-            className="button button--large"
-            onClick={() => void dictate.run(commands.dictateInSambler)}
-            disabled={!startable}
-            aria-describedby={`${outcomeHeading}-dictate`}
-          >
-            <Glyph name="mic" />
-            Dicter dans Sambler
-          </button>
-          <p id={`${outcomeHeading}-dictate`} className="field-hint">
-            {startable
-              ? "Sans raccourci : le texte reste dans Sambler, prêt à être copié."
-              : "Disponible quand la dictée est activée et que Rambler répond."}
-          </p>
-          {dictate.error ? <FieldError>{commandErrorText(dictate.error)}</FieldError> : null}
-        </div>
-      ) : null}
+      <RecentList ref={listRef} id="home-recents" store={recents} minutes={minutes} />
     </div>
   );
 }

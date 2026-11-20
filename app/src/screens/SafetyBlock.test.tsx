@@ -10,10 +10,10 @@ const BLOCKED_TITLE = "Rambler a refusé de transcrire ce passage (filtre du ser
 const BLOCKED_SENTENCE =
   "Rambler a refusé de transcrire ce passage (filtre du service). Rien n’a été inséré. Reformulez ou dictez à nouveau.";
 
-function blockedDraft(): DraftView {
+function blockedDraft(take = 3): DraftView {
   const now = Date.now();
   return {
-    meta: { take: 3, createdAtMs: now, expiresAtMs: now + 600_000, complete: false },
+    meta: { take, createdAtMs: now, expiresAtMs: now + 600_000, complete: false },
     parts: [
       { status: "admitted", text: "How do I" },
       { status: "blocked", text: null },
@@ -27,7 +27,7 @@ const normalized = (name: string) => name.replace(/\s+/g, " ");
 describe("safety filter refusal", () => {
   it("replaces « Aucun texte obtenu » when the draft has a blocked part", async () => {
     const draft = blockedDraft();
-    const bridge = createFakeBridge({ state: { lastOutcome: { kind: "no-text" }, draft: draft.meta }, draft });
+    const bridge = createFakeBridge({ state: { lastOutcome: { kind: "no-text" }, draft: draft.meta }, draft, recents: [] });
     renderApp(bridge);
     await appReady();
     const notice = screen.getByTestId("outcome");
@@ -36,8 +36,8 @@ describe("safety filter refusal", () => {
     ).toBeInTheDocument();
     expect(notice).toHaveTextContent("Rien n’a été inséré. Reformulez ou dictez à nouveau.");
     expect(notice).not.toHaveTextContent("Aucun texte obtenu");
-    expect(within(notice).getByRole("button", { name: "Voir le brouillon" })).toBeInTheDocument();
-    // Only the part statuses are used: the text never shows outside the draft view.
+    expect(within(notice).getByRole("button", { name: "Voir dans Récents" })).toBeInTheDocument();
+    // Only the part statuses are used: the text never shows outside Récents.
     expect(document.body).not.toHaveTextContent("How do I");
   });
 
@@ -57,9 +57,25 @@ describe("safety filter refusal", () => {
     expect(noDraft.invoke).not.toHaveBeenCalledWith("get_draft");
   });
 
+  it("does not blame the filter for an earlier take's draft", async () => {
+    const earlier = blockedDraft(2);
+    const bridge = createFakeBridge({ state: { draft: earlier.meta }, draft: earlier, recents: [] });
+    renderApp(bridge);
+    await appReady();
+    act(() => {
+      bridge.pushState({ phase: { kind: "listening" }, take: 5, listeningMs: 0 });
+    });
+    act(() => {
+      bridge.pushState({ phase: { kind: "idle" }, take: null, lastOutcome: { kind: "no-text" } });
+    });
+    await waitFor(() => expect(liveRegion()).toHaveTextContent("Aucun texte obtenu."));
+    expect(screen.getByTestId("outcome")).toHaveTextContent("Aucun texte obtenu");
+    expect(bridge.invoke).not.toHaveBeenCalledWith("get_draft");
+  });
+
   it("is announced in French, with the other changes, never with dictated text", async () => {
     const draft = blockedDraft();
-    const bridge = createFakeBridge({ draft });
+    const bridge = createFakeBridge({ draft, recents: [] });
     renderApp(bridge);
     await appReady();
     const spoken = recordAnnouncements();
@@ -85,27 +101,29 @@ describe("safety filter refusal", () => {
     }
   });
 
-  it("explains the blocked part next to it in the draft view", async () => {
+  it("explains the blocked part next to it in Récents", async () => {
     const draft = draftWithGaps();
     const bridge = createFakeBridge({ state: { lastOutcome: { kind: "no-text" }, draft: draft.meta }, draft });
     const { user } = renderApp(bridge);
     await appReady();
-    await user.click(screen.getByRole("button", { name: /Brouillon/ }));
-    await screen.findByTestId("draft-text");
-    expect(screen.getByTestId("gap-help-blocked")).toHaveTextContent(`bloqué : ${BLOCKED_SENTENCE}`);
+    const item = await screen.findByTestId("recent-item");
+    await user.click(within(item).getByRole("button", { name: /^Afficher tout/ }));
+    expect(within(item).getByTestId("gap-help-blocked")).toHaveTextContent(`bloqué : ${BLOCKED_SENTENCE}`);
   });
 });
 
 describe("copy disclosure", () => {
-  it("is next to Copier in the draft view", async () => {
+  it("is next to Copier in Récents", async () => {
     const draft = completeDraft("Bonjour.");
     const bridge = createFakeBridge({ state: { draft: draft.meta }, draft });
-    const { user } = renderApp(bridge);
+    renderApp(bridge);
     await appReady();
-    await user.click(screen.getByRole("button", { name: /Brouillon/ }));
-    await screen.findByTestId("draft-text");
-    expect(screen.getByRole("button", { name: "Copier" })).toHaveAccessibleDescription(
-      /Copier remplace le contenu actuel du presse-papiers\. La copie est exclue de l’historique du presse-papiers de Windows \(Win\+V\)\./,
+    const item = await screen.findByTestId("recent-item");
+    expect(screen.getByTestId("recents-copy-note")).toHaveTextContent(
+      "Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du presse-papiers de Windows (Win+V).",
+    );
+    expect(within(item).getByRole("button", { name: /^Copier/ })).toHaveAccessibleDescription(
+      /^Copier remplace le contenu actuel du presse-papiers\. La copie est exclue de l’historique du presse-papiers de Windows \(Win\+V\)\.$/,
     );
   });
 

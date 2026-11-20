@@ -1,38 +1,56 @@
-.shortcut-field {
+.shortcut {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.45rem;
 }
 
-.shortcut-field__current {
+.shortcut__current {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
 }
 
-.shortcut-field__value {
-  font-size: var(--text-body-large);
+.shortcut__value {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-h);
+  padding: 0.2rem 0.6rem;
+  font-size: 1.05rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
-.shortcut-field__capture {
+.shortcut__capture {
   display: flex;
   align-items: center;
   min-height: 2.75rem;
-  max-width: 28rem;
-  padding: var(--space-2) var(--space-3);
-  color: var(--text-secondary);
-  background: var(--control);
-  border: 2px dashed var(--accent);
-  border-radius: var(--radius);
-  cursor: text;
+  padding: 0.35rem 0.9rem;
+  font-size: 1.05rem;
+  background: var(--raised);
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--ring);
 }
 
-.shortcut-field__capture[aria-invalid="true"] {
+.shortcut__capture:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.shortcut__capture--invalid {
   border-color: var(--error);
 }
 
+.shortcut__placeholder {
+  color: var(--text-2);
+  font-size: var(--text-md);
+}
+
 @media (forced-colors: active) {
-  .shortcut-field__capture {
-    border-color: Highlight;
+  .shortcut__capture,
+  .shortcut__value {
+    border: 1px solid CanvasText;
   }
 }

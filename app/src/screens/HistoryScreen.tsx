@@ -4,9 +4,9 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
-import { ChoiceGroup, ConfirmButton, FieldError, Panel, Switch } from "../components/controls";
+import { Card, ChoiceGroup, ConfirmButton, FieldError, Switch } from "../components/controls";
 import { Glyph } from "../components/Icon";
-import { InfoBar } from "../components/InfoBar";
+import { Notice } from "../components/Notice";
 import { toCommandError, useBridge } from "../ipc/bridge";
 import type { CommandError, HistoryEntry, HistoryStatus } from "../ipc/contract";
 import { clipboardErrorText, commandErrorText, settingSaveErrorText } from "../labels/fr";
@@ -25,7 +25,6 @@ import { useUiState } from "../state/ui";
 import { useAction } from "../state/useAction";
 import { ScreenHeader } from "./ScreenHeader";
 import "./HistoryScreen.css";
-import "./screens.css";
 
 export const HISTORY_PAGE_SIZE = 50;
 
@@ -223,8 +222,8 @@ export function HistoryScreen() {
       {statusError ? (
         <div className="stack stack--tight">
           <FieldError>L’état de l’historique n’a pas pu être lu.</FieldError>
-          <div className="button-row">
-            <button type="button" className="button" onClick={() => void reload(activeSearch)}>
+          <div className="btn-row">
+            <button type="button" className="btn btn--sm" onClick={() => void reload(activeSearch)}>
               Réessayer
             </button>
           </div>
@@ -232,18 +231,16 @@ export function HistoryScreen() {
       ) : null}
 
       {!available ? (
-        <InfoBar tone="info" title="Historique suspendu pour cette session" testId="history-ephemeral">
+        <Notice tone="info" title="Historique suspendu pour cette session" testId="history-ephemeral">
           <p>
-            Sambler fonctionne en session éphémère : son dossier de données n’est pas inscriptible. Les réglages et le
-            brouillon restent en mémoire et rien n’est archivé jusqu’à la fermeture.
+            Sambler fonctionne en session éphémère : son dossier de données n’est pas inscriptible. Les réglages et les
+            textes récents restent en mémoire et rien n’est archivé jusqu’à la fermeture.
           </p>
-          <p className="muted">
-            Pour retrouver l’historique, extrayez Sambler dans un dossier où vous pouvez écrire, puis relancez-le.
-          </p>
-        </InfoBar>
+          <p>Pour retrouver l’historique, extrayez Sambler dans un dossier où vous pouvez écrire, puis relancez-le.</p>
+        </Notice>
       ) : null}
 
-      <Panel title="Conservation">
+      <Card title="Conservation">
         <Switch
           label="Conserver mes dictées sur ce PC"
           description={
@@ -261,7 +258,7 @@ export function HistoryScreen() {
         <ChoiceGroup
           legend="Durée de conservation"
           name="history-retention"
-          layout="row"
+          variant="segmented"
           value={settings.history.retentionDays}
           options={HISTORY_DAY_CHOICES.map((days) => ({ value: days, label: daysLabel(days) }))}
           onChange={(days) => void setRetention(days)}
@@ -275,61 +272,68 @@ export function HistoryScreen() {
             onChange={(next) => void setSkipNext(next)}
           />
         ) : null}
-        <p className="field-hint" data-testid="history-count">
-          {entryCountText(count)}
-          {!enabled && count > 0
-            ? " Elles restent jusqu’à leur expiration ; « Tout effacer » les supprime maintenant."
-            : null}
-        </p>
-        <div className="button-row">
-          <ConfirmButton
-            label="Tout effacer"
-            question={
-              count === 1
-                ? "Effacer définitivement la dictée enregistrée ?"
-                : `Effacer définitivement les ${count} dictées enregistrées ?`
-            }
-            confirmLabel="Effacer définitivement"
-            disabled={count === 0 && (entries?.length ?? 0) === 0}
-            onConfirm={() => clearAll(false)}
-          />
-          {enabled ? (
+        <div className="stack stack--tight">
+          <p className="hint" data-testid="history-count">
+            {entryCountText(count)}
+            {!enabled && count > 0
+              ? " Elles restent jusqu’à leur expiration ; « Tout effacer » les supprime maintenant."
+              : null}
+          </p>
+          <div className="btn-row">
             <ConfirmButton
-              label="Désactiver et effacer"
-              question="Désactiver l’historique et effacer définitivement toutes les dictées enregistrées ?"
-              confirmLabel="Désactiver et effacer"
-              onConfirm={() => clearAll(true)}
+              small
+              label="Tout effacer"
+              question={
+                count === 1
+                  ? "Effacer définitivement la dictée enregistrée ?"
+                  : `Effacer définitivement les ${count} dictées enregistrées ?`
+              }
+              confirmLabel="Effacer définitivement"
+              disabled={count === 0 && (entries?.length ?? 0) === 0}
+              onConfirm={() => clearAll(false)}
             />
-          ) : null}
+            {enabled ? (
+              <ConfirmButton
+                small
+                label="Désactiver et effacer"
+                question="Désactiver l’historique et effacer définitivement toutes les dictées enregistrées ?"
+                confirmLabel="Désactiver et effacer"
+                onConfirm={() => clearAll(true)}
+              />
+            ) : null}
+          </div>
+          {actions.error ? <FieldError>{commandErrorText(actions.error)}</FieldError> : null}
         </div>
-        {actions.error ? <FieldError>{commandErrorText(actions.error)}</FieldError> : null}
-      </Panel>
+      </Card>
 
       {showList ? (
         <section className="history" aria-labelledby={ids.list}>
-          <h2 id={ids.list} ref={listHeading} tabIndex={-1} className="history__title">
+          <h2 id={ids.list} ref={listHeading} tabIndex={-1} className="section-title">
             Dictées enregistrées
           </h2>
           <form role="search" className="history__search" onSubmit={(event) => void runSearch(event)}>
-            <label htmlFor={ids.search} className="field__label">
+            <label htmlFor={ids.search} className="visually-hidden">
               Rechercher dans l’historique
             </label>
             <div className="history__search-row">
-              <input
-                id={ids.search}
-                className="text-input"
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.currentTarget.value)}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <button type="submit" className="button">
+              <span className="history__search-field">
                 <Glyph name="search" />
+                <input
+                  id={ids.search}
+                  className="input"
+                  type="search"
+                  value={search}
+                  placeholder="Rechercher dans l’historique"
+                  onChange={(event) => setSearch(event.currentTarget.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </span>
+              <button type="submit" className="btn">
                 Rechercher
               </button>
               {activeSearch ? (
-                <button type="button" className="button button--subtle" onClick={() => void clearSearch()}>
+                <button type="button" className="btn btn--ghost" onClick={() => void clearSearch()}>
                   Effacer la recherche
                 </button>
               ) : null}
@@ -342,13 +346,11 @@ export function HistoryScreen() {
             <p className="muted">Chargement…</p>
           ) : entries.length === 0 ? (
             <p className="muted" data-testid="history-empty">
-              {activeSearch
-                ? "Aucune dictée ne correspond à cette recherche."
-                : "Aucune dictée enregistrée pour le moment."}
+              {activeSearch ? "Aucune dictée ne correspond à cette recherche." : "Aucune dictée enregistrée pour le moment."}
             </p>
           ) : (
             <>
-              <p id={ids.copy} className="field-hint" data-testid="history-copy-note">
+              <p id={ids.copy} className="hint" data-testid="history-copy-note">
                 Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du
                 presse-papiers de Windows (Win+V).
               </p>
@@ -369,10 +371,10 @@ export function HistoryScreen() {
           </p>
 
           {nextCursor ? (
-            <div className="button-row">
+            <div className="btn-row history__more">
               <button
                 type="button"
-                className="button"
+                className="btn"
                 aria-disabled={loadingMore || undefined}
                 onClick={() => void loadMore()}
               >
@@ -382,10 +384,12 @@ export function HistoryScreen() {
           ) : null}
         </section>
       ) : available && !enabled ? (
-        <div className="empty-state" data-testid="history-off">
-          <Glyph name="history" className="empty-state__icon" />
-          <h2>L’historique est désactivé</h2>
-          <p className="muted">
+        <div className="empty" data-testid="history-off">
+          <span className="empty__icon">
+            <Glyph name="history" />
+          </span>
+          <h2 className="section-title">L’historique est désactivé</h2>
+          <p className="hint">
             Activez « Conserver mes dictées sur ce PC » pour retrouver vos prochaines dictées ici, pendant{" "}
             {daysLabel(settings.history.retentionDays)}.
           </p>
@@ -425,12 +429,14 @@ function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
   return (
     <li className="history-item" data-testid="history-entry">
       <article aria-labelledby={titleId}>
-        <h3 id={titleId} className="history-item__date" tabIndex={-1} data-history-entry-title>
-          <time dateTime={new Date(entry.createdAtMs).toISOString()}>{date}</time>
-        </h3>
-        <p className="history-item__meta">
-          {LANGUAGE_LABELS[entry.language]} · {PROFILE_LABELS[entry.profile]} · {formatExpiry(entry.expiresAtMs)}
-        </p>
+        <div className="history-item__head">
+          <h3 id={titleId} className="history-item__date" tabIndex={-1} data-history-entry-title>
+            <time dateTime={new Date(entry.createdAtMs).toISOString()}>{date}</time>
+          </h3>
+          <p className="history-item__meta">
+            {LANGUAGE_LABELS[entry.language]} · {PROFILE_LABELS[entry.profile]} · {formatExpiry(entry.expiresAtMs)}
+          </p>
+        </div>
         {entry.text !== null ? (
           <p className="history-item__text" lang={lang} data-testid="history-text">
             {entry.text}
@@ -440,18 +446,18 @@ function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
             Texte illisible sous ce compte Windows : la dictée est conservée mais ne peut pas être affichée ici.
           </p>
         )}
-        <div className="button-row">
+        <div className="history-item__actions">
           <button
             type="button"
-            className="button"
+            className="btn btn--sm"
             disabled={entry.text === null}
             aria-describedby={copyNoteId}
             onClick={() => void onCopy()}
           >
-            <Glyph name="copy" />
+            <Glyph name={copied ? "check" : "copy"} />
             Copier<span className="visually-hidden"> la dictée du {date}</span>
           </button>
-          <button type="button" className="button" onClick={onDelete}>
+          <button type="button" className="btn btn--sm btn--ghost" onClick={onDelete}>
             <Glyph name="trash" />
             Supprimer<span className="visually-hidden"> la dictée du {date}</span>
           </button>

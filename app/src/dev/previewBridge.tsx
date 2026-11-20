@@ -21,6 +21,7 @@ import {
   type TakeOutcome,
   type UiState,
   type UnavailableReason,
+  type UsageStats,
 } from "../ipc/contract";
 import { matchesShortcut } from "../lib/shortcut";
 import { PreviewPanel } from "./PreviewPanel";
@@ -33,6 +34,13 @@ const MICS: MicInfo[] = [
   { id: "usb-headset", name: "Casque USB", is_default: false },
 ];
 
+const SAMPLES = [
+  "Bonjour Claire, je ne pourrai pas venir jeudi à 14 h. Pouvons-nous décaler à vendredi matin ?",
+  "Penser à envoyer le devis à Mélusine avant la réunion budget de lundi.",
+  "Rendez-vous jeudi à 14 h.",
+  "Merci pour votre retour rapide. Je vous propose un point de quinze minutes demain pour valider la maquette, puis je partage la version finale avec l’équipe.",
+];
+
 export type CopyMode = "ok" | "busy" | "exclusion-failed";
 
 export interface PreviewControls {
@@ -40,17 +48,19 @@ export interface PreviewControls {
   setAvailability: (value: "auto" | "connecting" | UnavailableReason) => void;
   setPhase: (phase: UiState["phase"]["kind"]) => void;
   setOutcome: (outcome: TakeOutcome | null, draft: "none" | "complete" | "gaps") => void;
+  fillRecents: () => void;
   setCopyMode: (mode: CopyMode) => void;
   setFailNextSave: (fail: boolean) => void;
   resetFirstRun: () => void;
   subscribe: (listener: () => void) => () => void;
 }
 
-function sampleDraft(take: number, minutes: number, kind: "complete" | "gaps"): DraftView {
-  const now = Date.now();
+function sampleDraft(take: number, minutes: number, kind: "complete" | "gaps", ageMs = 0): DraftView {
+  const now = Date.now() - ageMs;
   const meta = { take, createdAtMs: now, expiresAtMs: now + minutes * 60_000, complete: kind === "complete" };
   if (kind === "complete") {
-    return { meta, parts: [{ status: "admitted", text: "Rendez-vous jeudi à 14 h." }], fullText: "Rendez-vous jeudi à 14 h." };
+    const text = SAMPLES[take % SAMPLES.length];
+    return { meta, parts: [{ status: "admitted", text }], fullText: text };
   }
   const parts: DraftPart[] = [
     { status: "admitted", text: "Je ne pourrai pas venir jeudi à 14 h," },
@@ -60,6 +70,11 @@ function sampleDraft(take: number, minutes: number, kind: "complete" | "gaps"): 
     { status: "blocked", text: null },
   ];
   return { meta, parts, fullText: null };
+}
+
+function words(view: DraftView): number {
+  const text = view.fullText ?? view.parts.map((part) => part.text ?? "").join(" ");
+  return text.split(/\s+/).filter(Boolean).length;
 }
 
 export function installPreview(): Bridge {
@@ -72,11 +87,12 @@ export function installPreview(): Bridge {
   let access: AccessStatus = { configured: false, source: "none", authority: null, canRemember: true };
   let forced: "auto" | "connecting" | UnavailableReason = "auto";
   let connecting = false;
-  let draft: DraftView | null = null;
+  let recents: DraftView[] = [];
   let nextTake = 1;
   let copyMode: CopyMode = "ok";
   let failNextSave = false;
-  const timers = { level: 0, micTest: 0, phase: 0, draft: 0 };
+  let stats: UsageStats = { wordsToday: 1240, wordsThisWeek: 5312, wordsTotal: 48210, takesTotal: 612, averageWpm: 132 };
+  const timers = { level: 0, micTest: 0, phase: 0, expiry: 0 };
 
   const availability = (): Availability => {
     if (!consent) return { kind: "needs-consent" };
@@ -96,6 +112,7 @@ export function installPreview(): Bridge {
     listeningMs: null,
     gesture: settings.gesture,
     shortcut: settings.shortcut,
+    recentCount: 0,
   };
 
   const publish = (patch: Partial<UiState> = {}) => {
@@ -103,7 +120,8 @@ export function installPreview(): Bridge {
       ...state,
       ...patch,
       availability: availability(),
-      draft: draft?.meta ?? null,
+      draft: recents[0]?.meta ?? null,
+      recentCount: recents.length,
       gesture: settings.gesture,
       shortcut: settings.shortcut,
     };
@@ -112,15 +130,21 @@ export function installPreview(): Bridge {
     return state;
   };
 
-  const setDraft = (next: DraftView | null) => {
-    draft = next;
-    window.clearTimeout(timers.draft);
-    if (next) {
-      timers.draft = window.setTimeout(() => {
-        draft = null;
-        publish();
-      }, next.meta.expiresAtMs - Date.now());
-    }
+  // Each recent result expires on its own; the next expiry is scheduled.
+  const scheduleExpiry = () => {
+    window.clearTimeout(timers.expiry);
+    if (recents.length === 0) return;
+    const next = Math.min(...recents.map((item) => item.meta.expiresAtMs));
+    timers.expiry = window.setTimeout(() => {
+      recents = recents.filter((item) => item.meta.expiresAtMs > Date.now());
+      publish();
+      scheduleExpiry();
+    }, Math.max(0, next - Date.now()) + 20);
+  };
+
+  const addRecent = (view: DraftView) => {
+    recents = [view, ...recents].slice(0, 5);
+    scheduleExpiry();
   };
 
   const stopLevels = () => {
@@ -133,8 +157,9 @@ export function installPreview(): Bridge {
     let t = 0;
     timers.level = window.setInterval(() => {
       t += 1;
-      emit(EVENT_LEVEL, Math.abs(Math.sin(t / 3)) * 0.7 + Math.random() * 0.25);
-    }, 50);
+      const syllables = Math.max(0, Math.sin(t / 2.3)) * Math.abs(Math.sin(t / 7));
+      emit(EVENT_LEVEL, 0.32 + syllables * 0.5 + Math.random() * 0.08);
+    }, 33);
   };
 
   const warm = () => {
@@ -146,6 +171,7 @@ export function installPreview(): Bridge {
     }, 700);
   };
 
+  // Instant start: « Écoute » right at the key press.
   const start = (destination: DestinationKind): UiState => {
     if (state.phase.kind !== "idle") return state;
     const a = availability();
@@ -157,11 +183,8 @@ export function installPreview(): Bridge {
     }
     const take = nextTake++;
     window.clearTimeout(timers.phase);
-    timers.phase = window.setTimeout(() => {
-      startLevels();
-      publish({ phase: { kind: "listening" }, listeningMs: 0 });
-    }, 450);
-    return publish({ phase: { kind: "preparing" }, take, destination, listeningMs: null });
+    startLevels();
+    return publish({ phase: { kind: "listening" }, take, destination, listeningMs: 0 });
   };
 
   const finish = (take: number): UiState => {
@@ -170,7 +193,15 @@ export function installPreview(): Bridge {
     window.clearTimeout(timers.phase);
     timers.phase = window.setTimeout(() => {
       const kept = state.destination === "sambler" || settings.alwaysKeepInSambler;
-      if (kept) setDraft(sampleDraft(take, settings.draftMinutes, "complete"));
+      const view = sampleDraft(take, settings.draftMinutes, "complete");
+      addRecent(view);
+      stats = {
+        ...stats,
+        wordsToday: stats.wordsToday + words(view),
+        wordsThisWeek: stats.wordsThisWeek + words(view),
+        wordsTotal: stats.wordsTotal + words(view),
+        takesTotal: stats.takesTotal + 1,
+      };
       publish({
         phase: { kind: "idle" },
         take: null,
@@ -178,7 +209,7 @@ export function installPreview(): Bridge {
         listeningMs: null,
         lastOutcome: kept ? { kind: "kept-in-sambler", reason: { kind: "sambler-destination" } } : { kind: "inserted" },
       });
-    }, 900);
+    }, 700);
     return publish({ phase: { kind: "finalizing" } });
   };
 
@@ -236,8 +267,8 @@ export function installPreview(): Bridge {
       let t = 0;
       timers.micTest = window.setInterval(() => {
         t += 1;
-        emit(EVENT_MIC_TEST_LEVEL, Math.abs(Math.sin(t / 4)) * 0.6 + Math.random() * 0.2);
-      }, 50);
+        emit(EVENT_MIC_TEST_LEVEL, 0.3 + Math.abs(Math.sin(t / 4)) * 0.45 + Math.random() * 0.15);
+      }, 33);
     },
     stop_mic_test: () => {
       window.clearInterval(timers.micTest);
@@ -252,12 +283,7 @@ export function installPreview(): Bridge {
     get_access: () => access,
     set_access: (args) => {
       const input = args!.access as { authority: string; remember: boolean };
-      access = {
-        configured: true,
-        source: input.remember ? "saved" : "session",
-        authority: input.authority || null,
-        canRemember: true,
-      };
+      access = { configured: true, source: input.remember ? "saved" : "session", authority: input.authority || null, canRemember: true };
       if (consent) warm();
       else publish();
       return access;
@@ -275,15 +301,21 @@ export function installPreview(): Bridge {
     dictate_in_sambler: () => start("sambler"),
     finish_take: (args) => finish(args!.take as number),
     cancel_take: (args) => cancel(args!.take as number),
-    get_draft: () => (draft ? structuredClone(draft) : null),
-    copy_draft: () => {
-      if (!draft) fail("no-draft", "Aucun brouillon.");
-      if (copyMode !== "ok") fail(copyMode, "");
+    get_draft: () => (recents[0] ? structuredClone(recents[0]) : null),
+    get_recent_drafts: () => structuredClone(recents),
+    copy_draft: (args) => {
+      const take = args?.take as number | undefined;
+      const view = take === undefined ? recents[0] : recents.find((item) => item.meta.take === take);
+      if (!view) fail("no-draft", "Aucun texte.");
+      if (copyMode !== "ok") fail(`clipboard-${copyMode}`, "");
     },
-    clear_draft: () => {
-      setDraft(null);
+    clear_draft: (args) => {
+      const take = args?.take as number | undefined;
+      recents = take === undefined ? [] : recents.filter((item) => item.meta.take !== take);
+      scheduleExpiry();
       return publish();
     },
+    get_stats: () => stats,
     open_mic_privacy_settings: () => {
       console.info(`${PREVIEW_MARKER}: would open ms-settings:privacy-microphone`);
     },
@@ -291,10 +323,11 @@ export function installPreview(): Bridge {
       const sample = String(args!.sample);
       const s = args!.settings as Settings;
       if (s.profile === "faithful") return sample;
-      let out = sample;
-      if (s.text.lightPunctuation) out = out.replace(/ (est-ce|does)/, ". $1") + (/(convient|you)$/.test(out) ? " ?" : ".");
+      let out = sample.trim();
+      if (s.text.lightPunctuation) out = out.replace(/ (est-ce|does)/, ". $1") + (/(convient|you)$/.test(out) ? " ?" : /[.!?]$/.test(out) ? "" : ".");
       if (s.text.sentenceCase) out = out.replace(/(^|[.?!] )(\p{L})/gu, (_m, p: string, c: string) => p + c.toUpperCase());
-      if (!s.text.typographicSpaces) out = out.replace(/ \?$/, "?");
+      if (s.text.typographicSpaces) out = out.replace(/ \?$/, " ?");
+      else out = out.replace(/ \?$/, "?");
       if (s.language === "english") out = out.replace(/ \?$/, "?").replace(/\bi\b/g, "I");
       return out;
     },
@@ -327,8 +360,14 @@ export function installPreview(): Bridge {
       });
     },
     setOutcome: (outcome, kind) => {
-      setDraft(kind === "none" ? null : sampleDraft(nextTake++, settings.draftMinutes, kind));
+      if (kind !== "none") addRecent(sampleDraft(nextTake++, settings.draftMinutes, kind));
       publish({ lastOutcome: outcome });
+    },
+    fillRecents: () => {
+      for (const [index, age] of [9, 6, 3, 1].entries()) {
+        addRecent(sampleDraft(nextTake++, settings.draftMinutes, index === 1 ? "gaps" : "complete", age * 60_000 * 0.4));
+      }
+      publish();
     },
     setCopyMode: (mode) => {
       copyMode = mode;
@@ -349,10 +388,50 @@ export function installPreview(): Bridge {
     },
   };
 
-  const host = document.createElement("div");
-  host.id = "dev-preview-panel";
-  document.body.appendChild(host);
-  createRoot(host).render(<PreviewPanel controls={controls} />);
+  // Scenarios for visual checks, e.g. `/?scenario=home&view=Style&panel=0`:
+  //   scenario: home | listening | finalizing | kept | gaps | unavailable | needs-access (default: first run)
+  //   view:     the sidebar label to open after start
+  //   click:    a CSS selector to click once the screen is shown
+  //   history:  1 to enable the history; panel: 0 to hide the dev panel
+  const params = new URLSearchParams(window.location.search);
+  const scenario = params.get("scenario");
+  if (scenario) {
+    consent = true;
+    if (scenario !== "needs-access") access = { configured: true, source: "saved", authority: null, canRemember: true };
+    if (scenario === "unavailable") forced = "network";
+    if (params.get("history") === "1") settings = { ...settings, history: { enabled: true, retentionDays: 7 } };
+    for (const [index, age] of [9, 6, 3].entries()) {
+      addRecent(sampleDraft(nextTake++, settings.draftMinutes, scenario === "gaps" && index === 1 ? "gaps" : "complete", age * 24_000));
+    }
+    addRecent(sampleDraft(nextTake++, settings.draftMinutes, scenario === "gaps" ? "gaps" : "complete"));
+    const outcome: TakeOutcome =
+      scenario === "kept"
+        ? { kind: "kept-in-sambler", reason: { kind: "uncertain-target", reason: "terminal" } }
+        : scenario === "gaps"
+          ? { kind: "kept-in-sambler", reason: { kind: "incomplete" } }
+          : { kind: "inserted" };
+    publish({ lastOutcome: scenario === "unavailable" || scenario === "needs-access" ? null : outcome });
+    if (scenario === "listening") {
+      startLevels();
+      publish({ phase: { kind: "listening" }, take: nextTake++, destination: "field", listeningMs: 7000 });
+    }
+    if (scenario === "finalizing") publish({ phase: { kind: "finalizing" }, take: nextTake++, destination: "field" });
+  }
+  const view = params.get("view");
+  const click = params.get("click");
+  if (view || click) {
+    window.setTimeout(() => {
+      if (view) document.querySelector<HTMLElement>(`.sidebar button[title="${view}"]`)?.click();
+      if (click) window.setTimeout(() => document.querySelector<HTMLElement>(click)?.click(), 300);
+    }, 400);
+  }
+
+  if (params.get("panel") !== "0") {
+    const host = document.createElement("div");
+    host.id = "dev-preview-panel";
+    document.body.appendChild(host);
+    createRoot(host).render(<PreviewPanel controls={controls} />);
+  }
   console.info(`Sambler: ${PREVIEW_MARKER}. Use the panel at the bottom right to simulate states.`);
 
   const delay = <T,>(value: () => T) =>
@@ -366,12 +445,23 @@ export function installPreview(): Bridge {
       }, 60);
     });
 
+  const noop = (what: string) => async () => {
+    console.info(`${PREVIEW_MARKER}: would ${what} the window`);
+  };
+
   const bridge = {
     invoke: (command: string, args?: Record<string, unknown>) => delay(() => handlers[command](args)),
     listen: async (event: string, handler: (payload: unknown) => void): Promise<Unlisten> => {
       if (!listeners.has(event)) listeners.set(event, new Set());
       listeners.get(event)!.add(handler);
       return () => listeners.get(event)?.delete(handler);
+    },
+    appWindow: {
+      minimize: noop("minimize"),
+      toggleMaximize: noop("toggle-maximize"),
+      close: noop("hide"),
+      isMaximized: async () => false,
+      onResized: async () => () => {},
     },
   };
   return bridge as unknown as Bridge;

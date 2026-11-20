@@ -1,32 +1,61 @@
 .mic {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
 }
 
 .mic__row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2);
-}
-
-.mic__row .select {
-  flex: 1 1 16rem;
-  width: auto;
-  min-width: 0;
 }
 
 .mic-test {
   display: grid;
   gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur) var(--ease);
+}
+
+.mic-test--on {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .mic-test__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-4);
 }
 
-.mic-test__row .level-meter {
-  flex: 1 1 12rem;
+.mic-test__wave {
+  --wave-h: 1.75rem;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mic-test__status--ok {
+  color: var(--success);
+  font-weight: 560;
+}
+
+@media (max-width: 34rem) {
+  .mic__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mic__row .btn {
+    justify-self: start;
+  }
+}
+
+@media (forced-colors: active) {
+  .mic-test {
+    border: 1px solid CanvasText;
+  }
 }

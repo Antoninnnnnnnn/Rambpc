@@ -1,0 +1,259 @@
+/* Floating dictation bar. The window (about 360 x 72 logical px) is
+   transparent: only the pill is drawn, centered at the bottom. A dark ink pill
+   with a light hairline and a soft shadow reads on light and dark wallpapers. */
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-family: "Inter Sambler", "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+  font-size: 13px;
+  font-feature-settings: "tnum", "cv11";
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+.bar {
+  --pill-bg: rgba(22, 24, 31, 0.95);
+  --pill-text: #f3f4f6;
+  --pill-muted: rgba(243, 244, 246, 0.66);
+  --tone: #c9cdd4;
+  --accent: #7aa2ff;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0 8px 12px;
+  box-sizing: border-box;
+}
+
+.bar__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  max-width: 100%;
+  padding: 0 16px 0 8px;
+  box-sizing: border-box;
+  color: var(--pill-text);
+  /* A faint top sheen and a light hairline set it apart from dark wallpapers;
+     the dark body and the shadow do the same on light ones. */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 55%),
+    var(--pill-bg);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.22),
+    0 10px 28px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.bar[data-kind="hidden"] .bar__pill {
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+  transition-duration: 300ms;
+}
+
+.bar__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--tone);
+  border-radius: 50%;
+}
+
+.bar__icon svg {
+  display: block;
+}
+
+.bar__label {
+  overflow: hidden;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bar__timer {
+  min-width: 2.6em;
+  color: var(--pill-muted);
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bar__wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+}
+
+.bar__wave .wave__bar {
+  display: block;
+  width: 3px;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #b6d0ff 0%, #6e98ff 100%);
+  transform: scaleY(0.16);
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* ---------------------------------------------------------------- per state */
+
+.bar:not([data-kind="listening"]) .bar__timer,
+.bar:not([data-kind="listening"]):not([data-kind="finalizing"]):not([data-kind="preparing"]) .bar__wave {
+  display: none;
+}
+
+.bar[data-kind="listening"] .bar__label,
+.bar[data-kind="finalizing"] .bar__label,
+.bar[data-kind="preparing"] .bar__label {
+  display: none;
+}
+
+.bar[data-kind="listening"] .bar__icon,
+.bar[data-kind="preparing"] .bar__icon {
+  color: #ffffff;
+  background: linear-gradient(145deg, #4f86ff 0%, #2357e0 100%);
+  box-shadow: 0 0 0 3px rgba(79, 134, 255, 0.22);
+}
+
+.bar[data-kind="listening"] .bar__icon {
+  animation: bar-breathe 1.8s ease-in-out infinite;
+}
+
+.bar[data-kind="listening"][data-warn] .bar__timer {
+  color: #fbbf24;
+}
+
+.bar[data-kind="finalizing"] .bar__icon {
+  color: var(--accent);
+  background: rgba(122, 162, 255, 0.14);
+}
+
+/* Processing: a slow ripple from the center, independent of the voice. */
+.bar[data-kind="finalizing"] .wave__bar,
+.bar[data-kind="preparing"] .wave__bar {
+  opacity: 0.85;
+  animation: bar-ripple 1.15s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 55ms);
+}
+
+.bar[data-kind="outcome"] .bar__pill {
+  padding-right: 18px;
+}
+
+.bar[data-tone="success"] {
+  --tone: #4ade80;
+}
+
+.bar[data-tone="info"] {
+  --tone: #8fb2ff;
+}
+
+.bar[data-tone="warning"] {
+  --tone: #fbbf24;
+}
+
+.bar[data-tone="error"] {
+  --tone: #ff8a80;
+}
+
+.bar[data-tone="neutral"] {
+  --tone: #c9cdd4;
+}
+
+.bar[data-kind="outcome"] .bar__icon {
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+}
+
+@keyframes bar-ripple {
+  0%,
+  100% {
+    transform: scaleY(0.16);
+  }
+  45% {
+    transform: scaleY(0.55);
+  }
+}
+
+@keyframes bar-breathe {
+  50% {
+    box-shadow: 0 0 0 5px rgba(79, 134, 255, 0.12);
+  }
+}
+
+/* ---------------------------------------------------------------- reduced motion: words instead of motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .bar__pill,
+  .bar[data-kind="hidden"] .bar__pill {
+    transform: none;
+    transition: opacity 120ms linear;
+  }
+
+  .bar__wave {
+    display: none !important;
+  }
+
+  .bar[data-kind="listening"] .bar__label,
+  .bar[data-kind="finalizing"] .bar__label,
+  .bar[data-kind="preparing"] .bar__label {
+    display: inline;
+  }
+
+  .bar[data-kind="listening"] .bar__icon,
+  .wave__bar {
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------- high contrast */
+
+@media (forced-colors: active) {
+  .bar__pill {
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+    box-shadow: none;
+    border: 2px solid CanvasText;
+  }
+
+  .bar__icon,
+  .bar[data-kind="listening"] .bar__icon,
+  .bar[data-kind="preparing"] .bar__icon,
+  .bar[data-kind="outcome"] .bar__icon {
+    color: CanvasText;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .bar__timer {
+    color: CanvasText;
+  }
+
+  .bar__wave .wave__bar {
+    background: CanvasText;
+  }
+}

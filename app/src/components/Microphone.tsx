@@ -12,7 +12,7 @@ import { useSettings } from "../state/settings";
 import { useAction } from "../state/useAction";
 import { FieldError } from "./controls";
 import { Glyph } from "./Icon";
-import { LevelMeter } from "./LevelMeter";
+import { Waveform } from "./Waveform";
 import "./Microphone.css";
 
 const DEFAULT_VALUE = "__system-default__";
@@ -51,11 +51,7 @@ export function MicrophonePicker() {
     let microphone: MicChoice = { kind: "system-default" };
     if (next !== DEFAULT_VALUE) {
       const mic = mics?.find((item) => item.id === next);
-      microphone = mic
-        ? { kind: "named", id: mic.id, name: mic.name }
-        : choice.kind === "named"
-          ? choice
-          : microphone;
+      microphone = mic ? { kind: "named", id: mic.id, name: mic.name } : choice.kind === "named" ? choice : microphone;
     }
     void update("microphone", (current) => ({ ...current, microphone }));
   };
@@ -91,11 +87,11 @@ export function MicrophonePicker() {
               <option value={choice.id}>{`${choice.name} (introuvable)`}</option>
             ) : null}
           </select>
-          <button type="button" className="button" onClick={refresh}>
+          <button type="button" className="btn btn--ghost" onClick={refresh}>
             Actualiser la liste
           </button>
         </div>
-        <p id={`${selectId}-hint`} className="field-hint">
+        <p id={`${selectId}-hint`} className="hint">
           Le micro par défaut est celui choisi dans Windows au début de chaque dictée.
         </p>
         {missing ? (
@@ -105,9 +101,7 @@ export function MicrophonePicker() {
           </FieldError>
         ) : null}
         {saveError ? (
-          <FieldError id={`${selectId}-err`}>
-            Le micro n’a pas pu être enregistré. {commandErrorText(saveError, "")}
-          </FieldError>
+          <FieldError id={`${selectId}-err`}>Le micro n’a pas pu être enregistré. {commandErrorText(saveError, "")}</FieldError>
         ) : null}
         {listError ? (
           <FieldError>La liste des micros n’a pas pu être lue. {commandErrorText(listError, "")}</FieldError>
@@ -124,7 +118,7 @@ export function MicPrivacyLink() {
   const action = useAction();
   return (
     <p>
-      <button type="button" className="link-button" onClick={() => void action.run(commands.openMicPrivacySettings)}>
+      <button type="button" className="link-btn" onClick={() => void action.run(commands.openMicPrivacySettings)}>
         Ouvrir les réglages de confidentialité du micro
         <Glyph name="external" />
       </button>
@@ -194,24 +188,24 @@ function MicTest({ microphone }: { microphone: MicChoice }) {
   );
 
   return (
-    <div className="mic-test" data-testid="mic-test">
+    <div className={testing ? "mic-test mic-test--on" : "mic-test"} data-testid="mic-test">
       <div className="mic-test__row">
         <button
           type="button"
-          className="button"
+          className={testing ? "btn btn--soft" : "btn"}
           onClick={() => void (testing ? stop() : start())}
           aria-describedby={statusId}
         >
-          <Glyph name="mic" />
+          <Glyph name={testing ? "stop" : "mic"} />
           {testing ? "Arrêter le test" : "Tester le micro"}
         </button>
-        <LevelMeter event={EVENT_MIC_TEST_LEVEL} active={testing} onLevel={onLevel} label="Niveau" />
+        <Waveform event={EVENT_MIC_TEST_LEVEL} active={testing} onLevel={onLevel} bars={27} className="mic-test__wave" />
       </div>
-      <p id={statusId} className="field-hint">
+      <p id={statusId} className={heard && testing ? "hint mic-test__status mic-test__status--ok" : "hint mic-test__status"}>
         {testing
           ? heard
             ? "Son détecté : le micro fonctionne."
-            : "Parlez normalement : la jauge doit bouger."
+            : "Parlez normalement : les barres doivent bouger."
           : "Le test mesure le niveau sur ce PC, sans rien envoyer, et libère le micro à l’arrêt."}
       </p>
       {error ? (

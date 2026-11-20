@@ -1,193 +1,136 @@
-/* App shell: sidebar navigation + main content. Collapses to a top bar on
-   narrow windows and at large text zoom. */
+/* App shell: own title bar, sidebar on the sand canvas, content on a sheet. */
+
+.frame,
+.app {
+  height: 100vh;
+  min-height: 0;
+  background: var(--canvas);
+}
+
+.frame {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
 
 .app {
   display: grid;
-  grid-template-columns: minmax(12.5rem, 15rem) minmax(0, 1fr);
-  min-height: 100vh;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.app > .titlebar {
+  grid-column: 1 / -1;
+}
+
+.app > .sidebar {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.main {
+  grid-row: 2;
+  grid-column: 2;
+  min-height: 0;
+  margin: 0 0.5rem 0.5rem 0;
+  overflow-y: auto;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  scroll-padding-top: var(--space-4);
+}
+
+.main__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  max-width: var(--content-w);
+  margin: 0 auto;
+  padding: 2.25rem var(--space-7) 3rem;
 }
 
 .skip-link {
   position: absolute;
-  top: var(--space-2);
-  left: var(--space-2);
+  top: 0.5rem;
+  left: 0.5rem;
   z-index: 10;
-  padding: var(--space-2) var(--space-3);
+  padding: 0.5rem 0.9rem;
   color: var(--on-accent);
   background: var(--accent);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-sm);
   transform: translateY(-200%);
 }
 
-.skip-link:focus-visible {
+.skip-link:focus {
   transform: none;
 }
 
-/* ---------------------------------------------------------------- sidebar */
+/* ---------------------------------------------------------------- screens */
 
-.sidebar {
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  height: 100vh;
-  padding: var(--space-4) var(--space-2);
-  overflow-y: auto;
-  background: var(--sidebar);
-  border-right: 1px solid var(--border);
-}
-
-.sidebar__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
-  font-family: var(--font-display);
-  font-size: var(--text-body-large);
-  font-weight: 600;
-}
-
-.app-mark {
-  flex: none;
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.app-mark__tile {
-  fill: var(--accent);
-}
-
-.app-mark__glyph {
-  fill: var(--on-accent);
-}
-
-.app-mark__stroke {
-  fill: none;
-  stroke: var(--on-accent);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-}
-
-.sidebar__nav ul {
+.screen {
   display: grid;
-  gap: 0.15rem;
-  padding: 0;
-  list-style: none;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
 }
 
-.nav-item {
-  position: relative;
+.screen__header {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.screen__eyebrow {
+  color: var(--text-3);
+  font-size: var(--text-sm);
+  font-weight: 560;
+}
+
+.screen__lead {
+  max-width: 40rem;
+  color: var(--text-2);
+  font-size: var(--text-md);
+}
+
+.screen__title-row {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  min-height: 2.25rem;
-  padding: var(--space-2) var(--space-3);
-  font: inherit;
-  color: var(--text);
-  text-align: left;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-small);
-  cursor: pointer;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
 }
 
-.nav-item:hover {
-  background: var(--selection-nav);
+.section-title {
+  font-size: var(--text-lg);
 }
 
-.nav-item[aria-current="page"] {
-  font-weight: 600;
-  background: var(--selection-nav);
-}
-
-/* The current page has a bar *and* bold text, not only a color. */
-.nav-item[aria-current="page"]::before {
-  content: "";
-  position: absolute;
-  top: 25%;
-  bottom: 25%;
-  left: 0;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--accent);
-}
-
-.nav-item .icon {
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.nav-item__label {
-  flex: 1;
-}
-
-.nav-item__badge {
-  min-width: 1.4rem;
-  padding: 0 0.4rem;
-  font-size: var(--text-caption);
-  font-weight: 600;
-  line-height: 1.4rem;
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-7) var(--space-5);
   text-align: center;
-  color: var(--on-accent);
-  background: var(--accent);
-  border-radius: 999px;
-}
-
-.nav-item--small {
-  min-height: 2rem;
-  color: var(--text-secondary);
-}
-
-.sidebar__footer {
-  display: grid;
-  gap: var(--space-2);
-  margin-top: auto;
-}
-
-.sidebar__status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-small);
-  color: var(--text-secondary);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
 }
 
-.sidebar__status .icon {
-  flex: none;
-  width: 1.1rem;
-  height: 1.1rem;
+.empty__icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: var(--space-1);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
 }
 
-.sidebar__status--available .icon {
-  color: var(--success);
+.empty__icon .icon {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 
-.sidebar__status--listening .icon,
-.sidebar__status--preparing .icon,
-.sidebar__status--finalizing .icon {
-  color: var(--accent);
-}
-
-.sidebar__status--unavailable .icon {
-  color: var(--error);
-}
-
-/* ---------------------------------------------------------------- main */
-
-.main {
-  min-width: 0;
-  padding: var(--space-6) var(--space-6) var(--space-7);
-}
-
-.main:focus {
-  outline: none;
+.empty p {
+  max-width: 30rem;
 }
 
 /* ---------------------------------------------------------------- startup */
@@ -196,109 +139,58 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: var(--space-2);
-  min-height: 100vh;
-  padding: var(--space-5);
+  gap: var(--space-3);
+  padding: var(--space-7);
   text-align: center;
 }
 
-.startup .app-mark {
-  width: 3rem;
-  height: 3rem;
+.startup__mark {
+  width: 3.5rem;
+  height: 3.5rem;
 }
 
 .startup__title {
-  font-size: var(--text-subtitle);
+  font-size: var(--text-xl);
 }
 
-/* ---------------------------------------------------------------- narrow */
+/* ---------------------------------------------------------------- narrow windows and 200 % zoom */
 
-@media (max-width: 44rem) {
+@media (max-width: 52rem) {
+  .app {
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+  }
+
+  .main__inner {
+    padding: var(--space-6) var(--space-5) var(--space-7);
+  }
+}
+
+@media (max-width: 30rem) {
   .app {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 
-  .sidebar {
-    position: static;
-    flex-flow: row wrap;
-    align-items: center;
-    gap: var(--space-2) var(--space-3);
-    height: auto;
-    padding: var(--space-2) var(--space-3);
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .sidebar__brand {
-    padding: 0;
-  }
-
-  .sidebar__nav {
-    flex: 1 1 auto;
-  }
-
-  .sidebar__nav ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1);
-  }
-
-  .nav-item {
-    width: auto;
-  }
-
-  .nav-item[aria-current="page"]::before {
-    top: auto;
-    right: 25%;
-    bottom: 0;
-    left: 25%;
-    width: auto;
-    height: 3px;
-  }
-
-  .sidebar__footer {
-    display: flex;
-    flex-wrap: wrap;
-    margin-top: 0;
+  .app > .sidebar {
+    grid-row: 2;
   }
 
   .main {
+    grid-row: 3;
+    grid-column: 1;
+    margin: 0;
+    border-radius: 0;
+    border-inline: 0;
+    border-bottom: 0;
+  }
+
+  .main__inner {
     padding: var(--space-5) var(--space-4) var(--space-6);
   }
 }
 
 @media (forced-colors: active) {
-  .sidebar {
-    border-color: CanvasText;
-  }
-
-  .nav-item[aria-current="page"] {
-    border-color: Highlight;
-  }
-
-  .nav-item[aria-current="page"]::before {
-    background: Highlight;
-  }
-
-  .nav-item__badge {
-    forced-color-adjust: none;
-    color: HighlightText;
-    background: Highlight;
-  }
-
-  .sidebar__status {
-    border-color: CanvasText;
-  }
-
-  .app-mark__tile {
-    fill: CanvasText;
-  }
-
-  .app-mark__glyph {
-    fill: Canvas;
-  }
-
-  .app-mark__stroke {
-    stroke: Canvas;
+  .main {
+    border: 1px solid CanvasText;
   }
 }

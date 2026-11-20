@@ -27,7 +27,9 @@ export type SettingsField =
   | "indicator"
   | "draftMinutes"
   | "history"
-  | "launchAtStartup";
+  | "launchAtStartup"
+  | "insertion"
+  | "insertionTarget";
 
 type Patch = (settings: Settings) => Settings;
 

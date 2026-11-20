@@ -4,14 +4,22 @@
 import { useEffect, useId, useState } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
 import { AccessForm, AccessSummary } from "../components/AccessForm";
-import { ChoiceGroup, FieldError, Panel, Switch } from "../components/controls";
+import { Card, ChoiceGroup, FieldError, Row, Switch } from "../components/controls";
+import { Glyph } from "../components/Icon";
 import { MicPrivacyLink, MicrophonePicker } from "../components/Microphone";
-import { RenderPreview } from "../components/RenderPreview";
-import { PersonalRulesPanel } from "../components/rules/PersonalRules";
 import { ShortcutField } from "../components/ShortcutField";
 import { useBridge } from "../ipc/bridge";
 import type { CommandError, IndicatorPosition, Settings, TakeOutcome } from "../ipc/contract";
-import { commandErrorText, hasConsent, settingSaveErrorText } from "../labels/fr";
+import {
+  commandErrorText,
+  hasConsent,
+  INSERTION_DESCRIPTIONS,
+  INSERTION_LABELS,
+  INSERTION_TARGET_DESCRIPTIONS,
+  INSERTION_TARGET_LABELS,
+  PASSWORD_NEVER_TEXT,
+  settingSaveErrorText,
+} from "../labels/fr";
 import { useAccess } from "../state/access";
 import { useUiCommands } from "../state/commands";
 import { useNavigation, type SettingsSection } from "../state/navigation";
@@ -19,16 +27,16 @@ import { useSettings, type SettingsField } from "../state/settings";
 import { useUiState } from "../state/ui";
 import { useAction } from "../state/useAction";
 import { ScreenHeader } from "./ScreenHeader";
-import "./screens.css";
+import "./SettingsScreen.css";
 
 const SECTIONS: { id: SettingsSection; title: string }[] = [
-  { id: "dictation", title: "Dictée" },
   { id: "microphone", title: "Micro" },
-  { id: "render", title: "Rendu du texte" },
-  { id: "rules", title: "Mots et expressions" },
+  { id: "shortcut", title: "Raccourci" },
+  { id: "language", title: "Langue" },
+  { id: "insertion", title: "Insertion" },
   { id: "destination", title: "Destination" },
-  { id: "indicator", title: "Indicateur" },
-  { id: "draft", title: "Brouillon" },
+  { id: "indicator", title: "Barre de dictée" },
+  { id: "recents", title: "Récents" },
   { id: "startup", title: "Démarrage" },
   { id: "access", title: "Accès à Rambler" },
   { id: "privacy", title: "Confidentialité" },
@@ -57,16 +65,19 @@ function micAccessDenied(outcome: TakeOutcome | null): boolean {
   return false;
 }
 
+function jumpTo(section: SettingsSection) {
+  const target = document.getElementById(sectionAnchor(section));
+  target?.scrollIntoView?.({ block: "start" });
+  target?.focus({ preventScroll: true });
+}
+
 export function SettingsScreen({ section }: { section?: SettingsSection }) {
   const { settings, loadFailed, errors, update, reload } = useSettings();
   const state = useUiState();
   const loaded = settings !== null;
 
   useEffect(() => {
-    if (!section || !loaded) return;
-    const target = document.getElementById(sectionAnchor(section));
-    target?.scrollIntoView?.({ block: "start" });
-    target?.focus({ preventScroll: true });
+    if (section && loaded) jumpTo(section);
   }, [section, loaded]);
 
   if (!settings) {
@@ -74,10 +85,10 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
       <div className="screen">
         <ScreenHeader title="Réglages" />
         {loadFailed ? (
-          <div className="stack">
+          <div className="stack stack--tight">
             <FieldError>Les réglages n’ont pas pu être chargés.</FieldError>
-            <div className="button-row">
-              <button type="button" className="button" onClick={reload}>
+            <div className="btn-row">
+              <button type="button" className="btn" onClick={reload}>
                 Réessayer
               </button>
             </div>
@@ -93,13 +104,13 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
   const error = (field: SettingsField) => saveErrorText(errors[field]);
 
   return (
-    <div className="screen screen--settings">
+    <div className="screen settings">
       <ScreenHeader title="Réglages">
         Chaque modification est enregistrée aussitôt et s’applique à la prochaine dictée. Désactiver la dictée avec
         Rambler prend effet immédiatement.
       </ScreenHeader>
 
-      <nav className="settings-toc" aria-label="Sections des réglages">
+      <nav className="settings__toc" aria-label="Sections des réglages">
         <ul>
           {SECTIONS.map((item) => (
             <li key={item.id}>
@@ -107,9 +118,7 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
                 href={`#${sectionAnchor(item.id)}`}
                 onClick={(event) => {
                   event.preventDefault();
-                  const target = document.getElementById(sectionAnchor(item.id));
-                  target?.scrollIntoView?.({ block: "start" });
-                  target?.focus({ preventScroll: true });
+                  jumpTo(item.id);
                 }}
               >
                 {item.title}
@@ -119,18 +128,21 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
         </ul>
       </nav>
 
-      <Panel id={sectionAnchor("dictation")} title="Dictée">
-        <ChoiceGroup
-          legend="Langue"
-          name="language"
-          layout="row"
-          value={settings.language}
-          options={[
-            { value: "french", label: "Français" },
-            { value: "english", label: "Anglais" },
-          ]}
-          onChange={(language) => void set("language", (s) => ({ ...s, language }))}
-          error={error("language")}
+      <Card id={sectionAnchor("microphone")} title="Micro">
+        <MicrophonePicker />
+        {micAccessDenied(state.lastOutcome) ? (
+          <div className="stack stack--tight">
+            <FieldError>Windows bloque l’accès au micro pour les applications de bureau.</FieldError>
+            <MicPrivacyLink />
+          </div>
+        ) : null}
+      </Card>
+
+      <Card id={sectionAnchor("shortcut")} title="Raccourci et geste">
+        <ShortcutField
+          value={settings.shortcut}
+          onChange={(shortcut) => set("shortcut", (s) => ({ ...s, shortcut }))}
+          error={errors.shortcut}
         />
         <ChoiceGroup
           legend="Geste"
@@ -151,11 +163,6 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
           onChange={(gesture) => void set("gesture", (s) => ({ ...s, gesture }))}
           error={error("gesture")}
         />
-        <ShortcutField
-          value={settings.shortcut}
-          onChange={(shortcut) => set("shortcut", (s) => ({ ...s, shortcut }))}
-          error={errors.shortcut}
-        />
         <Switch
           label="Annuler avec Échap pendant la dictée"
           description="Échap n’est intercepté que pendant une dictée ; rien n’est inséré."
@@ -163,88 +170,79 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
           onChange={(cancelWithEscape) => void set("cancelWithEscape", (s) => ({ ...s, cancelWithEscape }))}
           error={error("cancelWithEscape")}
         />
-      </Panel>
+      </Card>
 
-      <Panel id={sectionAnchor("microphone")} title="Micro">
-        <MicrophonePicker />
-        {micAccessDenied(state.lastOutcome) ? (
-          <div className="stack">
-            <FieldError>Windows bloque l’accès au micro pour les applications de bureau.</FieldError>
-            <MicPrivacyLink />
-          </div>
-        ) : null}
-      </Panel>
-
-      <Panel id={sectionAnchor("render")} title="Rendu du texte">
+      <Card id={sectionAnchor("language")} title="Langue" description="La langue que vous parlez, figée au début de chaque dictée.">
         <ChoiceGroup
-          legend="Profil"
-          name="profile"
-          value={settings.profile}
+          legend="Langue de dictée"
+          hideLegend
+          name="language"
+          variant="segmented"
+          value={settings.language}
+          options={[
+            { value: "french", label: "Français" },
+            { value: "english", label: "Anglais" },
+          ]}
+          onChange={(language) => void set("language", (s) => ({ ...s, language }))}
+          error={error("language")}
+        />
+      </Card>
+
+      <Card
+        id={sectionAnchor("insertion")}
+        title="Insertion"
+        description="Comment le texte arrive dans les navigateurs, Outlook et les applications web. Le Bloc-notes, WordPad et Word le reçoivent toujours directement."
+      >
+        <ChoiceGroup
+          legend="Méthode d’insertion"
+          hideLegend
+          name="insertion"
+          value={settings.insertion}
+          options={[
+            { value: "paste", label: INSERTION_LABELS.paste, description: INSERTION_DESCRIPTIONS.paste },
+            { value: "typing", label: INSERTION_LABELS.typing, description: INSERTION_DESCRIPTIONS.typing },
+          ]}
+          onChange={(insertion) => void set("insertion", (s) => ({ ...s, insertion }))}
+          error={error("insertion")}
+        />
+      </Card>
+
+      <Card id={sectionAnchor("destination")} title="Destination">
+        <ChoiceGroup
+          legend="Où insérer le texte"
+          name="insertionTarget"
+          value={settings.insertionTarget}
+          disabled={settings.alwaysKeepInSambler}
+          description={
+            settings.alwaysKeepInSambler
+              ? `Sans effet tant que le texte est toujours gardé dans Sambler. ${PASSWORD_NEVER_TEXT}`
+              : PASSWORD_NEVER_TEXT
+          }
           options={[
             {
-              value: "natural",
-              label: "Naturel",
-              description: "Ponctuation, espaces et majuscules légèrement corrigés, sans changer vos mots.",
+              value: "original-field",
+              label: INSERTION_TARGET_LABELS["original-field"],
+              description: INSERTION_TARGET_DESCRIPTIONS["original-field"],
             },
             {
-              value: "faithful",
-              label: "Fidèle",
-              description: "La transcription de Rambler telle quelle, ponctuation comprise.",
+              value: "cursor-at-end",
+              label: INSERTION_TARGET_LABELS["cursor-at-end"],
+              description: INSERTION_TARGET_DESCRIPTIONS["cursor-at-end"],
             },
           ]}
-          onChange={(profile) => void set("profile", (s) => ({ ...s, profile }))}
-          error={error("profile")}
+          onChange={(insertionTarget) => void set("insertionTarget", (s) => ({ ...s, insertionTarget }))}
+          error={error("insertionTarget")}
         />
-        <fieldset className="subgroup">
-          <legend className="subgroup__legend">Règles du profil Naturel</legend>
-          {settings.profile === "faithful" ? (
-            <p className="field-hint">Ces règles sont ignorées en Fidèle.</p>
-          ) : null}
-          <Switch
-            label="Ponctuation légère"
-            description="Complète la ponctuation simple, comme le point final."
-            checked={settings.text.lightPunctuation}
-            disabled={settings.profile === "faithful"}
-            onChange={(lightPunctuation) =>
-              void set("text", (s) => ({ ...s, text: { ...s.text, lightPunctuation } }))
-            }
-          />
-          <Switch
-            label="Espaces typographiques"
-            description="Espaces insécables du français avant « : ; ! ? » et dans les guillemets."
-            checked={settings.text.typographicSpaces}
-            disabled={settings.profile === "faithful"}
-            onChange={(typographicSpaces) =>
-              void set("text", (s) => ({ ...s, text: { ...s.text, typographicSpaces } }))
-            }
-          />
-          <Switch
-            label="Majuscule de phrase"
-            description="Met une majuscule au début de chaque phrase."
-            checked={settings.text.sentenceCase}
-            disabled={settings.profile === "faithful"}
-            onChange={(sentenceCase) => void set("text", (s) => ({ ...s, text: { ...s.text, sentenceCase } }))}
-          />
-          {error("text") ? <FieldError>{error("text")}</FieldError> : null}
-        </fieldset>
-        <RenderPreview settings={settings} />
-      </Panel>
-
-      <PersonalRulesPanel id={sectionAnchor("rules")} settings={settings} />
-
-      <Panel id={sectionAnchor("destination")} title="Destination">
         <Switch
           label="Toujours garder le texte dans Sambler"
-          description="Le texte n’est jamais inséré dans le champ : il attend dans le brouillon, prêt à être copié."
+          description="Le texte n’est jamais inséré dans le champ : il vous attend dans Récents, prêt à être copié."
           checked={settings.alwaysKeepInSambler}
-          onChange={(alwaysKeepInSambler) =>
-            void set("alwaysKeepInSambler", (s) => ({ ...s, alwaysKeepInSambler }))
-          }
+          onChange={(alwaysKeepInSambler) => void set("alwaysKeepInSambler", (s) => ({ ...s, alwaysKeepInSambler }))}
           error={error("alwaysKeepInSambler")}
         />
-      </Panel>
+      </Card>
 
-      <Panel id={sectionAnchor("indicator")} title="Indicateur">
+      <Card id={sectionAnchor("indicator")} title="Barre de dictée" description="La petite barre flottante qui montre l’écoute.">
         <Switch
           label="Son de début et de fin"
           description="Un son discret signale le début de l’écoute et la fin de la dictée."
@@ -253,18 +251,20 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
         />
         <IndicatorPositionField
           value={settings.indicator.position}
-          onChange={(position) =>
-            void set("indicator", (s) => ({ ...s, indicator: { ...s.indicator, position } }))
-          }
+          onChange={(position) => void set("indicator", (s) => ({ ...s, indicator: { ...s.indicator, position } }))}
         />
         {error("indicator") ? <FieldError>{error("indicator")}</FieldError> : null}
-      </Panel>
+      </Card>
 
-      <Panel id={sectionAnchor("draft")} title="Brouillon">
+      <Card
+        id={sectionAnchor("recents")}
+        title="Récents"
+        description="Aucun audio n’est enregistré. Les textes récents restent en mémoire seulement ; verrouiller Windows ou quitter Sambler les efface."
+      >
         <ChoiceGroup
-          legend="Conserver le brouillon en mémoire pendant"
+          legend="Garder les textes récents pendant"
           name="draftMinutes"
-          layout="row"
+          variant="segmented"
           value={settings.draftMinutes}
           options={[
             { value: 1, label: "1 minute" },
@@ -272,17 +272,16 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
             { value: 10, label: "10 minutes" },
           ]}
           onChange={(draftMinutes) => void set("draftMinutes", (s) => ({ ...s, draftMinutes }))}
-          description="Aucun audio n’est enregistré. Verrouiller Windows ou quitter Sambler efface le brouillon."
           error={error("draftMinutes")}
         />
-        <ClearDraftNow />
-      </Panel>
+        <ClearRecentsNow />
+      </Card>
 
-      <StartupPanel />
+      <StartupCard />
 
-      <AccessPanel startOpen={section === "access"} />
+      <AccessCard startOpen={section === "access"} />
 
-      <PrivacyPanel />
+      <PrivacyCard />
     </div>
   );
 }
@@ -296,13 +295,10 @@ function IndicatorPositionField({
 }) {
   const id = useId();
   return (
-    <div className="field">
-      <label htmlFor={id} className="field__label">
-        Position de l’indicateur
-      </label>
+    <Row label="Position de la barre" htmlFor={id}>
       <select
         id={id}
-        className="select select--auto"
+        className="select settings__select"
         value={value}
         onChange={(event) => onChange(event.currentTarget.value as IndicatorPosition)}
       >
@@ -312,37 +308,41 @@ function IndicatorPositionField({
           </option>
         ))}
       </select>
-    </div>
+    </Row>
   );
 }
 
-function ClearDraftNow() {
+function ClearRecentsNow() {
   const state = useUiState();
   const commands = useUiCommands();
   const announce = useAnnounce();
   const action = useAction();
+  const any = state.recentCount > 0 || state.draft !== null;
   return (
     <div className="stack stack--tight">
-      <div className="button-row">
+      <Row
+        label={any ? "Des textes récents sont en mémoire." : "Aucun texte récent en mémoire."}
+        description="Les effacer tout de suite, sans attendre le délai."
+      >
         <button
           type="button"
-          className="button"
-          disabled={!state.draft}
+          className="btn btn--sm"
+          disabled={!any}
           onClick={async () => {
-            const result = await action.run(commands.clearDraft);
-            if (result.ok) announce(announcement("Brouillon effacé."));
+            const result = await action.run(() => commands.clearDraft());
+            if (result.ok) announce(announcement("Textes récents effacés."));
           }}
         >
+          <Glyph name="trash" />
           Effacer maintenant
         </button>
-        <span className="field-hint">{state.draft ? "Un texte est en attente." : "Aucun texte en attente."}</span>
-      </div>
+      </Row>
       {action.error ? <FieldError>{commandErrorText(action.error)}</FieldError> : null}
     </div>
   );
 }
 
-function AccessPanel({ startOpen }: { startOpen: boolean }) {
+function AccessCard({ startOpen }: { startOpen: boolean }) {
   const { status, loadFailed, clear, refresh } = useAccess();
   const announce = useAnnounce();
   const [editing, setEditing] = useState(false);
@@ -353,7 +353,7 @@ function AccessPanel({ startOpen }: { startOpen: boolean }) {
   }, [startOpen, status]);
 
   return (
-    <Panel
+    <Card
       id={sectionAnchor("access")}
       title="Accès à Rambler"
       description="Les données d’accès ne sont jamais réaffichées. Seule l’adresse du service est visible."
@@ -361,9 +361,9 @@ function AccessPanel({ startOpen }: { startOpen: boolean }) {
       {status ? (
         <AccessSummary status={status} />
       ) : loadFailed ? (
-        <div className="button-row">
+        <div className="btn-row">
           <FieldError>L’état de l’accès n’a pas pu être lu.</FieldError>
-          <button type="button" className="button" onClick={refresh}>
+          <button type="button" className="btn btn--sm" onClick={refresh}>
             Réessayer
           </button>
         </div>
@@ -371,7 +371,7 @@ function AccessPanel({ startOpen }: { startOpen: boolean }) {
         <p className="muted">Chargement…</p>
       )}
       {status?.source === "environment" ? (
-        <p className="field-hint">
+        <p className="hint">
           Ces valeurs viennent des variables d’environnement de Windows. Saisir un autre accès le remplace pour Sambler.
         </p>
       ) : null}
@@ -382,14 +382,15 @@ function AccessPanel({ startOpen }: { startOpen: boolean }) {
           submitLabel={status?.configured ? "Remplacer l’accès" : "Enregistrer l’accès"}
         />
       ) : status ? (
-        <div className="button-row">
-          <button type="button" className="button" onClick={() => setEditing(true)}>
+        <div className="btn-row">
+          <button type="button" className="btn btn--sm" onClick={() => setEditing(true)}>
+            <Glyph name="key" />
             {status.configured ? "Modifier l’accès" : "Configurer l’accès"}
           </button>
           {status.configured && status.source !== "environment" ? (
             <button
               type="button"
-              className="button"
+              className="btn btn--sm btn--ghost"
               onClick={async () => {
                 const result = await action.run(clear);
                 if (result.ok) announce(announcement("Accès à Rambler retiré."));
@@ -401,11 +402,11 @@ function AccessPanel({ startOpen }: { startOpen: boolean }) {
         </div>
       ) : null}
       {action.error ? <FieldError>{commandErrorText(action.error)}</FieldError> : null}
-    </Panel>
+    </Card>
   );
 }
 
-function PrivacyPanel() {
+function PrivacyCard() {
   const state = useUiState();
   const { settings } = useSettings();
   const commands = useUiCommands();
@@ -415,7 +416,7 @@ function PrivacyPanel() {
   const consent = hasConsent(state.availability);
 
   return (
-    <Panel id={sectionAnchor("privacy")} title="Confidentialité">
+    <Card id={sectionAnchor("privacy")} title="Confidentialité">
       <Switch
         label="Dictée avec Rambler (Google)"
         description={
@@ -430,31 +431,31 @@ function PrivacyPanel() {
           const result = await action.run(() => commands.setConsent(enabled));
           if (result.ok) {
             announce(
-              announcement(
-                enabled ? "Dictée avec Rambler activée." : "Dictée avec Rambler désactivée. Plus rien n’est envoyé.",
-              ),
+              announcement(enabled ? "Dictée avec Rambler activée." : "Dictée avec Rambler désactivée. Plus rien n’est envoyé."),
             );
           }
         }}
         error={action.error ? commandErrorText(action.error) : undefined}
       />
-      <p className="field-hint">
-        Historique des dictées : {settings?.history.enabled ? "activé" : "désactivé"}.{" "}
-        <button type="button" className="link-button" onClick={() => nav.go("history")}>
+      <Row
+        label="Historique des dictées"
+        description={settings?.history.enabled ? "Activé : le texte est gardé sur ce PC, chiffré." : "Désactivé."}
+      >
+        <button type="button" className="btn btn--sm" onClick={() => nav.go("history")}>
           Gérer l’historique
         </button>
-      </p>
-      <p>
-        <button type="button" className="link-button" onClick={() => nav.openFirstRun("voice")}>
-          Revoir la présentation et l’essai guidé
+      </Row>
+      <Row label="Présentation" description="Ce que reçoit Google, le micro, l’accès et un essai guidé.">
+        <button type="button" className="btn btn--sm" onClick={() => nav.openFirstRun("consent")}>
+          Revoir la prise en main
         </button>
-      </p>
-    </Panel>
+      </Row>
+    </Card>
   );
 }
 
 /** « Démarrer avec Windows » goes through `set_launch_at_startup` (installed edition only). */
-function StartupPanel() {
+function StartupCard() {
   const bridge = useBridge();
   const { settings, applyLocal } = useSettings();
   const announce = useAnnounce();
@@ -479,7 +480,7 @@ function StartupPanel() {
       : undefined;
 
   return (
-    <Panel id={sectionAnchor("startup")} title="Démarrage">
+    <Card id={sectionAnchor("startup")} title="Démarrage">
       <Switch
         label="Démarrer avec Windows"
         description="Sambler s’ouvre à l’ouverture de session, discrètement dans la zone de notification. Désactivé par défaut."
@@ -488,6 +489,6 @@ function StartupPanel() {
         onChange={(enabled) => void onChange(enabled)}
         error={error}
       />
-    </Panel>
+    </Card>
   );
 }

@@ -1,7 +1,7 @@
 // Inline SVG icons. Decorative: the adjacent text always carries the meaning,
 // and each status has its own shape so color is never the only cue.
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import type { StatusShape, Tone } from "../labels/fr";
 
 function Svg({ children, className, shape }: { children: ReactNode; className?: string; shape?: string }) {
@@ -16,7 +16,7 @@ function Svg({ children, className, shape }: { children: ReactNode; className?: 
       data-shape={shape}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -29,16 +29,16 @@ const STATUS_PATHS: Record<StatusShape, ReactNode> = {
   // Ring with a check mark.
   available: (
     <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M8 12.5l2.7 2.7L16.2 9.5" />
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.4 12.3l2.5 2.5 4.8-5.2" />
     </>
   ),
-  // Two open arcs.
+  // Two open arcs chasing each other.
   connecting: (
     <>
-      <path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3" />
-      <path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3" />
-      <path d="M17.6 3.8v3.1h-3.1M6.4 20.2v-3.1h3.1" />
+      <path d="M4.6 12a7.4 7.4 0 0 1 12.6-5.2" />
+      <path d="M19.4 12a7.4 7.4 0 0 1-12.6 5.2" />
+      <path d="M17.4 3.9v3.2h-3.2M6.6 20.1v-3.2h3.2" />
     </>
   ),
   // Hourglass.
@@ -52,30 +52,30 @@ const STATUS_PATHS: Record<StatusShape, ReactNode> = {
   listening: (
     <>
       <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
-      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.5M8.5 21h7" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.5" />
     </>
   ),
-  // Three dots in a rounded box.
+  // Three dots in a capsule.
   finalizing: (
     <>
-      <rect x="3" y="7" width="18" height="10" rx="5" />
-      <circle cx="8" cy="12" r="1.2" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
-      <circle cx="16" cy="12" r="1.2" fill="currentColor" />
+      <rect x="3" y="7.5" width="18" height="9" rx="4.5" />
+      <circle cx="8" cy="12" r="1.15" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.15" fill="currentColor" />
+      <circle cx="16" cy="12" r="1.15" fill="currentColor" />
     </>
   ),
   // Triangle with exclamation mark.
   unavailable: (
     <>
-      <path d="M12 3.5l9.5 16.5h-19z" />
-      <path d="M12 10v4.5" />
-      <circle cx="12" cy="17.3" r="0.6" fill="currentColor" />
+      <path d="M10.3 4.4a2 2 0 0 1 3.4 0l7 12.1a2 2 0 0 1-1.7 3H5a2 2 0 0 1-1.7-3z" />
+      <path d="M12 9.5v4" />
+      <circle cx="12" cy="16.6" r="0.5" fill="currentColor" />
     </>
   ),
   // Padlock.
   setup: (
     <>
-      <rect x="5" y="10.5" width="14" height="10" rx="2" />
+      <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
       <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
       <path d="M12 14.5v2.5" />
     </>
@@ -91,24 +91,19 @@ export function StatusIcon({ shape, className }: { shape: StatusShape; className
 }
 
 const TONE_PATHS: Record<Tone, ReactNode> = {
-  success: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M8 12.5l2.7 2.7L16.2 9.5" />
-    </>
-  ),
+  success: STATUS_PATHS.available,
   info: (
     <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 11v5.5" />
-      <circle cx="12" cy="7.8" r="0.6" fill="currentColor" />
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5" />
+      <circle cx="12" cy="7.9" r="0.5" fill="currentColor" />
     </>
   ),
   warning: STATUS_PATHS.unavailable,
   error: (
     <>
-      <path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3z" />
-      <path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6" />
+      <path d="M8.4 3.5h7.2l4.9 4.9v7.2l-4.9 4.9H8.4l-4.9-4.9V8.4z" />
+      <path d="M9.4 9.4l5.2 5.2M14.6 9.4l-5.2 5.2" />
     </>
   ),
 };
@@ -123,66 +118,183 @@ export function ToneIcon({ tone, className }: { tone: Tone; className?: string }
 
 export type GlyphName =
   | "home"
-  | "draft"
+  | "dictionary"
+  | "shortcuts"
+  | "style"
   | "history"
   | "settings"
   | "guide"
   | "copy"
+  | "check"
   | "trash"
   | "mic"
   | "external"
   | "add"
   | "edit"
-  | "search";
+  | "search"
+  | "chevron-down"
+  | "arrow-right"
+  | "minimize"
+  | "maximize"
+  | "restore"
+  | "close"
+  | "stop"
+  | "keyboard"
+  | "clipboard"
+  | "shield"
+  | "power"
+  | "bell"
+  | "key"
+  | "globe"
+  | "clock"
+  | "inbox";
 
 const GLYPHS: Record<GlyphName, ReactNode> = {
-  home: <path d="M4 11l8-7 8 7v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" />,
-  draft: (
+  home: (
     <>
-      <path d="M6 3h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-      <path d="M14 3v4h4M8.5 12h7M8.5 15.5h7" />
+      <path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-3.5v-5.5h-6v5.5H5.5A1.5 1.5 0 0 1 4 19z" />
     </>
   ),
-  settings: (
+  // An open book.
+  dictionary: (
     <>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" />
-      <circle cx="12" cy="12" r="6.5" />
+      <path d="M12 6.5c-1.8-1.3-4.3-2-7.5-2v13c3.2 0 5.7.7 7.5 2 1.8-1.3 4.3-2 7.5-2v-13c-3.2 0-5.7.7-7.5 2z" />
+      <path d="M12 6.5v13" />
     </>
   ),
-  guide: (
+  // A speech bubble with a spark: a phrase that expands.
+  shortcuts: (
     <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M10 8.5l5.5 3.5-5.5 3.5z" />
+      <path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-8l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z" />
+      <path d="M12.6 8.2l-2.2 3.3h3.2l-2.2 3.3" />
     </>
   ),
-  copy: (
+  // "Aa": typography.
+  style: (
     <>
-      <rect x="8" y="8" width="12" height="12" rx="2" />
-      <path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
+      <path d="M3.5 18l4.5-12 4.5 12M5.2 13.6h5.6" />
+      <path d="M20.5 18v-5.2a2.8 2.8 0 0 0-5.3-1.2M20.5 15.5c-.6 1.6-1.7 2.5-3.1 2.5-1.3 0-2.2-.8-2.2-1.9 0-1.4 1.4-2 5.3-2.1" />
     </>
   ),
-  trash: <path d="M4.5 6.5h15M9.5 6.5V4h5v2.5M6.5 6.5l1 13.5h9l1-13.5M10.2 10v6.5M13.8 10v6.5" />,
-  mic: (
-    <>
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.5" />
-    </>
-  ),
-  external: <path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />,
-  // Clock with a counter-clockwise arrow.
   history: (
     <>
       <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" />
       <path d="M4 4v3.5h3.5M12 8v4.5l3 2" />
     </>
   ),
+  // Two sliders.
+  settings: (
+    <>
+      <path d="M4 7.5h9M17 7.5h3M4 16.5h3M11 16.5h9" />
+      <circle cx="15" cy="7.5" r="2" />
+      <circle cx="9" cy="16.5" r="2" />
+    </>
+  ),
+  // A compass star.
+  guide: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M14.8 9.2l-1.6 4-4 1.6 1.6-4z" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2.2" />
+      <path d="M15.5 8.5V6.2A1.7 1.7 0 0 0 13.8 4.5H6.2A1.7 1.7 0 0 0 4.5 6.2v7.6a1.7 1.7 0 0 0 1.7 1.7h2.3" />
+    </>
+  ),
+  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  trash: (
+    <>
+      <path d="M4.5 6.5h15M9.5 6.5V4.8a.8.8 0 0 1 .8-.8h3.4a.8.8 0 0 1 .8.8v1.7" />
+      <path d="M6.5 6.5l.9 12.1a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.1M10.2 10.5v5.5M13.8 10.5v5.5" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.5" />
+    </>
+  ),
+  external: <path d="M14 4.5h5.5V10M19.5 4.5L11 13M17.5 14v4.5a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V8.5A1.5 1.5 0 0 1 6 7h4.5" />,
   add: <path d="M12 5v14M5 12h14" />,
-  edit: <path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" />,
+  edit: (
+    <>
+      <path d="M4.5 19.5l1-4.2L15.8 5a2 2 0 0 1 2.9 0l.3.3a2 2 0 0 1 0 2.9L8.7 18.5z" />
+      <path d="M14 6.8l3.2 3.2" />
+    </>
+  ),
   search: (
     <>
-      <circle cx="10.5" cy="10.5" r="6" />
-      <path d="M15 15l5 5" />
+      <circle cx="10.8" cy="10.8" r="6" />
+      <path d="M15.3 15.3l4.7 4.7" />
+    </>
+  ),
+  "chevron-down": <path d="M6.5 9.5l5.5 5.5 5.5-5.5" />,
+  "arrow-right": <path d="M5 12h14M13.5 6.5L19 12l-5.5 5.5" />,
+  minimize: <path d="M6.5 12h11" />,
+  maximize: <rect x="6.5" y="6.5" width="11" height="11" rx="1.8" />,
+  restore: (
+    <>
+      <rect x="5.5" y="8.5" width="10" height="10" rx="1.8" />
+      <path d="M8.5 5.5h8.2a1.8 1.8 0 0 1 1.8 1.8v8.2" />
+    </>
+  ),
+  close: <path d="M7 7l10 10M17 7L7 17" />,
+  stop: <rect x="7" y="7" width="10" height="10" rx="2.2" fill="currentColor" stroke="none" />,
+  keyboard: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2.5" />
+      <path d="M7 10h.01M10.3 10h.01M13.7 10h.01M17 10h.01M8 14h8" />
+    </>
+  ),
+  clipboard: (
+    <>
+      <rect x="5.5" y="5" width="13" height="15.5" rx="2" />
+      <path d="M9 5V4.2a.7.7 0 0 1 .7-.7h4.6a.7.7 0 0 1 .7.7V5M9 11h6M9 14.5h4" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 3.5l7 2.8v5.2c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.3z" />
+      <path d="M9 12l2.2 2.2L15.3 10" />
+    </>
+  ),
+  power: (
+    <>
+      <path d="M12 3.5v8" />
+      <path d="M7 6.5a7.5 7.5 0 1 0 10 0" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2H5z" />
+      <path d="M10 20.5a2.2 2.2 0 0 0 4 0" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M10.9 12.1L19 4M15.5 7.5l2.5 2.5M17.5 5.5l2 2" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5S9.7 5.9 12 3.5z" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  // A tray: text kept in Sambler.
+  inbox: (
+    <>
+      <path d="M4 13.5l2.2-7.2A1.5 1.5 0 0 1 7.6 5.2h8.8a1.5 1.5 0 0 1 1.4 1.1l2.2 7.2V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18z" />
+      <path d="M4 13.5h4.5l1 2h5l1-2H20" />
     </>
   ),
 };
@@ -191,13 +303,40 @@ export function Glyph({ name, className }: { name: GlyphName; className?: string
   return <Svg className={className}>{GLYPHS[name]}</Svg>;
 }
 
-/** Sambler's mark: a microphone on an accent tile (colors set in layout.css). */
-export function AppMark() {
+/**
+ * Sambler's mark: the blue tile with a text cursor and two voice waves
+ * (app-icon.svg), redrawn with a softer gradient and a light sheen.
+ */
+export function AppMark({ className }: { className?: string }) {
+  const id = useId().replace(/:/g, "");
   return (
-    <svg className="app-mark" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-      <rect className="app-mark__tile" x="1" y="1" width="22" height="22" rx="6" />
-      <rect className="app-mark__glyph" x="9" y="5" width="6" height="10" rx="3" />
-      <path className="app-mark__stroke" d="M6.5 11.5a5.5 5.5 0 0 0 11 0M12 17v2.5" />
+    <svg
+      className={className ? `app-mark ${className}` : "app-mark"}
+      viewBox="0 0 1024 1024"
+      width="24"
+      height="24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <linearGradient id={`${id}-tile`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#3b82f6" />
+          <stop offset="1" stopColor="#1d4ed8" />
+        </linearGradient>
+        <linearGradient id={`${id}-sheen`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.22" />
+          <stop offset="0.55" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <rect className="app-mark__tile" x="64" y="64" width="896" height="896" rx="216" fill={`url(#${id}-tile)`} />
+      <rect x="64" y="64" width="896" height="896" rx="216" fill={`url(#${id}-sheen)`} />
+      <g fill="#ffffff">
+        <rect x="300" y="262" width="56" height="500" rx="28" />
+        <rect x="236" y="262" width="184" height="44" rx="22" />
+        <rect x="236" y="718" width="184" height="44" rx="22" />
+      </g>
+      <path d="M500 390a150 150 0 0 1 0 244" fill="none" stroke="#a5e4ff" strokeWidth="56" strokeLinecap="round" />
+      <path d="M600 310a250 250 0 0 1 0 404" fill="none" stroke="#ffffff" strokeWidth="56" strokeLinecap="round" />
     </svg>
   );
 }

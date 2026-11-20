@@ -1,5 +1,5 @@
 // Add / edit forms for one lexicon entry or one expression. Values stay in
-// this form until « Enregistrer »; the panel then saves the whole set.
+// this form until « Enregistrer »; the screen then saves the whole set.
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { Expression, LexiconEntry } from "../../ipc/contract";
@@ -23,6 +23,7 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
   const [missing, setMissing] = useState<("heard" | "written")[]>([]);
   const first = useRef<HTMLInputElement>(null);
   const id = useId();
+  const title = initial ? "Modifier le mot" : "Nouveau mot";
 
   useEffect(() => first.current?.focus(), []);
 
@@ -51,7 +52,7 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
       className="rule-form"
       onSubmit={submit}
       noValidate
-      aria-label={initial ? "Modifier le mot" : "Nouveau mot"}
+      aria-label={title}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -59,6 +60,9 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
         }
       }}
     >
+      <p className="rule-form__title" aria-hidden="true">
+        {title}
+      </p>
       <div className="rule-form__pair">
         <div className="field">
           <label htmlFor={`${id}-heard`} className="field__label">
@@ -67,7 +71,7 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
           <input
             ref={first}
             id={`${id}-heard`}
-            className="text-input"
+            className="input"
             value={heard}
             onChange={(event) => setHeard(event.currentTarget.value)}
             autoComplete="off"
@@ -75,7 +79,7 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
             aria-invalid={missing.includes("heard") || undefined}
             aria-describedby={`${id}-heard-hint${missing.includes("heard") ? ` ${id}-heard-err` : ""}`}
           />
-          <p id={`${id}-heard-hint`} className="field-hint">
+          <p id={`${id}-heard-hint`} className="hint">
             Tel que Rambler l’écrit aujourd’hui, en mots entiers.
           </p>
           {missing.includes("heard") ? <FieldError id={`${id}-heard-err`}>Ce champ est obligatoire.</FieldError> : null}
@@ -86,7 +90,7 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
           </label>
           <input
             id={`${id}-written`}
-            className="text-input"
+            className="input"
             value={written}
             onChange={(event) => setWritten(event.currentTarget.value)}
             autoComplete="off"
@@ -94,7 +98,7 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
             aria-invalid={missing.includes("written") || undefined}
             aria-describedby={`${id}-written-hint${missing.includes("written") ? ` ${id}-written-err` : ""}`}
           />
-          <p id={`${id}-written-hint`} className="field-hint">
+          <p id={`${id}-written-hint`} className="hint">
             La graphie à insérer à la place.
           </p>
           {missing.includes("written") ? (
@@ -111,17 +115,19 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
           aria-describedby={`${id}-faithful-hint`}
         />
         <div>
-          <label htmlFor={`${id}-faithful`}>Appliquer aussi en Fidèle</label>
-          <p id={`${id}-faithful-hint`} className="field-hint">
-            En Fidèle, seuls les mots cochés ici sont remplacés.
+          <label htmlFor={`${id}-faithful`} className="field__label">
+            Appliquer aussi en Fidèle
+          </label>
+          <p id={`${id}-faithful-hint`} className="hint">
+            En style Fidèle, seuls les mots cochés ici sont remplacés.
           </p>
         </div>
       </div>
-      <div className="button-row">
-        <button type="submit" className="button button--primary">
+      <div className="btn-row">
+        <button type="submit" className="btn btn--primary">
           Enregistrer
         </button>
-        <button type="button" className="button" onClick={onCancel}>
+        <button type="button" className="btn btn--ghost" onClick={onCancel}>
           Annuler
         </button>
       </div>
@@ -135,6 +141,7 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
   const [missing, setMissing] = useState<("trigger" | "text")[]>([]);
   const first = useRef<HTMLInputElement>(null);
   const id = useId();
+  const title = initial ? "Modifier l’expression" : "Nouvelle expression";
 
   useEffect(() => first.current?.focus(), []);
 
@@ -163,7 +170,7 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
       className="rule-form"
       onSubmit={submit}
       noValidate
-      aria-label={initial ? "Modifier l’expression" : "Nouvelle expression"}
+      aria-label={title}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -171,6 +178,9 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
         }
       }}
     >
+      <p className="rule-form__title" aria-hidden="true">
+        {title}
+      </p>
       <div className="field">
         <label htmlFor={`${id}-trigger`} className="field__label">
           Déclencheur
@@ -178,7 +188,7 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
         <input
           ref={first}
           id={`${id}-trigger`}
-          className="text-input"
+          className="input"
           value={trigger}
           onChange={(event) => setTrigger(event.currentTarget.value)}
           autoComplete="off"
@@ -186,7 +196,7 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
           aria-invalid={missing.includes("trigger") || undefined}
           aria-describedby={`${id}-trigger-hint${missing.includes("trigger") ? ` ${id}-trigger-err` : ""}`}
         />
-        <p id={`${id}-trigger-hint`} className="field-hint">
+        <p id={`${id}-trigger-hint`} className="hint">
           La phrase à dire, par exemple « insère ma formule courte ».
         </p>
         {missing.includes("trigger") ? (
@@ -199,7 +209,7 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
         </label>
         <textarea
           id={`${id}-text`}
-          className="text-input rule-form__textarea"
+          className="input"
           value={text}
           rows={4}
           onChange={(event) => setText(event.currentTarget.value)}
@@ -207,15 +217,15 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
           aria-invalid={missing.includes("text") || undefined}
           aria-describedby={`${id}-text-hint${missing.includes("text") ? ` ${id}-text-err` : ""}`}
         />
-        <p id={`${id}-text-hint`} className="field-hint">
+        <p id={`${id}-text-hint`} className="hint">
           Plusieurs lignes possibles. Entrée ajoute une ligne ; le bouton Enregistrer valide.
         </p>
         {missing.includes("text") ? <FieldError id={`${id}-text-err`}>Ce champ est obligatoire.</FieldError> : null}
       </div>
       <section className="rule-preview" aria-labelledby={`${id}-preview`}>
-        <h4 id={`${id}-preview`} className="rule-preview__title">
+        <h3 id={`${id}-preview`} className="rule-preview__title">
           Aperçu de l’insertion
-        </h4>
+        </h3>
         {text.trim() ? (
           <p className="rule-preview__text" data-testid="expression-preview">
             {text}
@@ -223,15 +233,13 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
         ) : (
           <p className="muted">Le texte apparaîtra ici, tel qu’il sera inséré.</p>
         )}
-        <p className="field-hint">
-          Inséré tel quel, retours à la ligne compris : la ponctuation automatique ne le modifie pas.
-        </p>
+        <p className="hint">Inséré tel quel, retours à la ligne compris : la ponctuation automatique ne le modifie pas.</p>
       </section>
-      <div className="button-row">
-        <button type="submit" className="button button--primary">
+      <div className="btn-row">
+        <button type="submit" className="btn btn--primary">
           Enregistrer
         </button>
-        <button type="button" className="button" onClick={onCancel}>
+        <button type="button" className="btn btn--ghost" onClick={onCancel}>
           Annuler
         </button>
       </div>

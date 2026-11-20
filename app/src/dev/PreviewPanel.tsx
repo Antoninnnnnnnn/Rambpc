@@ -10,9 +10,10 @@ type DraftKind = "none" | "complete" | "gaps";
 
 const OUTCOMES: { label: string; outcome: TakeOutcome | null; draft: DraftKind }[] = [
   { label: "(aucune)", outcome: null, draft: "none" },
-  { label: "Inserted", outcome: { kind: "inserted" }, draft: "none" },
+  { label: "Inserted", outcome: { kind: "inserted" }, draft: "complete" },
   { label: "InsertedPartially", outcome: { kind: "inserted-partially" }, draft: "complete" },
   { label: "Kept: SamblerDestination", outcome: { kind: "kept-in-sambler", reason: { kind: "sambler-destination" } }, draft: "complete" },
+  { label: "Kept: UncertainTarget", outcome: { kind: "kept-in-sambler", reason: { kind: "uncertain-target", reason: "terminal" } }, draft: "complete" },
   { label: "Kept: TargetChanged", outcome: { kind: "kept-in-sambler", reason: { kind: "target-changed", change: "focus-moved" } }, draft: "complete" },
   { label: "Kept: NotWritten", outcome: { kind: "kept-in-sambler", reason: { kind: "not-written", reason: "unsupported" } }, draft: "complete" },
   { label: "Kept: Incomplete (gaps)", outcome: { kind: "kept-in-sambler", reason: { kind: "incomplete" } }, draft: "gaps" },
@@ -22,8 +23,6 @@ const OUTCOMES: { label: string; outcome: TakeOutcome | null; draft: DraftKind }
   { label: "Interrupted: network, recovered", outcome: { kind: "interrupted", reason: { kind: "network" }, recovered: true }, draft: "gaps" },
   { label: "Interrupted: mic denied", outcome: { kind: "interrupted", reason: { kind: "microphone", error: { kind: "access-denied" } }, recovered: false }, draft: "none" },
   { label: "Interrupted: duration limit", outcome: { kind: "interrupted", reason: { kind: "duration-limit" }, recovered: true }, draft: "complete" },
-  { label: "Refused: UncertainTarget", outcome: { kind: "refused", reason: { kind: "uncertain-target", reason: "elevated" } }, draft: "none" },
-  { label: "Refused: PendingDraft", outcome: { kind: "refused", reason: { kind: "pending-draft" } }, draft: "complete" },
   { label: "Refused: ProtectedField", outcome: { kind: "refused", reason: { kind: "protected-field" } }, draft: "none" },
   { label: "Refused: Microphone not found", outcome: { kind: "refused", reason: { kind: "microphone", error: { kind: "not-found" } } }, draft: "none" },
 ];
@@ -77,6 +76,9 @@ export function PreviewPanel({ controls }: { controls: PreviewControls }) {
             </button>
           ))}
         </fieldset>
+        <button type="button" onClick={controls.fillRecents}>
+          Fill recent results
+        </button>
         <label>
           Next copy
           <select onChange={(event) => controls.setCopyMode(event.currentTarget.value as CopyMode)}>

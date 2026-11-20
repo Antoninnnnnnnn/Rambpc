@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { UiState } from "../ipc/contract";
 import { describeOutcome, unavailableReasonText, type OutcomeView } from "../labels/fr";
-import { safetyKey, useDraftSafety } from "../state/draftSafety";
+import { useDraftSafety } from "../state/draftSafety";
 import { useUiState } from "../state/ui";
 import { announcement, useAnnounce } from "./announcer";
 
@@ -40,8 +40,11 @@ export interface Change {
   deferredOutcome: boolean;
 }
 
-/** French sentences describing what changed between two states. */
-export function describeChange(before: UiState, after: UiState): Change {
+/**
+ * French sentences describing what changed between two states.
+ * `needsSafetyCheck`: the new outcome waits for the safety-filter check.
+ */
+export function describeChange(before: UiState, after: UiState, needsSafetyCheck = false): Change {
   const messages: string[] = [];
   let deferredOutcome = false;
 
@@ -52,7 +55,7 @@ export function describeChange(before: UiState, after: UiState): Change {
 
   const takeEnded = before.phase.kind !== "idle" && after.phase.kind === "idle";
   if (after.lastOutcome && (takeEnded || outcomeKey(after) !== outcomeKey(before))) {
-    if (safetyKey(after) !== null) deferredOutcome = true;
+    if (needsSafetyCheck) deferredOutcome = true;
     else messages.push(outcomeSentence(describeOutcome(after.lastOutcome, after.draft !== null)));
   }
 
@@ -79,23 +82,24 @@ export function StateAnnouncer() {
   // A no-text outcome waiting for the safety check, with the other messages
   // of the same change (spoken together so none replaces another).
   const [waiting, setWaiting] = useState<{ key: string; messages: string[] } | null>(null);
+  const currentKey = safety.currentKey;
 
   useEffect(() => {
     const before = previous.current;
     previous.current = state;
     if (!before) return; // The initial state is shown, not announced.
-    const change = describeChange(before, state);
-    const key = change.deferredOutcome ? safetyKey(state) : null;
-    if (key) setWaiting({ key, messages: change.messages });
+    const change = describeChange(before, state, currentKey !== null);
+    if (change.deferredOutcome && currentKey) setWaiting({ key: currentKey, messages: change.messages });
     else if (change.messages.length > 0) announce(announcement(change.messages.join(" ")));
-  }, [state, announce]);
+  }, [state, currentKey, announce]);
 
   useEffect(() => {
-    if (!waiting || safety.key !== waiting.key || safety.blocked === null) return;
+    const checked = safety.checked;
+    if (!waiting || checked.key !== waiting.key || checked.blocked === null) return;
     setWaiting(null);
     const messages = [...waiting.messages];
     if (state.lastOutcome) {
-      messages.push(outcomeSentence(describeOutcome(state.lastOutcome, state.draft !== null, safety.blocked)));
+      messages.push(outcomeSentence(describeOutcome(state.lastOutcome, state.draft !== null, checked.blocked)));
     }
     if (messages.length > 0) announce(announcement(messages.join(" ")));
   }, [waiting, safety, state, announce]);

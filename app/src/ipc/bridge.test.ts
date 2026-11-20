@@ -1,11 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const tauri = vi.hoisted(() => ({ invoke: vi.fn(), listen: vi.fn() }));
+const tauri = vi.hoisted(() => ({
+  invoke: vi.fn(),
+  listen: vi.fn(),
+  window: {
+    minimize: vi.fn(),
+    toggleMaximize: vi.fn(),
+    close: vi.fn(),
+    isMaximized: vi.fn(),
+    onResized: vi.fn(),
+  },
+}));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: tauri.invoke }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: tauri.listen }));
+vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => tauri.window }));
 
 import { createTauriBridge, toCommandError } from "./bridge";
-import { EVENT_STATE } from "./contract";
+import { defaultSettings, EVENT_STATE } from "./contract";
 
 describe("createTauriBridge", () => {
   beforeEach(() => {
@@ -45,6 +56,36 @@ describe("createTauriBridge", () => {
     ]);
   });
 
+  it("passes milestone 3 commands, with an optional take", async () => {
+    tauri.invoke.mockResolvedValue(undefined);
+    const bridge = createTauriBridge();
+    await bridge.invoke("get_recent_drafts");
+    await bridge.invoke("copy_draft", { take: 7 });
+    await bridge.invoke("copy_draft");
+    await bridge.invoke("clear_draft", { take: 7 });
+    await bridge.invoke("clear_draft");
+    await bridge.invoke("get_stats");
+    expect(tauri.invoke.mock.calls).toEqual([
+      ["get_recent_drafts", undefined],
+      ["copy_draft", { take: 7 }],
+      ["copy_draft", undefined],
+      ["clear_draft", { take: 7 }],
+      ["clear_draft", undefined],
+      ["get_stats", undefined],
+    ]);
+  });
+
+  it("sends the insertion method with the settings", async () => {
+    tauri.invoke.mockResolvedValue(undefined);
+    const bridge = createTauriBridge();
+    await bridge.invoke("save_settings", { settings: { ...defaultSettings(), insertion: "typing" } });
+    expect(tauri.invoke).toHaveBeenCalledWith("save_settings", {
+      settings: expect.objectContaining({ insertion: "typing" }),
+    });
+    expect(defaultSettings().insertion).toBe("paste");
+    expect(defaultSettings().insertionTarget).toBe("original-field");
+  });
+
   it("unwraps event payloads", async () => {
     const unlisten = vi.fn();
     tauri.listen.mockImplementation(async (_event: string, handler: (event: { payload: unknown }) => void) => {
@@ -58,6 +99,21 @@ describe("createTauriBridge", () => {
     expect(received).toEqual([{ phase: { kind: "idle" } }]);
     stop();
     expect(unlisten).toHaveBeenCalled();
+  });
+
+  it("drives the frameless main window through its allowed controls only", async () => {
+    tauri.window.isMaximized.mockResolvedValue(true);
+    tauri.window.onResized.mockResolvedValue(() => {});
+    const bridge = createTauriBridge();
+    await bridge.appWindow.minimize();
+    await bridge.appWindow.toggleMaximize();
+    await bridge.appWindow.close();
+    expect(await bridge.appWindow.isMaximized()).toBe(true);
+    await bridge.appWindow.onResized(() => {});
+    expect(tauri.window.minimize).toHaveBeenCalledTimes(1);
+    expect(tauri.window.toggleMaximize).toHaveBeenCalledTimes(1);
+    expect(tauri.window.close).toHaveBeenCalledTimes(1);
+    expect(tauri.window.onResized).toHaveBeenCalledTimes(1);
   });
 });
 

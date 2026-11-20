@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { Settings, UiState } from "../ipc/contract";
 import { createFakeBridge } from "../test/fakeBridge";
-import { appReady, axeViolations, renderApp } from "../test/render";
+import { appReady, axeViolations, liveRegion, renderApp } from "../test/render";
 
 async function openSettings(options: { state?: Partial<UiState>; settings?: Partial<Settings> } = {}) {
   const bridge = createFakeBridge(options);
@@ -29,16 +29,71 @@ describe("Réglages", () => {
     expect(screen.getByText(/s’applique à la prochaine dictée/)).toBeInTheDocument();
   });
 
+  it("lists its sections and moves the focus to the one chosen", async () => {
+    const { user } = await openSettings();
+    const toc = screen.getByRole("navigation", { name: "Sections des réglages" });
+    for (const name of [
+      "Micro",
+      "Raccourci",
+      "Langue",
+      "Insertion",
+      "Destination",
+      "Barre de dictée",
+      "Récents",
+      "Démarrage",
+      "Accès à Rambler",
+      "Confidentialité",
+    ]) {
+      expect(within(toc).getByRole("link", { name })).toBeInTheDocument();
+    }
+    await user.click(within(toc).getByRole("link", { name: "Insertion" }));
+    expect(screen.getByRole("region", { name: "Insertion" })).toHaveFocus();
+  });
+
   it("saves each change with save_settings", async () => {
     const { bridge, user } = await openSettings();
     await user.click(screen.getByRole("radio", { name: "Anglais" }));
     await user.click(screen.getByRole("switch", { name: "Toujours garder le texte dans Sambler" }));
     await user.click(screen.getByRole("radio", { name: "5 minutes" }));
-    await user.click(screen.getByRole("radio", { name: /Fidèle/ }));
+    await user.click(screen.getByRole("radio", { name: /Bascule/ }));
     await waitFor(() => expect(savedSettings(bridge)).toHaveLength(4));
-    expect(lastSaved(bridge)).toMatchObject({ language: "english", alwaysKeepInSambler: true, draftMinutes: 5, profile: "faithful" });
-    // Faithful ignores the Naturel rules.
-    expect(screen.getByRole("switch", { name: "Ponctuation légère" })).toBeDisabled();
+    expect(lastSaved(bridge)).toMatchObject({
+      language: "english",
+      alwaysKeepInSambler: true,
+      draftMinutes: 5,
+      gesture: "toggle",
+    });
+  });
+
+  it("chooses how text is inserted, instant paste by default", async () => {
+    const { bridge, user } = await openSettings();
+    const paste = screen.getByRole("radio", { name: "Instantanée (collage, presse-papiers restauré)" });
+    const typing = screen.getByRole("radio", { name: "Frappe caractère par caractère" });
+    expect(paste).toBeChecked();
+    expect(paste).toHaveAccessibleDescription(/votre presse-papiers précédent est remis en place/);
+    expect(typing).toHaveAccessibleDescription(/sans jamais toucher au presse-papiers\. Une seule ligne à la fois\./);
+    await user.click(typing);
+    await waitFor(() => expect(lastSaved(bridge)).toMatchObject({ insertion: "typing" }));
+    expect(typing).toBeChecked();
+  });
+
+  it("chooses where the text goes, the field of departure by default", async () => {
+    const { bridge, user } = await openSettings();
+    const group = screen.getByRole("group", { name: "Où insérer le texte" });
+    expect(group).toHaveAccessibleDescription("Un champ de mot de passe ne reçoit jamais de texte.");
+    const original = within(group).getByRole("radio", { name: "Dans le champ de départ" });
+    const cursor = within(group).getByRole("radio", { name: "Là où se trouve le curseur à la fin" });
+    expect(original).toBeChecked();
+    expect(original).toHaveAccessibleDescription(
+      /Même si vous changez de fenêtre pendant la dictée, du moment que vous y revenez\s; sinon le texte reste dans Sambler\./,
+    );
+    await user.click(cursor);
+    await waitFor(() => expect(lastSaved(bridge)).toMatchObject({ insertionTarget: "cursor-at-end" }));
+
+    // Without effect while the text always stays in Sambler.
+    await user.click(screen.getByRole("switch", { name: "Toujours garder le texte dans Sambler" }));
+    await waitFor(() => expect(cursor).toBeDisabled());
+    expect(group).toHaveAccessibleDescription(/^Sans effet tant que le texte est toujours gardé dans Sambler\./);
   });
 
   it("rolls back a refused change and shows the error", async () => {
@@ -50,6 +105,12 @@ describe("Réglages", () => {
     await user.click(sound);
     expect(await screen.findByText("Ce réglage n’a pas pu être enregistré. Valeur refusée.")).toBeInTheDocument();
     expect(sound).not.toBeChecked();
+  });
+
+  it("moves the dictation bar", async () => {
+    const { bridge, user } = await openSettings();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Position de la barre" }), "top-center");
+    await waitFor(() => expect(lastSaved(bridge)?.indicator.position).toBe("top-center"));
   });
 
   it("captures a new shortcut in accelerator syntax", async () => {
@@ -166,38 +227,15 @@ describe("Réglages", () => {
     await waitFor(() => expect(consent).not.toBeChecked());
   });
 
-  it("clears the draft now", async () => {
+  it("clears the recent results now", async () => {
     const now = Date.now();
     const { bridge, user } = await openSettings({
-      state: { draft: { take: 1, createdAtMs: now, expiresAtMs: now + 60_000, complete: true } },
+      state: { draft: { take: 1, createdAtMs: now, expiresAtMs: now + 60_000, complete: true }, recentCount: 2 },
     });
     await user.click(screen.getByRole("button", { name: "Effacer maintenant" }));
     expect(bridge.invoke).toHaveBeenCalledWith("clear_draft");
-  });
-
-  it("previews the rendering of a sample sentence with preview_render", async () => {
-    const bridge = createFakeBridge();
-    bridge.handlers.preview_render = () => "Je ne pourrai pas venir jeudi à 14 h.";
-    const view = renderApp(bridge);
-    await appReady();
-    await view.user.click(screen.getByRole("button", { name: "Réglages" }));
-    expect(await screen.findByTestId("render-preview")).toHaveTextContent("Je ne pourrai pas venir jeudi à 14 h.");
-    expect(bridge.invoke).toHaveBeenCalledWith("preview_render", {
-      sample: "je ne pourrai pas venir jeudi à 14 h est-ce que mardi vous convient",
-      settings: expect.objectContaining({ profile: "natural" }),
-    });
-  });
-
-  it("hides the rendering preview when it fails", async () => {
-    const bridge = createFakeBridge();
-    bridge.handlers.preview_render = () => {
-      throw { code: "too-long", message: "Phrase d'exemple trop longue." };
-    };
-    const view = renderApp(bridge);
-    await appReady();
-    await view.user.click(screen.getByRole("button", { name: "Réglages" }));
-    await waitFor(() => expect(bridge.invoke).toHaveBeenCalledWith("preview_render", expect.anything()));
-    expect(screen.queryByTestId("render-preview")).not.toBeInTheDocument();
+    await waitFor(() => expect(liveRegion()).toHaveTextContent("Textes récents effacés."));
+    expect(screen.getByRole("button", { name: "Effacer maintenant" })).toBeDisabled();
   });
 
   it("keeps a setting that applied but could not be written to disk", async () => {
@@ -230,11 +268,17 @@ describe("Réglages", () => {
     };
     const startup = screen.getByRole("switch", { name: "Démarrer avec Windows" });
     await user.click(startup);
-    expect(
-      await screen.findByText(/L’édition portable ne s’inscrit jamais au démarrage de ce PC/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/L’édition portable ne s’inscrit jamais au démarrage de ce PC/)).toBeInTheDocument();
     expect(startup).not.toBeChecked();
     expect(startup).toBeDisabled();
+  });
+
+  it("reaches the history and the guided tour from Confidentialité", async () => {
+    const { user } = await openSettings();
+    await user.click(screen.getByRole("button", { name: "Revoir la prise en main" }));
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Votre voix est transmise à Google pendant que vous parlez" }),
+    ).toHaveFocus();
   });
 
   it("has no detectable accessibility violations", async () => {

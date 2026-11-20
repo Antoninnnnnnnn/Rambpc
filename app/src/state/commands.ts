@@ -13,7 +13,9 @@ export function useUiCommands() {
       retryConnection: () => run(() => bridge.invoke("retry_connection")),
       finishTake: (take: TakeId) => run(() => bridge.invoke("finish_take", { take })),
       cancelTake: (take: TakeId) => run(() => bridge.invoke("cancel_take", { take })),
-      clearDraft: () => run(() => bridge.invoke("clear_draft")),
+      /** One recent result, or every recent result when `take` is omitted. */
+      clearDraft: (take?: TakeId) =>
+        run(() => (take === undefined ? bridge.invoke("clear_draft") : bridge.invoke("clear_draft", { take }))),
       setConsent: (enabled: boolean) => run(() => bridge.invoke("set_consent", { enabled })),
       openMicPrivacySettings: () => bridge.invoke("open_mic_privacy_settings"),
     }),

@@ -59,6 +59,12 @@ export function unavailableReasonText(reason: UnavailableReason): string {
   }
 }
 
+/** « Bonjour » until 18 h, then « Bonsoir » (and before 5 h). */
+export function greeting(date = new Date()): string {
+  const hour = date.getHours();
+  return hour >= 18 || hour < 5 ? "Bonsoir" : "Bonjour";
+}
+
 export function startHint(gesture: UiState["gesture"], shortcut: string): string {
   const keys = formatShortcut(shortcut);
   return gesture === "hold"
@@ -159,7 +165,8 @@ export function hasConsent(availability: Availability): boolean {
 export type Tone = "success" | "info" | "warning" | "error";
 
 export type OutcomeAction =
-  | "open-draft"
+  /** « Voir dans Récents »: the text waits in the Récents list of Accueil. */
+  | "open-recents"
   | "dictate-in-sambler"
   | "open-mic-privacy"
   | "enable-dictation"
@@ -195,7 +202,7 @@ export function micErrorText(error: MicError): string {
 export function targetChangeText(change: TargetChange): string {
   switch (change) {
     case "focus-moved":
-      return "Le curseur a quitté le champ pendant la dictée.";
+      return "À la fin de la dictée, le curseur n’était plus dans le champ de départ.";
     case "selection-changed":
       return "La sélection a changé dans le champ pendant la dictée.";
     case "window-gone":
@@ -228,11 +235,13 @@ export const SAFETY_BLOCK_TEXT = `${SAFETY_BLOCK_TITLE} ${SAFETY_BLOCK_DETAIL}`;
 export function keptReasonText(reason: KeptReason): string {
   switch (reason.kind) {
     case "sambler-destination":
-      return "Vous avez choisi de garder le texte dans Sambler.";
+      return "Comme demandé, le texte n’a pas été inséré. Copiez-le quand vous voulez.";
     case "target-changed":
       return targetChangeText(reason.change);
     case "not-written":
       return notWrittenText(reason.reason);
+    case "uncertain-target":
+      return `${uncertainReasonText(reason.reason)} Le texte vous attend ici : copiez-le puis collez-le.`;
     case "incomplete":
       return "Des passages manquent ou sont à revoir : rien n’a été inséré automatiquement.";
   }
@@ -329,7 +338,7 @@ function refusalView(reason: RefusalReason): OutcomeView {
         tone: "warning",
         title:
           "Un texte attend dans Sambler : copiez-le ou rappuyez sur le raccourci pour le remplacer",
-        actions: ["open-draft"],
+        actions: ["open-recents"],
       };
     case "microphone":
       return {
@@ -346,7 +355,7 @@ function refusalView(reason: RefusalReason): OutcomeView {
  * filter (known only from the draft's part statuses, never from its text).
  */
 export function describeOutcome(outcome: TakeOutcome, hasDraft: boolean, blocked = false): OutcomeView {
-  const draftAction: OutcomeAction[] = hasDraft ? ["open-draft"] : [];
+  const draftAction: OutcomeAction[] = hasDraft ? ["open-recents"] : [];
   switch (outcome.kind) {
     case "inserted":
       return { tone: "success", title: "Texte transmis au champ", actions: [] };
@@ -354,13 +363,13 @@ export function describeOutcome(outcome: TakeOutcome, hasDraft: boolean, blocked
       return {
         tone: "warning",
         title: "Vérifiez le champ, une partie du texte a pu être saisie",
-        detail: hasDraft ? "Le texte complet reste disponible dans le brouillon." : undefined,
+        detail: hasDraft ? "Le texte complet reste disponible dans Récents." : undefined,
         actions: draftAction,
       };
     case "kept-in-sambler":
       return {
         tone: "info",
-        title: "Texte disponible",
+        title: "Texte dans Sambler",
         detail: keptReasonText(outcome.reason),
         actions: draftAction,
       };
@@ -379,7 +388,7 @@ export function describeOutcome(outcome: TakeOutcome, hasDraft: boolean, blocked
     case "interrupted": {
       const limit = outcome.reason.kind === "duration-limit";
       const recovery = outcome.recovered
-        ? "Les passages déjà reçus sont dans le brouillon."
+        ? "Les passages déjà reçus sont dans Récents."
         : "Aucun texte récupéré.";
       const actions: OutcomeAction[] = outcome.recovered ? draftAction : [];
       if (outcome.reason.kind === "microphone" && outcome.reason.error.kind === "access-denied") {
@@ -491,4 +500,49 @@ export function accessSourceText(source: AccessSource): string {
     case "session":
       return "Pour cette session seulement (oublié à la fermeture)";
   }
+}
+
+// ------------------------------------------------------------------ insertion
+
+export const INSERTION_LABELS = {
+  paste: "Instantanée (collage, presse-papiers restauré)",
+  typing: "Frappe caractère par caractère",
+} as const;
+
+export const INSERTION_DESCRIPTIONS = {
+  paste:
+    "Le texte est collé d’un seul coup, puis votre presse-papiers précédent est remis en place. Le texte collé n’entre pas dans l’historique du presse-papiers (Win+V).",
+  typing:
+    "Plus lent : le texte est tapé comme au clavier, sans jamais toucher au presse-papiers. Une seule ligne à la fois.",
+} as const;
+
+export const INSERTION_TARGET_LABELS = {
+  "original-field": "Dans le champ de départ",
+  "cursor-at-end": "Là où se trouve le curseur à la fin",
+} as const;
+
+export const INSERTION_TARGET_DESCRIPTIONS = {
+  "original-field":
+    "Même si vous changez de fenêtre pendant la dictée, du moment que vous y revenez ; sinon le texte reste dans Sambler.",
+  "cursor-at-end": "Le texte va dans le champ où se trouve le curseur quand vous terminez la dictée.",
+} as const;
+
+export const PASSWORD_NEVER_TEXT = "Un champ de mot de passe ne reçoit jamais de texte.";
+
+// ------------------------------------------------------------------ stats
+
+const counts = new Intl.NumberFormat("fr-FR");
+
+/** "1 234" with the French thousands separator. */
+export function formatCount(value: number): string {
+  return counts.format(Math.max(0, Math.round(value)));
+}
+
+/** French singular for 0 and 1: « 0 mot », « 1 mot », « 2 mots ». */
+export function wordsUnit(value: number): string {
+  return value < 2 ? "mot" : "mots";
+}
+
+export function takesText(value: number): string {
+  return value < 2 ? `${formatCount(value)} dictée` : `${formatCount(value)} dictées`;
 }
