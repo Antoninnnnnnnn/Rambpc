@@ -9,7 +9,7 @@ description = "Sambler: dictation at the cursor for Windows, powered by Rambler/
 authors = ["Sambler contributors"]
 license = "MIT"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.90"
 publish = false
 
 [lib]

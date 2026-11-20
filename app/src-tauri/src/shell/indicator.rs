@@ -25,10 +25,10 @@ use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW,
     DispatchMessageW, GetForegroundWindow, GetMessageW, HWND_TOPMOST, MA_NOACTIVATE,
     MSG, PostMessageW, RegisterClassExW, SPI_GETHIGHCONTRAST, SW_HIDE, SWP_NOACTIVATE,
-    SWP_SHOWWINDOW, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, SetLayeredWindowAttributes, SetWindowPos,
+    SWP_SHOWWINDOW, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, SetWindowPos,
     ShowWindow, SystemParametersInfoW, TranslateMessage, WM_APP, WM_MOUSEACTIVATE, WM_PAINT,
-    WNDCLASSEXW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
-    WS_EX_TRANSPARENT, WS_POPUP, LWA_ALPHA,
+    WNDCLASSEXW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
+    WS_POPUP,
 };
 use windows::core::{PCWSTR, w};
 
@@ -115,9 +115,11 @@ unsafe fn run(slot: Arc<AtomicIsize>) {
         };
         RegisterClassExW(&wc);
         let Ok(hwnd) = CreateWindowExW(
-            WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TRANSPARENT,
+            // Opaque on purpose: a layered/transparent capsule crashed USER32
+            // a few seconds after WebView2 started (0xC000041D) on Windows 11.
+            WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
             class,
-            w!("Sambler"),
+            w!("Sambler capsule"),
             WS_POPUP,
             0,
             0,
@@ -130,7 +132,6 @@ unsafe fn run(slot: Arc<AtomicIsize>) {
         ) else {
             return;
         };
-        let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), 242, LWA_ALPHA);
         slot.store(hwnd.0 as isize, Ordering::Release);
         let mut msg = MSG::default();
         while GetMessageW(&mut msg, None, 0, 0).as_bool() {

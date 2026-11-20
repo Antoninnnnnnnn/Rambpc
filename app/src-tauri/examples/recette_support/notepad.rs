@@ -1,3 +1,4 @@
+#![allow(dead_code)] // Shared by several harnesses; each uses a subset.
 //! Fresh Windows 11 Notepad windows for the acceptance harness. Adapted from
 //! `examples/notepad_harness.rs`: only windows created by the harness are
 //! read, reset and closed; a pre-existing Notepad window is never touched.
