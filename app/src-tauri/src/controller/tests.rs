@@ -631,16 +631,20 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     state.step(Input::Finish(id), at(2));
     state.step(Input::MicFree(id), at(3));
     let effects = state.step(Input::Collection(id, Ok(())), at(4));
-    assert!(
-        matches!(effects.as_slice(), [Effect::Archive(value), Effect::Insert(take, _, text)]
-        if value.id == id && *take == id && value.created == at(4).unix
-            && &*value.text == "Ancienne règle" && Arc::ptr_eq(&value.text, text))
-    );
+    let [Effect::Insert(take, _, text)] = effects.as_slice() else {
+        panic!("expected insertion")
+    };
+    assert_eq!(*take, id);
+    assert_eq!(&**text, "Ancienne règle");
     assert_eq!(
         state.draft().unwrap().full_text.as_deref(),
         Some("Ancienne règle")
     );
-    state.step(Input::Insertion(id, InsertOutcome::Delivered), at(5));
+    assert!(matches!(
+        state.step(Input::Insertion(id, InsertOutcome::Delivered), at(5)).as_slice(),
+        [Effect::Archive(value), Effect::Retire(_)]
+        if value.id == id && value.created == at(4).unix && Arc::ptr_eq(&value.text, text)
+    ));
     state.step(Input::Hotkey(KeyEdge::Released), at(5));
     let next = start(&mut state, 6);
     state.step(Input::Delivered(next, segment(0, 0..100, "texte")), at(7));
@@ -648,8 +652,12 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     state.step(Input::MicFree(next), at(8));
     let effects = state.step(Input::Collection(next, Ok(())), at(9));
     assert!(
-        matches!(effects.as_slice(), [Effect::Archive(value), Effect::Insert(_, _, _)] if &*value.text == "Nouvelle règle")
+        matches!(effects.as_slice(), [Effect::Insert(_, _, text)] if &**text == "Nouvelle règle")
     );
+    assert!(matches!(
+        state.step(Input::Insertion(next, InsertOutcome::Delivered), at(10)).as_slice(),
+        [Effect::Archive(value), Effect::Retire(_)] if &*value.text == "Nouvelle règle"
+    ));
 }
 
 fn at(mono: u64) -> Now {
@@ -733,6 +741,46 @@ fn cancel_a_start_b_late_a_and_double_stop_b_produce_one_insertion_effect() {
     assert_eq!(state.draft().unwrap().full_text.as_deref(), Some("Only B"));
     state.step(Input::Tick { last_frame: None }, at(600_006));
     assert!(state.draft().is_none());
+}
+
+#[test]
+fn cancelling_during_insertion_does_not_archive_or_keep_the_draft() {
+    let mut state = ready();
+    state.use_profile(Arc::new(crate::ipc::PersonalRules {
+        lexicon: vec![],
+        expressions: vec![],
+        unreadable: false,
+    }));
+    let id = start(&mut state, 0);
+    state.step(Input::Delivered(id, segment(0, 0..100, "Private")), at(1));
+    state.step(Input::Finish(id), at(2));
+    state.step(Input::MicFree(id), at(3));
+    let effects = state.step(Input::Collection(id, Ok(())), at(4));
+    assert!(matches!(effects.as_slice(), [Effect::Insert(take, ..)] if *take == id));
+    state.step(Input::Cancel(Some(id)), at(5));
+    assert!(state.draft().is_none());
+    assert!(
+        state
+            .step(Input::Insertion(id, InsertOutcome::Delivered), at(6))
+            .is_empty()
+    );
+}
+
+#[test]
+fn always_keep_hotkey_still_watches_for_protected_focus() {
+    let mut state = ready();
+    state.step(
+        Input::Settings(Settings {
+            always_keep_in_sambler: true,
+            ..Settings::default()
+        }),
+        at(0),
+    );
+    let effects = state.step(Input::Hotkey(KeyEdge::Pressed), at(1));
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::Probe { watch: true, .. }]
+    ));
 }
 
 #[test]

@@ -207,6 +207,32 @@ impl Window {
     }
 }
 
+/// Cheap HWND snapshot captured at the shortcut edge, before any queue or COM wait.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct TriggerFocus {
+    window: Option<Window>,
+    focused: Option<usize>,
+}
+
+impl TriggerFocus {
+    pub(crate) fn capture() -> Self {
+        let window = Window::foreground();
+        Self {
+            window,
+            focused: window.and_then(focus_hwnd).map(|hwnd| hwnd.0 as usize),
+        }
+    }
+
+    pub(crate) fn still_focused(self) -> bool {
+        self.window.is_some() && self == Self::capture()
+    }
+
+    pub(crate) fn identifies(self, token: &TargetToken) -> bool {
+        identity(token)
+            .is_some_and(|id| self.window == Some(id.window) && self.focused == id.native_focus)
+    }
+}
+
 struct Identity {
     worker: Arc<Worker>,
     id: u64,
@@ -215,6 +241,8 @@ struct Identity {
     native_edit: Option<NativeEdit>,
     office: bool,
     attempted: AtomicBool,
+    write_permission: OnceLock<Arc<AtomicBool>>,
+    protection: OnceLock<Protection>,
     changed: OnceLock<TargetChange>,
     lifetime: Arc<()>,
 }
@@ -311,6 +339,8 @@ impl State {
             native_edit: snapshot.native_edit,
             office: matches!(snapshot.caret, Caret::Office(_)),
             attempted: AtomicBool::new(false),
+            write_permission: OnceLock::new(),
+            protection: OnceLock::new(),
             changed: OnceLock::new(),
             lifetime: Arc::new(()),
         };
@@ -426,11 +456,45 @@ fn revalidate(token: &TargetToken, watching: bool) -> Result<(), TargetChange> {
     target.changed.get().copied().map_or(result, Err)
 }
 
+struct Protection {
+    live: Arc<AtomicBool>,
+    detected: Arc<AtomicBool>,
+}
+
+pub(crate) fn bind_protection(
+    token: &TargetToken,
+    live: &Arc<AtomicBool>,
+    detected: &Arc<AtomicBool>,
+) {
+    if let Some(id) = identity(token) {
+        let _ = id.protection.set(Protection {
+            live: live.clone(),
+            detected: detected.clone(),
+        });
+    }
+}
+
+pub(crate) fn bind_write_permission(token: &TargetToken, allowed: &Arc<AtomicBool>) {
+    if let Some(target) = identity(token) {
+        let _ = target.write_permission.set(allowed.clone());
+    }
+}
+
+pub(super) fn write_permitted(token: &TargetToken) -> bool {
+    identity(token).is_some_and(|id| {
+        id.changed.get().is_none()
+            && id
+                .write_permission
+                .get()
+                .is_none_or(|allowed| allowed.load(Ordering::Acquire))
+    })
+}
+
 pub(super) fn write_focus(token: &TargetToken) -> Option<HWND> {
     let id = identity(token)?;
-    if !on_default_desktop()
+    if !write_permitted(token)
+        || !on_default_desktop()
         || Window::foreground() != Some(id.window)
-        || id.changed.get().is_some()
         || id.worker.expired()
     {
         return None;
@@ -479,6 +543,7 @@ pub(super) fn insert_office(token: &TargetToken, text: Zeroizing<Vec<u16>>) -> I
         office::write(caret, HWND(root as _), HWND(body as _), &text, || {
             Instant::now() < deadline
                 && write_focus(&token) == Some(HWND(body as _))
+                && write_permitted(&token)
                 && worker_phase
                     .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
                     .is_ok()
@@ -704,16 +769,38 @@ impl TargetProbe for UiaTargetProbe {
         let worker = thread::Builder::new()
             .name("sambler-target-watch".into())
             .spawn(move || {
+                let mut displaced = false;
                 while !worker_stop.load(Ordering::Acquire) && !consumed(&worker_token) {
-                    if let Err(change) = revalidate(&worker_token, true) {
-                        if !worker_stop.swap(true, Ordering::AcqRel) {
-                            if let Ok(mut slot) = worker_callback.lock() {
-                                if let Some(callback) = slot.take() {
-                                    callback(change);
-                                }
-                            }
+                    if displaced {
+                        // Keep checking for protected focus after the one-shot
+                        // displacement callback has already been delivered.
+                        let Some(id) = identity(&worker_token) else {
+                            break;
+                        };
+                        let Some(protection) = id.protection.get() else {
+                            break;
+                        };
+                        if !protection.live.load(Ordering::Acquire) {
+                            break;
                         }
-                        return;
+                        if protected_focus(&id.worker) {
+                            protection.live.store(false, Ordering::Release);
+                            protection.detected.store(true, Ordering::Release);
+                            break;
+                        }
+                    } else if let Err(change) = revalidate(&worker_token, true) {
+                        let callback = worker_callback.lock().ok().and_then(|mut slot| slot.take());
+                        if worker_stop.load(Ordering::Acquire) {
+                            break;
+                        }
+                        if let Some(callback) = callback {
+                            callback(change);
+                        }
+                        if change == TargetChange::Protected {
+                            break;
+                        }
+                        displaced = true;
+                        continue;
                     }
                     thread::park_timeout(WATCH_PERIOD);
                 }
@@ -740,6 +827,30 @@ impl TargetProbe for UiaTargetProbe {
     fn revalidate(&self, token: &TargetToken) -> Result<(), TargetChange> {
         revalidate_token(token)
     }
+}
+
+fn protected_focus(worker: &Worker) -> bool {
+    if !on_default_desktop() {
+        return true;
+    }
+    if let Some(hwnd) = Window::foreground().and_then(focus_hwnd)
+        && literal_class(&class_name(hwnd)).is_some()
+        && (window_style(hwnd).is_ok_and(|style| style & ES_PASSWORD as u32 != 0)
+            || edit_message(hwnd, EM_GETPASSWORDCHAR, WPARAM(0), LPARAM(0))
+                .is_ok_and(|mask| mask != 0))
+    {
+        return true;
+    }
+    worker
+        .request(|state| {
+            unsafe { state.automation.GetFocusedElement() }
+                .ok()
+                .is_some_and(|focus| {
+                    unsafe { focus.GetCurrentPropertyValueEx(UIA_IsPasswordPropertyId, true) }
+                        .is_ok_and(|value| exact_bool(value) == Some(true))
+                })
+        })
+        .unwrap_or(false)
 }
 
 fn on_default_desktop() -> bool {
@@ -1213,6 +1324,36 @@ mod tests {
         assert_eq!(aria_multiline("required=false;multiline=true"), Some(true));
         assert_eq!(aria_multiline("multiline=false"), Some(false));
         assert_eq!(aria_multiline("readonly=false"), None);
+    }
+
+    #[test]
+    fn native_write_gate_stays_revocable_after_attempt_is_consumed() {
+        let (jobs, _unused) = mpsc::sync_channel(1);
+        let token = TargetToken(Arc::new(Identity {
+            worker: Arc::new(Worker {
+                jobs,
+                expired: Arc::new(AtomicBool::new(false)),
+            }),
+            id: 1,
+            window: Window {
+                hwnd: 1,
+                thread: 1,
+                pid: 1,
+            },
+            native_focus: None,
+            native_edit: None,
+            office: false,
+            attempted: AtomicBool::new(true),
+            write_permission: OnceLock::new(),
+            protection: OnceLock::new(),
+            changed: OnceLock::new(),
+            lifetime: Arc::new(()),
+        }));
+        let allowed = Arc::new(AtomicBool::new(true));
+        bind_write_permission(&token, &allowed);
+        assert!(write_permitted(&token));
+        allowed.store(false, Ordering::Release);
+        assert!(!write_permitted(&token));
     }
 
     #[test]

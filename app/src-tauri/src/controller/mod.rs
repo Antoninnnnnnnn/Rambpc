@@ -74,6 +74,16 @@ impl ControllerHandle {
         self.inbox.send(Command::Input(Input::Hotkey(edge)));
     }
 
+    #[cfg(windows)]
+    pub(crate) fn windows_hotkey(&self, edge: KeyEdge) {
+        match edge {
+            KeyEdge::Pressed => self.inbox.send(Command::WindowsPress(
+                crate::platform::windows::TriggerFocus::capture(),
+            )),
+            KeyEdge::Released => self.hotkey(edge),
+        }
+    }
+
     /// "Dicter dans Sambler": start a take whose only destination is the draft.
     pub fn dictate_in_sambler(&self) {
         self.inbox.send(Command::Input(Input::StartInternal));
@@ -145,9 +155,13 @@ impl ControllerHandle {
         self.inbox.send(Command::Input(Input::ClearDraft));
     }
 
+    pub(crate) fn request_shutdown(&self) {
+        self.inbox.send(Command::Input(Input::Shutdown));
+    }
+
     /// Stop any take, release the microphone, close the engine. Idempotent.
     pub async fn shutdown(&self) {
-        self.inbox.send(Command::Input(Input::Shutdown));
+        self.request_shutdown();
         let _ = self.stopped.clone().wait_for(|stopped| *stopped).await;
     }
 }

@@ -99,6 +99,7 @@ struct Take {
     replace: Option<TakeId>,
     destination: Option<Destination>,
     change: Option<TargetChange>,
+    pending_archive: Option<crate::storage::history::CompletedTake>,
     open_deadline: Option<u64>,
     segments: BTreeMap<usize, Segment>,
     bytes: usize,
@@ -470,6 +471,13 @@ impl State {
                 {
                     draft.pending &= outcome != InsertOutcome::Delivered;
                 }
+                if let Some(value) = self
+                    .take
+                    .as_mut()
+                    .and_then(|take| take.pending_archive.take())
+                {
+                    effects.push(Effect::Archive(value));
+                }
                 self.end(
                     match outcome {
                         InsertOutcome::Delivered => TakeOutcome::Inserted,
@@ -567,6 +575,7 @@ impl State {
             replace,
             destination: (!hotkey).then_some(Destination::Sambler),
             change: None,
+            pending_archive: None,
             open_deadline: None,
             segments: BTreeMap::new(),
             bytes: 0,
@@ -574,7 +583,7 @@ impl State {
         if hotkey {
             effects.push(Effect::Probe {
                 take: id,
-                watch: !self.settings.always_keep_in_sambler,
+                watch: true, // Protection still matters when insertion is disabled.
             });
         }
         if reconnect {
@@ -738,13 +747,18 @@ impl State {
         if self.archive
             && let Some(text) = &full
         {
-            effects.push(Effect::Archive(crate::storage::history::CompletedTake {
+            let value = crate::storage::history::CompletedTake {
                 id,
                 created: now.unix,
                 text: text.clone(),
                 language: take.rules.language,
                 profile: take.rules.profile,
-            }));
+            };
+            if insert.is_some() {
+                take.pending_archive = Some(value);
+            } else {
+                effects.push(Effect::Archive(value));
+            }
         }
         let pending = has_text
             && !matches!(

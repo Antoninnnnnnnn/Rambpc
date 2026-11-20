@@ -139,6 +139,9 @@ fn insert_native(token: &TargetToken, edit: NativeEdit, units: &mut Vec<u16>) ->
     {
         return not_written(NotWrittenReason::TargetChanged);
     }
+    if !target::write_permitted(token) {
+        return not_written(NotWrittenReason::TargetChanged);
+    }
     unsafe {
         SetLastError(ERROR_SUCCESS);
         // EM_REPLACESEL is below WM_USER; USER32 marshals the UTF-16 string
@@ -234,6 +237,9 @@ fn insert_paced(
             [first[0], first[1], INPUT::default(), INPUT::default()]
         };
         let events = &batch[..2 * chunk.len()];
+        if !target::write_permitted(token) {
+            return stop(NotWrittenReason::TargetChanged);
+        }
         match unsafe { SendInput(events, std::mem::size_of::<INPUT>() as i32) } as usize {
             n if n == events.len() => {}
             0 => return stop(NotWrittenReason::Refused),
@@ -275,6 +281,9 @@ impl Inserter for SendInputInserter {
         };
         let deadline = Instant::now() + Duration::from_millis(1500);
         while modifiers_held() {
+            if !target::write_permitted(token) {
+                return not_written(NotWrittenReason::TargetChanged);
+            }
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
                 return not_written(NotWrittenReason::ModifiersHeld);

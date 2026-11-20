@@ -40,6 +40,9 @@ pub fn bind_dictation<R: Runtime>(app: &AppHandle<R>, accelerator: &str) -> Resu
                 ShortcutState::Released => KeyEdge::Released,
             };
             if let Some(state) = app.try_state::<AppState>() {
+                #[cfg(windows)]
+                state.controller.windows_hotkey(edge);
+                #[cfg(not(windows))]
                 state.controller.hotkey(edge);
             }
         })
@@ -47,7 +50,11 @@ pub fn bind_dictation<R: Runtime>(app: &AppHandle<R>, accelerator: &str) -> Resu
 }
 
 /// Replace the dictation shortcut. On failure the previous one is restored.
-pub fn rebind_dictation<R: Runtime>(app: &AppHandle<R>, old: &str, new: &str) -> Result<(), String> {
+pub fn rebind_dictation<R: Runtime>(
+    app: &AppHandle<R>,
+    old: &str,
+    new: &str,
+) -> Result<(), String> {
     if old.eq_ignore_ascii_case(new) {
         return Ok(());
     }
