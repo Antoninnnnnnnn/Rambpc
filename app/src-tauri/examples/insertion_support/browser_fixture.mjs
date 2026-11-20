@@ -61,15 +61,16 @@ try {
   await new Promise((resolve, reject) => { sock.addEventListener('open', resolve, { once: true }); sock.addEventListener('error', reject, { once: true }); });
   await call('Page.bringToFront');
   await sleep(350);
-  const pairOnly = process.env.SAMBLER_FIXTURE_PAIR === '1';
-  for (const id of pairOnly ? ['single'] : ['single', 'multi', 'rich']) {
+  const pairMode = process.env.SAMBLER_FIXTURE_PAIR;
+  const paired = pairMode === '1' || pairMode === 'all';
+  for (const id of pairMode === '1' ? ['single'] : ['single', 'multi', 'rich']) {
     await setup(id);
     console.log(`${app} ${id}: ${run('probe').trim()}`);
     const timings = [];
     const repeats = process.env.SAMBLER_FIXTURE_QUICK ? 0 : 20;
     for (let i = 0; i < repeats; i++) {
       await setup(id);
-      const out = run(pairOnly ? 'u200-pair' : 'u200');
+      const out = run(paired ? 'u200-pair' : 'u200');
       if (!out.includes('outcome=Delivered')) { console.log(`${app} ${id}: not qualified (${out.trim().replace(/\r?\n/g, '; ')})`); break; }
       const actual = await read(id);
       if (actual !== expected) {
@@ -81,7 +82,7 @@ try {
     }
     if (timings.length) {
       timings.sort((a,b) => a-b);
-      console.log(`${app} ${id}: ${timings.length}/20 exact; k=${pairOnly ? 2 : 1}; ${timings[Math.floor(timings.length / 2)].toFixed(1)} ms/100 units`);
+      console.log(`${app} ${id}: ${timings.length}/20 exact; k=${paired ? 2 : 1}; ${timings[Math.floor(timings.length / 2)].toFixed(1)} ms/100 units`);
     }
     await setup(id);
     const out = run('two');
@@ -99,8 +100,9 @@ try {
   await setup('multi');
   await setup('single');
   await js(`document.getElementById('single').addEventListener('input',()=>document.getElementById('multi').focus(),{once:true}); true`);
-  const change = run('u200');
-  console.log(`${app} in-window focus switch: ${change.trim().split(/\r?\n/).at(-1)}; other field empty=${(await read('multi')) === ''}`);
+  const change = run(paired ? 'u200-pair' : 'u200');
+  const otherEmpty = (await read('multi')) === '';
+  console.log(`${app} k=${paired ? 2 : 1} in-window focus switch: ${change.trim().split(/\r?\n/).at(-1)}; other field empty=${otherEmpty}`);
   assert.equal(await js('window.submits'), 0);
 } finally {
   if (sock?.readyState === WebSocket.OPEN) { try { await Promise.race([call('Browser.close'), sleep(500)]); } catch {} }

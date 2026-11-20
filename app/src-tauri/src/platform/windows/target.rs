@@ -47,6 +47,9 @@ use windows::core::{Interface, PWSTR};
 use zeroize::Zeroizing;
 
 const REQUEST_BUDGET: Duration = Duration::from_millis(300);
+const CHROMIUM_CAPTURE_BUDGET: Duration = Duration::from_millis(1450);
+const CHROMIUM_RECHECK_BUDGET: Duration = Duration::from_millis(500);
+const CHROMIUM_RETRY: Duration = Duration::from_millis(30);
 const WATCH_PERIOD: Duration = Duration::from_millis(75);
 
 #[derive(Default)]
@@ -139,10 +142,17 @@ impl Worker {
         &self,
         work: impl FnOnce(&mut State) -> T + Send + 'static,
     ) -> Option<T> {
-        if self.expired() {
+        self.request_until(Instant::now() + REQUEST_BUDGET, work)
+    }
+
+    fn request_until<T: Send + 'static>(
+        &self,
+        deadline: Instant,
+        work: impl FnOnce(&mut State) -> T + Send + 'static,
+    ) -> Option<T> {
+        if self.expired() || Instant::now() >= deadline {
             return None;
         }
-        let deadline = Instant::now() + REQUEST_BUDGET;
         let (reply, answer) = mpsc::sync_channel(1);
         let expired = self.expired.clone();
         let job = Box::new(move |state: &mut State| {
@@ -190,6 +200,10 @@ impl Window {
     }
     fn handle(self) -> HWND {
         HWND(self.hwnd as _)
+    }
+
+    fn chromium_widget(self) -> bool {
+        class_name(self.handle()).eq_ignore_ascii_case("Chrome_WidgetWin_1")
     }
 }
 
@@ -263,10 +277,30 @@ use UncertainReason::{
 };
 
 impl State {
-    fn capture(&mut self, worker: Arc<Worker>) -> TargetVerdict {
-        let snapshot = match inspect(&self.automation) {
-            Ok(snapshot) => snapshot,
-            Err(reject) => return reject.into(),
+    fn capture(
+        &mut self,
+        worker: Arc<Worker>,
+        expected: Option<Window>,
+        deadline: Instant,
+    ) -> TargetVerdict {
+        let snapshot = loop {
+            if expected.is_some() && Window::foreground() != expected {
+                return Reject::from(NoFocusedField).into();
+            }
+            match inspect(&self.automation) {
+                Ok(snapshot) if expected.is_none_or(|window| window == snapshot.window) => {
+                    break snapshot;
+                }
+                Ok(_) => return Reject::from(NoFocusedField).into(),
+                Err(Reject::Uncertain(NoFocusedField | Unresponsive | Unsupported))
+                    if expected.is_some() && Instant::now() + CHROMIUM_RETRY < deadline =>
+                {
+                    // Chromium may not have attached its accessibility tree
+                    // yet. Requery only in the original foreground window.
+                    thread::sleep(CHROMIUM_RETRY);
+                }
+                Err(reject) => return reject.into(),
+            }
         };
         self.last_id += 1;
         let identity = Identity {
@@ -292,6 +326,9 @@ impl State {
     fn revalidate(&mut self, id: u64) -> Result<(), TargetChange> {
         use TargetChange::*;
         let old = &self.records.get(&id).ok_or(Unknown)?.1;
+        if chromium_app(old.info.app) && Window::foreground() == Some(old.window) {
+            return recheck_chromium(&self.automation, old);
+        }
         let now = inspect(&self.automation);
         // Protection takes precedence even when the password field is in a different window.
         if matches!(now, Err(Reject::Protected)) {
@@ -369,9 +406,14 @@ fn revalidate(token: &TargetToken, watching: bool) -> Result<(), TargetChange> {
         return Err(change);
     }
     let id = target.id;
+    let budget = if target.window.chromium_widget() {
+        CHROMIUM_RECHECK_BUDGET
+    } else {
+        REQUEST_BUDGET
+    };
     let result = target
         .worker
-        .request(move |state| state.revalidate(id))
+        .request_until(Instant::now() + budget, move |state| state.revalidate(id))
         .unwrap_or(Err(TargetChange::Unknown));
     // The insertion path owns focus checks after committing to an attempt.
     // An in-flight poll may observe the caret moving from our own first packet.
@@ -451,6 +493,82 @@ pub(super) fn insert_office(token: &TargetToken, text: Zeroizing<Vec<u16>>) -> I
     }
 }
 
+fn chromium_app(app: AppKind) -> bool {
+    matches!(app, AppKind::Chrome | AppKind::Edge | AppKind::VsCode)
+}
+
+fn checked_chromium_focus(
+    automation: &IUIAutomation,
+    old: &Snapshot,
+) -> Result<IUIAutomationElement, TargetChange> {
+    use TargetChange::*;
+    if !on_default_desktop() {
+        return Err(Protected);
+    }
+    let focus = unsafe { automation.GetFocusedElement() }.map_err(|_| Unknown)?;
+    let password = unsafe { focus.GetCurrentPropertyValueEx(UIA_IsPasswordPropertyId, true) }
+        .map_err(|_| Unknown)
+        .map(exact_bool)?;
+    if password == Some(true) {
+        return Err(Protected);
+    }
+    if Window::foreground() != Some(old.window)
+        || focus_hwnd(old.window).map(|hwnd| hwnd.0 as usize) != old.native_focus
+        || !unsafe { automation.CompareElements(&old.element, &focus) }
+            .map_err(|_| Unknown)?
+            .as_bool()
+    {
+        return Err(FocusMoved);
+    }
+    if password != Some(false)
+        || !unsafe { focus.CurrentIsEnabled() }
+            .map_err(|_| Unknown)?
+            .as_bool()
+    {
+        return Err(Unknown);
+    }
+    Ok(focus)
+}
+
+fn recheck_chromium(automation: &IUIAutomation, old: &Snapshot) -> Result<(), TargetChange> {
+    use TargetChange::*;
+    let focus = checked_chromium_focus(automation, old)?;
+    let Caret::Text(saved) = &old.caret else {
+        return Err(Unknown);
+    };
+    // Revalidate the field and current selection, not the whole ancestry and
+    // process chain. The two verified degenerate ranges need one endpoint comparison.
+    let text: IUIAutomationTextPattern =
+        unsafe { focus.GetCurrentPatternAs(UIA_TextPatternId) }.map_err(|_| Unknown)?;
+    let selected = unsafe { text.GetSelection() }.map_err(|_| Unknown)?;
+    if unsafe { selected.Length() }.map_err(|_| Unknown)? != 1 {
+        return Err(SelectionChanged);
+    }
+    let range = unsafe { selected.GetElement(0) }.map_err(|_| Unknown)?;
+    let start = TextPatternRangeEndpoint_Start;
+    let end = TextPatternRangeEndpoint_End;
+    if unsafe { range.CompareEndpoints(start, &range, end) }.map_err(|_| Unknown)? != 0
+        || unsafe { saved.CompareEndpoints(start, &range, start) }.map_err(|_| Unknown)? != 0
+    {
+        return Err(SelectionChanged);
+    }
+    if unsafe { range.GetAttributeValue(UIA_IsReadOnlyAttributeId) }
+        .ok()
+        .and_then(exact_bool)
+        == Some(true)
+    {
+        return Err(Unknown);
+    }
+    if let Ok(value) =
+        unsafe { focus.GetCurrentPatternAs::<IUIAutomationValuePattern>(UIA_ValuePatternId) }
+    {
+        if !unsafe { value.CurrentIsReadOnly() }.is_ok_and(|readonly| !readonly.as_bool()) {
+            return Err(Unknown);
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn same_uia_focus(token: &TargetToken) -> bool {
     let Some(id) = identity(token) else {
         return false;
@@ -461,6 +579,9 @@ pub(super) fn same_uia_focus(token: &TargetToken) -> bool {
             let Some((_, old)) = state.records.get(&key) else {
                 return false;
             };
+            if chromium_app(old.info.app) {
+                return checked_chromium_focus(&state.automation, old).is_ok();
+            }
             // No caret comparison here: successful earlier packets move it.
             let Ok(focus) = (unsafe { state.automation.GetFocusedElement() }) else {
                 return false;
@@ -550,10 +671,19 @@ impl Drop for Watch {
 
 impl TargetProbe for UiaTargetProbe {
     fn capture(&self) -> TargetVerdict {
+        let expected = Window::foreground().filter(|window| window.chromium_widget());
+        let deadline = Instant::now()
+            + if expected.is_some() {
+                CHROMIUM_CAPTURE_BUDGET
+            } else {
+                REQUEST_BUDGET
+            };
         self.worker()
             .and_then(|worker| {
                 let owner = worker.clone();
-                worker.request(move |state| state.capture(owner))
+                worker.request_until(deadline, move |state| {
+                    state.capture(owner, expected, deadline)
+                })
             })
             .unwrap_or_else(|| Reject::from(Unresponsive).into())
     }
