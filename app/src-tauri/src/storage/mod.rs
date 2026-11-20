@@ -4,7 +4,8 @@
 //! profil avant la première WebView"):
 //! - `portable.flag` next to the executable → `<exe dir>\Data\` (absolute path,
 //!   independent of the working directory);
-//! - otherwise the installed edition → `%LOCALAPPDATA%\Sambler\`.
+//! - otherwise the installed edition → `%LOCALAPPDATA%\org.sambler.app\`
+//!   (the program itself is installed in `%LOCALAPPDATA%\Sambler\`).
 //!
 //! The directory is checked by creating, writing and renaming a small file.
 //! If that fails the app may run in ephemeral mode: readable settings are
@@ -33,6 +34,8 @@ use std::sync::Arc;
 use zeroize::Zeroizing;
 
 pub const PORTABLE_FLAG: &str = "portable.flag";
+/// Installed-edition data folder under `%LOCALAPPDATA%` (the bundle identifier).
+pub const INSTALLED_DATA_DIR: &str = "org.sambler.app";
 const SETTINGS_FILE: &str = "settings.json";
 const CONSENT_FILE: &str = "consent.bin";
 const ACCESS_FILE: &str = "access.bin";
@@ -82,7 +85,10 @@ pub fn resolve_root() -> Result<DataRoot, RootError> {
         (Edition::Portable, exe_dir.join("Data"))
     } else {
         let local = std::env::var_os("LOCALAPPDATA").ok_or(RootError::LocalAppData)?;
-        (Edition::Installed, PathBuf::from(local).join("Sambler"))
+        // Not `%LOCALAPPDATA%\Sambler`: the per-user NSIS installer puts the
+        // program files there. The bundle identifier keeps data separate and is
+        // what the uninstaller's "delete application data" option removes.
+        (Edition::Installed, PathBuf::from(local).join(INSTALLED_DATA_DIR))
     };
     let root = DataRoot {
         edition,
