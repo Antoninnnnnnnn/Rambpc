@@ -534,6 +534,29 @@ export interface Note extends NoteMeta {
   text: string;
 }
 
+export type TranscriptionStatus = "running" | "done" | "failed" | "cancelled";
+
+/**
+ * Transcription of an audio file with Rambler. No text here: when `done`, the
+ * result is a new Carnet note (`noteId`). Sent as `sambler://transcription`.
+ */
+export interface FileTranscription {
+  id: string;
+  /** Base name only, e.g. "réunion.m4a" (never the full path). */
+  fileName: string;
+  /** Audio length when known. */
+  durationMs: number | null;
+  status: TranscriptionStatus;
+  /** 0..=1, share of the audio already sent. */
+  progress: number;
+  words: number;
+  /** Set when `done`. */
+  noteId: string | null;
+  /** French explanation when `failed` (unsupported format, service error…). */
+  error: string | null;
+  startedAt: number;
+}
+
 // ------------------------------------------------------------------ commands
 
 /** Every command of ipc.rs. `args` are camelCase on the JS side. */
@@ -589,6 +612,13 @@ export interface CommandMap {
   /** `id: null` creates a note. Returns the stored metadata. */
   save_note: { args: { note: { id: string | null; text: string } }; result: NoteMeta };
   delete_note: { args: { id: string }; result: void };
+  /** Native open dialog filtered on supported audio types; null when cancelled. */
+  pick_audio_file: { args: void; result: string | null };
+  /** `path` from `pick_audio_file` or a file dropped on the window. One at a time. */
+  transcribe_file: { args: { path: string }; result: FileTranscription };
+  cancel_transcription: { args: { id: string }; result: FileTranscription };
+  /** This session's transcriptions, newest first. */
+  list_transcriptions: { args: void; result: FileTranscription[] };
 }
 
 export type CommandName = keyof CommandMap;
@@ -596,6 +626,10 @@ export type CommandName = keyof CommandMap;
 export const EVENT_STATE = "sambler://state";
 export const EVENT_LEVEL = "sambler://level";
 export const EVENT_MIC_TEST_LEVEL = "sambler://mic-test-level";
+/** Milestone 5: progress and end of a file transcription (no text). */
+export const EVENT_TRANSCRIPTION = "sambler://transcription";
+/** Milestone 5: an audio file was dropped on the main window (full path, for `transcribe_file`). */
+export const EVENT_FILE_DROPPED = "sambler://file-dropped";
 
 export interface EventMap {
   [EVENT_STATE]: UiState;
@@ -603,6 +637,8 @@ export interface EventMap {
   [EVENT_LEVEL]: number;
   /** 0..=1 during a microphone test. */
   [EVENT_MIC_TEST_LEVEL]: number;
+  [EVENT_TRANSCRIPTION]: FileTranscription;
+  [EVENT_FILE_DROPPED]: string;
 }
 
 export type EventName = keyof EventMap;
