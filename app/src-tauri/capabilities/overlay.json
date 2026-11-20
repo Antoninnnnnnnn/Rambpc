@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "overlay",
+  "description": "Floating dictation bar: listens to state and level events only; no commands.",
+  "windows": ["overlay"],
+  "permissions": [
+    "core:event:default"
+  ]
+}

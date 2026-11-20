@@ -34,3 +34,23 @@ pub fn open_mic_privacy_settings() {
         );
     }
 }
+
+static INSERTION_METHOD: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// Process-wide choice for fields without an atomic editor API; set by the
+/// shell at startup and whenever the settings change.
+pub fn set_insertion_method(method: crate::settings::InsertionMethod) {
+    use crate::settings::InsertionMethod::*;
+    let code = match method {
+        Paste => 0,
+        Typing => 1,
+    };
+    INSERTION_METHOD.store(code, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn insertion_method() -> crate::settings::InsertionMethod {
+    match INSERTION_METHOD.load(std::sync::atomic::Ordering::Relaxed) {
+        1 => crate::settings::InsertionMethod::Typing,
+        _ => crate::settings::InsertionMethod::Paste,
+    }
+}
