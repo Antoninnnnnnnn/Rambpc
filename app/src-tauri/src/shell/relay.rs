@@ -23,6 +23,12 @@ pub enum Capsule {
     Interrupted,
     Unavailable,
     Refused,
+    RefusedSelection,
+    RefusedProtected,
+    RefusedUncertain,
+    RefusedPending,
+    RefusedConsent,
+    RefusedMicrophone,
 }
 
 impl Capsule {
@@ -40,6 +46,12 @@ impl Capsule {
             Capsule::Interrupted => "Dictée interrompue",
             Capsule::Unavailable => "Dictée indisponible",
             Capsule::Refused => "Dictée non démarrée",
+            Capsule::RefusedSelection => "Texte sélectionné : non démarrée",
+            Capsule::RefusedProtected => "Champ protégé : micro non ouvert",
+            Capsule::RefusedUncertain => "Champ non reconnu : dictez dans Sambler",
+            Capsule::RefusedPending => "Un texte attend : rappuyez pour remplacer",
+            Capsule::RefusedConsent => "Dictée non activée dans Sambler",
+            Capsule::RefusedMicrophone => "Micro indisponible",
         }
     }
 
@@ -52,10 +64,19 @@ impl Capsule {
             TakeOutcome::NoText => Capsule::NoText,
             TakeOutcome::Cancelled => Capsule::Cancelled,
             TakeOutcome::Interrupted { .. } => Capsule::Interrupted,
-            TakeOutcome::Refused {
-                reason: RefusalReason::Unavailable { .. } | RefusalReason::NeedsAccess,
-            } => Capsule::Unavailable,
-            TakeOutcome::Refused { .. } => Capsule::Refused,
+            TakeOutcome::Refused { reason } => match reason {
+                RefusalReason::Unavailable { .. } | RefusalReason::NeedsAccess => {
+                    Capsule::Unavailable
+                }
+                RefusalReason::NeedsConsent => Capsule::RefusedConsent,
+                RefusalReason::ProtectedField => Capsule::RefusedProtected,
+                RefusalReason::UncertainTarget {
+                    reason: crate::ports::UncertainReason::Selection,
+                } => Capsule::RefusedSelection,
+                RefusalReason::UncertainTarget { .. } => Capsule::RefusedUncertain,
+                RefusalReason::PendingDraft => Capsule::RefusedPending,
+                RefusalReason::Microphone { .. } => Capsule::RefusedMicrophone,
+            },
         }
     }
 }

@@ -38,7 +38,7 @@ const WM_CAPSULE_LEVEL: u32 = WM_APP + 2;
 static STATE: AtomicU8 = AtomicU8::new(0);
 static LEVEL: AtomicU32 = AtomicU32::new(0);
 
-const ALL: [Capsule; 12] = [
+const ALL: [Capsule; 18] = [
     Capsule::Hidden,
     Capsule::Preparing,
     Capsule::Listening,
@@ -51,6 +51,12 @@ const ALL: [Capsule; 12] = [
     Capsule::Interrupted,
     Capsule::Unavailable,
     Capsule::Refused,
+    Capsule::RefusedSelection,
+    Capsule::RefusedProtected,
+    Capsule::RefusedUncertain,
+    Capsule::RefusedPending,
+    Capsule::RefusedConsent,
+    Capsule::RefusedMicrophone,
 ];
 
 fn code(c: Capsule) -> u8 {
@@ -195,7 +201,7 @@ unsafe fn layout() -> Option<(i32, i32, i32, i32, f32)> {
         let (mut dx, mut dy) = (96u32, 96u32);
         let _ = GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dx, &mut dy);
         let scale = dx as f32 / 96.0;
-        let width = (300.0 * scale) as i32;
+        let width = (380.0 * scale) as i32;
         let height = (44.0 * scale) as i32;
         let work = info.rcWork;
         let x = work.left + ((work.right - work.left) - width) / 2;
@@ -287,7 +293,16 @@ unsafe fn paint(hwnd: HWND) {
                     let _ = Ellipse(hdc, x - r, cy - r, x + r, cy + r);
                 }
             }
-            Capsule::Interrupted | Capsule::Unavailable | Capsule::Refused | Capsule::CheckField => {
+            Capsule::Interrupted
+            | Capsule::Unavailable
+            | Capsule::Refused
+            | Capsule::RefusedSelection
+            | Capsule::RefusedProtected
+            | Capsule::RefusedUncertain
+            | Capsule::RefusedPending
+            | Capsule::RefusedConsent
+            | Capsule::RefusedMicrophone
+            | Capsule::CheckField => {
                 let points = [
                     windows::Win32::Foundation::POINT { x: cx, y: cy - s(8.0) },
                     windows::Win32::Foundation::POINT { x: cx + s(8.0), y: cy + s(7.0) },
