@@ -1,0 +1,68 @@
+[workspace]
+# Standalone application workspace. The SDK crates under ../../crates are
+# path dependencies and keep their own workspace, lock and CI matrix.
+
+[package]
+name = "sambler"
+version = "0.1.0"
+description = "Sambler: dictation at the cursor for Windows, powered by Rambler/Jetson"
+authors = ["Sambler contributors"]
+license = "MIT"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[lib]
+name = "sambler_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+rambler-engine = { path = "../../crates/rambler-engine" }
+rambler-audio = { path = "../../crates/rambler-audio" }
+rambler-transport = { path = "../../crates/rambler-transport" }
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+bytes = "1"
+# Same major/minor as the SDK workspace (Cargo.toml at the repository root).
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+zeroize = "1.9"
+cpal = "0.18.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Cryptography",
+    "Win32_System_Com",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_Ole",
+    "Win32_System_RemoteDesktop",
+    "Win32_System_Threading",
+    "Win32_System_Variant",
+    "Win32_UI_Accessibility",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Shell",
+    "Win32_System_Power",
+    "Win32_System_LibraryLoader",
+] }
+
+[dev-dependencies]
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "test-util"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
