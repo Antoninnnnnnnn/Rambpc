@@ -1,5 +1,5 @@
-//! Forwards controller state to the WebView, the native indicator and the
-//! Escape registration. State and level are "latest wins" watches, so a slow
+//! Forwards controller state to the WebViews (main window and floating bar),
+//! shows or hides the floating bar, and manages the Escape registration. State and level are "latest wins" watches, so a slow
 //! WebView never delays the controller.
 
 use super::hotkey;
@@ -81,18 +81,80 @@ impl Capsule {
     }
 }
 
-/// How long an outcome stays visible in the capsule.
+/// How long an outcome stays visible in the bar.
 const OUTCOME_VISIBLE: Duration = Duration::from_millis(2500);
 
-pub fn start<R: Runtime>(app: AppHandle<R>, controller: ControllerHandle) {
+/// The floating bar: the cross-platform WebView overlay, or the native Win32
+/// capsule as a fallback when the overlay window cannot be created.
+enum Bar<R: Runtime> {
+    Overlay(super::overlay::Overlay<R>),
     #[cfg(windows)]
-    let capsule = super::indicator::Indicator::spawn();
+    Native(super::indicator::Indicator),
+    #[cfg(not(windows))]
+    None,
+}
+
+impl<R: Runtime> Clone for Bar<R> {
+    fn clone(&self) -> Self {
+        match self {
+            Bar::Overlay(overlay) => Bar::Overlay(overlay.clone()),
+            #[cfg(windows)]
+            Bar::Native(indicator) => Bar::Native(indicator.clone()),
+            #[cfg(not(windows))]
+            Bar::None => Bar::None,
+        }
+    }
+}
+
+impl<R: Runtime> Bar<R> {
+    fn new(app: &AppHandle<R>) -> Self {
+        let webview_dir = app
+            .try_state::<super::AppState>()
+            .map(|state| state.store.root().webview_dir.clone());
+        if let Some(dir) = webview_dir
+            && let Some(overlay) = super::overlay::create(app, dir)
+        {
+            return Bar::Overlay(overlay);
+        }
+        #[cfg(windows)]
+        return Bar::Native(super::indicator::Indicator::spawn());
+        #[cfg(not(windows))]
+        Bar::None
+    }
+
+    /// The overlay page renders the state itself from the events.
+    fn show(&self, capsule: Capsule) {
+        match self {
+            Bar::Overlay(overlay) => {
+                if capsule == Capsule::Hidden {
+                    overlay.hide();
+                } else {
+                    overlay.show();
+                }
+            }
+            #[cfg(windows)]
+            Bar::Native(indicator) => indicator.show(capsule),
+            #[cfg(not(windows))]
+            Bar::None => {}
+        }
+    }
+
+    fn level(&self, level: f32) {
+        #[cfg(windows)]
+        if let Bar::Native(indicator) = self {
+            indicator.level(level);
+        }
+        let _ = level;
+    }
+}
+
+pub fn start<R: Runtime>(app: AppHandle<R>, controller: ControllerHandle) {
+    let capsule = Bar::new(&app);
 
     // State relay.
     {
         let app = app.clone();
         let mut rx = controller.state();
-        #[cfg(windows)]
         let capsule = capsule.clone();
         tauri::async_runtime::spawn(async move {
             let mut previous: Option<UiState> = None;
@@ -125,7 +187,6 @@ pub fn start<R: Runtime>(app: AppHandle<R>, controller: ControllerHandle) {
                         }
                     }
                 };
-                #[cfg(windows)]
                 match shown {
                     Some(c) if active => {
                         hide_at = None;
@@ -142,8 +203,6 @@ pub fn start<R: Runtime>(app: AppHandle<R>, controller: ControllerHandle) {
                         }
                     }
                 }
-                #[cfg(not(windows))]
-                let _ = (shown, &mut hide_at);
                 previous = Some(state);
 
                 // Wait for the next change, or the outcome timeout.
@@ -161,7 +220,6 @@ pub fn start<R: Runtime>(app: AppHandle<R>, controller: ControllerHandle) {
                     Some(Err(_)) => break,
                     None => {
                         hide_at = None;
-                        #[cfg(windows)]
                         capsule.show(Capsule::Hidden);
                         // Re-run the loop without a change: re-emit is harmless.
                         if rx.changed().await.is_err() {
@@ -173,16 +231,15 @@ pub fn start<R: Runtime>(app: AppHandle<R>, controller: ControllerHandle) {
         });
     }
 
-    // Level relay, throttled to ~20 Hz for the WebView, ~30 Hz for the capsule.
+    // Level relay, ~30 Hz for both the main window and the floating bar.
     {
         let mut rx = controller.level();
         tauri::async_runtime::spawn(async move {
             let mut last_emit = tokio::time::Instant::now();
             while rx.changed().await.is_ok() {
                 let level = *rx.borrow_and_update();
-                #[cfg(windows)]
                 capsule.level(level);
-                if last_emit.elapsed() >= Duration::from_millis(50) {
+                if last_emit.elapsed() >= Duration::from_millis(33) {
                     let _ = app.emit(EVENT_LEVEL, level);
                     last_emit = tokio::time::Instant::now();
                 }

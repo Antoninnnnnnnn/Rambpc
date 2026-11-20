@@ -9,6 +9,7 @@ mod hotkey;
 #[cfg(windows)]
 mod indicator;
 mod mic_test;
+mod overlay;
 mod relay;
 mod tray;
 mod webview2;
