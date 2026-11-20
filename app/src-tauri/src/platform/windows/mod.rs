@@ -1,13 +1,16 @@
 //! Native Windows implementations of the dictation controller ports.
 
+mod cancel_key;
 mod clipboard;
 mod dpapi;
 mod events;
 mod insertion;
 mod microphone;
+mod office;
 mod pcm;
 mod target;
 
+pub use cancel_key::{CancelKeyHook, CancelKeyHookGuard};
 pub use clipboard::WinClipboard;
 pub use dpapi::Dpapi;
 pub use events::WtsSystemEvents;

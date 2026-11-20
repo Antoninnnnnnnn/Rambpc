@@ -1,6 +1,7 @@
+use super::office::{self, OfficeKind};
 use crate::ports::{
-    AppKind, TargetChange, TargetInfo, TargetProbe, TargetToken, TargetVerdict, UncertainReason,
-    WatchGuard,
+    AppKind, InsertOutcome, NotWrittenReason, TargetChange, TargetInfo, TargetProbe, TargetToken,
+    TargetVerdict, UncertainReason, WatchGuard,
 };
 use std::{
     collections::HashMap,
@@ -43,6 +44,7 @@ use windows::Win32::{
     },
 };
 use windows::core::{Interface, PWSTR};
+use zeroize::Zeroizing;
 
 const REQUEST_BUDGET: Duration = Duration::from_millis(300);
 const WATCH_PERIOD: Duration = Duration::from_millis(75);
@@ -197,6 +199,7 @@ struct Identity {
     window: Window,
     native_focus: Option<usize>,
     native_edit: Option<NativeEdit>,
+    office: bool,
     attempted: AtomicBool,
     changed: OnceLock<TargetChange>,
     lifetime: Arc<()>,
@@ -230,6 +233,7 @@ struct Snapshot {
 enum Caret {
     Text(IUIAutomationTextRange),
     Edit { hwnd: HWND, index: u32 },
+    Office(office::BodyCaret),
 }
 
 #[derive(Clone, Copy)]
@@ -271,6 +275,7 @@ impl State {
             window: snapshot.window,
             native_focus: snapshot.native_focus,
             native_edit: snapshot.native_edit,
+            office: matches!(snapshot.caret, Caret::Office(_)),
             attempted: AtomicBool::new(false),
             changed: OnceLock::new(),
             lifetime: Arc::new(()),
@@ -314,6 +319,13 @@ impl State {
             return Err(SelectionChanged);
         }
         match (&old.caret, &now.caret) {
+            (Caret::Office(a), Caret::Office(b)) => {
+                if a.same(b) {
+                    Ok(())
+                } else {
+                    Err(SelectionChanged)
+                }
+            }
             (Caret::Text(a), Caret::Text(b)) => {
                 for endpoint in [TextPatternRangeEndpoint_Start, TextPatternRangeEndpoint_End] {
                     if unsafe { a.CompareEndpoints(endpoint, b, endpoint) }.map_err(|_| Unknown)?
@@ -393,6 +405,50 @@ pub(super) fn arm_single_write(token: &TargetToken) -> bool {
 
 pub(super) fn native_edit(token: &TargetToken) -> Option<NativeEdit> {
     identity(token)?.native_edit
+}
+
+pub(super) fn office_body(token: &TargetToken) -> bool {
+    identity(token).is_some_and(|id| id.office)
+}
+
+pub(super) fn insert_office(token: &TargetToken, text: Zeroizing<Vec<u16>>) -> InsertOutcome {
+    let not_started = InsertOutcome::NotWritten {
+        reason: NotWrittenReason::TargetChanged,
+    };
+    let Some(id) = identity(token) else {
+        return not_started;
+    };
+    let key = id.id;
+    let root = id.window.hwnd;
+    let Some(body) = id.native_focus else {
+        return not_started;
+    };
+    let token = token.clone();
+    let phase = Arc::new(std::sync::atomic::AtomicU8::new(0)); // ready, started, or cancelled
+    let worker_phase = phase.clone();
+    let deadline = Instant::now() + REQUEST_BUDGET;
+    let answer = id.worker.request(move |state| {
+        let Some((_, saved)) = state.records.get(&key) else {
+            return office::Write::NotStarted;
+        };
+        let Caret::Office(caret) = &saved.caret else {
+            return office::Write::NotStarted;
+        };
+        office::write(caret, HWND(root as _), HWND(body as _), &text, || {
+            Instant::now() < deadline
+                && write_focus(&token) == Some(HWND(body as _))
+                && worker_phase
+                    .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
+                    .is_ok()
+        })
+    });
+    match answer {
+        Some(office::Write::Delivered) => InsertOutcome::Delivered,
+        Some(office::Write::NotStarted) => not_started,
+        Some(office::Write::Uncertain) => InsertOutcome::Partial,
+        None if phase.swap(2, Ordering::AcqRel) == 1 => InsertOutcome::Partial,
+        None => not_started,
+    }
 }
 
 pub(super) fn same_uia_focus(token: &TargetToken) -> bool {
@@ -701,28 +757,73 @@ fn exact_bool(mut value: VARIANT) -> Option<bool> {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CodeArea {
+    Terminal,
+    Chat,
+    Unspecified,
+}
+
+fn code_area(metadata: &str) -> CodeArea {
+    let metadata = metadata.to_ascii_lowercase();
+    if [
+        "xterm",
+        "integrated-terminal",
+        "terminal-input",
+        "terminal-instance",
+        "terminal-editor",
+    ]
+    .iter()
+    .any(|id| metadata.contains(id))
+    {
+        CodeArea::Terminal
+    } else if ["chat-input", "chatinput", "interactive-input-part"]
+        .iter()
+        .any(|id| metadata.contains(id))
+    {
+        CodeArea::Chat
+    } else {
+        CodeArea::Unspecified
+    }
+}
+
+fn aria_multiline(properties: &str) -> Option<bool> {
+    properties.split(';').find_map(|property| {
+        let (key, value) = property.trim().split_once('=')?;
+        if key != "multiline" {
+            return None;
+        }
+        match value {
+            "true" => Some(true),
+            "false" => Some(false),
+            _ => None,
+        }
+    })
+}
+
 fn belongs(
     automation: &IUIAutomation,
     element: &IUIAutomationElement,
     window: Window,
     app: AppKind,
-) -> Result<(), Reject> {
+) -> Result<bool, Reject> {
     let walk = unsafe { automation.RawViewWalker() }.map_err(|_| Unsupported)?;
     let mut current = element.clone();
     let mut matches_window = false;
+    let mut is_chat = false;
     for _ in 0..32 {
         if app == AppKind::VsCode {
-            let is_terminal = |id: windows::core::BSTR| {
-                let id = id.to_string().to_ascii_lowercase();
-                id.contains("xterm")
-                    || id.contains("integrated-terminal")
-                    || id.contains("terminal-input")
-                    || id.contains("terminal-instance")
-            };
-            if unsafe { current.CurrentAutomationId() }.is_ok_and(is_terminal)
-                || unsafe { current.CurrentClassName() }.is_ok_and(is_terminal)
+            for metadata in [unsafe { current.CurrentAutomationId() }, unsafe {
+                current.CurrentClassName()
+            }]
+            .into_iter()
+            .flatten()
             {
-                return Err(Terminal.into());
+                match code_area(&metadata.to_string()) {
+                    CodeArea::Terminal => return Err(Terminal.into()),
+                    CodeArea::Chat => is_chat = true,
+                    CodeArea::Unspecified => {}
+                }
             }
         }
         let hwnd = unsafe { current.CurrentNativeWindowHandle() }.map_err(|_| NoFocusedField)?;
@@ -730,14 +831,14 @@ fn belongs(
             if native.pid != window.pid || unsafe { GetAncestor(hwnd, GA_ROOT) } != window.handle()
             {
                 return if matches_window {
-                    Ok(())
+                    Ok(is_chat)
                 } else {
                     Err(NoFocusedField.into())
                 };
             }
             matches_window = true;
             if hwnd == window.handle() || app != AppKind::VsCode {
-                return Ok(());
+                return Ok(is_chat);
             }
         }
         match unsafe { walk.GetParentElement(&current) } {
@@ -746,7 +847,7 @@ fn belongs(
         }
     }
     if matches_window {
-        Ok(())
+        Ok(is_chat)
     } else {
         Err(NoFocusedField.into())
     }
@@ -810,13 +911,29 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
         return Err(NoFocusedField.into());
     }
     let app = app_kind(process.0);
-    belongs(automation, &element, window, app)?;
+    let is_code_chat = belongs(automation, &element, window, app)?;
 
     let element_hwnd =
         unsafe { element.CurrentNativeWindowHandle() }.map_err(|_| NoFocusedField)?;
     // Only trust Win32 styles or messages for the exact native element with focus.
     let styles = native_style.filter(|_| native_editor == Some(element_hwnd));
-    if password != Some(false) && !(plain_edit && styles.is_some()) {
+    let office_body = match (app, native_class.as_deref()) {
+        (AppKind::Word, Some(class)) if class.eq_ignore_ascii_case("_WwG") => {
+            Some(OfficeKind::Word)
+        }
+        (AppKind::Outlook, Some(class))
+            if class.eq_ignore_ascii_case("_WwG")
+                && class_name(window.handle()).eq_ignore_ascii_case("rctrl_renwnd32") =>
+        {
+            Some(OfficeKind::Outlook)
+        }
+        _ => None,
+    };
+    // Never put keyboard packets into the new Outlook or an Outlook header.
+    if app == AppKind::Outlook && office_body.is_none() {
+        return Err(Unsupported.into());
+    }
+    if password != Some(false) && !(plain_edit && styles.is_some()) && office_body.is_none() {
         return Err(Unsupported.into());
     }
     if !unsafe { element.CurrentIsEnabled() }
@@ -834,6 +951,27 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
     let control = unsafe { element.CurrentControlType() }.map_err(|_| Unsupported)?;
     if control != UIA_EditControlTypeId && control != UIA_DocumentControlTypeId {
         return Err(NoFocusedField.into());
+    }
+    if let Some(kind) = office_body {
+        let body = native_focus.ok_or(NoFocusedField)?;
+        let (caret, _) = office::caret(kind, window.handle(), body).ok_or(Unsupported)?;
+        if Window::foreground() != Some(window)
+            || focus_hwnd(window) != Some(body)
+            || !on_default_desktop()
+        {
+            return Err(NoFocusedField.into());
+        }
+        return Ok(Snapshot {
+            window,
+            native_focus: Some(body.0 as usize),
+            native_edit: None,
+            element,
+            caret: Caret::Office(caret),
+            info: TargetInfo {
+                app,
+                multiline: Some(true),
+            },
+        });
     }
     let native_readonly = styles.map(|style| style & ES_READONLY as u32 != 0);
     let value =
@@ -907,7 +1045,18 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
     }
     let multiline = styles
         .map(|style| style & ES_MULTILINE as u32 != 0)
-        .or((app == AppKind::Notepad && control == UIA_DocumentControlTypeId).then_some(true));
+        .or(
+            (app == AppKind::Notepad && control == UIA_DocumentControlTypeId || is_code_chat)
+                .then_some(true),
+        )
+        .or_else(|| {
+            if !matches!(app, AppKind::Edge | AppKind::Chrome | AppKind::VsCode) {
+                return None;
+            }
+            unsafe { element.CurrentAriaProperties() }
+                .ok()
+                .and_then(|properties| aria_multiline(&properties.to_string()))
+        });
     Ok(Snapshot {
         window,
         native_focus: native_focus.map(|hwnd| hwnd.0 as usize),
@@ -921,6 +1070,20 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn metadata_separates_terminal_and_chat_and_does_not_guess_multiline() {
+        assert_eq!(code_area("xterm-helper-textarea"), CodeArea::Terminal);
+        assert_eq!(code_area("chat-input-container"), CodeArea::Chat);
+        assert_eq!(
+            code_area("chat-input integrated-terminal"),
+            CodeArea::Terminal
+        );
+        assert_eq!(code_area("monaco-editor"), CodeArea::Unspecified);
+        assert_eq!(aria_multiline("required=false;multiline=true"), Some(true));
+        assert_eq!(aria_multiline("multiline=false"), Some(false));
+        assert_eq!(aria_multiline("readonly=false"), None);
+    }
 
     #[test]
     fn hung_request_retires_its_apartment_without_waiting() {

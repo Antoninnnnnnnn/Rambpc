@@ -31,6 +31,8 @@ const MESSAGE_MS: u32 = 200;
 #[derive(Default)]
 pub struct SendInputInserter {
     force_paced: bool,
+    fixture_pair: bool,
+    fixture_lf: bool,
 }
 impl SendInputInserter {
     pub fn new() -> Self {
@@ -40,7 +42,20 @@ impl SendInputInserter {
     /// Exercises the keyboard path against an otherwise supported native edit.
     #[doc(hidden)]
     pub fn paced_for_diagnostics() -> Self {
-        Self { force_paced: true }
+        Self {
+            force_paced: true,
+            ..Self::default()
+        }
+    }
+
+    /// Test-only knobs for an isolated fixture, not used by the application.
+    #[doc(hidden)]
+    pub fn paced_fixture(pair: bool, literal_lf: bool) -> Self {
+        Self {
+            force_paced: true,
+            fixture_pair: pair,
+            fixture_lf: literal_lf,
+        }
     }
 }
 
@@ -55,6 +70,7 @@ enum LineEnds {
     Single,
     Edit,
     Rich,
+    Lf,
 }
 
 fn utf16(text: &str, lines: LineEnds) -> Option<Zeroizing<Vec<u16>>> {
@@ -72,7 +88,14 @@ fn utf16(text: &str, lines: LineEnds) -> Option<Zeroizing<Vec<u16>>> {
                 if ch == '\r' && chars.peek() == Some(&'\n') {
                     chars.next();
                 }
-                units.push(b'\r'.into());
+                units.push(
+                    if matches!(lines, LineEnds::Lf) {
+                        b'\n'
+                    } else {
+                        b'\r'
+                    }
+                    .into(),
+                );
                 if matches!(lines, LineEnds::Edit) {
                     units.push(b'\n'.into());
                 }
@@ -159,9 +182,16 @@ fn responsive(hwnd: HWND) -> bool {
     .0 != 0
 }
 
-fn insert_paced(token: &TargetToken, edit: Option<NativeEdit>, units: &[u16]) -> InsertOutcome {
+fn insert_paced(
+    token: &TargetToken,
+    edit: Option<NativeEdit>,
+    units: &[u16],
+    pair: bool,
+) -> InsertOutcome {
     let until = Instant::now() + PACE_BUDGET;
-    for (index, &unit) in units.iter().enumerate() {
+    let chunk_size = if pair && edit.is_none() { 2 } else { 1 };
+    for (index, chunk) in units.chunks(chunk_size).enumerate() {
+        let unit = chunk[0];
         let stop = |reason| {
             if index == 0 {
                 not_written(reason)
@@ -196,8 +226,16 @@ fn insert_paced(token: &TargetToken, edit: Option<NativeEdit>, units: &[u16]) ->
         }
         // Even adjacent surrogate halves are paced individually: two VK_PACKET
         // values queued before translation can both resolve to the later unit.
-        match unsafe { SendInput(&packet(unit), std::mem::size_of::<INPUT>() as i32) } {
-            2 => {}
+        let first = packet(unit);
+        let batch = if let [_, second] = chunk {
+            let second = packet(*second);
+            [first[0], first[1], second[0], second[1]]
+        } else {
+            [first[0], first[1], INPUT::default(), INPUT::default()]
+        };
+        let events = &batch[..2 * chunk.len()];
+        match unsafe { SendInput(events, std::mem::size_of::<INPUT>() as i32) } as usize {
+            n if n == events.len() => {}
             0 => return stop(NotWrittenReason::Refused),
             _ => return InsertOutcome::Partial,
         }
@@ -224,7 +262,10 @@ impl Inserter for SendInputInserter {
     fn insert_once(&self, token: &TargetToken, text: &str) -> InsertOutcome {
         let edit = target::native_edit(token);
         let direct = edit.filter(|_| !self.force_paced);
+        let office = !self.force_paced && target::office_body(token);
         let lines = match direct {
+            _ if office => LineEnds::Rich,
+            _ if self.fixture_lf => LineEnds::Lf,
             Some(edit) if edit.multiline && edit.rich => LineEnds::Rich,
             Some(edit) if edit.multiline => LineEnds::Edit,
             _ => LineEnds::Single,
@@ -250,9 +291,12 @@ impl Inserter for SendInputInserter {
             return not_written(NotWrittenReason::TargetChanged);
         }
         // One logical attempt, with no fallback or retry after any write call.
+        if office {
+            return target::insert_office(token, units);
+        }
         match direct {
             Some(edit) => insert_native(token, edit, &mut units),
-            None => insert_paced(token, edit, &units),
+            None => insert_paced(token, edit, &units, self.fixture_pair),
         }
     }
 }
