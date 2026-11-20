@@ -7,30 +7,35 @@ import {
   defaultSettings,
   EVENT_STATE,
   type AccessStatus,
-  type CommandMap,
+  type CommandName,
   type DraftView,
   type EventMap,
   type EventName,
+  type HistoryEntry,
+  type HistoryQuery,
+  type HistoryStatus,
   type MicInfo,
-  type OptionalCommandMap,
+  type PersonalRules,
+  type PersonalRulesInput,
   type Settings,
   type UiState,
 } from "../ipc/contract";
 
-type AnyCommand = keyof CommandMap | keyof OptionalCommandMap;
 // Handlers receive the command's own argument object.
 type Handler = (args: any) => unknown; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export interface FakeBridge extends Bridge {
   invoke: Mock & Bridge["invoke"];
-  invokeOptional: Mock & Bridge["invokeOptional"];
   /** Replace a command's behaviour; throw a `{ code, message }` to reject. */
-  handlers: Partial<Record<AnyCommand, Handler>>;
+  handlers: Partial<Record<CommandName, Handler>>;
   emit<E extends EventName>(event: E, payload: EventMap[E]): void;
   /** Emit a new `sambler://state` and remember it as the current state. */
   pushState(patch: Partial<UiState>): UiState;
   state: UiState;
   settings: Settings;
+  rules: PersonalRules;
+  history: HistoryEntry[];
+  historyStatus(): HistoryStatus;
   listenerCount(event: EventName): number;
   /** What the next `get_draft` returns. */
   setDraft(view: DraftView | null): void;
@@ -69,17 +74,32 @@ interface Options {
   access?: AccessStatus;
   mics?: MicInfo[];
   draft?: DraftView | null;
+  rules?: Partial<PersonalRules>;
+  history?: HistoryEntry[];
+  /** `available: false` simulates an ephemeral session. */
+  historyAvailable?: boolean;
 }
 
 export function createFakeBridge(options: Options = {}): FakeBridge {
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
   let draft = options.draft ?? null;
   let access = options.access ?? CONFIGURED_ACCESS;
+  let skipNext = false;
 
   const fake = {
     state: uiState(options.state),
     settings: { ...defaultSettings(), ...options.settings },
-  } as FakeBridge;
+    rules: { lexicon: [], expressions: [], unreadable: false, ...options.rules },
+    history: [...(options.history ?? [])],
+  } as unknown as FakeBridge;
+
+  fake.historyStatus = () => ({
+    enabled: fake.settings.history.enabled,
+    retentionDays: fake.settings.history.retentionDays,
+    entryCount: fake.history.length,
+    skipNext,
+    available: options.historyAvailable ?? true,
+  });
 
   fake.handlers = {
     get_state: () => fake.state,
@@ -124,18 +144,48 @@ export function createFakeBridge(options: Options = {}): FakeBridge {
       return fake.state;
     },
     open_mic_privacy_settings: () => undefined,
+    preview_render: ({ sample }: { sample: string }) => sample,
+    get_personal_rules: () => fake.rules,
+    save_personal_rules: ({ rules }: { rules: PersonalRulesInput }) => {
+      fake.rules = { ...rules, unreadable: false };
+      return { saved: true, rules: fake.rules, conflicts: [] };
+    },
+    get_history: ({ query }: { query: HistoryQuery }) => {
+      const search = query.search?.toLowerCase() ?? "";
+      const matching = fake.history.filter((entry) => !search || entry.text?.toLowerCase().includes(search));
+      const start = query.cursor ? Number(query.cursor) : 0;
+      const limit = query.limit ?? 50;
+      const entries = matching.slice(start, start + limit);
+      const next = start + limit < matching.length ? String(start + limit) : null;
+      return { entries, nextCursor: next };
+    },
+    copy_history_entry: () => undefined,
+    delete_history_entry: ({ id }: { id: string }) => {
+      fake.history = fake.history.filter((entry) => entry.id !== id);
+      return fake.historyStatus();
+    },
+    clear_history: ({ disable }: { disable: boolean }) => {
+      fake.history = [];
+      if (disable) fake.settings = { ...fake.settings, history: { ...fake.settings.history, enabled: false } };
+      return fake.historyStatus();
+    },
+    get_history_status: () => fake.historyStatus(),
+    skip_history_next_take: ({ skip }: { skip: boolean }) => {
+      skipNext = skip;
+      return fake.historyStatus();
+    },
+    set_launch_at_startup: ({ enabled }: { enabled: boolean }) => {
+      fake.settings = { ...fake.settings, launchAtStartup: enabled };
+    },
   };
 
-  const run = async (command: AnyCommand, args: unknown) => {
+  const run = async (command: CommandName, args: unknown) => {
     const handler = fake.handlers[command];
-    if (!handler) throw new Error(`fake bridge: no handler for ${command}`);
+    if (!handler) throw new Error(`fake bridge: no handler for ${String(command)}`);
     return handler(args);
   };
 
-  fake.invoke = vi.fn((command: AnyCommand, args?: unknown) => run(command, args)) as FakeBridge["invoke"];
-  fake.invokeOptional = vi.fn(async (command: AnyCommand, args?: unknown) =>
-    fake.handlers[command] ? run(command, args) : undefined,
-  ) as FakeBridge["invokeOptional"];
+  fake.invoke = vi.fn((command: CommandName, args?: unknown) => run(command, args)) as FakeBridge["invoke"];
 
   fake.listen = vi.fn(async (event: string, handler: (payload: unknown) => void) => {
     if (!listeners.has(event)) listeners.set(event, new Set());
@@ -182,5 +232,17 @@ export function completeDraft(text: string, now = Date.now()): DraftView {
     meta: { take: 9, createdAtMs: now, expiresAtMs: now + 10 * 60_000, complete: true },
     parts: [{ status: "admitted", text }],
     fullText: text,
+  };
+}
+
+export function historyEntry(id: string, text: string | null, ageMinutes = 5, now = Date.now()): HistoryEntry {
+  const created = now - ageMinutes * 60_000;
+  return {
+    id,
+    createdAtMs: created,
+    expiresAtMs: created + 7 * 86_400_000,
+    language: "french",
+    profile: "natural",
+    text,
   };
 }

@@ -67,12 +67,13 @@ describe("Brouillon", () => {
   });
 
   it.each([
-    ["busy", "Le presse-papiers est occupé par une autre application. Réessayez dans un instant."],
+    ["clipboard-busy", "Le presse-papiers est occupé par une autre application. Réessayez dans un instant."],
     [
-      "exclusion-failed",
+      "clipboard-exclusion-failed",
       "Copie annulée : Windows n’a pas pu exclure ce texte de l’historique du presse-papiers (Win+V). Le texte reste dans Sambler.",
     ],
-    ["other", "La copie a échoué. Le texte reste dans Sambler."],
+    ["clipboard-other", "La copie a échoué. Le texte reste dans Sambler."],
+    ["no-draft", "Il n’y a plus de texte à copier."],
   ])("reports the clipboard error %s in French", async (code, message) => {
     const { bridge, user } = await openDraft(completeDraft("Bonjour."));
     bridge.handlers.copy_draft = () => {

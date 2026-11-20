@@ -60,6 +60,8 @@
   --warning-bg: #fff4ce;
   --error: #b42318;
   --error-bg: #fde7e9;
+  /* Background of destructive buttons (white text, 5.9:1). Same in dark. */
+  --error-strong: #c42b1c;
   --info: #005fb8;
   --info-bg: #e8f1fa;
 

@@ -5,7 +5,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
 import { DEFAULT_SHORTCUT, type CommandError } from "../ipc/contract";
-import { commandErrorText, shortcutRejectionText } from "../labels/fr";
+import { shortcutRejectionText, shortcutSaveErrorText } from "../labels/fr";
 import { captureShortcut, formatShortcut, sameShortcut, type ShortcutRejection } from "../lib/shortcut";
 import { FieldError, Keys } from "./controls";
 import "./ShortcutField.css";
@@ -59,7 +59,7 @@ export function ShortcutField({ value, onChange, error, label = "Raccourci" }: P
     announce(
       announcement(
         ok
-          ? `Raccourci enregistré : ${formatShortcut(accelerator)}.`
+          ? `Raccourci enregistré : ${formatShortcut(accelerator)}.`
           : "Le raccourci n’a pas pu être enregistré. L’ancien raccourci reste actif.",
       ),
     );
@@ -168,12 +168,7 @@ export function ShortcutField({ value, onChange, error, label = "Raccourci" }: P
           : "Les combinaisons avec la touche Windows, F12, Ctrl+Alt et les modificateurs seuls sont refusés."}
       </p>
       {rejection ? <FieldError id={`${id}-rejection`}>{shortcutRejectionText(rejection)}</FieldError> : null}
-      {error ? (
-        <FieldError id={`${id}-error`}>
-          Le raccourci n’a pas pu être enregistré. {commandErrorText(error, "")} L’ancien raccourci reste actif :{" "}
-          {formatShortcut(value)}.
-        </FieldError>
-      ) : null}
+      {error ? <FieldError id={`${id}-error`}>{shortcutSaveErrorText(error, value)}</FieldError> : null}
     </div>
   );
 }

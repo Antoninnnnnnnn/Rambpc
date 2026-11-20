@@ -276,7 +276,8 @@ function ConsentStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext:
 
   const enable = async () => {
     const result = await action.run(() => commands.setConsent(true));
-    if (result.ok) {
+    // `save-failed`: enabled for this session, only the disk write failed.
+    if (result.ok || result.error.code === "save-failed") {
       announce(announcement("Dictée avec Rambler activée."));
       onNext();
     }

@@ -25,7 +25,9 @@ export type SettingsField =
   | "text"
   | "alwaysKeepInSambler"
   | "indicator"
-  | "draftMinutes";
+  | "draftMinutes"
+  | "history"
+  | "launchAtStartup";
 
 type Patch = (settings: Settings) => Settings;
 
@@ -40,8 +42,13 @@ interface SettingsStore {
   settings: Settings | null;
   loadFailed: boolean;
   errors: Partial<Record<SettingsField, CommandError>>;
-  /** Resolves `true` once saved, `false` if refused (rolled back). */
+  /**
+   * Resolves `true` once applied, `false` if refused (rolled back). A
+   * `save-failed` error still applies (for this session) and is reported.
+   */
   update: (field: SettingsField, patch: Patch) => Promise<boolean>;
+  /** Record a change another command already applied natively (no save_settings). */
+  applyLocal: (patch: Patch) => void;
   reload: () => void;
 }
 
@@ -83,8 +90,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           confirmedRef.current = saved;
           setConfirmed(saved);
           return true;
-        } catch (error) {
-          setErrors((current) => ({ ...current, [field]: toCommandError(error) }));
+        } catch (raw) {
+          const error = toCommandError(raw);
+          setErrors((current) => ({ ...current, [field]: error }));
+          if (error.code === "save-failed" && base) {
+            // Applied natively for this session, only the disk write failed.
+            confirmedRef.current = patch(base);
+            setConfirmed(confirmedRef.current);
+            return true;
+          }
           return false;
         } finally {
           setPending((list) => list.filter((change) => change.id !== id));
@@ -96,14 +110,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [bridge],
   );
 
+  const applyLocal = useCallback((patch: Patch) => {
+    if (!confirmedRef.current) return;
+    confirmedRef.current = patch(confirmedRef.current);
+    setConfirmed(confirmedRef.current);
+  }, []);
+
   const settings = useMemo(
     () => (confirmed ? pending.reduce((current, change) => change.patch(current), confirmed) : null),
     [confirmed, pending],
   );
 
   const store = useMemo(
-    () => ({ settings, loadFailed, errors, update, reload }),
-    [settings, loadFailed, errors, update, reload],
+    () => ({ settings, loadFailed, errors, update, applyLocal, reload }),
+    [settings, loadFailed, errors, update, applyLocal, reload],
   );
   return <SettingsContext.Provider value={store}>{children}</SettingsContext.Provider>;
 }

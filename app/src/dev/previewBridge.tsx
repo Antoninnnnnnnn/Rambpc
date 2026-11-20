@@ -24,6 +24,7 @@ import {
 } from "../ipc/contract";
 import { matchesShortcut } from "../lib/shortcut";
 import { PreviewPanel } from "./PreviewPanel";
+import { createPreviewPersonal } from "./previewPersonal";
 
 export const PREVIEW_MARKER = "DEV PREVIEW (simulated, never shipped)";
 
@@ -297,6 +298,12 @@ export function installPreview(): Bridge {
       if (s.language === "english") out = out.replace(/ \?$/, "?").replace(/\bi\b/g, "I");
       return out;
     },
+    ...createPreviewPersonal(
+      () => settings,
+      (next) => {
+        settings = next;
+      },
+    ),
   };
 
   const controls: PreviewControls = {
@@ -361,8 +368,6 @@ export function installPreview(): Bridge {
 
   const bridge = {
     invoke: (command: string, args?: Record<string, unknown>) => delay(() => handlers[command](args)),
-    invokeOptional: (command: string, args?: Record<string, unknown>) =>
-      delay(() => (handlers[command] ? handlers[command](args) : undefined)),
     listen: async (event: string, handler: (payload: unknown) => void): Promise<Unlisten> => {
       if (!listeners.has(event)) listeners.set(event, new Set());
       listeners.get(event)!.add(handler);
