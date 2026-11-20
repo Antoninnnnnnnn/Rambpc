@@ -143,6 +143,20 @@ export interface Settings {
   launchAtStartup: boolean;
   insertion: InsertionMethod;
   insertionTarget: InsertionTarget;
+  /** Milestone 4. Absent when the native side predates themes. */
+  appearance?: AppearanceSettings;
+}
+
+export type ColorSchemeChoice = "system" | "light" | "dark";
+
+/**
+ * Visual theme and colour scheme. `theme` is an id from `themes/registry.ts`;
+ * the native side stores any short id (lowercase letters, digits, hyphens,
+ * max 32) and the UI falls back to the default theme for an unknown one.
+ */
+export interface AppearanceSettings {
+  theme: string;
+  colorScheme: ColorSchemeChoice;
 }
 
 export const SETTINGS_VERSION = 1;
@@ -168,6 +182,7 @@ export function defaultSettings(): Settings {
     launchAtStartup: false,
     insertion: "paste",
     insertionTarget: "original-field",
+    appearance: { theme: "verre-aurore", colorScheme: "system" },
   };
 }
 
@@ -258,6 +273,8 @@ export interface UiState {
   shortcut: string;
   /** Number of recent results kept in RAM (see `get_recent_drafts`). */
   recentCount: number;
+  /** Milestone 4: same as `Settings.appearance`, so the floating bar re-themes live. */
+  appearance?: AppearanceSettings;
 }
 
 export type PartStatus = "admitted" | "no-text" | "needs-review" | "blocked" | "missing";
@@ -422,6 +439,42 @@ export interface UsageStats {
   averageWpm: number | null;
 }
 
+// ------------------------------------------------------------------ milestone 4 (Activité)
+//
+// Proposed by the theme work; implemented natively by the windows-v1 session.
+// Until the native side answers `get_activity`, the Activité screen falls back
+// to `get_stats` (the command error is expected and handled).
+
+/** One local calendar day. Counters only, never text. */
+export interface DayActivity {
+  /** Local date, "YYYY-MM-DD". */
+  date: string;
+  words: number;
+  takes: number;
+}
+
+export interface AppShare {
+  /** Display name of the target application, e.g. "Word". */
+  app: string;
+  words: number;
+}
+
+export interface ActivityStats {
+  /** Last 112 local days (16 weeks), oldest first, ending today, zero days included. */
+  days: DayActivity[];
+  /** Consecutive days with at least one completed take, ending today (or yesterday if none today yet). */
+  currentStreak: number;
+  longestStreak: number;
+  /** Last day of the longest streak, "YYYY-MM-DD", null before any take. */
+  longestStreakEnd: string | null;
+  /** First day with a completed take, "YYYY-MM-DD", null before any take. */
+  firstDay: string | null;
+  /** Captured audio time of completed takes, for "temps gagné" (words / 40 wpm − this). */
+  listeningMsTotal: number;
+  /** Words per target application, largest first; null when not collected. */
+  apps: AppShare[] | null;
+}
+
 // ------------------------------------------------------------------ commands
 
 /** Every command of ipc.rs. `args` are camelCase on the JS side. */
@@ -464,6 +517,8 @@ export interface CommandMap {
   /** Newest first, at most 5, RAM only, same lifetime as the draft. */
   get_recent_drafts: { args: void; result: DraftView[] };
   get_stats: { args: void; result: UsageStats };
+  // milestone 4
+  get_activity: { args: void; result: ActivityStats };
 }
 
 export type CommandName = keyof CommandMap;
