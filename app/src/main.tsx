@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App, { AppProviders } from "./App";
 import { createTauriBridge, type Bridge } from "./ipc/bridge";
+import "./styles/fonts.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
 

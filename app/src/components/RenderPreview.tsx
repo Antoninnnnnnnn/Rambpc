@@ -1,5 +1,5 @@
-// Effect of the text settings on a sample sentence, without opening the
-// microphone (`preview_render`, docs/windows/03). Hidden if the preview fails.
+// Effect of the style settings on a sample sentence, without opening the
+// microphone (`preview_render`). Hidden while pending or if the preview fails.
 
 import { useEffect, useState } from "react";
 import { useBridge } from "../ipc/bridge";
@@ -41,25 +41,25 @@ export function usePreviewRender(sample: string, settings: Settings): string | n
   return rendered;
 }
 
-export function RenderPreview({ settings }: { settings: Settings }) {
-  const sample = PREVIEW_SAMPLES[settings.language];
+export function RenderPreview({ settings, sample }: { settings: Settings; sample: string }) {
   const rendered = usePreviewRender(sample, settings);
   const lang = settings.language === "english" ? "en" : "fr";
   if (rendered === null) return null;
 
   return (
-    <div className="render-preview" data-testid="render-preview">
-      <p className="render-preview__title">Exemple, sans ouvrir le micro</p>
-      <dl className="render-preview__pairs">
-        <div>
-          <dt>Reconnu</dt>
-          <dd lang={lang}>{sample}</dd>
-        </div>
-        <div>
-          <dt>Inséré</dt>
-          <dd lang={lang}>{rendered}</dd>
-        </div>
-      </dl>
-    </div>
+    <dl className="preview" data-testid="render-preview">
+      <div className="preview__side">
+        <dt className="preview__label">Reconnu</dt>
+        <dd lang={lang} className="preview__text preview__text--raw">
+          {sample}
+        </dd>
+      </div>
+      <div className="preview__side preview__side--result">
+        <dt className="preview__label">Inséré</dt>
+        <dd lang={lang} className="preview__text">
+          {rendered}
+        </dd>
+      </div>
+    </dl>
   );
 }

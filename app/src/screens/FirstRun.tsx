@@ -1,36 +1,37 @@
-// Premier lancement: what Google receives, microphone + level test, Rambler
-// access if missing, explicit « Activer la dictée avec Rambler », then a
-// guided try with live status. Takes over the window until consent is given.
+// Prise en main: what Google receives and the explicit « Activer la dictée
+// avec Rambler », then the microphone and its level test, the Rambler access
+// (only when none is configured), and a guided try with live status. Takes
+// over the window until consent is given.
 
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
 import { AccessForm, AccessSummary } from "../components/AccessForm";
 import { AvailabilityBanner } from "../components/AvailabilityBanner";
 import { FieldError, Keys, Switch } from "../components/controls";
-import { DraftPanel } from "../components/DraftPanel";
 import { AppMark, Glyph } from "../components/Icon";
 import { MicrophonePicker } from "../components/Microphone";
 import { OutcomeNotice } from "../components/OutcomeNotice";
+import { RecentList } from "../components/RecentList";
 import { ShortcutField } from "../components/ShortcutField";
 import { StatusCard } from "../components/StatusCard";
-import { canStartTake, commandErrorText, hasConsent, isTakeActive } from "../labels/fr";
+import { commandErrorText, hasConsent } from "../labels/fr";
 import { useAccess } from "../state/access";
 import { useUiCommands } from "../state/commands";
 import type { FirstRunStep } from "../state/navigation";
+import { useRecents } from "../state/recents";
 import { useSettings } from "../state/settings";
 import { useUiState } from "../state/ui";
 import { useAction } from "../state/useAction";
 import "./FirstRun.css";
 
-const STEPS: { id: FirstRunStep; title: string }[] = [
-  { id: "voice", title: "Votre voix" },
-  { id: "microphone", title: "Micro" },
-  { id: "access", title: "Accès à Rambler" },
-  { id: "consent", title: "Activation" },
-  { id: "try", title: "Essai" },
-];
+const TITLES: Record<FirstRunStep, string> = {
+  consent: "Activation",
+  microphone: "Micro",
+  access: "Accès à Rambler",
+  try: "Essai",
+};
 
-export const TRY_SENTENCE = "Rendez-vous jeudi à 14 h";
+export const TRY_SENTENCE = "Rendez-vous jeudi à 14 h";
 
 interface Props {
   initialStep?: FirstRunStep;
@@ -43,12 +44,23 @@ interface Props {
   onClose: () => void;
 }
 
-export function FirstRun({ initialStep = "voice", openedByPerson = false, onClose }: Props) {
+export function FirstRun({ initialStep = "consent", openedByPerson = false, onClose }: Props) {
   const state = useUiState();
+  const { status } = useAccess();
   const [step, setStep] = useState<FirstRunStep>(initialStep);
+  // The access step is shown only when no access is configured; decided once
+  // so that saving the access does not remove the step being shown.
+  const [includeAccess, setIncludeAccess] = useState<boolean | null>(() =>
+    status ? !status.configured || initialStep === "access" : null,
+  );
+  useEffect(() => {
+    if (includeAccess === null && status) setIncludeAccess(!status.configured);
+  }, [includeAccess, status]);
+
+  const steps: FirstRunStep[] = ["consent", "microphone", ...(includeAccess !== false ? (["access"] as const) : []), "try"];
   const titleRef = useRef<HTMLHeadingElement>(null);
   const focusedStep = useRef<FirstRunStep | null>(openedByPerson ? null : initialStep);
-  const index = STEPS.findIndex((item) => item.id === step);
+  const index = Math.max(0, steps.indexOf(step));
   const consent = hasConsent(state.availability);
   const closable = consent || openedByPerson;
 
@@ -59,59 +71,51 @@ export function FirstRun({ initialStep = "voice", openedByPerson = false, onClos
     titleRef.current?.focus();
   }, [step]);
 
-  const go = (next: FirstRunStep) => setStep(next);
-  const next = () => go(STEPS[Math.min(index + 1, STEPS.length - 1)].id);
-  const back = () => go(STEPS[Math.max(index - 1, 0)].id);
+  const next = () => setStep(steps[Math.min(index + 1, steps.length - 1)]);
+  const back = () => setStep(steps[Math.max(index - 1, 0)]);
 
   return (
-    <div className="first-run">
-      <header className="first-run__header">
-        <p className="first-run__brand">
-          <AppMark /> Sambler
-        </p>
-        <div className="first-run__progress">
-          <ol aria-label="Étapes de la prise en main">
-            {STEPS.map((item, position) => (
-              <li
-                key={item.id}
-                className={
-                  position === index ? "is-current" : position < index ? "is-done" : undefined
-                }
-                aria-current={position === index ? "step" : undefined}
-              >
-                <span className="first-run__step-number" aria-hidden="true">
-                  {position < index ? "✓" : position + 1}
-                </span>
-                <span>
-                  {item.title}
-                  {position < index ? <span className="visually-hidden"> (terminée)</span> : null}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
-        {closable ? (
-          <button type="button" className="button button--subtle first-run__close" onClick={onClose}>
-            Fermer
-          </button>
-        ) : null}
-      </header>
+    <div className="onboard">
+      <main className="onboard__main" id="main">
+        <div className="onboard__panel">
+          <div className="onboard__top">
+            <ol className="onboard__steps" aria-label="Étapes de la prise en main">
+              {steps.map((item, position) => (
+                <li
+                  key={item}
+                  className={position === index ? "is-current" : position < index ? "is-done" : undefined}
+                  aria-current={position === index ? "step" : undefined}
+                >
+                  <span className="onboard__dot" aria-hidden="true">
+                    {position < index ? <Glyph name="check" /> : position + 1}
+                  </span>
+                  <span className="onboard__step-name">
+                    {TITLES[item]}
+                    {position < index ? <span className="visually-hidden"> (terminée)</span> : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {closable ? (
+              <button type="button" className="btn btn--sm btn--ghost onboard__close" onClick={onClose}>
+                Fermer la prise en main
+              </button>
+            ) : null}
+          </div>
 
-      <main className="first-run__main" id="main">
-        <p className="first-run__counter">
-          Étape {index + 1} sur {STEPS.length}
-        </p>
-        {step === "voice" ? (
-          <VoiceStep titleRef={titleRef} onNext={next} />
-        ) : step === "microphone" ? (
-          <MicrophoneStep titleRef={titleRef} onNext={next} onBack={back} />
-        ) : step === "access" ? (
-          <AccessStep titleRef={titleRef} onNext={next} onBack={back} />
-        ) : step === "consent" ? (
-          <ConsentStep titleRef={titleRef} onNext={next} onBack={back} />
-        ) : (
-          <TryStep titleRef={titleRef} onBack={back} onDone={onClose} />
-        )}
+          <p className="onboard__counter">
+            Étape {index + 1} sur {steps.length}
+          </p>
+          {step === "consent" ? (
+            <ConsentStep titleRef={titleRef} onNext={next} />
+          ) : step === "microphone" ? (
+            <MicrophoneStep titleRef={titleRef} onNext={next} onBack={back} />
+          ) : step === "access" ? (
+            <AccessStep titleRef={titleRef} onNext={next} onBack={back} />
+          ) : (
+            <TryStep titleRef={titleRef} onBack={back} onDone={onClose} />
+          )}
+        </div>
       </main>
     </div>
   );
@@ -121,7 +125,7 @@ type TitleRef = RefObject<HTMLHeadingElement | null>;
 
 function StepTitle({ titleRef, children }: { titleRef: TitleRef; children: ReactNode }) {
   return (
-    <h1 ref={titleRef} tabIndex={-1} className="first-run__title">
+    <h1 ref={titleRef} tabIndex={-1} className="onboard__title">
       {children}
     </h1>
   );
@@ -141,19 +145,20 @@ function StepNav({
   extra?: ReactNode;
 }) {
   return (
-    <div className="first-run__nav">
+    <div className="onboard__nav">
       {onBack ? (
-        <button type="button" className="button" onClick={onBack}>
+        <button type="button" className="btn btn--ghost" onClick={onBack}>
           Retour
         </button>
       ) : (
         <span />
       )}
-      <div className="button-row">
+      <div className="btn-row">
         {extra}
         {onNext ? (
-          <button type="button" className={nextPrimary ? "button button--primary" : "button"} onClick={onNext}>
+          <button type="button" className={nextPrimary ? "btn btn--primary btn--lg" : "btn btn--lg"} onClick={onNext}>
             {nextLabel}
+            {nextPrimary ? <Glyph name="arrow-right" /> : null}
           </button>
         ) : null}
       </div>
@@ -161,118 +166,14 @@ function StepNav({
   );
 }
 
-function VoiceStep({ titleRef, onNext }: { titleRef: TitleRef; onNext: () => void }) {
-  const sentId = useId();
-  const keptId = useId();
-  return (
-    <div className="first-run__step">
-      <StepTitle titleRef={titleRef}>Votre voix est transmise à Google pendant que vous parlez</StepTitle>
-      <p className="first-run__lead">
-        Sambler transcrit uniquement avec Rambler, le service de reconnaissance vocale de Google. Rien n’est envoyé
-        tant que vous n’avez pas activé la dictée.
-      </p>
-      <div className="first-run__columns">
-        <section className="first-run__card" aria-labelledby={sentId}>
-          <h2 id={sentId}>Ce que reçoit Google</h2>
-          <ul>
-            <li>Le son de votre voix, seulement pendant une dictée.</li>
-            <li>La langue choisie et des paramètres techniques.</li>
-            <li>Les données d’accès à Rambler de la session.</li>
-            <li>L’adresse réseau de votre connexion.</li>
-          </ul>
-        </section>
-        <section className="first-run__card" aria-labelledby={keptId}>
-          <h2 id={keptId}>Ce qui reste sur ce PC</h2>
-          <ul>
-            <li>Le nom de l’application et le titre de la fenêtre où vous écrivez.</li>
-            <li>Le texte de vos documents, votre sélection et votre presse-papiers.</li>
-            <li>Le test du micro : il mesure le niveau ici, sans rien envoyer.</li>
-            <li>Aucun enregistrement audio n’est conservé.</li>
-          </ul>
-        </section>
-      </div>
-      <p>
-        <strong>Annuler</strong> une dictée, ou désactiver la transmission dans les réglages, coupe aussitôt la capture
-        et l’envoi. Ce qui a déjà été transmis reste du côté du service. Les conditions de conservation et d’usage
-        sont celles du fournisseur de votre accès à Rambler.
-      </p>
-      <StepNav onNext={onNext} />
-    </div>
-  );
-}
-
-function MicrophoneStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext: () => void; onBack: () => void }) {
-  return (
-    <div className="first-run__step">
-      <StepTitle titleRef={titleRef}>Choisissez votre micro</StepTitle>
-      <p className="first-run__lead">
-        Essayez le niveau : parlez quelques secondes et regardez la jauge. Ce test ne transmet rien.
-      </p>
-      <div className="first-run__card">
-        <MicrophonePicker />
-      </div>
-      <StepNav onBack={onBack} onNext={onNext} />
-    </div>
-  );
-}
-
-function AccessStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext: () => void; onBack: () => void }) {
-  const { status, loadFailed, refresh } = useAccess();
-  return (
-    <div className="first-run__step">
-      <StepTitle titleRef={titleRef}>Accès à Rambler</StepTitle>
-      {status === null ? (
-        loadFailed ? (
-          <div className="stack">
-            <FieldError>L’état de l’accès n’a pas pu être lu.</FieldError>
-            <div className="button-row">
-              <button type="button" className="button" onClick={refresh}>
-                Réessayer
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="muted">Chargement…</p>
-        )
-      ) : status.configured ? (
-        <>
-          <p className="first-run__lead">Un accès au service est déjà configuré sur ce PC.</p>
-          <div className="first-run__card">
-            <AccessSummary status={status} />
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="first-run__lead">
-            Sambler a besoin de vos données d’accès au service. Elles sont transmises une fois à la partie native de
-            l’application, puis ne sont plus jamais affichées.
-          </p>
-          <div className="first-run__card">
-            <AccessForm onSaved={onNext} submitLabel="Enregistrer et continuer" />
-          </div>
-        </>
-      )}
-      <StepNav
-        onBack={onBack}
-        onNext={onNext}
-        nextLabel={status?.configured ? "Continuer" : "Plus tard"}
-        nextPrimary={Boolean(status?.configured)}
-      />
-      {status && !status.configured ? (
-        <p className="field-hint first-run__aside">
-          Sans accès, la dictée restera indisponible. Vous pourrez le configurer dans Réglages.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function ConsentStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext: () => void; onBack: () => void }) {
+function ConsentStep({ titleRef, onNext }: { titleRef: TitleRef; onNext: () => void }) {
   const state = useUiState();
   const commands = useUiCommands();
   const announce = useAnnounce();
   const action = useAction();
   const consent = hasConsent(state.availability);
+  const sentId = useId();
+  const keptId = useId();
 
   const enable = async () => {
     const result = await action.run(() => commands.setConsent(true));
@@ -284,31 +185,63 @@ function ConsentStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext:
   };
 
   return (
-    <div className="first-run__step">
-      <StepTitle titleRef={titleRef}>Activer la dictée</StepTitle>
+    <div className="onboard__step">
+      <div className="onboard__hero">
+        <AppMark className="onboard__mark" />
+      </div>
+      <StepTitle titleRef={titleRef}>Votre voix est transmise à Google pendant que vous parlez</StepTitle>
+      <p className="onboard__lead">
+        Sambler transcrit uniquement avec Rambler, le service de reconnaissance vocale de Google. Rien n’est envoyé tant
+        que vous n’avez pas activé la dictée.
+      </p>
+      <div className="onboard__columns">
+        <section className="onboard__card" aria-labelledby={sentId}>
+          <h2 id={sentId} className="onboard__card-title">
+            <Glyph name="globe" />
+            Ce que reçoit Google
+          </h2>
+          <ul>
+            <li>Le son de votre voix, seulement pendant une dictée.</li>
+            <li>La langue choisie et des paramètres techniques.</li>
+            <li>Les données d’accès à Rambler de la session.</li>
+            <li>L’adresse réseau de votre connexion.</li>
+          </ul>
+        </section>
+        <section className="onboard__card" aria-labelledby={keptId}>
+          <h2 id={keptId} className="onboard__card-title">
+            <Glyph name="shield" />
+            Ce qui reste sur ce PC
+          </h2>
+          <ul>
+            <li>Le nom de l’application et le titre de la fenêtre où vous écrivez.</li>
+            <li>Le texte de vos documents, votre sélection et votre presse-papiers.</li>
+            <li>Le test du micro : il mesure le niveau ici, sans rien envoyer.</li>
+            <li>Aucun enregistrement audio n’est conservé.</li>
+          </ul>
+        </section>
+      </div>
+      <p className="onboard__small">
+        <strong>Annuler</strong> une dictée, ou désactiver la transmission dans les réglages, coupe aussitôt la capture
+        et l’envoi. Ce qui a déjà été transmis reste du côté du service. Les conditions de conservation et d’usage sont
+        celles du fournisseur de votre accès à Rambler.
+      </p>
       {consent ? (
         <>
-          <p className="first-run__lead">La dictée avec Rambler est activée sur ce PC.</p>
-          <p className="muted">Vous pouvez la désactiver à tout moment dans Réglages, Confidentialité.</p>
-          <StepNav onBack={onBack} onNext={onNext} />
+          <p className="onboard__done">
+            <Glyph name="check" />
+            La dictée avec Rambler est activée sur ce PC. Vous pouvez la désactiver à tout moment dans Réglages,
+            Confidentialité.
+          </p>
+          <StepNav onNext={onNext} />
         </>
       ) : (
         <>
-          <p className="first-run__lead">
-            En activant la dictée, vous choisissez que votre voix soit transmise à Google pendant que vous parlez.
-          </p>
-          <ul className="first-run__list">
-            <li>L’envoi commence seulement quand vous déclenchez une dictée.</li>
-            <li>Annuler, ou désactiver dans Réglages, coupe aussitôt la capture et l’envoi.</li>
-            <li>Le texte est inséré une seule fois, dans le champ où vous avez commencé.</li>
-          </ul>
           {action.error ? <FieldError>{commandErrorText(action.error)}</FieldError> : null}
           <StepNav
-            onBack={onBack}
             extra={
               <button
                 type="button"
-                className="button button--primary button--large"
+                className="btn btn--primary btn--lg"
                 onClick={() => void enable()}
                 aria-disabled={action.busy || undefined}
               >
@@ -322,33 +255,91 @@ function ConsentStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext:
   );
 }
 
+function MicrophoneStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext: () => void; onBack: () => void }) {
+  return (
+    <div className="onboard__step">
+      <StepTitle titleRef={titleRef}>Choisissez votre micro</StepTitle>
+      <p className="onboard__lead">Essayez le niveau : parlez quelques secondes et regardez les barres. Ce test ne transmet rien.</p>
+      <div className="onboard__card">
+        <MicrophonePicker />
+      </div>
+      <StepNav onBack={onBack} onNext={onNext} />
+    </div>
+  );
+}
+
+function AccessStep({ titleRef, onNext, onBack }: { titleRef: TitleRef; onNext: () => void; onBack: () => void }) {
+  const { status, loadFailed, refresh } = useAccess();
+  return (
+    <div className="onboard__step">
+      <StepTitle titleRef={titleRef}>Accès à Rambler</StepTitle>
+      {status === null ? (
+        loadFailed ? (
+          <div className="stack">
+            <FieldError>L’état de l’accès n’a pas pu être lu.</FieldError>
+            <div className="btn-row">
+              <button type="button" className="btn" onClick={refresh}>
+                Réessayer
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="muted">Chargement…</p>
+        )
+      ) : status.configured ? (
+        <>
+          <p className="onboard__lead">Un accès au service est configuré sur ce PC.</p>
+          <div className="onboard__card">
+            <AccessSummary status={status} />
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="onboard__lead">
+            Sambler a besoin de vos données d’accès au service. Elles sont transmises une fois à la partie native de
+            l’application, puis ne sont plus jamais affichées.
+          </p>
+          <div className="onboard__card">
+            <AccessForm onSaved={onNext} submitLabel="Enregistrer et continuer" />
+          </div>
+        </>
+      )}
+      <StepNav
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel={status?.configured ? "Continuer" : "Plus tard"}
+        nextPrimary={Boolean(status?.configured)}
+      />
+      {status && !status.configured ? (
+        <p className="hint onboard__aside">Sans accès, la dictée restera indisponible. Vous pourrez le configurer dans Réglages.</p>
+      ) : null}
+    </div>
+  );
+}
+
 function TryStep({ titleRef, onBack, onDone }: { titleRef: TitleRef; onBack: () => void; onDone: () => void }) {
   const state = useUiState();
   const { settings, update, errors } = useSettings();
-  const commands = useUiCommands();
-  const dictate = useAction();
-  const active = isTakeActive(state);
+  const recents = useRecents();
   const hold = state.gesture === "hold";
   const outcomeId = useId();
   const othersId = useId();
+  const minutes = settings?.draftMinutes ?? 10;
 
   return (
-    <div className="first-run__step">
+    <div className="onboard__step">
       <StepTitle titleRef={titleRef}>Essayez une phrase</StepTitle>
-      <p className="first-run__instruction" data-testid="try-instruction">
+      <p className="onboard__instruction" data-testid="try-instruction">
         {hold ? "Maintenez " : "Appuyez sur "}
-        <Keys shortcut={state.shortcut} />, dites « {TRY_SENTENCE} », puis{" "}
-        {hold ? "relâchez." : "appuyez de nouveau."}
+        <Keys shortcut={state.shortcut} />, dites « {TRY_SENTENCE} », puis {hold ? "relâchez." : "appuyez de nouveau."}
       </p>
-      <p className="muted">
-        Attendez l’état « Écoute » avant de parler. Ici, le texte reste dans Sambler pour que vous puissiez le relire.
-      </p>
+      <p className="muted">Ici, le texte reste dans Sambler pour que vous puissiez le relire.</p>
 
       <AvailabilityBanner headingLevel={2} />
-      <StatusCard headingLevel={2} />
+      <StatusCard headingLevel={2} dictateLabel="Dicter dans Sambler, sans raccourci" />
 
       {state.lastOutcome ? (
-        <section aria-labelledby={outcomeId} className="first-run__result">
+        <section aria-labelledby={outcomeId} className="onboard__result">
           <h2 id={outcomeId} className="visually-hidden">
             Résultat de l’essai
           </h2>
@@ -356,14 +347,16 @@ function TryStep({ titleRef, onBack, onDone }: { titleRef: TitleRef; onBack: () 
             outcome={state.lastOutcome}
             hasDraft={state.draft !== null}
             headingLevel={3}
-            draftVisible={state.draft !== null}
+            recentsVisible={state.draft !== null}
           />
         </section>
       ) : null}
-      {state.draft ? <DraftPanel headingLevel={2} title="Texte obtenu" /> : null}
+      {state.draft || (recents.items?.length ?? 0) > 0 ? (
+        <RecentList store={recents} minutes={minutes} title="Texte obtenu" newestOnly />
+      ) : null}
 
-      <section className="first-run__card stack" aria-labelledby={othersId}>
-        <h2 id={othersId} className="first-run__card-title">
+      <section className="onboard__card stack" aria-labelledby={othersId}>
+        <h2 id={othersId} className="onboard__card-title">
           Autres façons d’essayer
         </h2>
         {settings ? (
@@ -383,23 +376,7 @@ function TryStep({ titleRef, onBack, onDone }: { titleRef: TitleRef; onBack: () 
             />
           </>
         ) : null}
-        {!active ? (
-          <div className="stack stack--tight">
-            <div className="button-row">
-              <button
-                type="button"
-                className="button"
-                onClick={() => void dictate.run(commands.dictateInSambler)}
-                disabled={!canStartTake(state.availability)}
-              >
-                <Glyph name="mic" />
-                Dicter dans Sambler, sans raccourci
-              </button>
-            </div>
-            {dictate.error ? <FieldError>{commandErrorText(dictate.error)}</FieldError> : null}
-          </div>
-        ) : null}
-        <p className="field-hint">
+        <p className="hint">
           Pour annuler pendant l’essai, appuyez sur <Keys shortcut="Escape" /> ou choisissez « Annuler ».
         </p>
       </section>

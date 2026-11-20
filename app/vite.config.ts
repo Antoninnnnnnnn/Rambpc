@@ -3,7 +3,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 // @ts-expect-error type error without @types/node package
 import process from "node:process";
+// @ts-expect-error type error without @types/node package
+import { fileURLToPath } from "node:url";
 const host = process.env.TAURI_DEV_HOST;
+
+const page = (name: string): string => fileURLToPath(new URL(name, import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
@@ -28,6 +32,17 @@ export default defineConfig(() => ({
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
+    },
+  },
+
+  // Two pages: the main window (index.html) and the floating dictation bar
+  // (overlay.html, window label "overlay"). The bar loads no React.
+  build: {
+    rolldownOptions: {
+      input: {
+        main: page("index.html"),
+        overlay: page("overlay.html"),
+      },
     },
   },
 

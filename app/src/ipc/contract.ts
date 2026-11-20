@@ -17,8 +17,9 @@
 //   #[serde(rename_all = "camelCase")] structs              -> camelCase keys
 //   Option<T>                                               -> T | null
 //
-// Privacy rule: dictated text only ever arrives in `DraftView` (command
-// `get_draft`). Every other type here is text-free by construction.
+// Privacy rule: dictated text only ever arrives in `DraftView` (commands
+// `get_draft` and `get_recent_drafts`, asked by the view that shows it).
+// Every other type here is text-free by construction.
 
 // ------------------------------------------------------------------ model.rs
 
@@ -104,6 +105,26 @@ export interface HistoryOptions {
   retentionDays: number;
 }
 
+/**
+ * `InsertionMethod`, for fields without an atomic editor API (browsers,
+ * Electron apps, Outlook…). Native Edit/RichEdit and Word keep their atomic
+ * paths whatever this says.
+ * - `paste`: one Ctrl+V, the previous clipboard restored (excluded from Win+V
+ *   history and cloud sync). Instant, multi-line capable. Default.
+ * - `typing`: paced Unicode typing, never touches the clipboard; single line.
+ */
+export type InsertionMethod = "paste" | "typing";
+
+/**
+ * `InsertionTarget`: which field receives the text when the take ends.
+ * - `original-field`: the field where the take started, provided it has the
+ *   focus again at the end (leaving it and coming back is fine); otherwise
+ *   the text stays in Sambler. Default.
+ * - `cursor-at-end`: whatever eligible field has the focus at the end. A
+ *   password field or an unrecognized field keeps the text in Sambler.
+ */
+export type InsertionTarget = "original-field" | "cursor-at-end";
+
 export interface Settings {
   version: number;
   language: Language;
@@ -120,6 +141,8 @@ export interface Settings {
   draftMinutes: number;
   history: HistoryOptions;
   launchAtStartup: boolean;
+  insertion: InsertionMethod;
+  insertionTarget: InsertionTarget;
 }
 
 export const SETTINGS_VERSION = 1;
@@ -143,6 +166,8 @@ export function defaultSettings(): Settings {
     draftMinutes: 10,
     history: { enabled: false, retentionDays: 7 },
     launchAtStartup: false,
+    insertion: "paste",
+    insertionTarget: "original-field",
   };
 }
 
@@ -174,7 +199,9 @@ export type KeptReason =
   | { kind: "sambler-destination" }
   | { kind: "target-changed"; change: TargetChange }
   | { kind: "not-written"; reason: NotWrittenReason }
-  | { kind: "incomplete" };
+  | { kind: "incomplete" }
+  /** The field could not be qualified at the trigger: the take went to Sambler instead of refusing. */
+  | { kind: "uncertain-target"; reason: UncertainReason };
 
 export type InterruptReason =
   | { kind: "microphone-stalled" }
@@ -194,7 +221,9 @@ export type RefusalReason =
   | { kind: "needs-access" }
   | { kind: "unavailable"; reason: UnavailableReason }
   | { kind: "protected-field" }
+  /** Legacy: an uncertain field now sends the take to Sambler (`KeptReason`). */
   | { kind: "uncertain-target"; reason: UncertainReason }
+  /** Legacy (no longer produced): recent results are kept side by side. */
   | { kind: "pending-draft" }
   | { kind: "microphone"; error: MicError };
 
@@ -227,6 +256,8 @@ export interface UiState {
   listeningMs: number | null;
   gesture: Gesture;
   shortcut: string;
+  /** Number of recent results kept in RAM (see `get_recent_drafts`). */
+  recentCount: number;
 }
 
 export type PartStatus = "admitted" | "no-text" | "needs-review" | "blocked" | "missing";
@@ -237,7 +268,7 @@ export interface DraftPart {
   text: string | null;
 }
 
-/** The only type that carries dictated text. Returned by `get_draft` only. */
+/** The only type that carries dictated text. Returned by `get_draft` and `get_recent_drafts` only. */
 export interface DraftView {
   meta: DraftMeta;
   parts: DraftPart[];
@@ -379,6 +410,18 @@ export interface HistoryStatus {
   available: boolean;
 }
 
+// ------------------------------------------------------------------ ipc.rs milestone 3
+
+/** Counters only (no text), persisted as plain JSON in the data root. */
+export interface UsageStats {
+  wordsToday: number;
+  wordsThisWeek: number;
+  wordsTotal: number;
+  takesTotal: number;
+  /** Words per minute over listening time of completed takes, when known. */
+  averageWpm: number | null;
+}
+
 // ------------------------------------------------------------------ commands
 
 /** Every command of ipc.rs. `args` are camelCase on the JS side. */
@@ -398,8 +441,10 @@ export interface CommandMap {
   finish_take: { args: { take: TakeId }; result: UiState };
   cancel_take: { args: { take: TakeId }; result: UiState };
   get_draft: { args: void; result: DraftView | null };
-  copy_draft: { args: void; result: void };
-  clear_draft: { args: void; result: UiState };
+  /** `take` omitted: the latest recent result. */
+  copy_draft: { args: { take?: TakeId }; result: void };
+  /** `take` omitted: every recent result. */
+  clear_draft: { args: { take?: TakeId }; result: UiState };
   open_mic_privacy_settings: { args: void; result: void };
   /** Text rules on a sample sentence, without microphone or network (max 500 chars). */
   preview_render: { args: { sample: string; settings: Settings }; result: string };
@@ -415,6 +460,10 @@ export interface CommandMap {
   skip_history_next_take: { args: { skip: boolean }; result: HistoryStatus };
   /** Installed edition only: the portable edition answers `portable`. */
   set_launch_at_startup: { args: { enabled: boolean }; result: void };
+  // milestone 3
+  /** Newest first, at most 5, RAM only, same lifetime as the draft. */
+  get_recent_drafts: { args: void; result: DraftView[] };
+  get_stats: { args: void; result: UsageStats };
 }
 
 export type CommandName = keyof CommandMap;
@@ -425,7 +474,7 @@ export const EVENT_MIC_TEST_LEVEL = "sambler://mic-test-level";
 
 export interface EventMap {
   [EVENT_STATE]: UiState;
-  /** 0..=1, about 20 Hz while listening. */
+  /** 0..=1 (−60..0 dBFS, linear), about 20–30 Hz while listening. */
   [EVENT_LEVEL]: number;
   /** 0..=1 during a microphone test. */
   [EVENT_MIC_TEST_LEVEL]: number;

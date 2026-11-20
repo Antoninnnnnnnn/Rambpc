@@ -1,41 +1,41 @@
 .access-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   max-width: 34rem;
 }
 
+.access-form__intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+
+.access-form__intro .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--success);
+}
+
 .access-form__advanced {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
 }
 
 .access-form__advanced > summary {
   padding: var(--space-1) 0;
-  font-weight: 600;
+  font-weight: 580;
   cursor: pointer;
 }
 
 .access-form__advanced[open] > summary {
   margin-bottom: var(--space-3);
-}
-
-.access-form__remember {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-}
-
-.access-form__remember input {
-  flex: none;
-  width: 1.1rem;
-  height: 1.1rem;
-  margin: 0.15rem 0 0;
-}
-
-.access-form__remember label {
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .access-summary {
@@ -46,12 +46,12 @@
 
 .access-summary > div {
   display: grid;
-  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
   gap: var(--space-3);
 }
 
 .access-summary dt {
-  color: var(--text-secondary);
+  color: var(--text-2);
 }
 
 .access-summary dd {
@@ -59,9 +59,30 @@
   overflow-wrap: anywhere;
 }
 
+.access-summary__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.access-summary__state .icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.access-summary__state--ok {
+  color: var(--success);
+}
+
+.access-summary__mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
 @media (max-width: 36rem) {
   .access-summary > div {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
 }

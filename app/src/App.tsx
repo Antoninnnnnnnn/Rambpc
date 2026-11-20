@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnnouncerProvider } from "./a11y/announcer";
 import { StateAnnouncer } from "./a11y/StateAnnouncer";
-import { AppMark, Glyph, StatusIcon, type GlyphName } from "./components/Icon";
+import { AppMark } from "./components/Icon";
+import { Sidebar } from "./components/Sidebar";
+import { TitleBar } from "./components/TitleBar";
 import { BridgeProvider, type Bridge } from "./ipc/bridge";
-import { describeStatus, hasConsent } from "./labels/fr";
+import { hasConsent } from "./labels/fr";
+import { DictionaryScreen } from "./screens/DictionaryScreen";
 import { FirstRun } from "./screens/FirstRun";
-import { DraftScreen } from "./screens/DraftScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
 import { Home } from "./screens/Home";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { ShortcutsScreen } from "./screens/ShortcutsScreen";
+import { StyleScreen } from "./screens/StyleScreen";
 import { AccessProvider } from "./state/access";
 import { DraftSafetyProvider } from "./state/draftSafety";
 import {
   NavigationContext,
-  useNavigation,
   type FirstRunStep,
   type Navigation,
+  type Section,
   type SettingsSection,
   type View,
 } from "./state/navigation";
@@ -23,7 +27,7 @@ import { SettingsProvider } from "./state/settings";
 import { UiStateProvider, useUiState, useUiStore } from "./state/ui";
 import "./styles/layout.css";
 
-/** Everything the screens need: bridge, live region and the three stores. */
+/** Everything the screens need: bridge, live region and the stores. */
 export function AppProviders({ bridge, children }: { bridge: Bridge; children: ReactNode }) {
   return (
     <BridgeProvider bridge={bridge}>
@@ -44,42 +48,43 @@ export default function App() {
   const { state, failed } = useUiStore();
   if (!state) {
     return (
-      <main className="startup" id="main">
-        <AppMark />
-        <h1 className="startup__title">Sambler</h1>
-        <p role={failed ? "alert" : undefined}>
-          {failed ? "Sambler ne répond pas. Fermez la fenêtre puis rouvrez Sambler." : "Chargement…"}
-        </p>
-      </main>
+      <div className="frame">
+        <TitleBar />
+        <main className="startup" id="main">
+          <AppMark className="startup__mark" />
+          <h1 className="startup__title">Sambler</h1>
+          <p role={failed ? "alert" : undefined} className="muted">
+            {failed ? "Sambler ne répond pas. Fermez la fenêtre puis rouvrez Sambler." : "Chargement…"}
+          </p>
+        </main>
+      </div>
     );
   }
   return <Shell />;
 }
 
-const NAV_ITEMS: { view: View; label: string; glyph: GlyphName }[] = [
-  { view: "home", label: "Accueil", glyph: "home" },
-  { view: "draft", label: "Brouillon", glyph: "draft" },
-  { view: "history", label: "Historique", glyph: "history" },
-  { view: "settings", label: "Réglages", glyph: "settings" },
-];
+interface Target {
+  section?: Section;
+  nonce: number;
+}
 
 function Shell() {
   const state = useUiState();
   const [firstRun, setFirstRun] = useState<FirstRunStep | null>(() =>
-    hasConsent(state.availability) ? null : "voice",
+    hasConsent(state.availability) ? null : "consent",
   );
   const [view, setView] = useState<View>("home");
-  const [section, setSection] = useState<{ id?: SettingsSection; nonce: number }>({ nonce: 0 });
+  const [target, setTarget] = useState<Target>({ nonce: 0 });
   // Focus follows navigation, but the window does not grab focus at startup.
   const [navigated, setNavigated] = useState(false);
 
-  const go = useCallback((next: View, target?: SettingsSection) => {
+  const go = useCallback((next: View, section?: Section) => {
     setNavigated(true);
     setFirstRun(null);
     setView(next);
-    setSection((current) => ({ id: target, nonce: current.nonce + 1 }));
+    setTarget((current) => ({ section, nonce: current.nonce + 1 }));
   }, []);
-  const openFirstRun = useCallback((step: FirstRunStep = "voice") => {
+  const openFirstRun = useCallback((step: FirstRunStep = "consent") => {
     setNavigated(true);
     setFirstRun(step);
   }, []);
@@ -89,9 +94,12 @@ function Shell() {
     <NavigationContext.Provider value={navigation}>
       <StateAnnouncer />
       {firstRun ? (
-        <FirstRun key={firstRun} initialStep={firstRun} openedByPerson={navigated} onClose={() => go("home")} />
+        <div className="frame">
+          <TitleBar showBrand />
+          <FirstRun key={firstRun} initialStep={firstRun} openedByPerson={navigated} onClose={() => go("home")} />
+        </div>
       ) : (
-        <MainLayout view={view} section={section} autoFocus={navigated} />
+        <MainLayout view={view} target={target} autoFocus={navigated} />
       )}
     </NavigationContext.Provider>
   );
@@ -99,23 +107,22 @@ function Shell() {
 
 interface MainLayoutProps {
   view: View;
-  section: { id?: SettingsSection; nonce: number };
+  target: Target;
   autoFocus: boolean;
 }
 
-function MainLayout({ view, section, autoFocus }: MainLayoutProps) {
-  const state = useUiState();
-  const { go, openFirstRun } = useNavigation();
+function MainLayout({ view, target, autoFocus }: MainLayoutProps) {
   const mainRef = useRef<HTMLElement>(null);
-  const status = describeStatus(state);
 
-  // After navigation, move focus to the new screen's title (a settings
-  // section, when targeted, takes the focus itself).
+  // After navigation, move focus to the new screen's title (a targeted
+  // section takes the focus itself).
   useEffect(() => {
-    if (!autoFocus) return;
-    if (view === "settings" && section.id) return;
+    if (!autoFocus || target.section) return;
+    mainRef.current?.scrollTo?.({ top: 0 });
     mainRef.current?.querySelector<HTMLElement>("[data-screen-title]")?.focus();
-  }, [view, section, autoFocus]);
+  }, [view, target, autoFocus]);
+
+  const settingsSection = view === "settings" ? (target.section as SettingsSection | undefined) : undefined;
 
   return (
     <div className="app">
@@ -129,54 +136,24 @@ function MainLayout({ view, section, autoFocus }: MainLayoutProps) {
       >
         Aller au contenu
       </a>
-      <aside className="sidebar">
-        <p className="sidebar__brand">
-          <AppMark />
-          <span>Sambler</span>
-        </p>
-        <nav className="sidebar__nav" aria-label="Navigation principale">
-          <ul>
-            {NAV_ITEMS.map((item) => (
-              <li key={item.view}>
-                <button
-                  type="button"
-                  className="nav-item"
-                  aria-current={view === item.view ? "page" : undefined}
-                  onClick={() => go(item.view)}
-                >
-                  <Glyph name={item.glyph} />
-                  <span className="nav-item__label">{item.label}</span>
-                  {item.view === "draft" && state.draft ? (
-                    <span className="nav-item__badge">
-                      1<span className="visually-hidden"> texte en attente</span>
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="sidebar__footer">
-          <p className={`sidebar__status sidebar__status--${status.shape}`} data-testid="sidebar-status">
-            <StatusIcon shape={status.shape} />
-            <span>{status.label}</span>
-          </p>
-          <button type="button" className="nav-item nav-item--small" onClick={() => openFirstRun("voice")}>
-            <Glyph name="guide" />
-            <span className="nav-item__label">Prise en main</span>
-          </button>
-        </div>
-      </aside>
+      <TitleBar showBrand />
+      <Sidebar />
       <main className="main" id="main" ref={mainRef} tabIndex={-1}>
-        {view === "home" ? (
-          <Home />
-        ) : view === "draft" ? (
-          <DraftScreen />
-        ) : view === "history" ? (
-          <HistoryScreen />
-        ) : (
-          <SettingsScreen key={section.nonce} section={section.id} />
-        )}
+        <div className="main__inner">
+          {view === "home" ? (
+            <Home focusRecents={target.section === "home-recents" ? target.nonce : 0} />
+          ) : view === "dictionary" ? (
+            <DictionaryScreen />
+          ) : view === "shortcuts" ? (
+            <ShortcutsScreen />
+          ) : view === "style" ? (
+            <StyleScreen />
+          ) : view === "history" ? (
+            <HistoryScreen />
+          ) : (
+            <SettingsScreen key={target.nonce} section={settingsSection} />
+          )}
+        </div>
       </main>
     </div>
   );

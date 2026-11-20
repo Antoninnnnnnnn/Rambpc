@@ -8,6 +8,7 @@ import { accessSourceText, commandErrorText } from "../labels/fr";
 import { useAccess } from "../state/access";
 import { useAction } from "../state/useAction";
 import { FieldError } from "./controls";
+import { Glyph } from "./Icon";
 import "./AccessForm.css";
 
 /** Default service address of the SDK, used when the field is left empty. */
@@ -19,12 +20,7 @@ const EMPTY = { authority: "", apiKey: "", androidPackage: "", androidCert: "", 
 
 const REQUIRED: { name: FieldName; label: string; hint: string; secret: boolean }[] = [
   { name: "apiKey", label: "Clé d’accès", hint: "Valeur de RAMBLER_API_KEY.", secret: true },
-  {
-    name: "androidPackage",
-    label: "Package Android",
-    hint: "Valeur de RAMBLER_ANDROID_PACKAGE.",
-    secret: false,
-  },
+  { name: "androidPackage", label: "Package Android", hint: "Valeur de RAMBLER_ANDROID_PACKAGE.", secret: false },
   {
     name: "androidCert",
     label: "Certificat",
@@ -80,8 +76,9 @@ export function AccessForm({ onSaved, onCancel, submitLabel = "Enregistrer l’a
 
   return (
     <form className="access-form" onSubmit={(event) => void onSubmit(event)} noValidate aria-describedby={`${id}-intro`}>
-      <p id={`${id}-intro`} className="field-hint">
-        Ces valeurs restent dans la partie native de Sambler et ne sont jamais réaffichées.
+      <p id={`${id}-intro`} className="access-form__intro">
+        <Glyph name="shield" />
+        <span>Ces valeurs restent dans la partie native de Sambler et ne sont jamais réaffichées.</span>
       </p>
       {REQUIRED.map((field) => {
         const invalid = missing.includes(field.name);
@@ -92,7 +89,7 @@ export function AccessForm({ onSaved, onCancel, submitLabel = "Enregistrer l’a
             </label>
             <input
               id={`${id}-${field.name}`}
-              className="text-input"
+              className="input"
               type={field.secret ? "password" : "text"}
               value={values[field.name]}
               onChange={(event) => set(field.name, event.currentTarget.value)}
@@ -104,7 +101,7 @@ export function AccessForm({ onSaved, onCancel, submitLabel = "Enregistrer l’a
               aria-invalid={invalid || undefined}
               aria-describedby={`${id}-${field.name}-hint${invalid ? ` ${id}-${field.name}-err` : ""}`}
             />
-            <p id={`${id}-${field.name}-hint`} className="field-hint">
+            <p id={`${id}-${field.name}-hint`} className="hint">
               {field.hint}
             </p>
             {invalid ? <FieldError id={`${id}-${field.name}-err`}>Ce champ est obligatoire.</FieldError> : null}
@@ -120,7 +117,7 @@ export function AccessForm({ onSaved, onCancel, submitLabel = "Enregistrer l’a
           </label>
           <input
             id={`${id}-authority`}
-            className="text-input"
+            className="input"
             type="text"
             inputMode="url"
             value={values.authority}
@@ -131,14 +128,14 @@ export function AccessForm({ onSaved, onCancel, submitLabel = "Enregistrer l’a
             spellCheck={false}
             aria-describedby={`${id}-authority-hint`}
           />
-          <p id={`${id}-authority-hint`} className="field-hint">
+          <p id={`${id}-authority-hint`} className="hint">
             Laissez vide pour utiliser l’adresse par défaut ({DEFAULT_AUTHORITY}).
           </p>
         </div>
       </details>
 
       {canRemember ? (
-        <div className="access-form__remember">
+        <div className="check-row">
           <input
             id={`${id}-remember`}
             type="checkbox"
@@ -147,14 +144,16 @@ export function AccessForm({ onSaved, onCancel, submitLabel = "Enregistrer l’a
             aria-describedby={`${id}-remember-hint`}
           />
           <div>
-            <label htmlFor={`${id}-remember`}>Mémoriser sur ce PC (chiffré pour votre compte Windows)</label>
-            <p id={`${id}-remember-hint`} className="field-hint">
+            <label htmlFor={`${id}-remember`} className="field__label">
+              Mémoriser sur ce PC (chiffré pour votre compte Windows)
+            </label>
+            <p id={`${id}-remember-hint`} className="hint">
               Sinon, l’accès est oublié à la fermeture de Sambler.
             </p>
           </div>
         </div>
       ) : (
-        <p className="field-hint">
+        <p className="hint">
           Édition portable : l’accès reste en mémoire pour cette session seulement et n’est jamais écrit sur le disque.
         </p>
       )}
@@ -163,12 +162,12 @@ export function AccessForm({ onSaved, onCancel, submitLabel = "Enregistrer l’a
         <FieldError>{commandErrorText(action.error, "Ces données d’accès n’ont pas pu être enregistrées.")}</FieldError>
       ) : null}
 
-      <div className="button-row">
-        <button type="submit" className="button button--primary" aria-disabled={action.busy || undefined}>
+      <div className="btn-row">
+        <button type="submit" className="btn btn--primary" aria-disabled={action.busy || undefined}>
           {action.busy ? "Enregistrement…" : submitLabel}
         </button>
         {onCancel ? (
-          <button type="button" className="button" onClick={onCancel}>
+          <button type="button" className="btn btn--ghost" onClick={onCancel}>
             Annuler
           </button>
         ) : null}
@@ -183,7 +182,10 @@ export function AccessSummary({ status }: { status: AccessStatus }) {
     <dl className="access-summary" data-testid="access-summary">
       <div>
         <dt>État</dt>
-        <dd>{status.configured ? "Accès configuré" : "Aucun accès configuré"}</dd>
+        <dd className={status.configured ? "access-summary__state access-summary__state--ok" : "access-summary__state"}>
+          <Glyph name={status.configured ? "check" : "key"} />
+          {status.configured ? "Accès configuré" : "Aucun accès configuré"}
+        </dd>
       </div>
       {status.configured ? (
         <>
@@ -193,7 +195,7 @@ export function AccessSummary({ status }: { status: AccessStatus }) {
           </div>
           <div>
             <dt>Adresse du service</dt>
-            <dd>{status.authority || `${DEFAULT_AUTHORITY} (par défaut)`}</dd>
+            <dd className="access-summary__mono">{status.authority || `${DEFAULT_AUTHORITY} (par défaut)`}</dd>
           </div>
         </>
       ) : null}

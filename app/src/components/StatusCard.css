@@ -1,131 +1,227 @@
-.status-card {
+.live {
+  --live-tone: var(--text-2);
+  --live-tone-soft: var(--surface-2);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   padding: var(--space-5);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
-.status-card__main {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
+.live--available {
+  --live-tone: var(--success);
+  --live-tone-soft: var(--success-soft);
 }
 
-.status-card__badge {
+.live--connecting,
+.live--preparing,
+.live--finalizing {
+  --live-tone: var(--accent);
+  --live-tone-soft: var(--accent-soft);
+}
+
+.live--listening {
+  --live-tone: var(--on-accent);
+  --live-tone-soft: var(--accent);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--accent-soft) 0%, transparent 60%),
+    var(--surface);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.live--unavailable {
+  --live-tone: var(--error);
+  --live-tone-soft: var(--error-soft);
+}
+
+.live--setup {
+  --live-tone: var(--text-2);
+  --live-tone-soft: var(--surface-2);
+}
+
+.live__main {
   display: grid;
-  flex: none;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.live__badge {
+  position: relative;
+  display: grid;
   place-items: center;
-  width: 3.25rem;
-  height: 3.25rem;
-  color: var(--text-secondary);
-  background: var(--surface-hover);
-  border: 1px solid var(--border);
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--live-tone);
+  background: var(--live-tone-soft);
   border-radius: 50%;
 }
 
-.status-card__badge .icon {
-  width: 1.75rem;
-  height: 1.75rem;
+.live__badge .icon {
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
-.status-card--available .status-card__badge {
-  color: var(--success);
-  background: var(--success-bg);
+.live--listening .live__badge::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: live-ring 1.6s var(--ease) infinite;
 }
 
-.status-card--listening .status-card__badge {
-  color: var(--on-accent);
-  background: var(--accent);
-  border-color: var(--accent);
+@keyframes live-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
 }
 
-.status-card--preparing .status-card__badge,
-.status-card--finalizing .status-card__badge,
-.status-card--connecting .status-card__badge {
-  color: var(--accent);
-  background: var(--info-bg);
-}
-
-.status-card--unavailable .status-card__badge {
-  color: var(--error);
-  background: var(--error-bg);
-}
-
-.status-card__text {
+.live__text {
   display: grid;
   gap: 0.15rem;
   min-width: 0;
 }
 
-.status-card__label {
-  font-family: var(--font-display);
-  font-size: var(--text-subtitle);
-  font-weight: 600;
-  line-height: 1.3;
+.live__label {
+  font-size: var(--text-lg);
+  font-weight: 640;
+  letter-spacing: -0.01em;
 }
 
-.status-card__hint {
-  color: var(--text-secondary);
+.live__hint {
+  color: var(--text-2);
 }
 
-.status-card__live {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.status-card__timer {
-  font-size: var(--text-small);
-  color: var(--text-secondary);
+.live__timer {
+  align-self: start;
   font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  text-align: right;
 }
 
-.status-card__timer--warning {
+.live__clock {
+  font-size: var(--text-lg);
+  font-weight: 620;
+  color: var(--text);
+}
+
+.live__limit {
+  font-size: var(--text-sm);
+}
+
+.live__limit-note {
+  display: block;
+  max-width: 14rem;
+  font-size: var(--text-sm);
+}
+
+.live__timer--warning .live__clock,
+.live__timer--warning {
   color: var(--warning);
-  font-weight: 600;
 }
 
-.status-card__actions {
+.live__wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: var(--space-2);
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.live__wave .wave {
+  --wave-h: 2.5rem;
+  --wave-bar: 0.25rem;
+  --wave-gap: 0.25rem;
+}
+
+.live__dots {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.live__dots span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: live-dot 1.2s ease-in-out infinite;
+}
+
+.live__dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.live__dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes live-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-0.2rem);
+  }
+}
+
+.live__actions {
   display: grid;
   gap: var(--space-2);
+  justify-items: start;
 }
 
-.status-card__note {
-  font-size: var(--text-small);
-  color: var(--text-secondary);
+.live__note {
+  color: var(--text-2);
+  font-size: var(--text-sm);
 }
 
-/* A gentle pulse marks listening; it is decorative and stops with reduced motion. */
-@media (prefers-reduced-motion: no-preference) {
-  .status-card--listening .status-card__badge {
-    animation: status-pulse 1.6s ease-in-out infinite;
+@media (max-width: 30rem) {
+  .live__main {
+    grid-template-columns: auto minmax(0, 1fr);
   }
-}
 
-@keyframes status-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 0.45rem color-mix(in srgb, var(--accent) 0%, transparent);
+  .live__timer {
+    grid-column: 1 / -1;
+    text-align: left;
   }
 }
 
 @media (forced-colors: active) {
-  .status-card {
-    border-color: CanvasText;
+  .live {
+    border: 1px solid CanvasText;
   }
-  .status-card__badge {
-    border-color: CanvasText;
-    color: CanvasText;
+
+  .live--listening {
+    border-width: 3px;
   }
-  .status-card--listening .status-card__badge {
+
+  .live__badge {
+    border: 1px solid CanvasText;
+  }
+
+  .live__dots span {
     forced-color-adjust: none;
-    color: HighlightText;
-    background: Highlight;
-    border-color: Highlight;
+    background: CanvasText;
   }
 }

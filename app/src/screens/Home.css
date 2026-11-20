@@ -1,0 +1,11 @@
+.home__header {
+  gap: 0.3rem;
+  padding-top: var(--space-2);
+}
+
+.home__greeting {
+  font-size: var(--text-3xl);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
