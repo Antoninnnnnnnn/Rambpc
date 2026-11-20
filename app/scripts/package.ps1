@@ -62,6 +62,12 @@ pendant que vous parlez, après activation dans Sambler.
 Exécutables non signés : vérifiez l'empreinte SHA-256 publiée avec la version.
 "@ | Set-Content -Path (Join-Path $dest 'LISEZMOI.txt') -Encoding utf8
 
+$notes = Join-Path $repo "docs\windows\NOTES-DE-VERSION-$version.md"
+if (Test-Path $notes) {
+    Copy-Item $notes (Join-Path $dest 'NOTES-DE-VERSION.md')
+    Copy-Item $notes (Join-Path $OutDir "NOTES-DE-VERSION-$version.md") -Force
+}
+
 $zip = Join-Path $OutDir "$base-portable.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path (Join-Path $stage 'Sambler') -DestinationPath $zip
