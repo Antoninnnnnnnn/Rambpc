@@ -272,3 +272,96 @@ impl CommandError {
         }
     }
 }
+
+// ---------------------------------------------------------------- milestone 2
+//
+// Personal rules (lexicon + expressions) and the optional text history.
+// Commands (implemented in `crate::shell::commands`):
+//
+// | command                   | args                                  | returns              |
+// |---------------------------|---------------------------------------|----------------------|
+// | `get_personal_rules`      | —                                     | `PersonalRules`      |
+// | `save_personal_rules`     | `rules: PersonalRulesInput`           | `SaveRulesResult`    |
+// | `get_history`             | `query: HistoryQuery`                 | `HistoryPage`        |
+// | `copy_history_entry`      | `id: string`                          | `()` or `CommandError` |
+// | `delete_history_entry`    | `id: string`                          | `HistoryStatus`      |
+// | `clear_history`           | `disable: boolean` (also turn it off) | `HistoryStatus`      |
+// | `get_history_status`      | —                                     | `HistoryStatus`      |
+// | `skip_history_next_take`  | `skip: boolean`                       | `HistoryStatus`      |
+// | `set_launch_at_startup`   | `enabled: boolean`                    | `()` or `CommandError` (installed only) |
+//
+// Rules: lexicon and expressions are stored protected with DPAPI; they reach
+// the WebView only through `get_personal_rules` (settings view). History text
+// reaches the WebView only through `get_history` on the history view.
+
+use crate::model::{Language, RenderProfile};
+use crate::text::{Expression, LexiconEntry, RuleConflict};
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersonalRules {
+    pub lexicon: Vec<LexiconEntry>,
+    pub expressions: Vec<Expression>,
+    /// The stored rules exist but cannot be decrypted under this Windows
+    /// account (moved portable profile). They are preserved, not shown.
+    pub unreadable: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersonalRulesInput {
+    pub lexicon: Vec<LexiconEntry>,
+    pub expressions: Vec<Expression>,
+}
+
+/// `saved` is false when enabled rules conflict; nothing is written then.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveRulesResult {
+    pub saved: bool,
+    pub rules: PersonalRules,
+    pub conflicts: Vec<RuleConflict>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct HistoryQuery {
+    /// Case-insensitive substring search over decrypted text, done in memory
+    /// in small batches (no plaintext index).
+    pub search: Option<String>,
+    /// Page size (default 50, max 200).
+    pub limit: Option<u32>,
+    /// Opaque cursor from a previous page.
+    pub cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryEntry {
+    pub id: String,
+    pub created_at_ms: u64,
+    pub expires_at_ms: u64,
+    pub language: Language,
+    pub profile: RenderProfile,
+    /// `None` when this entry cannot be decrypted under this account.
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryPage {
+    pub entries: Vec<HistoryEntry>,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryStatus {
+    pub enabled: bool,
+    pub retention_days: u16,
+    pub entry_count: u32,
+    /// "Sans historique pour la prochaine dictée" is armed.
+    pub skip_next: bool,
+    /// False in ephemeral sessions (read-only data folder).
+    pub available: bool,
+}
