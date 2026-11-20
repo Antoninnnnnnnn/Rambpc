@@ -15,12 +15,15 @@ pub(crate) const FRAME_WAIT_MS: u64 = 1_000;
 const MAX_CHUNK_BYTES: usize = 1_920; // 20 ms at 48 kHz; 640 bytes at 16 kHz.
 // 320 full 20 ms slots give 6.4 s (614,400 bytes reserved) at 48 kHz.
 // Coalescing short callbacks prevents them from reducing effective capacity.
+// Covers a 1.45 s Chromium probe + 500 ms revalidation, even behind one
+// retiring probe, and retains the existing margin for SDK segment rollover.
 const CHUNKS: usize = 320;
+const RELEASED_BEFORE_FRAME: u64 = u64::MAX;
 
 pub(crate) struct CaptureHealth {
     origin: Instant,
     pub level: Level,
-    last_frame: AtomicU64, // millisecond offset plus one; zero means no frames
+    last_frame: AtomicU64, // millisecond offset plus one, zero or RELEASED_BEFORE_FRAME
     opened: AtomicU64,     // same encoding; armed as soon as the port returns
     stalled: AtomicBool,
     overflow: AtomicBool,
@@ -41,7 +44,22 @@ impl CaptureHealth {
     }
 
     pub(crate) fn last_frame(&self) -> Option<u64> {
-        self.last_frame.load(Ordering::Acquire).checked_sub(1)
+        let last = self.last_frame.load(Ordering::Acquire);
+        match last {
+            RELEASED_BEFORE_FRAME | 0 => None,
+            offset => Some(offset - 1),
+        }
+    }
+
+    pub(crate) fn stop_before_first_frame(&self) {
+        // The first callback and an early release arbitrate on the same slot.
+        // Once there is audio, let the stream stop and flush its normal tail.
+        let _ = self.last_frame.compare_exchange(
+            0,
+            RELEASED_BEFORE_FRAME,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        );
     }
 
     pub(crate) fn failure(&self) -> Option<InterruptReason> {
@@ -60,16 +78,23 @@ impl CaptureHealth {
     fn frame(&self) -> bool {
         let now = self.origin.elapsed().as_millis() as u64;
         // A driver resuming between controller polls cannot hide a long gap.
-        if self
-            .last_frame()
+        let previous = self.last_frame.load(Ordering::Acquire);
+        if previous == RELEASED_BEFORE_FRAME {
+            return false;
+        }
+        if previous
+            .checked_sub(1)
             .or_else(|| self.opened.load(Ordering::Acquire).checked_sub(1))
             .is_some_and(|previous| now.saturating_sub(previous) >= FRAME_WAIT_MS)
         {
             self.stalled.store(true, Ordering::Release);
             return false;
         }
-        self.last_frame.store(now + 1, Ordering::Release);
-        true
+        // Callbacks are serialized. The only competing update can mark an
+        // early release before any frames were accepted.
+        self.last_frame
+            .compare_exchange(previous, now + 1, Ordering::Release, Ordering::Relaxed)
+            .is_ok()
     }
 }
 
@@ -164,7 +189,7 @@ impl PcmSink for CaptureSink {
             return;
         }
         if !self.health.frame() {
-            self.failed = true;
+            self.failed = self.health.stalled.load(Ordering::Acquire);
             return;
         }
         self.health.level.measure(samples);

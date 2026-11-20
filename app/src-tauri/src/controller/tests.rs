@@ -25,8 +25,8 @@ use bytes::Bytes;
 use fixture::{TestServer, bounded, replies};
 use futures_util::stream;
 use rambler_protocol::{
-    RECOGNITION_RESPONSE, end_request,
-    wire::{bytes_field as b, string_field as s, varint_field as v},
+    AUDIO_DATA, RECOGNITION_RESPONSE, end_request,
+    wire::{Value, bytes_field as b, parse_fields, string_field as s, varint_field as v},
 };
 use std::{
     sync::{
@@ -61,6 +61,7 @@ struct FakeMic {
     abort_count: Arc<AtomicUsize>,
     delayed: Mutex<Option<std_mpsc::Receiver<()>>>,
     opening: Notify,
+    ready: Notify,
 }
 
 struct FakeStream(Mutex<Option<Box<dyn PcmSink>>>);
@@ -100,6 +101,7 @@ impl Microphone for FakeMic {
         sink.push(&[0; 71]);
         let stream = Arc::new(FakeStream(Mutex::new(Some(sink))));
         *self.current.lock().unwrap() = Some(stream.clone());
+        self.ready.notify_one();
         Ok(Box::new(Driver {
             stream,
             stopped: self.stop_count.clone(),
@@ -117,6 +119,7 @@ impl FakeMic {
 type OnChange = Box<dyn FnOnce(TargetChange) + Send>;
 struct Target {
     verdict: Mutex<TargetVerdict>,
+    delayed: Mutex<Option<std_mpsc::Receiver<()>>>,
     change: Mutex<Option<Arc<Mutex<Option<OnChange>>>>>,
 }
 struct Watch(Arc<Mutex<Option<OnChange>>>);
@@ -127,6 +130,10 @@ impl Drop for Watch {
 }
 impl TargetProbe for Target {
     fn capture(&self) -> TargetVerdict {
+        let wait = self.delayed.lock().unwrap().take();
+        if let Some(wait) = wait {
+            let _ = wait.recv_timeout(Duration::from_secs(5));
+        }
         self.verdict.lock().unwrap().clone()
     }
     fn watch(&self, _: &TargetToken, callback: OnChange) -> WatchGuard {
@@ -169,6 +176,7 @@ struct Rig {
     copied: Arc<TextRecorder>,
     peer: TestServer,
     requests: Arc<AtomicUsize>,
+    uploaded_samples: Arc<AtomicUsize>,
     second: Arc<Notify>,
 }
 impl Rig {
@@ -183,12 +191,15 @@ impl Rig {
         hold: Option<usize>,
     ) -> Self {
         let requests = Arc::new(AtomicUsize::new(0));
+        let uploaded_samples = Arc::new(AtomicUsize::new(0));
         let second = Arc::new(Notify::new());
         let peer = TestServer::new({
             let requests = requests.clone();
+            let uploaded_samples = uploaded_samples.clone();
             let second = second.clone();
             move |request| {
                 let index = requests.fetch_add(1, Ordering::SeqCst);
+                let uploaded_samples = uploaded_samples.clone();
                 if index == 1 {
                     second.notify_one();
                 }
@@ -201,6 +212,7 @@ impl Rig {
                     }
                     assert!(upload.len() >= 4, "PCM went through the Opus encoder");
                     assert_eq!(upload.last().unwrap().as_ref(), end_request());
+                    uploaded_samples.fetch_add(ogg_samples(&upload), Ordering::SeqCst);
                     let text = if index == 0 { FIRST } else { SECOND };
                     let hypothesis = b(3, &s(1, text).unwrap()).unwrap();
                     let recognition = [v(1, 1).unwrap(), b(3, &hypothesis).unwrap()].concat();
@@ -229,6 +241,7 @@ impl Rig {
         let mic = Arc::new(FakeMic::default());
         let target = Arc::new(Target {
             verdict: Mutex::new(eligible()),
+            delayed: Default::default(),
             change: Default::default(),
         });
         let inserted = Arc::new(TextRecorder::default());
@@ -271,15 +284,29 @@ impl Rig {
             copied,
             peer,
             requests,
+            uploaded_samples,
             second,
         }
     }
-    async fn listening(&self) -> TakeId {
+    fn delay_target(&self, verdict: TargetVerdict) -> std_mpsc::Sender<()> {
+        let (release, wait) = std_mpsc::channel();
+        *self.target.verdict.lock().unwrap() = verdict;
+        *self.target.delayed.lock().unwrap() = Some(wait);
+        release
+    }
+    async fn hotkey_with_mic(&self) -> TakeId {
         self.ctl.hotkey(KeyEdge::Pressed);
-        wait(&self.ctl, |s| s.phase == Phase::Listening)
+        let id = wait(&self.ctl, |s| s.phase == Phase::Listening)
             .await
             .take
-            .unwrap()
+            .unwrap();
+        bounded(self.mic.ready.notified()).await;
+        id
+    }
+    async fn listening(&self) -> TakeId {
+        let id = self.hotkey_with_mic().await;
+        wait(&self.ctl, |s| s.destination.is_some()).await;
+        id
     }
     async fn idle(&self) -> UiState {
         wait(&self.ctl, |s| s.phase == Phase::Idle).await
@@ -288,6 +315,45 @@ impl Rig {
         bounded(self.ctl.shutdown()).await;
         bounded(self.peer.close()).await;
     }
+}
+
+fn ogg_samples(upload: &[Bytes]) -> usize {
+    let mut ogg = Vec::new();
+    for message in upload {
+        for field in parse_fields(message).unwrap() {
+            if let (AUDIO_DATA, Value::Bytes(data)) = (field.number, field.value) {
+                for item in parse_fields(&data).unwrap() {
+                    if let (1, Value::Bytes(audio)) = (item.number, item.value) {
+                        ogg.extend_from_slice(&audio);
+                    }
+                }
+            }
+        }
+    }
+    let mut offset = 0;
+    let mut preskip = 0;
+    let mut end = None;
+    while offset < ogg.len() {
+        let page = &ogg[offset..];
+        assert_eq!(&page[..4], b"OggS");
+        let lacing_end = 27 + usize::from(page[26]);
+        if offset == 0 {
+            assert_eq!(&page[lacing_end..][..8], b"OpusHead");
+            preskip = usize::from(u16::from_le_bytes(
+                page[lacing_end + 10..][..2].try_into().unwrap(),
+            ));
+        }
+        if page[5] & 4 != 0 {
+            end = Some(u64::from_le_bytes(page[6..14].try_into().unwrap()) as usize);
+        }
+        offset += lacing_end
+            + page[27..lacing_end]
+                .iter()
+                .map(|&n| usize::from(n))
+                .sum::<usize>();
+    }
+    assert_eq!(offset, ogg.len());
+    end.expect("encoder committed the Ogg EOS page") - preskip
 }
 
 async fn wait(ctl: &ControllerHandle, check: impl Fn(&UiState) -> bool) -> UiState {
@@ -335,7 +401,7 @@ async fn sdk_finalization_error_recovers_only_the_committed_prefix() {
     assert!(draft.full_text.is_none());
     assert_eq!(draft.parts[0].text.as_deref(), Some(FIRST));
     assert_eq!(draft.parts[1].status, PartStatus::Missing);
-    rig.ctl.copy_draft().await.unwrap();
+    rig.ctl.copy_draft(None).await.unwrap();
     assert_eq!(*rig.copied.0.lock().unwrap(), [FIRST]);
     assert!(rig.inserted.0.lock().unwrap().is_empty());
     assert_eq!(rig.requests.load(Ordering::SeqCst), 2);
@@ -353,7 +419,7 @@ async fn stall_then_release_aborts_instead_of_inserting_the_prefix() {
         interrupted(InterruptReason::MicrophoneStalled, true)
     );
     rig.ctl.hotkey(KeyEdge::Released);
-    rig.ctl.copy_draft().await.unwrap();
+    rig.ctl.copy_draft(None).await.unwrap();
     assert_eq!(*rig.copied.0.lock().unwrap(), [FIRST]);
     assert!(rig.inserted.0.lock().unwrap().is_empty());
     bounded(rig.ctl.shutdown()).await;
@@ -387,26 +453,26 @@ async fn silent_callbacks_keep_a_take_alive_past_the_watchdog() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn release_while_opening_invalidates_and_joins_the_late_microphone() {
+async fn release_while_opening_ignores_callbacks_that_start_after_release() {
     let rig = Rig::new(Gesture::Hold, false, None).await;
     let (open, delay) = std_mpsc::channel();
     *rig.mic.delayed.lock().unwrap() = Some(delay);
     rig.ctl.hotkey(KeyEdge::Pressed);
     bounded(rig.mic.opening.notified()).await;
-    assert_eq!(rig.ctl.state().borrow().phase, Phase::Preparing);
+    wait(&rig.ctl, |s| s.phase == Phase::Listening).await;
     rig.ctl.hotkey(KeyEdge::Released);
-    assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Cancelled));
+    wait(&rig.ctl, |s| s.phase == Phase::Finalizing).await;
     open.send(()).unwrap();
-    bounded(rig.ctl.shutdown()).await;
-    assert_eq!(rig.mic.abort_count.load(Ordering::SeqCst), 1);
+    assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::NoText));
+    assert_eq!(rig.mic.stop_count.load(Ordering::SeqCst), 1);
     assert_eq!(rig.requests.load(Ordering::SeqCst), 0);
-    rig.close().await; // Idempotent even after dropping the command receiver.
+    rig.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn target_change_stays_disarmed_and_pending_draft_needs_two_triggers() {
+async fn target_change_stays_disarmed_and_kept_result_does_not_block_next_take() {
     let rig = Rig::new(Gesture::Hold, false, None).await;
-    rig.listening().await;
+    let first = rig.listening().await;
     rig.mic.feed(&[0; 975]);
     rig.target.change(TargetChange::FocusMoved);
     rig.ctl.hotkey(KeyEdge::Released);
@@ -423,18 +489,32 @@ async fn target_change_stays_disarmed_and_pending_draft_needs_two_triggers() {
         Some(FIRST)
     );
     assert!(rig.inserted.0.lock().unwrap().is_empty());
-    rig.ctl.hotkey(KeyEdge::Pressed);
-    wait(&rig.ctl, |s| {
-        s.last_outcome
-            == Some(TakeOutcome::Refused {
-                reason: RefusalReason::PendingDraft,
-            })
-    })
-    .await;
-    assert_eq!(rig.mic.opened.load(Ordering::SeqCst), 1);
+    let second = rig.listening().await;
+    assert_eq!(rig.mic.opened.load(Ordering::SeqCst), 2);
+    assert_eq!(rig.ctl.draft().await.unwrap().meta.take, first);
+    rig.mic.feed(&[0; 975]);
     rig.ctl.hotkey(KeyEdge::Released);
-    rig.listening().await;
-    assert!(rig.ctl.draft().await.is_none());
+    let ui = rig.idle().await;
+    assert_eq!(ui.last_outcome, Some(TakeOutcome::Inserted));
+    assert_eq!(ui.recent_count, 2);
+    assert_eq!(ui.draft.unwrap().take, second);
+    let recent = rig.ctl.recent_drafts().await;
+    assert_eq!(
+        recent.iter().map(|d| d.meta.take).collect::<Vec<_>>(),
+        [second, first]
+    );
+    rig.ctl.copy_draft(Some(first)).await.unwrap();
+    rig.ctl.copy_draft(None).await.unwrap();
+    assert_eq!(*rig.copied.0.lock().unwrap(), [FIRST, SECOND]);
+    assert_eq!(rig.ctl.clear_draft(Some(first)).await.recent_count, 1);
+    assert_eq!(
+        rig.ctl.copy_draft(Some(first)).await,
+        Err(CopyError::NoDraft)
+    );
+    assert_eq!(rig.ctl.clear_draft(None).await.recent_count, 0);
+    let stats = rig.ctl.stats().await.unwrap();
+    assert_eq!(stats.takes_total, 2);
+    assert_eq!(stats.words_total, 4);
     rig.close().await;
 }
 
@@ -490,49 +570,137 @@ async fn consent_lock_and_protected_focus_interrupt_active_takes() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn protected_and_uncertain_refuse_without_opening_and_explicit_draft_is_allowed() {
+async fn protected_verdict_aborts_buffered_mic_without_a_dictation_request() {
     let rig = Rig::new(Gesture::Hold, false, None).await;
-    for (verdict, reason) in [
-        (TargetVerdict::Protected, RefusalReason::ProtectedField),
-        (
-            TargetVerdict::Uncertain {
-                reason: UncertainReason::Selection,
-            },
-            RefusalReason::UncertainTarget {
-                reason: UncertainReason::Selection,
-            },
-        ),
-    ] {
-        *rig.target.verdict.lock().unwrap() = verdict;
-        rig.ctl.hotkey(KeyEdge::Pressed);
-        wait(&rig.ctl, |s| {
-            s.last_outcome
-                == Some(TakeOutcome::Refused {
-                    reason: reason.clone(),
-                })
+    let verdict = rig.delay_target(TargetVerdict::Protected);
+    rig.hotkey_with_mic().await;
+    rig.mic.feed(&[42; 4_800]);
+    assert!(rig.ctl.state().borrow().destination.is_none());
+    assert_eq!(rig.requests.load(Ordering::SeqCst), 0);
+    verdict.send(()).unwrap();
+    assert_eq!(
+        rig.idle().await.last_outcome,
+        Some(TakeOutcome::Refused {
+            reason: RefusalReason::ProtectedField,
         })
-        .await;
-        rig.ctl.hotkey(KeyEdge::Released);
-        assert_eq!(rig.mic.opened.load(Ordering::SeqCst), 0);
-    }
-    rig.ctl.dictate_in_sambler();
-    let id = wait(&rig.ctl, |s| s.phase == Phase::Listening)
-        .await
-        .take
-        .unwrap();
+    );
+    assert!(rig.ctl.recent_drafts().await.is_empty());
+    assert_eq!(rig.ctl.stats().await.unwrap(), UsageStats::default());
+    bounded(rig.ctl.shutdown()).await;
+    assert_eq!(rig.mic.abort_count.load(Ordering::SeqCst), 1);
+    assert_eq!(rig.requests.load(Ordering::SeqCst), 0);
+    rig.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn uncertain_verdict_and_explicit_start_keep_results_in_sambler() {
+    let rig = Rig::new(Gesture::Hold, false, None).await;
+    *rig.target.verdict.lock().unwrap() = TargetVerdict::Uncertain {
+        reason: UncertainReason::Selection,
+    };
+    rig.listening().await;
     rig.mic.feed(&[0; 975]);
-    rig.ctl.finish(id);
+    rig.ctl.hotkey(KeyEdge::Released);
     assert_eq!(
         rig.idle().await.last_outcome,
         Some(TakeOutcome::KeptInSambler {
-            reason: KeptReason::SamblerDestination
+            reason: KeptReason::UncertainTarget {
+                reason: UncertainReason::Selection
+            },
         })
     );
     assert_eq!(
         rig.ctl.draft().await.unwrap().full_text.as_deref(),
         Some(FIRST)
     );
+
+    let verdict = rig.delay_target(TargetVerdict::Sambler);
+    rig.ctl.dictate_in_sambler();
+    let id = wait(&rig.ctl, |s| {
+        s.phase == Phase::Listening && s.destination.is_none()
+    })
+    .await
+    .take
+    .unwrap();
+    bounded(rig.mic.ready.notified()).await;
+    rig.mic.feed(&[0; 975]);
+    verdict.send(()).unwrap();
+    rig.ctl.finish(id);
+    assert_eq!(
+        rig.idle().await.last_outcome,
+        Some(TakeOutcome::KeptInSambler {
+            reason: KeptReason::SamblerDestination,
+        })
+    );
+    assert_eq!(
+        rig.ctl.draft().await.unwrap().full_text.as_deref(),
+        Some(SECOND)
+    );
     assert!(rig.inserted.0.lock().unwrap().is_empty());
+    rig.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn release_stops_the_mic_without_waiting_for_the_target_and_preserves_its_tail() {
+    let rig = Rig::new(Gesture::Hold, false, None).await;
+    let verdict = rig.delay_target(eligible());
+    rig.hotkey_with_mic().await;
+    rig.mic.feed(&[42; 1_033]); // 1,104 total: a full chunk and a partial tail.
+    rig.ctl.hotkey(KeyEdge::Released);
+    wait(&rig.ctl, |s| s.phase == Phase::Finalizing).await;
+    bounded(async {
+        while rig.mic.stop_count.load(Ordering::SeqCst) == 0 {
+            sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await;
+    assert_eq!(rig.requests.load(Ordering::SeqCst), 0);
+    verdict.send(()).unwrap();
+    assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Inserted));
+    assert_eq!(rig.uploaded_samples.load(Ordering::SeqCst), 1_104);
+    assert_eq!(*rig.inserted.0.lock().unwrap(), [FIRST]);
+    rig.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancel_before_the_verdict_drops_buffered_audio_and_ignores_the_late_result() {
+    let rig = Rig::new(Gesture::Hold, false, None).await;
+    let verdict = rig.delay_target(eligible());
+    let take = rig.hotkey_with_mic().await;
+    rig.mic.feed(&[42; 4_800]);
+    rig.ctl.cancel(Some(take));
+    assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Cancelled));
+    verdict.send(()).unwrap();
+    bounded(rig.ctl.shutdown()).await;
+    assert_eq!(rig.mic.abort_count.load(Ordering::SeqCst), 1);
+    assert_eq!(rig.requests.load(Ordering::SeqCst), 0);
+    assert!(rig.inserted.0.lock().unwrap().is_empty());
+    rig.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn slow_verdict_does_not_lose_the_first_frame_or_any_of_1500_ms_of_pcm() {
+    let rig = Rig::new(Gesture::Hold, false, None).await;
+    let verdict = rig.delay_target(eligible());
+    rig.hotkey_with_mic().await;
+    for _ in 0..10 {
+        rig.mic.feed(&[42; 7_200]);
+        sleep(Duration::from_millis(150)).await;
+        let ui = rig.ctl.state();
+        assert_eq!(ui.borrow().phase, Phase::Listening);
+        assert!(ui.borrow().destination.is_none());
+    }
+    rig.mic.feed(&[42]); // 72,072 samples including the fake mic's first callback.
+    assert_eq!(rig.requests.load(Ordering::SeqCst), 0);
+    verdict.send(()).unwrap();
+    rig.ctl.hotkey(KeyEdge::Released);
+    assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Inserted));
+    assert_eq!(rig.requests.load(Ordering::SeqCst), 1);
+    assert_eq!(rig.uploaded_samples.load(Ordering::SeqCst), 72_072);
+    let stats = rig.ctl.stats().await.unwrap();
+    assert_eq!(stats.words_total, 2);
+    assert_eq!(stats.takes_total, 1);
+    assert!(stats.average_wpm.is_some_and(|wpm| (1..=80).contains(&wpm)));
     rig.close().await;
 }
 
@@ -636,15 +804,21 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     };
     assert_eq!(*take, id);
     assert_eq!(&**text, "Ancienne règle");
+    assert!(state.draft().is_none()); // Not committed until the one attempt settles.
+    let completed = state.step(Input::Insertion(id, InsertOutcome::Delivered), at(5));
+    let [Effect::Completed(completion), Effect::Retire(_)] = completed.as_slice() else {
+        panic!("expected completion only after insertion settled");
+    };
+    assert_eq!(completion.words, 2);
+    assert_eq!(completion.listening_ms, 2);
+    let value = completion.archive.as_ref().unwrap();
+    assert_eq!(value.id, id);
+    assert_eq!(value.created, at(4).unix);
+    assert!(Arc::ptr_eq(&value.text, text));
     assert_eq!(
         state.draft().unwrap().full_text.as_deref(),
         Some("Ancienne règle")
     );
-    assert!(matches!(
-        state.step(Input::Insertion(id, InsertOutcome::Delivered), at(5)).as_slice(),
-        [Effect::Archive(value), Effect::Retire(_)]
-        if value.id == id && value.created == at(4).unix && Arc::ptr_eq(&value.text, text)
-    ));
     state.step(Input::Hotkey(KeyEdge::Released), at(5));
     let next = start(&mut state, 6);
     state.step(Input::Delivered(next, segment(0, 0..100, "texte")), at(7));
@@ -656,7 +830,8 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     );
     assert!(matches!(
         state.step(Input::Insertion(next, InsertOutcome::Delivered), at(10)).as_slice(),
-        [Effect::Archive(value), Effect::Retire(_)] if &*value.text == "Nouvelle règle"
+        [Effect::Completed(completion), Effect::Retire(_)]
+        if completion.archive.as_ref().is_some_and(|value| &*value.text == "Nouvelle règle")
     ));
 }
 
@@ -684,7 +859,7 @@ fn ready() -> State {
 fn start(state: &mut State, time: u64) -> TakeId {
     state.step(Input::Hotkey(KeyEdge::Pressed), at(time));
     let id = state.take_id().unwrap();
-    state.step(Input::Target(id, eligible()), at(time));
+    state.step(Input::Target(id, Ok(eligible())), at(time));
     state.step(Input::MicOpened(id), at(time));
     state.step(
         Input::Tick {
@@ -740,6 +915,8 @@ fn cancel_a_start_b_late_a_and_double_stop_b_produce_one_insertion_effect() {
     assert_eq!(state.ui(at(7)).last_outcome, Some(TakeOutcome::Inserted));
     assert_eq!(state.draft().unwrap().full_text.as_deref(), Some("Only B"));
     state.step(Input::Tick { last_frame: None }, at(600_006));
+    assert!(state.draft().is_some());
+    state.step(Input::Tick { last_frame: None }, at(600_007));
     assert!(state.draft().is_none());
 }
 
@@ -777,10 +954,75 @@ fn always_keep_hotkey_still_watches_for_protected_focus() {
         at(0),
     );
     let effects = state.step(Input::Hotkey(KeyEdge::Pressed), at(1));
-    assert!(matches!(
-        effects.as_slice(),
-        [Effect::Probe { watch: true, .. }]
-    ));
+    let id = state.take_id().unwrap();
+    assert_eq!(state.ui(at(1)).phase, Phase::Listening);
+    assert!(
+        matches!(effects.as_slice(), [Effect::Probe(take), Effect::Open { .. }] if *take == id)
+    );
+    state.step(Input::Target(id, Ok(eligible())), at(2));
+    state.step(Input::MicOpened(id), at(3));
+    state.step(Input::TargetChanged(id, TargetChange::Protected), at(4));
+    assert_eq!(
+        state.ui(at(4)).last_outcome,
+        interrupted(InterruptReason::SystemInterrupted, false)
+    );
+}
+
+#[test]
+fn recents_cap_at_five_expire_individually_and_clear_on_privacy_events() {
+    use std::mem::discriminant;
+    for clear in [
+        Input::System(SystemEvent::SessionLocked),
+        Input::System(SystemEvent::Suspending),
+        Input::Shutdown,
+    ] {
+        let mut state = ready();
+        state.step(
+            Input::Settings(Settings {
+                draft_minutes: 1,
+                ..Settings::default()
+            }),
+            at(0),
+        );
+        let mut ids = Vec::new();
+        for time in (0..6).map(|i| 1_000 * i) {
+            state.step(Input::StartInternal, at(time));
+            let id = state.take_id().unwrap();
+            ids.push(id);
+            state.step(Input::MicOpened(id), at(time));
+            state.step(Input::Target(id, Ok(TargetVerdict::Sambler)), at(time));
+            state.step(
+                Input::Delivered(id, segment(0, 0..100, "L’été, 中文!")),
+                at(time + 10),
+            );
+            state.step(Input::Finish(id), at(time + 20));
+            state.step(Input::MicFree(id), at(time + 30));
+            let effects = state.step(Input::Collection(id, Ok(())), at(time + 40));
+            assert!(
+                matches!(effects.as_slice(), [Effect::Completed(c), Effect::Retire(_)] if c.words == 3 && c.listening_ms == 20)
+            );
+        }
+        let ids_in_ram = |state: &State| {
+            state
+                .recent_drafts()
+                .into_iter()
+                .map(|d| d.meta.take)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(ids_in_ram(&state), [ids[5], ids[4], ids[3], ids[2], ids[1]]);
+
+        state.step(Input::StartInternal, at(6_000));
+        state.step(Input::Cancel(None), at(6_010));
+        assert_eq!(state.ui(at(6_010)).recent_count, 5);
+        state.step(Input::Cancel(Some(ids[3])), at(6_020));
+        assert_eq!(ids_in_ram(&state), [ids[5], ids[4], ids[2], ids[1]]);
+        state.step(Input::Tick { last_frame: None }, at(61_040));
+        assert_eq!(ids_in_ram(&state), [ids[5], ids[4], ids[2]]);
+        assert_eq!(state.ui(at(61_040)).draft.unwrap().take, ids[5]);
+        let kind = discriminant(&clear);
+        state.step(clear, at(61_041));
+        assert!(ids_in_ram(&state).is_empty(), "privacy event {kind:?}");
+    }
 }
 
 #[test]
