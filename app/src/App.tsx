@@ -6,6 +6,7 @@ import { BridgeProvider, type Bridge } from "./ipc/bridge";
 import { describeStatus, hasConsent } from "./labels/fr";
 import { FirstRun } from "./screens/FirstRun";
 import { DraftScreen } from "./screens/DraftScreen";
+import { HistoryScreen } from "./screens/HistoryScreen";
 import { Home } from "./screens/Home";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { AccessProvider } from "./state/access";
@@ -55,6 +56,7 @@ export default function App() {
 const NAV_ITEMS: { view: View; label: string; glyph: GlyphName }[] = [
   { view: "home", label: "Accueil", glyph: "home" },
   { view: "draft", label: "Brouillon", glyph: "draft" },
+  { view: "history", label: "Historique", glyph: "history" },
   { view: "settings", label: "Réglages", glyph: "settings" },
 ];
 
@@ -167,6 +169,8 @@ function MainLayout({ view, section, autoFocus }: MainLayoutProps) {
           <Home />
         ) : view === "draft" ? (
           <DraftScreen />
+        ) : view === "history" ? (
+          <HistoryScreen />
         ) : (
           <SettingsScreen key={section.nonce} section={section.id} />
         )}

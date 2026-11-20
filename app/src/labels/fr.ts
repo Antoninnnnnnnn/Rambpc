@@ -214,7 +214,7 @@ export function notWrittenText(reason: NotWrittenReason): string {
     case "modifiers-held":
       return "Des touches Ctrl, Maj ou Alt étaient encore enfoncées : rien n’a été saisi.";
     case "unsupported":
-      return "Ce champ n’accepte pas ce texte (plusieurs lignes ou longueur) : rien n’a été saisi.";
+      return "Ce champ n’accepte pas ce texte (plusieurs lignes ou longueur) : rien n’a été saisi.";
     case "refused":
       return "Windows a refusé la saisie dans ce champ : rien n’a été saisi.";
   }
@@ -394,14 +394,11 @@ export function commandErrorText(error: CommandError, fallback = GENERIC_ERROR):
   return error.message.trim() || fallback;
 }
 
+/** `copy_draft` / `copy_history_entry` codes (shell/commands.rs). */
 const CLIPBOARD_CODES: Record<string, ClipboardError | "no-draft"> = {
-  busy: "busy",
   "clipboard-busy": "busy",
-  "exclusion-failed": "exclusion-failed",
   "clipboard-exclusion-failed": "exclusion-failed",
-  other: "other",
   "clipboard-other": "other",
-  clipboard: "other",
   "no-draft": "no-draft",
 };
 
@@ -420,9 +417,9 @@ export function clipboardErrorText(error: CommandError): string {
   }
 }
 
-/** Does this command error mean Windows blocks the microphone? */
+/** Does this command error mean Windows blocks the microphone? (`mic-<kind>` codes) */
 export function isMicAccessDenied(error: CommandError): boolean {
-  return /access-denied/.test(error.code);
+  return error.code === "mic-access-denied";
 }
 
 // ------------------------------------------------------------------ shortcut
@@ -436,7 +433,7 @@ export function shortcutRejectionText(reason: ShortcutRejection): string {
     case "f12":
       return "F12 est réservée par Windows : choisissez une autre touche.";
     case "ctrl-alt":
-      return "Ctrl+Alt sert à écrire des caractères (AltGr) : choisissez une autre combinaison.";
+      return "Ctrl+Alt sert à écrire des caractères (AltGr) : choisissez une autre combinaison.";
     case "needs-modifier":
       return "Ajoutez Ctrl, Alt ou Maj pour ne pas bloquer cette touche dans vos applications.";
     case "needs-two-modifiers":
@@ -446,6 +443,27 @@ export function shortcutRejectionText(reason: ShortcutRejection): string {
     case "unsupported-key":
       return "Cette touche ne peut pas servir de raccourci. Choisissez une lettre, un chiffre, Espace ou une touche de fonction.";
   }
+}
+
+/** A refused shortcut keeps the previous one (save_settings code `shortcut`). */
+export function shortcutSaveErrorText(error: CommandError, current: string): string {
+  if (error.code === "save-failed") return commandErrorText(error);
+  const detail =
+    error.code === "shortcut"
+      ? "Cette combinaison est peut-être déjà utilisée par Windows ou par une autre application."
+      : commandErrorText(error, "");
+  return `Le raccourci n’a pas pu être enregistré. ${detail} L’ancien raccourci reste actif : ${formatShortcut(current)}.`
+    .replace(/\s+\./g, ".")
+    .replace(/ {2,}/g, " ");
+}
+
+/**
+ * A refused setting is rolled back; `save-failed` means it applies for this
+ * session but could not be written to disk, so it is kept.
+ */
+export function settingSaveErrorText(error: CommandError): string {
+  if (error.code === "save-failed") return commandErrorText(error);
+  return `Ce réglage n’a pas pu être enregistré. ${commandErrorText(error, "")}`.trim();
 }
 
 // ------------------------------------------------------------------ access

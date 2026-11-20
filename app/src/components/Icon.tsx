@@ -121,7 +121,19 @@ export function ToneIcon({ tone, className }: { tone: Tone; className?: string }
   );
 }
 
-export type GlyphName = "home" | "draft" | "settings" | "guide" | "copy" | "trash" | "mic" | "external";
+export type GlyphName =
+  | "home"
+  | "draft"
+  | "history"
+  | "settings"
+  | "guide"
+  | "copy"
+  | "trash"
+  | "mic"
+  | "external"
+  | "add"
+  | "edit"
+  | "search";
 
 const GLYPHS: Record<GlyphName, ReactNode> = {
   home: <path d="M4 11l8-7 8 7v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" />,
@@ -158,6 +170,21 @@ const GLYPHS: Record<GlyphName, ReactNode> = {
     </>
   ),
   external: <path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />,
+  // Clock with a counter-clockwise arrow.
+  history: (
+    <>
+      <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" />
+      <path d="M4 4v3.5h3.5M12 8v4.5l3 2" />
+    </>
+  ),
+  add: <path d="M12 5v14M5 12h14" />,
+  edit: <path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" />,
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="M15 15l5 5" />
+    </>
+  ),
 };
 
 export function Glyph({ name, className }: { name: GlyphName; className?: string }) {

@@ -172,6 +172,24 @@ main[tabindex="-1"]:focus-visible {
   border-color: transparent;
 }
 
+/* Permanent deletion: text + bold weight + color, never color alone. */
+.button--danger {
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--error-strong);
+  border-color: var(--error-strong);
+}
+
+.button--danger:hover {
+  background: var(--error-strong);
+  filter: brightness(1.08);
+}
+
+.button--danger:active {
+  color: #ffffff;
+  background: var(--error-strong);
+}
+
 .button--subtle:hover {
   background: var(--selection-nav);
 }

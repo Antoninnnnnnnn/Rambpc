@@ -98,7 +98,10 @@ describe("Réglages", () => {
   it("keeps the old shortcut when the native side refuses the new one", async () => {
     const { bridge, user } = await openSettings();
     bridge.handlers.save_settings = () => {
-      throw { code: "shortcut-unavailable", message: "Cette combinaison est déjà utilisée." };
+      throw {
+        code: "shortcut",
+        message: "Le raccourci n'a pas pu être enregistré (HotKey already registered). L'ancien est conservé.",
+      };
     };
     await user.click(screen.getByRole("button", { name: "Modifier le raccourci" }));
     fireEvent.keyDown(screen.getByRole("textbox", { name: "Nouvelle combinaison" }), {
@@ -107,9 +110,12 @@ describe("Réglages", () => {
       ctrlKey: true,
       shiftKey: true,
     });
-    expect(await screen.findByText(/Le raccourci n’a pas pu être enregistré/)).toHaveTextContent(
-      "Le raccourci n’a pas pu être enregistré. Cette combinaison est déjà utilisée. L’ancien raccourci reste actif : Ctrl+Maj+F2.",
+    const error = await screen.findByText(/Le raccourci n’a pas pu être enregistré/);
+    expect(error).toHaveTextContent(
+      "Le raccourci n’a pas pu être enregistré. Cette combinaison est peut-être déjà utilisée par Windows ou par une autre application. L’ancien raccourci reste actif : Ctrl+Maj+F2.",
     );
+    // The technical reason from the hotkey layer is not shown.
+    expect(error).not.toHaveTextContent("HotKey");
     expect(screen.getByTestId("shortcut-value")).toHaveTextContent("Ctrl+Maj+F2");
   });
 
@@ -169,23 +175,66 @@ describe("Réglages", () => {
     expect(bridge.invoke).toHaveBeenCalledWith("clear_draft");
   });
 
-  it("previews the rendering only when the optional native command exists", async () => {
-    const { bridge, unmount } = await openSettings();
-    await waitFor(() =>
-      expect(bridge.invokeOptional).toHaveBeenCalledWith("preview_render", {
-        sample: "je ne pourrai pas venir jeudi à 14 h est-ce que mardi vous convient",
-        settings: expect.objectContaining({ profile: "natural" }),
-      }),
-    );
-    expect(screen.queryByTestId("render-preview")).not.toBeInTheDocument();
-    unmount();
-
-    const withPreview = createFakeBridge();
-    withPreview.handlers.preview_render = () => "Je ne pourrai pas venir jeudi à 14 h.";
-    const view = renderApp(withPreview);
+  it("previews the rendering of a sample sentence with preview_render", async () => {
+    const bridge = createFakeBridge();
+    bridge.handlers.preview_render = () => "Je ne pourrai pas venir jeudi à 14 h.";
+    const view = renderApp(bridge);
     await appReady();
     await view.user.click(screen.getByRole("button", { name: "Réglages" }));
     expect(await screen.findByTestId("render-preview")).toHaveTextContent("Je ne pourrai pas venir jeudi à 14 h.");
+    expect(bridge.invoke).toHaveBeenCalledWith("preview_render", {
+      sample: "je ne pourrai pas venir jeudi à 14 h est-ce que mardi vous convient",
+      settings: expect.objectContaining({ profile: "natural" }),
+    });
+  });
+
+  it("hides the rendering preview when it fails", async () => {
+    const bridge = createFakeBridge();
+    bridge.handlers.preview_render = () => {
+      throw { code: "too-long", message: "Phrase d'exemple trop longue." };
+    };
+    const view = renderApp(bridge);
+    await appReady();
+    await view.user.click(screen.getByRole("button", { name: "Réglages" }));
+    await waitFor(() => expect(bridge.invoke).toHaveBeenCalledWith("preview_render", expect.anything()));
+    expect(screen.queryByTestId("render-preview")).not.toBeInTheDocument();
+  });
+
+  it("keeps a setting that applied but could not be written to disk", async () => {
+    const { bridge, user } = await openSettings();
+    bridge.handlers.save_settings = () => {
+      throw { code: "save-failed", message: "Les réglages s'appliquent mais n'ont pas pu être enregistrés sur le disque." };
+    };
+    const sound = screen.getByRole("switch", { name: "Son de début et de fin" });
+    await user.click(sound);
+    expect(
+      await screen.findByText("Les réglages s'appliquent mais n'ont pas pu être enregistrés sur le disque."),
+    ).toBeInTheDocument();
+    expect(sound).toBeChecked();
+  });
+
+  it("registers the launch at startup", async () => {
+    const { bridge, user } = await openSettings();
+    const startup = screen.getByRole("switch", { name: "Démarrer avec Windows" });
+    expect(startup).not.toBeChecked();
+    await user.click(startup);
+    expect(bridge.invoke).toHaveBeenCalledWith("set_launch_at_startup", { enabled: true });
+    await waitFor(() => expect(startup).toBeChecked());
+    expect(savedSettings(bridge)).toHaveLength(0);
+  });
+
+  it("explains that the portable edition never registers itself", async () => {
+    const { bridge, user } = await openSettings();
+    bridge.handlers.set_launch_at_startup = () => {
+      throw { code: "portable", message: "Édition portable." };
+    };
+    const startup = screen.getByRole("switch", { name: "Démarrer avec Windows" });
+    await user.click(startup);
+    expect(
+      await screen.findByText(/L’édition portable ne s’inscrit jamais au démarrage de ce PC/),
+    ).toBeInTheDocument();
+    expect(startup).not.toBeChecked();
+    expect(startup).toBeDisabled();
   });
 
   it("has no detectable accessibility violations", async () => {

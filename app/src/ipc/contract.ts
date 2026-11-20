@@ -5,6 +5,11 @@
 //   app/src-tauri/src/model.rs     Language, RenderProfile, Gesture, MicChoice, DestinationKind
 //   app/src-tauri/src/ports.rs     MicInfo, MicError, TargetChange, UncertainReason,
 //                                  NotWrittenReason, ClipboardError
+//   app/src-tauri/src/text/        LexiconEntry, Expression (mod.rs); RuleConflict,
+//                                  RuleConflictReason, RuleRef, RuleKind (personal.rs)
+//
+// History text and rule text are, like dictated text, only ever shown by the
+// view that asked for them (get_history, get_personal_rules).
 //
 // Serde shapes:
 //   #[serde(tag = "kind", rename_all = "kebab-case")] enums -> { kind: "...", ...fields }
@@ -261,19 +266,122 @@ export interface AccessInput {
   remember: boolean;
 }
 
-/** Error returned by commands. `code` is stable; `message` is French and text-free. */
+/**
+ * Error returned by commands. `code` is stable; `message` is French and text-free.
+ * Codes used by the UI (shell/commands.rs): `clipboard-busy`,
+ * `clipboard-exclusion-failed`, `clipboard-other`, `no-draft`, `mic-<MicError kind>`
+ * (e.g. `mic-access-denied`), `shortcut`, `invalid-settings`, `save-failed`
+ * (applied for this session but not written), `portable` (set_launch_at_startup).
+ */
 export interface CommandError {
   code: string;
   message: string;
 }
 
+// ------------------------------------------------------------------ text/ (milestone 2)
+
+/** `RuleKind`, `#[serde(rename_all = "camelCase")]` (text/personal.rs). */
+export type RuleKind = "lexicon" | "expression";
+
+export interface RuleRef {
+  kind: RuleKind;
+  id: string;
+}
+
+/** `RuleConflictReason`, camelCase strings (not kebab-case). */
+export type RuleConflictReason =
+  | "emptyMatch"
+  | "emptyReplacement"
+  | "noMatchableWords"
+  | "multilineMatch"
+  | "duplicateHeard"
+  | "duplicateTrigger"
+  | "triggerShadowsHeard"
+  /** `rule` is the shorter trigger; `related` contains it at word boundaries. */
+  | "triggerOverlap";
+
+export interface RuleConflict {
+  reason: RuleConflictReason;
+  rule: RuleRef;
+  related: RuleRef | null;
+}
+
+/** Whole-word replacement: what Rambler writes -> what the person wants. */
+export interface LexiconEntry {
+  id: string;
+  heard: string;
+  written: string;
+  enabled: boolean;
+  /** Substitutions in Faithful need a separate opt-in. */
+  applyInFaithful: boolean;
+}
+
+/** Explicit trigger phrase -> literal text (may contain line breaks). */
+export interface Expression {
+  id: string;
+  trigger: string;
+  text: string;
+  enabled: boolean;
+}
+
+// ------------------------------------------------------------------ ipc.rs milestone 2
+
+export interface PersonalRules {
+  lexicon: LexiconEntry[];
+  expressions: Expression[];
+  /** Stored rules exist but cannot be decrypted under this Windows account. */
+  unreadable: boolean;
+}
+
+export interface PersonalRulesInput {
+  lexicon: LexiconEntry[];
+  expressions: Expression[];
+}
+
+/** `saved` is false when enabled rules conflict; nothing is written then. */
+export interface SaveRulesResult {
+  saved: boolean;
+  rules: PersonalRules;
+  conflicts: RuleConflict[];
+}
+
+/** `#[serde(default)]`: every field may be omitted. */
+export interface HistoryQuery {
+  search?: string | null;
+  /** Default 50, max 200. */
+  limit?: number | null;
+  /** Opaque cursor from a previous page. */
+  cursor?: string | null;
+}
+
+export interface HistoryEntry {
+  id: string;
+  createdAtMs: number;
+  expiresAtMs: number;
+  language: Language;
+  profile: RenderProfile;
+  /** null when this entry cannot be decrypted under this account. */
+  text: string | null;
+}
+
+export interface HistoryPage {
+  entries: HistoryEntry[];
+  nextCursor: string | null;
+}
+
+export interface HistoryStatus {
+  enabled: boolean;
+  retentionDays: number;
+  entryCount: number;
+  /** "Sans historique pour la prochaine dictée" is armed. */
+  skipNext: boolean;
+  /** False in ephemeral sessions (read-only data folder). */
+  available: boolean;
+}
+
 // ------------------------------------------------------------------ commands
 
-/**
- * Every command of ipc.rs. `args` are camelCase on the JS side.
- * Commands marked optional are not part of the native contract yet; the UI
- * probes them and hides the feature when the native side does not register them.
- */
+/** Every command of ipc.rs. `args` are camelCase on the JS side. */
 export interface CommandMap {
   get_state: { args: void; result: UiState };
   get_settings: { args: void; result: Settings };
@@ -293,22 +401,23 @@ export interface CommandMap {
   copy_draft: { args: void; result: void };
   clear_draft: { args: void; result: UiState };
   open_mic_privacy_settings: { args: void; result: void };
-}
-
-/**
- * OPTIONAL CAPABILITY (not in ipc.rs yet). Renders a fixed sample sentence
- * owned by the UI with the given settings, without opening the microphone
- * (docs/windows/03: "Montrer l'effet des réglages sur une phrase d'exemple").
- * Proposed Rust signature:
- *   #[tauri::command]
- *   fn preview_render(sample: String, settings: Settings) -> Result<String, CommandError>
- */
-export interface OptionalCommandMap {
+  /** Text rules on a sample sentence, without microphone or network (max 500 chars). */
   preview_render: { args: { sample: string; settings: Settings }; result: string };
+  // milestone 2
+  get_personal_rules: { args: void; result: PersonalRules };
+  save_personal_rules: { args: { rules: PersonalRulesInput }; result: SaveRulesResult };
+  get_history: { args: { query: HistoryQuery }; result: HistoryPage };
+  copy_history_entry: { args: { id: string }; result: void };
+  delete_history_entry: { args: { id: string }; result: HistoryStatus };
+  /** `disable: true` also turns the history off. */
+  clear_history: { args: { disable: boolean }; result: HistoryStatus };
+  get_history_status: { args: void; result: HistoryStatus };
+  skip_history_next_take: { args: { skip: boolean }; result: HistoryStatus };
+  /** Installed edition only: the portable edition answers `portable`. */
+  set_launch_at_startup: { args: { enabled: boolean }; result: void };
 }
 
 export type CommandName = keyof CommandMap;
-export type OptionalCommandName = keyof OptionalCommandMap;
 
 export const EVENT_STATE = "sambler://state";
 export const EVENT_LEVEL = "sambler://level";

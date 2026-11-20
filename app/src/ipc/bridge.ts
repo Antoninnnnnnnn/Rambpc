@@ -5,19 +5,11 @@
 import { createContext, createElement, useContext, type ReactNode } from "react";
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen } from "@tauri-apps/api/event";
-import type {
-  CommandError,
-  CommandMap,
-  CommandName,
-  EventMap,
-  EventName,
-  OptionalCommandMap,
-  OptionalCommandName,
-} from "./contract";
+import type { CommandError, CommandMap, CommandName, EventMap, EventName } from "./contract";
 
-type ArgsOf<M, C extends keyof M> = M[C] extends { args: void }
+type ArgsOf<C extends CommandName> = CommandMap[C] extends { args: void }
   ? []
-  : M[C] extends { args: infer A }
+  : CommandMap[C] extends { args: infer A }
     ? [A]
     : never;
 
@@ -25,18 +17,7 @@ export type Unlisten = () => void;
 
 export interface Bridge {
   /** Rejects with a `CommandError` (normalized). */
-  invoke<C extends CommandName>(
-    command: C,
-    ...args: ArgsOf<CommandMap, C>
-  ): Promise<CommandMap[C]["result"]>;
-  /**
-   * For optional capabilities (see `OptionalCommandMap`). Resolves `undefined`
-   * when the native side does not register the command.
-   */
-  invokeOptional<C extends OptionalCommandName>(
-    command: C,
-    ...args: ArgsOf<OptionalCommandMap, C>
-  ): Promise<OptionalCommandMap[C]["result"] | undefined>;
+  invoke<C extends CommandName>(command: C, ...args: ArgsOf<C>): Promise<CommandMap[C]["result"]>;
   listen<E extends EventName>(event: E, handler: (payload: EventMap[E]) => void): Promise<Unlisten>;
 }
 
@@ -58,25 +39,12 @@ export function toCommandError(value: unknown): CommandError {
   return { code: "unknown", message: "" };
 }
 
-function isMissingCommand(value: unknown): boolean {
-  const text = typeof value === "string" ? value : value instanceof Error ? value.message : "";
-  return /not found|not allowed|unknown command/i.test(text);
-}
-
 export function createTauriBridge(): Bridge {
   return {
     async invoke(command, ...args) {
       try {
         return await tauriInvoke(command, args[0] as Record<string, unknown> | undefined);
       } catch (error) {
-        throw toCommandError(error);
-      }
-    },
-    async invokeOptional(command, ...args) {
-      try {
-        return await tauriInvoke(command, args[0] as Record<string, unknown> | undefined);
-      } catch (error) {
-        if (isMissingCommand(error)) return undefined;
         throw toCommandError(error);
       }
     },

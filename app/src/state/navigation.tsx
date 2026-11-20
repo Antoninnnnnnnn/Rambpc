@@ -1,14 +1,16 @@
 import { createContext, useContext } from "react";
 
-export type View = "home" | "draft" | "settings";
+export type View = "home" | "draft" | "history" | "settings";
 
 export type SettingsSection =
   | "dictation"
   | "microphone"
   | "render"
+  | "rules"
   | "destination"
   | "indicator"
   | "draft"
+  | "startup"
   | "access"
   | "privacy";
 

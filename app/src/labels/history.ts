@@ -1,0 +1,48 @@
+// French copy for the history view (no entry text here).
+
+import type { Language, RenderProfile } from "../ipc/contract";
+
+export const HISTORY_DAY_CHOICES = [1, 7, 30] as const;
+
+export const LANGUAGE_LABELS: Record<Language, string> = { french: "Français", english: "Anglais" };
+export const PROFILE_LABELS: Record<RenderProfile, string> = { natural: "Naturel", faithful: "Fidèle" };
+
+const dateFormat = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+const relative = new Intl.RelativeTimeFormat("fr-FR", { numeric: "auto" });
+
+/** "jeudi 20 novembre à 14:32" */
+export function formatEntryDate(ms: number): string {
+  return dateFormat.format(new Date(ms));
+}
+
+/** "Expire dans 6 jours", "Expire dans 3 heures", "Expire bientôt". */
+export function formatExpiry(expiresAtMs: number, now = Date.now()): string {
+  const left = expiresAtMs - now;
+  if (left <= 60_000) return "Expire bientôt";
+  const hours = left / 3_600_000;
+  if (hours >= 24) return `Expire ${relative.format(Math.floor(hours / 24), "day")}`;
+  if (hours >= 1) return `Expire ${relative.format(Math.floor(hours), "hour")}`;
+  return `Expire ${relative.format(Math.ceil(left / 60_000), "minute")}`;
+}
+
+export function daysLabel(days: number): string {
+  return days === 1 ? "1 jour" : `${days} jours`;
+}
+
+export function entryCountText(count: number): string {
+  if (count === 0) return "Aucune dictée enregistrée.";
+  return count === 1 ? "1 dictée enregistrée." : `${count} dictées enregistrées.`;
+}
+
+export function resultCountText(count: number, more: boolean): string {
+  if (count === 0) return "Aucune dictée trouvée.";
+  const base = count === 1 ? "1 dictée trouvée" : `${count} dictées trouvées`;
+  return more ? `${base}, d’autres peuvent être affichées.` : `${base}.`;
+}

@@ -1,7 +1,5 @@
-// OPTIONAL CAPABILITY: shows the effect of the rendering settings on a fixed
-// sample sentence, without opening the microphone. Uses the proposed native
-// command `preview_render` (see OptionalCommandMap in ipc/contract.ts) and
-// renders nothing when the native side does not provide it.
+// Effect of the text settings on a sample sentence, without opening the
+// microphone (`preview_render`, docs/windows/03). Hidden if the preview fails.
 
 import { useEffect, useState } from "react";
 import { useBridge } from "../ipc/bridge";
@@ -13,23 +11,21 @@ export const PREVIEW_SAMPLES = {
   english: "i will not be able to come on thursday at 2 pm does tuesday work for you",
 } as const;
 
-export function RenderPreview({ settings }: { settings: Settings }) {
+/** `preview_render` for `sample`, debounced; null while pending or on failure. */
+export function usePreviewRender(sample: string, settings: Settings): string | null {
   const bridge = useBridge();
   const [rendered, setRendered] = useState<string | null>(null);
-  const [supported, setSupported] = useState(true);
-  const sample = PREVIEW_SAMPLES[settings.language];
-  const key = JSON.stringify([settings.language, settings.profile, settings.text]);
+  const key = JSON.stringify([sample, settings.language, settings.profile, settings.text]);
 
   useEffect(() => {
-    if (!supported) return;
     let cancelled = false;
+    setRendered(null);
+    if (!sample.trim()) return;
     const timer = window.setTimeout(() => {
       bridge
-        .invokeOptional("preview_render", { sample, settings })
+        .invoke("preview_render", { sample, settings })
         .then((result) => {
-          if (cancelled) return;
-          if (result === undefined) setSupported(false);
-          else setRendered(result);
+          if (!cancelled) setRendered(result);
         })
         .catch(() => {
           if (!cancelled) setRendered(null);
@@ -39,10 +35,17 @@ export function RenderPreview({ settings }: { settings: Settings }) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-    // `key` captures every setting that affects rendering.
-  }, [bridge, key, supported]);
+    // `key` captures the sample and every setting that affects rendering.
+  }, [bridge, key]);
 
-  if (!supported || rendered === null) return null;
+  return rendered;
+}
+
+export function RenderPreview({ settings }: { settings: Settings }) {
+  const sample = PREVIEW_SAMPLES[settings.language];
+  const rendered = usePreviewRender(sample, settings);
+  const lang = settings.language === "english" ? "en" : "fr";
+  if (rendered === null) return null;
 
   return (
     <div className="render-preview" data-testid="render-preview">
@@ -50,11 +53,11 @@ export function RenderPreview({ settings }: { settings: Settings }) {
       <dl className="render-preview__pairs">
         <div>
           <dt>Reconnu</dt>
-          <dd lang={settings.language === "english" ? "en" : "fr"}>{sample}</dd>
+          <dd lang={lang}>{sample}</dd>
         </div>
         <div>
           <dt>Inséré</dt>
-          <dd lang={settings.language === "english" ? "en" : "fr"}>{rendered}</dd>
+          <dd lang={lang}>{rendered}</dd>
         </div>
       </dl>
     </div>

@@ -7,9 +7,11 @@ import { AccessForm, AccessSummary } from "../components/AccessForm";
 import { ChoiceGroup, FieldError, Panel, Switch } from "../components/controls";
 import { MicPrivacyLink, MicrophonePicker } from "../components/Microphone";
 import { RenderPreview } from "../components/RenderPreview";
+import { PersonalRulesPanel } from "../components/rules/PersonalRules";
 import { ShortcutField } from "../components/ShortcutField";
+import { useBridge } from "../ipc/bridge";
 import type { CommandError, IndicatorPosition, Settings, TakeOutcome } from "../ipc/contract";
-import { commandErrorText, hasConsent } from "../labels/fr";
+import { commandErrorText, hasConsent, settingSaveErrorText } from "../labels/fr";
 import { useAccess } from "../state/access";
 import { useUiCommands } from "../state/commands";
 import { useNavigation, type SettingsSection } from "../state/navigation";
@@ -23,9 +25,11 @@ const SECTIONS: { id: SettingsSection; title: string }[] = [
   { id: "dictation", title: "Dictée" },
   { id: "microphone", title: "Micro" },
   { id: "render", title: "Rendu du texte" },
+  { id: "rules", title: "Mots et expressions" },
   { id: "destination", title: "Destination" },
   { id: "indicator", title: "Indicateur" },
   { id: "draft", title: "Brouillon" },
+  { id: "startup", title: "Démarrage" },
   { id: "access", title: "Accès à Rambler" },
   { id: "privacy", title: "Confidentialité" },
 ];
@@ -39,7 +43,7 @@ const POSITIONS: { value: IndicatorPosition; label: string }[] = [
 export const sectionAnchor = (section: SettingsSection) => `settings-${section}`;
 
 function saveErrorText(error: CommandError | undefined): string | undefined {
-  return error ? `Ce réglage n’a pas pu être enregistré. ${commandErrorText(error, "")}`.trim() : undefined;
+  return error ? settingSaveErrorText(error) : undefined;
 }
 
 function micAccessDenied(outcome: TakeOutcome | null): boolean {
@@ -207,7 +211,7 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
           />
           <Switch
             label="Espaces typographiques"
-            description="Espaces insécables du français avant « : ; ! ? » et dans les guillemets."
+            description="Espaces insécables du français avant « : ; ! ? » et dans les guillemets."
             checked={settings.text.typographicSpaces}
             disabled={settings.profile === "faithful"}
             onChange={(typographicSpaces) =>
@@ -225,6 +229,8 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
         </fieldset>
         <RenderPreview settings={settings} />
       </Panel>
+
+      <PersonalRulesPanel id={sectionAnchor("rules")} settings={settings} />
 
       <Panel id={sectionAnchor("destination")} title="Destination">
         <Switch
@@ -271,6 +277,8 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
         />
         <ClearDraftNow />
       </Panel>
+
+      <StartupPanel />
 
       <AccessPanel startOpen={section === "access"} />
 
@@ -399,6 +407,7 @@ function AccessPanel({ startOpen }: { startOpen: boolean }) {
 
 function PrivacyPanel() {
   const state = useUiState();
+  const { settings } = useSettings();
   const commands = useUiCommands();
   const nav = useNavigation();
   const announce = useAnnounce();
@@ -429,11 +438,56 @@ function PrivacyPanel() {
         }}
         error={action.error ? commandErrorText(action.error) : undefined}
       />
+      <p className="field-hint">
+        Historique des dictées : {settings?.history.enabled ? "activé" : "désactivé"}.{" "}
+        <button type="button" className="link-button" onClick={() => nav.go("history")}>
+          Gérer l’historique
+        </button>
+      </p>
       <p>
         <button type="button" className="link-button" onClick={() => nav.openFirstRun("voice")}>
           Revoir la présentation et l’essai guidé
         </button>
       </p>
+    </Panel>
+  );
+}
+
+/** « Démarrer avec Windows » goes through `set_launch_at_startup` (installed edition only). */
+function StartupPanel() {
+  const bridge = useBridge();
+  const { settings, applyLocal } = useSettings();
+  const announce = useAnnounce();
+  const action = useAction();
+  const [portable, setPortable] = useState(false);
+  if (!settings) return null;
+
+  const onChange = async (enabled: boolean) => {
+    const result = await action.run(() => bridge.invoke("set_launch_at_startup", { enabled }));
+    if (result.ok) {
+      applyLocal((s) => ({ ...s, launchAtStartup: enabled }));
+      announce(announcement(enabled ? "Démarrage avec Windows activé." : "Démarrage avec Windows désactivé."));
+    } else if (result.error.code === "portable") {
+      setPortable(true);
+    }
+  };
+
+  const error = portable
+    ? "L’édition portable ne s’inscrit jamais au démarrage de ce PC : lancez Sambler depuis son dossier quand vous en avez besoin."
+    : action.error
+      ? commandErrorText(action.error, "Le démarrage avec Windows n’a pas pu être modifié.")
+      : undefined;
+
+  return (
+    <Panel id={sectionAnchor("startup")} title="Démarrage">
+      <Switch
+        label="Démarrer avec Windows"
+        description="Sambler s’ouvre à l’ouverture de session, discrètement dans la zone de notification. Désactivé par défaut."
+        checked={settings.launchAtStartup}
+        disabled={portable}
+        onChange={(enabled) => void onChange(enabled)}
+        error={error}
+      />
     </Panel>
   );
 }

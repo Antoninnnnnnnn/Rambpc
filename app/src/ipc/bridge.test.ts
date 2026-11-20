@@ -30,12 +30,19 @@ describe("createTauriBridge", () => {
     await expect(bridge.invoke("copy_draft")).rejects.toEqual({ code: "unknown", message: "" });
   });
 
-  it("resolves undefined for an optional command the native side lacks", async () => {
+  it("passes milestone 2 arguments with their contract names", async () => {
+    tauri.invoke.mockResolvedValue(undefined);
     const bridge = createTauriBridge();
-    tauri.invoke.mockRejectedValueOnce("command preview_render not found");
-    await expect(
-      bridge.invokeOptional("preview_render", { sample: "x", settings: {} as never }),
-    ).resolves.toBeUndefined();
+    await bridge.invoke("get_history", { query: { search: "réunion", limit: 50, cursor: null } });
+    await bridge.invoke("clear_history", { disable: true });
+    await bridge.invoke("save_personal_rules", { rules: { lexicon: [], expressions: [] } });
+    await bridge.invoke("set_launch_at_startup", { enabled: true });
+    expect(tauri.invoke.mock.calls).toEqual([
+      ["get_history", { query: { search: "réunion", limit: 50, cursor: null } }],
+      ["clear_history", { disable: true }],
+      ["save_personal_rules", { rules: { lexicon: [], expressions: [] } }],
+      ["set_launch_at_startup", { enabled: true }],
+    ]);
   });
 
   it("unwraps event payloads", async () => {
