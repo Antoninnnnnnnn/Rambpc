@@ -6,6 +6,7 @@ use super::{
     state::{Effect, Input, Now, State},
 };
 use crate::{
+    ipc::PersonalRules,
     ipc::{DraftView, InterruptReason, Phase, UiState, UnavailableReason},
     model::TakeId,
     ports::{
@@ -13,6 +14,7 @@ use crate::{
         WatchGuard,
     },
     rambler::{self, CaptureHealth, OpenedMic, RamblerAccess, Segment},
+    storage::history::{History, Ticket},
 };
 use rambler_engine::Engine;
 use std::{
@@ -134,6 +136,7 @@ struct TakeIo {
     change_read: bool,
     guard: Option<WatchGuard>,
     health: Arc<CaptureHealth>,
+    history: Option<Ticket>,
     pending_open: Option<OpenedMic>,
     stream: Option<Box<dyn crate::ports::MicStream>>,
 }
@@ -148,6 +151,7 @@ impl TakeIo {
             change_read: false,
             guard: None,
             health: Arc::new(CaptureHealth::new(origin)),
+            history: None,
             pending_open: None,
             stream: None,
         }
@@ -182,6 +186,7 @@ type Warm = (Option<u64>, Result<Option<Arc<Engine>>, UnavailableReason>);
 struct Runtime {
     deps: ControllerDeps,
     state: State,
+    history: Option<History>,
     state_tx: watch::Sender<UiState>,
     level_tx: watch::Sender<f32>,
     origin: Instant,
@@ -200,10 +205,15 @@ struct Runtime {
     test_config: Option<TestConnection>,
 }
 
-pub(super) fn spawn(deps: ControllerDeps, init: ControllerInit) -> ControllerHandle {
+pub(super) fn spawn(
+    deps: ControllerDeps,
+    init: ControllerInit,
+    profile: Option<(Arc<PersonalRules>, History)>,
+) -> ControllerHandle {
     make(
         deps,
         init,
+        profile,
         #[cfg(test)]
         None,
     )
@@ -212,9 +222,14 @@ pub(super) fn spawn(deps: ControllerDeps, init: ControllerInit) -> ControllerHan
 fn make(
     deps: ControllerDeps,
     init: ControllerInit,
+    profile: Option<(Arc<PersonalRules>, History)>,
     #[cfg(test)] test_config: Option<TestConnection>,
 ) -> ControllerHandle {
-    let state = State::new(init.settings, init.consent, init.access.is_some());
+    let mut state = State::new(init.settings, init.consent, init.access.is_some());
+    let history = profile.map(|(rules, history)| {
+        state.use_profile(rules);
+        history
+    });
     let (state_tx, state_rx) = watch::channel(state.ui(Now { mono: 0, unix: 0 }));
     let (level_tx, level_rx) = watch::channel(0.0);
     let (stopped_tx, stopped) = watch::channel(false);
@@ -223,6 +238,7 @@ fn make(
     let mut runtime = Runtime {
         deps,
         state,
+        history,
         state_tx,
         level_tx,
         origin: Instant::now(),
@@ -335,6 +351,10 @@ impl Runtime {
         if let Some(engine) = self.engine.take() {
             let _ = engine.close().await;
         }
+        if let Some(history) = self.history.take() {
+            // A FIFO status request is also a barrier for completed takes.
+            let _ = tokio::task::spawn_blocking(move || history.status()).await;
+        }
     }
 
     fn publish(&self) {
@@ -422,7 +442,9 @@ impl Runtime {
                 self.probe_if_idle();
             }
             Effect::Open { take, mic } => {
+                let ticket = self.history.as_ref().and_then(History::ticket);
                 let io = self.take_io(take);
+                io.history = ticket;
                 let (health, live) = (io.health.clone(), io.live.clone());
                 let microphone = self.deps.microphone.clone();
                 self.jobs.spawn_blocking(move || {
@@ -467,6 +489,15 @@ impl Runtime {
                 }
             }
             Effect::Retire(id) => self.retire(id),
+            Effect::Archive(take) => {
+                if let Some(history) = &self.history
+                    && let Some(io) = &mut self.io
+                    && io.id == take.id
+                    && let Some(ticket) = io.history.take()
+                {
+                    history.archive(ticket, take);
+                }
+            }
             Effect::Insert(id, token, text) => {
                 let io = self.io.as_ref().unwrap();
                 let can_enter = io.can_enter_inserter.clone();
@@ -804,6 +835,7 @@ pub(super) fn spawn_loopback(
     make(
         deps,
         init,
+        None,
         Some(TestConnection {
             config,
             segment_budget,

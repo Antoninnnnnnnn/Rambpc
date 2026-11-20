@@ -31,6 +31,7 @@ pub(super) enum Input {
     Finish(TakeId),
     Cancel(Option<TakeId>),
     Settings(Settings),
+    PersonalRules(Arc<crate::ipc::PersonalRules>),
     Consent(bool),
     Access(bool),
     Retry,
@@ -58,6 +59,7 @@ pub(super) enum Effect {
     Collect { take: TakeId, language: Language },
     Stop(TakeId),
     Retire(TakeId),
+    Archive(crate::storage::history::CompletedTake),
     Insert(TakeId, TargetToken, Arc<str>),
 }
 
@@ -138,6 +140,8 @@ impl Draft {
 
 pub(super) struct State {
     settings: Settings,
+    personal_rules: Option<Arc<crate::ipc::PersonalRules>>,
+    archive: bool,
     consent: bool,
     access: bool,
     access_refused: bool,
@@ -157,6 +161,8 @@ impl State {
     pub(super) fn new(settings: Settings, consent: bool, access: bool) -> Self {
         Self {
             settings,
+            personal_rules: None,
+            archive: false,
             consent,
             access,
             access_refused: false,
@@ -177,6 +183,11 @@ impl State {
             locked: false,
             suspended: false,
         }
+    }
+
+    pub(super) fn use_profile(&mut self, rules: Arc<crate::ipc::PersonalRules>) {
+        self.personal_rules = Some(rules);
+        self.archive = true;
     }
 
     pub(super) fn take_id(&self) -> Option<TakeId> {
@@ -287,6 +298,7 @@ impl State {
                 }
             }
             Input::Settings(settings) => self.settings = settings,
+            Input::PersonalRules(rules) => self.personal_rules = Some(rules),
             Input::Consent(consent) => {
                 if !consent && self.take.is_some() {
                     self.interrupt(InterruptReason::ConsentWithdrawn, now, &mut effects);
@@ -538,6 +550,11 @@ impl State {
             }
             _ => None,
         };
+        let mut rules = TextRules::from_settings(&self.settings);
+        if let Some(personal) = &self.personal_rules {
+            rules.lexicon.clone_from(&personal.lexicon);
+            rules.expressions.clone_from(&personal.expressions);
+        }
         self.outcome = None;
         self.take = Some(Take {
             id,
@@ -545,7 +562,7 @@ impl State {
             gesture: self.settings.gesture,
             hotkey,
             mic: self.settings.microphone.clone(),
-            rules: TextRules::from_settings(&self.settings),
+            rules,
             always_keep: self.settings.always_keep_in_sambler,
             replace,
             destination: (!hotkey).then_some(Destination::Sambler),
@@ -682,7 +699,7 @@ impl State {
         };
         let parts = parts(std::mem::take(&mut take.segments), false);
         let has_text = parts.iter().any(|p| p.status == PartStatus::Admitted);
-        let mut full = None;
+        let mut full: Option<Arc<str>> = None;
         let mut insert = None;
         let outcome = if !has_text {
             TakeOutcome::NoText
@@ -718,6 +735,17 @@ impl State {
             }
         };
         let id = take.id;
+        if self.archive
+            && let Some(text) = &full
+        {
+            effects.push(Effect::Archive(crate::storage::history::CompletedTake {
+                id,
+                created: now.unix,
+                text: text.clone(),
+                language: take.rules.language,
+                profile: take.rules.profile,
+            }));
+        }
         let pending = has_text
             && !matches!(
                 outcome,

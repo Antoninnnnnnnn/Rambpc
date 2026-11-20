@@ -5,13 +5,14 @@ use super::{AppState, hotkey};
 use crate::controller::CopyError;
 use crate::ipc::{
     AccessInput, AccessSource, AccessStatus, CommandError, DraftView, EVENT_MIC_TEST_LEVEL,
+    HistoryPage, HistoryQuery, HistoryStatus, PersonalRules, PersonalRulesInput, SaveRulesResult,
     UiState,
 };
 use crate::model::TakeId;
 use crate::ports::{ClipboardError, MicError, MicInfo};
 use crate::rambler::{AccessError, RamblerAccess};
 use crate::settings::Settings;
-use crate::storage;
+use crate::storage::{self, history::HistoryError};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -43,20 +44,57 @@ pub fn save_settings(
     settings
         .validate()
         .map_err(|e| CommandError::new("invalid-settings", format!("Réglage invalide : {e}")))?;
-    let previous = state.settings.lock().expect("settings lock").clone();
+    let mut previous = state.settings.lock().expect("settings lock");
     if !previous.shortcut.eq_ignore_ascii_case(&settings.shortcut) {
-        hotkey::rebind_dictation(&app, &previous.shortcut, &settings.shortcut).map_err(|reason| {
-            CommandError::new(
-                "shortcut",
-                format!("Le raccourci n'a pas pu être enregistré ({reason}). L'ancien est conservé."),
-            )
-        })?;
+        hotkey::rebind_dictation(&app, &previous.shortcut, &settings.shortcut).map_err(
+            |reason| {
+                CommandError::new(
+                    "shortcut",
+                    format!(
+                        "Le raccourci n'a pas pu être enregistré ({reason}). L'ancien est conservé."
+                    ),
+                )
+            },
+        )?;
     }
     let mut settings = settings;
     settings.version = crate::settings::SETTINGS_VERSION;
+    settings.launch_at_startup = previous.launch_at_startup; // Only the dedicated command can change HKCU Run.
+    let mut history_result = Ok(());
+    if state.store.root().ephemeral {
+        settings.history.enabled = false;
+    } else if settings.history != previous.history {
+        // Withdraw permission before storage work. Enabling requires a successfully
+        // saved, account-bound opt-in before the native writer can admit a take.
+        if !settings.history.enabled {
+            history_result = state
+                .history
+                .configure(&settings.history)
+                .map_err(history_error);
+        }
+        match state.store.save_history_options(&settings.history) {
+            Ok(()) if settings.history.enabled => {
+                history_result = state
+                    .history
+                    .configure(&settings.history)
+                    .map_err(history_error);
+            }
+            Ok(()) => (),
+            Err(_) => {
+                if settings.history.enabled {
+                    settings.history = previous.history.clone();
+                }
+                history_result = Err(CommandError::new(
+                    "save-failed",
+                    "Le choix d’historique n’a pas pu être enregistré de façon protégée.",
+                ));
+            }
+        }
+    }
     let persisted = state.store.save_settings(&settings);
-    *state.settings.lock().expect("settings lock") = settings.clone();
+    *previous = settings.clone();
     state.controller.apply_settings(settings.clone());
+    history_result?;
     match persisted {
         Ok(()) | Err(storage::StoreError::Ephemeral) => Ok(settings),
         Err(_) => Err(CommandError::new(
@@ -101,7 +139,12 @@ static MIC_TEST_RUNNING: AtomicBool = AtomicBool::new(false);
 #[tauri::command]
 pub async fn start_mic_test(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
     stop_mic_test_inner(&state);
-    let choice = state.settings.lock().expect("settings lock").microphone.clone();
+    let choice = state
+        .settings
+        .lock()
+        .expect("settings lock")
+        .microphone
+        .clone();
     let microphone = state.microphone.clone();
     let level = Level::default();
     let sink_level = level.clone();
@@ -126,10 +169,10 @@ pub async fn start_mic_test(app: AppHandle, state: State<'_, AppState>) -> CmdRe
             let _ = app.emit(EVENT_MIC_TEST_LEVEL, level.get());
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-        if MIC_TEST_RUNNING.swap(false, Ordering::SeqCst) {
-            if let Some(state) = tauri::Manager::try_state::<AppState>(&app) {
-                stop_mic_test_inner(&state);
-            }
+        if MIC_TEST_RUNNING.swap(false, Ordering::SeqCst)
+            && let Some(state) = tauri::Manager::try_state::<AppState>(&app)
+        {
+            stop_mic_test_inner(&state);
         }
         let _ = app.emit(EVENT_MIC_TEST_LEVEL, 0.0_f32);
     });
@@ -192,7 +235,10 @@ pub fn set_access(state: State<'_, AppState>, access: AccessInput) -> CmdResult<
     })?;
     let source = if access.remember && state.store.can_remember_access() {
         state.store.save_access(&access).map_err(|_| {
-            CommandError::new("save-failed", "L'accès n'a pas pu être enregistré de façon protégée.")
+            CommandError::new(
+                "save-failed",
+                "L'accès n'a pas pu être enregistré de façon protégée.",
+            )
         })?;
         AccessSource::Saved
     } else {
@@ -258,20 +304,25 @@ pub async fn get_draft(state: State<'_, AppState>) -> CmdResult<Option<DraftView
 
 #[tauri::command]
 pub async fn copy_draft(state: State<'_, AppState>) -> CmdResult<()> {
-    state.controller.copy_draft().await.map_err(|error| match error {
-        CopyError::NoDraft => CommandError::new("no-draft", "Aucun texte à copier."),
-        CopyError::Clipboard(ClipboardError::Busy) => CommandError::new(
-            "clipboard-busy",
-            "Le presse-papiers est occupé par une autre application. Réessayez.",
-        ),
-        CopyError::Clipboard(ClipboardError::ExclusionFailed) => CommandError::new(
-            "clipboard-exclusion-failed",
-            "Copie annulée : impossible d'exclure le texte de l'historique du presse-papiers.",
-        ),
-        CopyError::Clipboard(ClipboardError::Other) => {
-            CommandError::new("clipboard-other", "La copie a échoué. Le texte reste dans Sambler.")
-        }
-    })
+    state
+        .controller
+        .copy_draft()
+        .await
+        .map_err(|error| match error {
+            CopyError::NoDraft => CommandError::new("no-draft", "Aucun texte à copier."),
+            CopyError::Clipboard(ClipboardError::Busy) => CommandError::new(
+                "clipboard-busy",
+                "Le presse-papiers est occupé par une autre application. Réessayez.",
+            ),
+            CopyError::Clipboard(ClipboardError::ExclusionFailed) => CommandError::new(
+                "clipboard-exclusion-failed",
+                "Copie annulée : impossible d'exclure le texte de l'historique du presse-papiers.",
+            ),
+            CopyError::Clipboard(ClipboardError::Other) => CommandError::new(
+                "clipboard-other",
+                "La copie a échoué. Le texte reste dans Sambler.",
+            ),
+        })
 }
 
 #[tauri::command]
@@ -282,17 +333,200 @@ pub fn clear_draft(state: State<'_, AppState>) -> UiState {
 
 /// Settings preview of the text rules on a sample sentence (no microphone, no network).
 #[tauri::command]
-pub fn preview_render(sample: String, settings: Settings) -> CmdResult<String> {
+pub fn preview_render(
+    state: State<'_, AppState>,
+    sample: String,
+    settings: Settings,
+) -> CmdResult<String> {
     if sample.chars().count() > 500 {
-        return Err(CommandError::new("too-long", "Phrase d'exemple trop longue."));
+        return Err(CommandError::new(
+            "too-long",
+            "Phrase d'exemple trop longue.",
+        ));
     }
-    let rules = crate::text::TextRules::from_settings(&settings);
+    let mut rules = crate::text::TextRules::from_settings(&settings);
+    let personal = state
+        .personal_rules
+        .lock()
+        .expect("personal rules lock")
+        .clone();
+    rules.lexicon.clone_from(&personal.lexicon);
+    rules.expressions.clone_from(&personal.expressions);
     Ok(crate::text::preview(&sample, &rules))
 }
 
 #[tauri::command]
 pub fn open_mic_privacy_settings() {
     crate::platform::open_mic_privacy_settings();
+}
+
+#[tauri::command]
+pub fn get_personal_rules(state: State<'_, AppState>) -> PersonalRules {
+    (**state.personal_rules.lock().expect("personal rules lock")).clone()
+}
+
+#[tauri::command]
+pub fn save_personal_rules(
+    state: State<'_, AppState>,
+    rules: PersonalRulesInput,
+) -> CmdResult<SaveRulesResult> {
+    let mut current = state.personal_rules.lock().expect("personal rules lock");
+    let conflicts = state.store.save_personal_rules(&rules).map_err(|_| {
+        CommandError::new(
+            "save-failed",
+            "Les règles personnelles n’ont pas pu être enregistrées de façon protégée.",
+        )
+    })?;
+    if !conflicts.is_empty() {
+        return Ok(SaveRulesResult {
+            saved: false,
+            rules: (**current).clone(),
+            conflicts,
+        });
+    }
+    let updated = Arc::new(PersonalRules {
+        lexicon: rules.lexicon,
+        expressions: rules.expressions,
+        unreadable: false,
+    });
+    *current = updated.clone();
+    state.controller.apply_personal_rules(updated.clone());
+    Ok(SaveRulesResult {
+        saved: true,
+        rules: (*updated).clone(),
+        conflicts,
+    })
+}
+
+fn history_error(error: HistoryError) -> CommandError {
+    match error {
+        HistoryError::Unavailable => CommandError::new(
+            "history-unavailable",
+            "L’historique est indisponible pour cette session.",
+        ),
+        HistoryError::Database | HistoryError::Protection => CommandError::new(
+            "history-storage",
+            "L’opération sur l’historique n’a pas abouti. Vérifiez le dossier de données.",
+        ),
+        HistoryError::NoText => CommandError::new(
+            "no-text",
+            "Cette dictée a expiré ou son texte est illisible.",
+        ),
+        HistoryError::Clipboard(ClipboardError::Busy) => {
+            CommandError::new("clipboard-busy", "Le presse-papiers est occupé. Réessayez.")
+        }
+        HistoryError::Clipboard(ClipboardError::ExclusionFailed) => CommandError::new(
+            "clipboard-exclusion-failed",
+            "Copie annulée : impossible d’exclure le texte de l’historique du presse-papiers.",
+        ),
+        HistoryError::Clipboard(ClipboardError::Other) => CommandError::new(
+            "clipboard-other",
+            "La copie a échoué. La dictée reste dans l’historique.",
+        ),
+    }
+}
+
+async fn history_io<T: Send + 'static>(
+    work: impl FnOnce() -> Result<T, HistoryError> + Send + 'static,
+) -> CmdResult<T> {
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|_| history_error(HistoryError::Unavailable))?
+        .map_err(history_error)
+}
+
+#[tauri::command]
+pub async fn get_history(
+    state: State<'_, AppState>,
+    query: HistoryQuery,
+) -> CmdResult<HistoryPage> {
+    let history = state.history.clone();
+    history_io(move || history.page(query)).await
+}
+
+#[tauri::command]
+pub async fn copy_history_entry(state: State<'_, AppState>, id: String) -> CmdResult<()> {
+    let history = state.history.clone();
+    history_io(move || history.copy(id)).await
+}
+
+#[tauri::command]
+pub async fn delete_history_entry(
+    state: State<'_, AppState>,
+    id: String,
+) -> CmdResult<HistoryStatus> {
+    let history = state.history.clone();
+    history_io(move || history.delete(id)).await
+}
+
+#[tauri::command]
+pub async fn clear_history(app: AppHandle, disable: bool) -> CmdResult<HistoryStatus> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = tauri::Manager::state::<AppState>(&app);
+        let mut settings = state.settings.lock().expect("settings lock");
+        if disable {
+            settings.history.enabled = false;
+        }
+        state.history.invalidate_for_clear(&settings.history);
+        let saved = if disable {
+            state.controller.apply_settings(settings.clone());
+            state.store.save_history_options(&settings.history)
+        } else {
+            Ok(())
+        };
+        let cleared = state.history.clear();
+        match saved {
+            Ok(()) | Err(storage::StoreError::Ephemeral) => cleared.map_err(history_error),
+            Err(_) => Err(CommandError::new(
+                "save-failed",
+                "L’activation de l’historique n’a pas pu être modifiée sur le disque.",
+            )),
+        }
+    })
+    .await
+    .map_err(|_| history_error(HistoryError::Unavailable))?
+}
+
+#[tauri::command]
+pub async fn get_history_status(state: State<'_, AppState>) -> CmdResult<HistoryStatus> {
+    let history = state.history.clone();
+    history_io(move || Ok(history.status())).await
+}
+
+#[tauri::command]
+pub async fn skip_history_next_take(
+    state: State<'_, AppState>,
+    skip: bool,
+) -> CmdResult<HistoryStatus> {
+    let history = state.history.clone();
+    history_io(move || Ok(history.skip_next(skip))).await
+}
+
+#[tauri::command]
+pub fn set_launch_at_startup(state: State<'_, AppState>, enabled: bool) -> CmdResult<()> {
+    let mut settings = state.settings.lock().expect("settings lock");
+    storage::set_startup(state.store.root(), enabled).map_err(|error| match error {
+        storage::StartupError::Portable => CommandError::new(
+            "portable",
+            "Le démarrage avec Windows est réservé à l’édition installée.",
+        ),
+        storage::StartupError::Ephemeral => CommandError::new(
+            "ephemeral",
+            "Le démarrage avec Windows ne peut pas être modifié pendant une session éphémère.",
+        ),
+        storage::StartupError::Registry => CommandError::new(
+            "startup",
+            "Windows n’a pas pu modifier le démarrage automatique de Sambler.",
+        ),
+    })?;
+    settings.launch_at_startup = enabled;
+    state.controller.apply_settings(settings.clone());
+    state.store.save_settings(&settings).map_err(|_| {
+        CommandError::new(
+            "save-failed",
+            "Le démarrage Windows a été modifié, mais les réglages n’ont pas pu être enregistrés.",
+        )
+    })
 }
 
 #[allow(dead_code)]

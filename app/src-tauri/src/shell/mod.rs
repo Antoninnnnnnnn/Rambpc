@@ -13,10 +13,11 @@ mod relay;
 mod tray;
 
 use crate::controller::{Controller, ControllerDeps, ControllerHandle, ControllerInit};
-use crate::ipc::AccessSource;
+use crate::ipc::{AccessSource, PersonalRules};
 use crate::ports::{MicStream, Microphone, SystemEvents};
 use crate::rambler::RamblerAccess;
 use crate::settings::Settings;
+use crate::storage::history::History;
 use crate::storage::{self, DataRoot, RootError, Store};
 use std::sync::{Arc, Mutex};
 use tauri::{Manager, WebviewWindowBuilder, WindowEvent};
@@ -34,6 +35,8 @@ pub struct AppState {
     pub controller: ControllerHandle,
     pub store: Store,
     pub settings: Mutex<Settings>,
+    pub(crate) personal_rules: Mutex<Arc<PersonalRules>>,
+    pub(crate) history: History,
     pub consent: Mutex<bool>,
     pub access: Mutex<AccessState>,
     pub microphone: Arc<dyn Microphone>,
@@ -83,6 +86,15 @@ pub fn run() {
             commands::clear_draft,
             commands::open_mic_privacy_settings,
             commands::preview_render,
+            commands::get_personal_rules,
+            commands::save_personal_rules,
+            commands::get_history,
+            commands::copy_history_entry,
+            commands::delete_history_entry,
+            commands::clear_history,
+            commands::get_history_status,
+            commands::skip_history_next_take,
+            commands::set_launch_at_startup,
         ])
         .setup(move |app| {
             setup(app, root.clone())?;
@@ -104,9 +116,53 @@ pub fn run() {
 fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error::Error>> {
     let platform = Platform::new();
     let store = Store::new(root.clone(), platform.protector.clone());
-    let settings = store.load_settings();
-    let consent = store.load_consent();
-    let (access, source, _env_error) = storage::initial_access(&store);
+    let foreign = store.protected_profile_unreadable();
+    let root = if foreign && !root.ephemeral {
+        #[cfg(windows)]
+        {
+            use windows::Win32::UI::WindowsAndMessaging::{IDYES, MB_ICONWARNING, MB_YESNO};
+            if message_box(
+                "Les choix protégés de ce profil sont illisibles. Ouvrir pour cette session sans modifier les données existantes ?",
+                MB_ICONWARNING | MB_YESNO,
+            ) != IDYES.0
+            {
+                app.handle().exit(0);
+                return Ok(());
+            }
+        }
+        storage::ephemeral_root(root)
+    } else {
+        root
+    };
+    let store = Store::new(root.clone(), platform.protector.clone());
+    let mut settings = store.load_settings();
+    settings.history = if root.ephemeral {
+        crate::settings::HistoryOptions::default()
+    } else {
+        store
+            .load_history_options()
+            .ok()
+            .flatten()
+            .unwrap_or_default()
+    };
+    settings.launch_at_startup = storage::startup_enabled(&root);
+    let consent = !foreign && store.load_consent();
+    let personal_rules = Arc::new(if foreign {
+        store.withheld_personal_rules()
+    } else {
+        store.load_personal_rules()
+    });
+    let history = History::spawn(
+        (!root.ephemeral).then(|| root.dir.join("history.sqlite3")),
+        &settings.history,
+        platform.protector.clone(),
+        platform.clipboard.clone(),
+    );
+    let (access, source, _env_error) = if foreign {
+        (None, AccessSource::None, None)
+    } else {
+        storage::initial_access(&store)
+    };
 
     let deps = ControllerDeps {
         microphone: platform.microphone.clone(),
@@ -119,7 +175,11 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         consent,
         access: access.clone(),
     };
-    let controller = tauri::async_runtime::block_on(async move { Controller::spawn(deps, init) });
+    let controller_rules = personal_rules.clone();
+    let controller_history = history.clone();
+    let controller = tauri::async_runtime::block_on(async move {
+        Controller::spawn_with_profile(deps, init, controller_rules, controller_history)
+    });
 
     let system_events = {
         let controller = controller.clone();
@@ -132,6 +192,8 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         controller: controller.clone(),
         store,
         settings: Mutex::new(settings.clone()),
+        personal_rules: Mutex::new(personal_rules),
+        history,
         consent: Mutex::new(consent),
         access: Mutex::new(AccessState { access, source }),
         microphone: platform.microphone.clone(),
