@@ -3344,8 +3344,11 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "cpal",
+ "futures-util",
+ "http",
  "rambler-audio",
  "rambler-engine",
+ "rambler-protocol",
  "rambler-transport",
  "serde",
  "serde_json",
@@ -3355,6 +3358,9 @@ dependencies = [
  "tauri-plugin-single-instance",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tonic",
  "windows 0.62.2",
  "zeroize",
 ]

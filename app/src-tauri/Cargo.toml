@@ -34,6 +34,8 @@ bytes = "1"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 zeroize = "1.9"
 cpal = "0.18.2"
+# Typed status codes from the SDK's transport; no additional client.
+tonic = { version = "0.14.9", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = [
@@ -61,6 +63,13 @@ windows = { version = "0.62", features = [
 
 [dev-dependencies]
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "test-util"] }
+# Reuse the SDK's loopback peer only in test binaries.
+futures-util = "0.3"
+http = "1"
+rambler-protocol = { path = "../../crates/rambler-protocol" }
+tokio-stream = { version = "0.1", features = ["net"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tonic = { version = "0.14.9", features = ["transport"] }
 
 [profile.release]
 codegen-units = 1
