@@ -15,6 +15,7 @@ fn options(light_punctuation: bool, typographic_spaces: bool, sentence_case: boo
         light_punctuation,
         typographic_spaces,
         sentence_case,
+        voice_commands: false,
     }
 }
 

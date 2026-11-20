@@ -508,8 +508,11 @@ pub struct ActivityDay {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppWords {
+    /// Display name.
     pub app: String,
     pub words: u64,
+    /// Lowercased executable name without extension.
+    pub id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
@@ -528,4 +531,91 @@ pub struct ActivityStats {
     pub listening_ms_total: u64,
     /// Words per target application; `None` until the host records it.
     pub apps: Option<Vec<AppWords>>,
+}
+
+// ---------------------------------------------------------------- milestone 5
+//
+// | command              | args                                   | returns            |
+// |----------------------|----------------------------------------|--------------------|
+// | `get_known_apps`     | —                                      | `AppIdentity[]` (most used first) |
+// | `get_voice_commands` | —                                      | `VoiceCommandInfo[]` |
+// | `list_notes`         | —                                      | `NoteMeta[]` (most recently updated first) |
+// | `get_note`           | `id: string`                           | `Note`             |
+// | `save_note`          | `note: { id: string \| null, text }`   | `NoteMeta` (null id creates; ≤ 200 000 chars, ≤ 1 000 notes) |
+// | `delete_note`        | `id: string`                           | `()`               |
+// | `transcribe_file`    | —                                      | `DraftView \| null` (opens the native file picker itself; null when the person cancels the picker; the result also joins the recents) |
+// | `cancel_transcription` | —                                    | `()`               |
+//
+// Events: `sambler://transcription` → `TranscriptionProgress` (no text).
+// `ActivityStats.apps` is now filled (`AppWords` gains `id`).
+
+pub const EVENT_TRANSCRIPTION: &str = "sambler://transcription";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VoiceCommandInfo {
+    /// What to say, e.g. « à la ligne ».
+    pub spoken: String,
+    /// What it produces, shown literally (e.g. "↵" for a line break).
+    pub result: String,
+    pub description: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteMeta {
+    pub id: String,
+    /// First non-empty line, at most 80 characters.
+    pub title: String,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub words: u64,
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Note {
+    #[serde(flatten)]
+    pub meta: NoteMeta,
+    pub text: String,
+}
+
+impl std::fmt::Debug for Note {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Note").field("meta", &self.meta).finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteInput {
+    pub id: Option<String>,
+    pub text: String,
+}
+
+impl std::fmt::Debug for NoteInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NoteInput").field("id", &self.id).finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TranscriptionPhase {
+    Reading,
+    Recognizing,
+    Done,
+    Cancelled,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranscriptionProgress {
+    pub phase: TranscriptionPhase,
+    /// Audio processed so far / total, in milliseconds, when known.
+    pub processed_ms: u64,
+    pub total_ms: Option<u64>,
+    /// French, text-free reason when `phase` is `failed`.
+    pub message: Option<String>,
 }
