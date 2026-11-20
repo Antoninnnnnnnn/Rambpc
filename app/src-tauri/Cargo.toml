@@ -36,6 +36,11 @@ zeroize = "1.9"
 cpal = "0.18.2"
 # Typed status codes from the SDK's transport; no additional client.
 tonic = { version = "0.14.9", default-features = false }
+# Unicode word boundaries, canonical caseless matching and protected text spans.
+unicode-segmentation = "1.13.3"
+icu_normalizer = { version = "2", default-features = false, features = ["compiled_data"] }
+unicase = "2.9"
+regex = "1"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = [

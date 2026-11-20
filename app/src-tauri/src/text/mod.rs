@@ -54,9 +54,59 @@ pub struct Expression {
     pub enabled: bool,
 }
 
+mod personal;
+mod prose;
+#[cfg(test)]
+mod tests;
+
+pub use personal::{RuleConflict, RuleConflictReason, RuleKind, RuleRef, validate_rules};
+
+use std::borrow::Cow;
+
+/// User-provided replacement text is opaque to all subsequent passes, even
+/// when it resembles another trigger or contains nonstandard typography.
+enum Piece<'a> {
+    Prose(&'a str),
+    Literal(Cow<'a, str>),
+}
+
+fn lf(text: &str) -> Cow<'_, str> {
+    if text.contains('\r') {
+        Cow::Owned(text.replace("\r\n", "\n").replace('\r', "\n"))
+    } else {
+        Cow::Borrowed(text)
+    }
+}
+
 /// Render the complete admitted text of a take with frozen rules.
 pub fn render(admitted: &str, rules: &TextRules) -> String {
-    // Placeholder until the text work package lands: Faithful behaviour.
-    let _ = rules;
-    admitted.to_owned()
+    let natural = rules.profile == RenderProfile::Natural;
+    // In Faithful the admitted bytes (including line endings) are authoritative.
+    let admitted = if natural {
+        lf(admitted)
+    } else {
+        admitted.into()
+    };
+    let pieces = personal::substitute(&admitted, rules);
+    if natural
+        && (rules.options.light_punctuation
+            || rules.options.typographic_spaces
+            || rules.options.sentence_case)
+    {
+        prose::format(&pieces, rules, admitted.len())
+    } else {
+        let mut output = String::with_capacity(admitted.len());
+        for piece in pieces {
+            output.push_str(match &piece {
+                Piece::Prose(text) => text,
+                Piece::Literal(text) => text,
+            });
+        }
+        output
+    }
+}
+
+/// Use exactly the same local rules as a take, without opening the microphone.
+pub fn preview(sample: &str, rules: &TextRules) -> String {
+    render(sample, rules)
 }

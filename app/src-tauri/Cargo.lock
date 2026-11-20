@@ -3346,10 +3346,12 @@ dependencies = [
  "cpal",
  "futures-util",
  "http",
+ "icu_normalizer",
  "rambler-audio",
  "rambler-engine",
  "rambler-protocol",
  "rambler-transport",
+ "regex",
  "serde",
  "serde_json",
  "tauri",
@@ -3361,6 +3363,8 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tonic",
+ "unicase",
+ "unicode-segmentation",
  "windows 0.62.2",
  "zeroize",
 ]
@@ -4704,6 +4708,12 @@ checksum = "96bd2f2237fe450fcd0a1d2f5f4e91711124f7857ba2e964247776ebeeb7b0c4"
 dependencies = [
  "unic-common",
 ]
+
+[[package]]
+name = "unicase"
+version = "2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "357cc3acc6a036009fd6c973ed009037c732d60d0b4f6c673e9041497482a28f"
 
 [[package]]
 name = "unicode-ident"
