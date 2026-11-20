@@ -1,0 +1,38 @@
+name: app-windows
+
+on:
+  push:
+    paths: ['app/**', 'crates/**', '.github/workflows/app-windows.yml']
+  pull_request:
+    paths: ['app/**', 'crates/**', '.github/workflows/app-windows.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Typecheck interface
+        run: npm run typecheck
+      - name: Test interface
+        run: npm test
+      - name: Build interface
+        run: npm run build
+      - name: Test native host (offline, no real service)
+        working-directory: app/src-tauri
+        run: cargo test --locked
