@@ -35,3 +35,10 @@ Premières mesures de l'application Windows (branche `windows-v1`) avec le vrai 
 ## Reste à qualifier
 
 Voix humaines (100 intentions, 70 FR / 30 EN), latence p95 sur voix réelles, Outlook classique (aucun profil sur ce poste) et nouvel Outlook, Narrateur, verrouillage et débranchement du micro en cours de prise, prises de 30/121/300 s, et les deux paquets sur un poste vierge.
+
+## Paquets 0.9.0 (même jour, même poste)
+
+- `Sambler-0.9.0-windows-x64-portable.zip` extrait dans un dossier temporaire : lancement en compte standard, `Data\WebView2` créé à côté de l'exécutable, aucun dossier créé dans `%LOCALAPPDATA%`, premier lancement affiché, « Dictée disponible » atteint avec le vrai service.
+- `Sambler-0.9.0-windows-x64-setup.exe /S` : installation par utilisateur sans élévation dans `%LOCALAPPDATA%\Sambler` (exécutable et désinstalleur seulement), raccourci du menu Démarrer, données séparées dans `%LOCALAPPDATA%\org.sambler.app`. `uninstall.exe /S` retire le programme, le raccourci et l'entrée de désinstallation ; les données restent sauf si la personne coche leur suppression (désinstallation interactive).
+- Dépendances de `Sambler.exe` (dumpbin) : uniquement des DLL système et l'UCRT de Windows ; ni `VCRUNTIME140.dll` ni `WebView2Loader.dll`.
+- Non signés. Empreintes SHA-256 dans `SHA256SUMS.txt` à côté des paquets.
