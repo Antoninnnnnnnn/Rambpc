@@ -1,6 +1,10 @@
 //! Interactive Windows 11 Notepad qualification. Only fresh test windows are written.
 
 #[cfg(windows)]
+#[path = "insertion_support/stress.rs"]
+mod stress;
+
+#[cfg(windows)]
 mod fixture {
     use sambler_lib::{
         platform::windows::{SendInputInserter, UiaTargetProbe},
@@ -250,6 +254,25 @@ mod fixture {
             }) {
                 return Err("fresh Notepad editor did not remain ready".into());
             }
+            let stress = super::stress::run(
+                "Notepad RichEditD2DPT",
+                first.editor,
+                &probe,
+                || token(&probe),
+                || first.contents(),
+            );
+            if stress.is_err()
+                && first.contents().is_some_and(|text| {
+                    text.starts_with("[before]")
+                        && text.ends_with("[after]")
+                        && text.encode_utf16().count() <= 216
+                })
+            {
+                // The stress markers tag the contents left by this run, even
+                // if a test did not deliver the intended middle text.
+                let _ = super::stress::set_contents(first.editor, "");
+            }
+            stress?;
             let initial = token(&probe)?;
             println!("Notepad RichEdit caret: Eligible");
             let outcome = inserter.insert_once(&initial, PHRASE);

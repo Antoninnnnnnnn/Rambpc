@@ -1,6 +1,10 @@
 //! Runs against a separate process containing only sacrificial Win32 Edit controls.
 
 #[cfg(windows)]
+#[path = "insertion_support/stress.rs"]
+mod stress;
+
+#[cfg(windows)]
 mod fixture {
     use sambler_lib::{
         platform::windows::{SendInputInserter, UiaTargetProbe},
@@ -17,20 +21,38 @@ mod fixture {
     };
     use windows::Win32::{
         Foundation::{HWND, LPARAM, LRESULT, WPARAM},
-        System::LibraryLoader::GetModuleHandleW,
+        System::LibraryLoader::{GetModuleHandleW, LoadLibraryW},
         UI::{Controls::EM_SETSEL, Input::KeyboardAndMouse::SetFocus, WindowsAndMessaging::*},
     };
     use windows::core::{PCWSTR, w};
 
     const CLASS: PCWSTR = w!("SamblerPlatformEditFixtureV1");
     const SELECT: u32 = WM_APP + 1;
+    const ARM_FOCUS_SWITCH: u32 = WM_APP + 2;
     const SINGLE: i32 = 100;
     const MULTI: i32 = 101;
     const PASSWORD: i32 = 102;
+    const RICH: i32 = 103;
     const PHRASE: &str = "Rendez-vous jeudi à 14 h";
     const UNICODE: &str = " é–🦀";
 
     unsafe extern "system" fn wndproc(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
+        if msg == ARM_FOCUS_SWITCH {
+            unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, 1) };
+            return LRESULT(1);
+        }
+        if msg == WM_COMMAND
+            && w.0 & 0xffff == MULTI as usize
+            && w.0 >> 16 == EN_CHANGE as usize
+            && unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) } == 1
+        {
+            // Switch while the first character is being handled, before the
+            // paced sender can observe the caret acknowledgement and continue.
+            unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0) };
+            if let Ok(other) = unsafe { GetDlgItem(Some(hwnd), RICH) } {
+                let _ = unsafe { SetFocus(Some(other)) };
+            }
+        }
         if msg == SELECT {
             let (id, selection) = match w.0 {
                 0 => (SINGLE, (0, 0)),
@@ -38,6 +60,7 @@ mod fixture {
                 2 => (PASSWORD, (0, 0)),
                 3 => (SINGLE, (0, 2)),
                 4 => (SINGLE, (2, 2)),
+                5 => (RICH, (0, 0)),
                 _ => return LRESULT(0),
             };
             if let Ok(edit) = unsafe { GetDlgItem(Some(hwnd), id) } {
@@ -63,6 +86,8 @@ mod fixture {
 
     fn window() {
         unsafe {
+            // Keep the control implementation loaded for the fixture process.
+            LoadLibraryW(w!("Msftedit.dll")).unwrap();
             let instance = GetModuleHandleW(None).unwrap().into();
             assert_ne!(
                 RegisterClassW(&WNDCLASSW {
@@ -81,7 +106,7 @@ mod fixture {
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 500,
-                260,
+                360,
                 None,
                 None,
                 Some(instance),
@@ -92,10 +117,15 @@ mod fixture {
                 (SINGLE, 12, ES_AUTOHSCROLL, 28),
                 (MULTI, 50, ES_MULTILINE, 87),
                 (PASSWORD, 148, ES_PASSWORD, 28),
+                (RICH, 188, ES_MULTILINE, 90),
             ] {
                 CreateWindowExW(
                     WS_EX_CLIENTEDGE,
-                    w!("Edit"),
+                    if id == RICH {
+                        w!("RICHEDIT50W")
+                    } else {
+                        w!("Edit")
+                    },
                     PCWSTR::null(),
                     WS_CHILD | WS_VISIBLE | WS_TABSTOP | WINDOW_STYLE(style as u32),
                     12,
@@ -161,7 +191,7 @@ mod fixture {
     }
 
     fn edit_text(hwnd: HWND) -> String {
-        let mut text = [0u16; 128];
+        let mut text = [0u16; 1024];
         let len = message(
             hwnd,
             WM_GETTEXT,
@@ -313,6 +343,32 @@ mod fixture {
             "stale token wrote to the fixture"
         );
         println!("focus change and return: FocusMoved; stale insertion refused");
+
+        for (case, id, label) in [(1, MULTI, "Win32 Edit"), (5, RICH, "Win32 RICHEDIT50W")] {
+            select(case);
+            let editor = unsafe { GetDlgItem(Some(hwnd), id) }.unwrap();
+            super::stress::run(
+                label,
+                editor,
+                &target,
+                || Ok(capture(&target, true)),
+                || Some(edit_text(editor)),
+            )
+            .unwrap_or_else(|error| panic!("{error}"));
+        }
+
+        select(1);
+        let multi = unsafe { GetDlgItem(Some(hwnd), MULTI) }.unwrap();
+        let rich = unsafe { GetDlgItem(Some(hwnd), RICH) }.unwrap();
+        let token = capture(&target, true);
+        let _watch = target.watch(&token, Box::new(|_| {}));
+        assert_eq!(message(hwnd, ARM_FOCUS_SWITCH, WPARAM(0), LPARAM(0)), 1);
+        assert_eq!(
+            SendInputInserter::paced_for_diagnostics().insert_once(&token, &"p".repeat(200)),
+            InsertOutcome::Partial
+        );
+        assert!(edit_text(multi) == "p" && edit_text(rich).is_empty());
+        println!("paced focus interruption: Partial; no write to the new field");
     }
 }
 

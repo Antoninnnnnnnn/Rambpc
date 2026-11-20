@@ -38,6 +38,7 @@ use windows::Win32::{
     UI::{
         Accessibility::*,
         Controls::{EM_GETPASSWORDCHAR, EM_GETSEL},
+        Input::KeyboardAndMouse::IsWindowEnabled,
         WindowsAndMessaging::*,
     },
 };
@@ -195,6 +196,7 @@ struct Identity {
     id: u64,
     window: Window,
     native_focus: Option<usize>,
+    native_edit: Option<NativeEdit>,
     attempted: AtomicBool,
     changed: OnceLock<TargetChange>,
     lifetime: Arc<()>,
@@ -219,6 +221,7 @@ struct State {
 struct Snapshot {
     window: Window,
     native_focus: Option<usize>,
+    native_edit: Option<NativeEdit>,
     element: IUIAutomationElement,
     caret: Caret,
     info: TargetInfo,
@@ -267,6 +270,7 @@ impl State {
             id: self.last_id,
             window: snapshot.window,
             native_focus: snapshot.native_focus,
+            native_edit: snapshot.native_edit,
             attempted: AtomicBool::new(false),
             changed: OnceLock::new(),
             lifetime: Arc::new(()),
@@ -306,6 +310,9 @@ impl State {
         {
             return Err(FocusMoved);
         }
+        if old.native_edit != now.native_edit {
+            return Err(SelectionChanged);
+        }
         match (&old.caret, &now.caret) {
             (Caret::Text(a), Caret::Text(b)) => {
                 for endpoint in [TextPatternRangeEndpoint_Start, TextPatternRangeEndpoint_End] {
@@ -334,7 +341,18 @@ fn identity(token: &TargetToken) -> Option<&Identity> {
 }
 
 pub(super) fn revalidate_token(token: &TargetToken) -> Result<(), TargetChange> {
+    revalidate(token, false)
+}
+
+fn consumed(token: &TargetToken) -> bool {
+    identity(token).is_some_and(|id| id.attempted.load(Ordering::Acquire))
+}
+
+fn revalidate(token: &TargetToken, watching: bool) -> Result<(), TargetChange> {
     let target = identity(token).ok_or(TargetChange::Unknown)?;
+    if watching && consumed(token) {
+        return Ok(());
+    }
     if let Some(&change) = target.changed.get() {
         return Err(change);
     }
@@ -343,21 +361,124 @@ pub(super) fn revalidate_token(token: &TargetToken) -> Result<(), TargetChange> 
         .worker
         .request(move |state| state.revalidate(id))
         .unwrap_or(Err(TargetChange::Unknown));
+    // The insertion path owns focus checks after committing to an attempt.
+    // An in-flight poll may observe the caret moving from our own first packet.
+    if watching && consumed(token) {
+        return Ok(());
+    }
     if let Err(change) = result {
         let _ = target.changed.set(change);
     }
     target.changed.get().copied().map_or(result, Err)
 }
 
+pub(super) fn write_focus(token: &TargetToken) -> Option<HWND> {
+    let id = identity(token)?;
+    if !on_default_desktop()
+        || Window::foreground() != Some(id.window)
+        || id.changed.get().is_some()
+        || id.worker.expired()
+    {
+        return None;
+    }
+    let focus = focus_hwnd(id.window);
+    (focus.map(|hwnd| hwnd.0 as usize) == id.native_focus)
+        .then(|| focus.unwrap_or_else(|| id.window.handle()))
+}
+
 pub(super) fn arm_single_write(token: &TargetToken) -> bool {
-    identity(token).is_some_and(|id| {
-        on_default_desktop()
-            && Window::foreground() == Some(id.window)
-            && focus_hwnd(id.window).map(|hwnd| hwnd.0 as usize) == id.native_focus
-            && id.changed.get().is_none()
-            && !id.worker.expired()
-            && !id.attempted.swap(true, Ordering::AcqRel)
-    })
+    write_focus(token).is_some()
+        && identity(token).is_some_and(|id| !id.attempted.swap(true, Ordering::AcqRel))
+}
+
+pub(super) fn native_edit(token: &TargetToken) -> Option<NativeEdit> {
+    identity(token)?.native_edit
+}
+
+pub(super) fn same_uia_focus(token: &TargetToken) -> bool {
+    let Some(id) = identity(token) else {
+        return false;
+    };
+    let key = id.id;
+    id.worker
+        .request(move |state| {
+            let Some((_, old)) = state.records.get(&key) else {
+                return false;
+            };
+            // No caret comparison here: successful earlier packets move it.
+            let Ok(focus) = (unsafe { state.automation.GetFocusedElement() }) else {
+                return false;
+            };
+            unsafe { state.automation.CompareElements(&old.element, &focus) }
+                .is_ok_and(|same| same.as_bool())
+                && unsafe { focus.CurrentIsEnabled() }.is_ok_and(|enabled| enabled.as_bool())
+                && unsafe { focus.GetCurrentPropertyValueEx(UIA_IsPasswordPropertyId, true) }
+                    .is_ok_and(|value| exact_bool(value) == Some(false))
+        })
+        .unwrap_or(false)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) struct NativeEdit {
+    hwnd: usize,
+    index: u32,
+    pub(super) rich: bool,
+    pub(super) multiline: bool,
+}
+
+impl NativeEdit {
+    pub(super) fn hwnd(self) -> HWND {
+        HWND(self.hwnd as _)
+    }
+
+    pub(super) fn writable_now(self, hwnd: HWND) -> bool {
+        hwnd == self.hwnd()
+            && unsafe { IsWindowEnabled(hwnd) }.as_bool()
+            && literal_class(&class_name(hwnd)) == Some(self.rich)
+            && window_style(hwnd).is_ok_and(|style| {
+                style & (ES_PASSWORD | ES_READONLY) as u32 == 0
+                    && (style & ES_MULTILINE as u32 != 0) == self.multiline
+            })
+            && edit_message(hwnd, EM_GETPASSWORDCHAR, WPARAM(0), LPARAM(0))
+                .is_ok_and(|mask| mask == 0)
+    }
+
+    pub(super) fn caret_unchanged(self) -> bool {
+        self.caret_advanced(0)
+    }
+
+    pub(super) fn caret_advanced(self, units: u32) -> bool {
+        self.index.checked_add(units).is_some_and(|expected| {
+            empty_edit_selection(self.hwnd()).is_ok_and(|index| index == expected)
+        })
+    }
+}
+
+fn literal_class(class: &str) -> Option<bool> {
+    if class.eq_ignore_ascii_case("Edit") {
+        return Some(false);
+    }
+    ["RichEdit20W", "RICHEDIT50W", "RichEditD2DPT"]
+        .iter()
+        .any(|name| class.eq_ignore_ascii_case(name))
+        .then_some(true)
+}
+
+fn empty_edit_selection(hwnd: HWND) -> Result<u32, Reject> {
+    // Unlike EM_EXGETSEL (>= WM_USER), EM_GETSEL marshals DWORD pointers
+    // across processes. Both Unicode Edit and RichEdit implement it.
+    let mut start = u32::MAX;
+    let mut end = u32::MAX;
+    edit_message(
+        hwnd,
+        EM_GETSEL,
+        WPARAM((&mut start as *mut u32) as usize),
+        LPARAM((&mut end as *mut u32) as isize),
+    )?;
+    if start != end || start == u32::MAX {
+        return Err(Selection.into());
+    }
+    Ok(start)
 }
 
 struct Watch {
@@ -397,8 +518,8 @@ impl TargetProbe for UiaTargetProbe {
         let worker = thread::Builder::new()
             .name("sambler-target-watch".into())
             .spawn(move || {
-                while !worker_stop.load(Ordering::Acquire) {
-                    if let Err(change) = revalidate_token(&worker_token) {
+                while !worker_stop.load(Ordering::Acquire) && !consumed(&worker_token) {
+                    if let Err(change) = revalidate(&worker_token, true) {
                         if !worker_stop.swap(true, Ordering::AcqRel) {
                             if let Ok(mut slot) = worker_callback.lock() {
                                 if let Some(callback) = slot.take() {
@@ -761,28 +882,23 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
                 }
                 Caret::Text(unsafe { range.Clone() }.map_err(|_| Selection)?)
             }
-            Err(_) if plain_edit && native_readonly == Some(false) => {
-                // EM_GETSEL is a system message and marshals its optional pointers
-                // across processes. The Win32 Edit provider lacks TextPattern on
-                // some releases. No content is read in this fallback.
-                let mut start = u32::MAX;
-                let mut end = u32::MAX;
-                edit_message(
-                    element_hwnd,
-                    EM_GETSEL,
-                    WPARAM((&mut start as *mut u32) as usize),
-                    LPARAM((&mut end as *mut u32) as isize),
-                )?;
-                if start == u32::MAX || start != end {
-                    return Err(Selection.into());
-                }
-                Caret::Edit {
-                    hwnd: element_hwnd,
-                    index: start,
-                }
-            }
+            Err(_) if plain_edit && native_readonly == Some(false) => Caret::Edit {
+                hwnd: element_hwnd,
+                index: empty_edit_selection(element_hwnd)?,
+            },
             Err(_) => return Err(Unsupported.into()),
         };
+    let native_edit = match (styles, native_class.as_deref().and_then(literal_class)) {
+        (Some(style), Some(rich)) if unsafe { IsWindowUnicode(element_hwnd) }.as_bool() => {
+            Some(NativeEdit {
+                hwnd: element_hwnd.0 as usize,
+                index: empty_edit_selection(element_hwnd)?,
+                rich,
+                multiline: style & ES_MULTILINE as u32 != 0,
+            })
+        }
+        _ => None,
+    };
     if Window::foreground() != Some(window) || focus_hwnd(window) != native_focus {
         return Err(NoFocusedField.into());
     }
@@ -795,6 +911,7 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
     Ok(Snapshot {
         window,
         native_focus: native_focus.map(|hwnd| hwnd.0 as usize),
+        native_edit,
         element,
         caret,
         info: TargetInfo { app, multiline },

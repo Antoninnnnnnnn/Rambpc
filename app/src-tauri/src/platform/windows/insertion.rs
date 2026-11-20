@@ -1,21 +1,46 @@
-use super::target;
+use super::target::{self, NativeEdit};
 use crate::ports::{InsertOutcome, Inserter, NotWrittenReason, TargetToken};
 use std::{
     thread,
     time::{Duration, Instant},
 };
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
-    KEYEVENTF_UNICODE, SendInput, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+use windows::Win32::{
+    Foundation::{
+        ERROR_ACCESS_DENIED, ERROR_INVALID_WINDOW_HANDLE, ERROR_SUCCESS, GetLastError, HWND,
+        LPARAM, SetLastError, WPARAM,
+    },
+    UI::{
+        Controls::EM_REPLACESEL,
+        Input::KeyboardAndMouse::{
+            GetAsyncKeyState, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
+            KEYEVENTF_UNICODE, SendInput, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN,
+            VK_SHIFT,
+        },
+        WindowsAndMessaging::{
+            SMTO_ABORTIFHUNG, SMTO_BLOCK, SMTO_ERRORONEXIT, SendMessageTimeoutW, WM_NULL,
+        },
+    },
 };
+use zeroize::Zeroizing;
 
 const MAX_UNITS: usize = 4096;
+const PACKET_PAUSE: Duration = Duration::from_millis(5);
+const PACE_BUDGET: Duration = Duration::from_secs(32);
+const MESSAGE_MS: u32 = 200;
 
 #[derive(Default)]
-pub struct SendInputInserter;
+pub struct SendInputInserter {
+    force_paced: bool,
+}
 impl SendInputInserter {
     pub fn new() -> Self {
-        Self
+        Self::default()
+    }
+
+    /// Exercises the keyboard path against an otherwise supported native edit.
+    #[doc(hidden)]
+    pub fn paced_for_diagnostics() -> Self {
+        Self { force_paced: true }
     }
 }
 
@@ -25,44 +50,186 @@ fn modifiers_held() -> bool {
         .any(|key| unsafe { GetAsyncKeyState(i32::from(key.0)) } < 0)
 }
 
-fn inputs(text: &str) -> Option<Vec<INPUT>> {
-    // The two Unicode line separators are not classified as control characters.
-    if text.is_empty()
-        || text.len() > MAX_UNITS * 3
-        || text
-            .chars()
-            .any(|ch| ch.is_control() || matches!(ch, '\u{2028}' | '\u{2029}'))
-    {
+#[derive(Clone, Copy)]
+enum LineEnds {
+    Single,
+    Edit,
+    Rich,
+}
+
+fn utf16(text: &str, lines: LineEnds) -> Option<Zeroizing<Vec<u16>>> {
+    if text.is_empty() || text.len() > MAX_UNITS * 3 {
         return None;
     }
-    let units = text.encode_utf16().count();
-    if units > MAX_UNITS {
-        return None;
-    }
-    let mut batch = Vec::with_capacity(units * 2);
-    for unit in text.encode_utf16() {
-        for flags in [KEYEVENTF_UNICODE, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP] {
-            batch.push(INPUT {
-                r#type: INPUT_KEYBOARD,
-                Anonymous: INPUT_0 {
-                    ki: KEYBDINPUT {
-                        wVk: VIRTUAL_KEY(0),
-                        wScan: unit,
-                        dwFlags: flags,
-                        time: 0,
-                        dwExtraInfo: 0,
-                    },
-                },
-            });
+    let mut units = Zeroizing::new(Vec::with_capacity(text.len().min(MAX_UNITS) + 1));
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\r' | '\n' => {
+                if matches!(lines, LineEnds::Single) {
+                    return None;
+                }
+                if ch == '\r' && chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
+                units.push(b'\r'.into());
+                if matches!(lines, LineEnds::Edit) {
+                    units.push(b'\n'.into());
+                }
+            }
+            ch if ch.is_control() || matches!(ch, '\u{2028}' | '\u{2029}') => return None,
+            ch => units.extend_from_slice(ch.encode_utf16(&mut [0; 2])),
+        }
+        if units.len() > MAX_UNITS {
+            return None;
         }
     }
-    Some(batch)
+    Some(units)
+}
+
+fn packet(unit: u16) -> [INPUT; 2] {
+    [KEYEVENTF_UNICODE, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP].map(|flags| INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: VIRTUAL_KEY(0),
+                wScan: unit,
+                dwFlags: flags,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    })
+}
+
+fn not_written(reason: NotWrittenReason) -> InsertOutcome {
+    InsertOutcome::NotWritten { reason }
+}
+
+fn insert_native(token: &TargetToken, edit: NativeEdit, units: &mut Vec<u16>) -> InsertOutcome {
+    units.push(0);
+    let hwnd = edit.hwnd();
+    if target::write_focus(token) != Some(hwnd)
+        || !edit.writable_now(hwnd)
+        || !edit.caret_unchanged()
+        || target::write_focus(token) != Some(hwnd)
+    {
+        return not_written(NotWrittenReason::TargetChanged);
+    }
+    unsafe {
+        SetLastError(ERROR_SUCCESS);
+        // EM_REPLACESEL is below WM_USER; USER32 marshals the UTF-16 string
+        // into the target. Target this control, not the keyboard input queue.
+        let sent = SendMessageTimeoutW(
+            hwnd,
+            EM_REPLACESEL,
+            WPARAM(1),
+            LPARAM(units.as_ptr() as isize),
+            SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT,
+            MESSAGE_MS,
+            None,
+        );
+        if sent.0 != 0 {
+            InsertOutcome::Delivered
+        } else if matches!(
+            GetLastError(),
+            ERROR_ACCESS_DENIED | ERROR_INVALID_WINDOW_HANDLE
+        ) {
+            not_written(NotWrittenReason::Refused)
+        } else {
+            // A timeout can occur after the target begins handling the message.
+            // Do not claim it wrote nothing or fall back to keyboard input.
+            InsertOutcome::Partial
+        }
+    }
+}
+
+fn responsive(hwnd: HWND) -> bool {
+    unsafe {
+        SendMessageTimeoutW(
+            hwnd,
+            WM_NULL,
+            WPARAM(0),
+            LPARAM(0),
+            SMTO_ABORTIFHUNG | SMTO_BLOCK | SMTO_ERRORONEXIT,
+            MESSAGE_MS,
+            None,
+        )
+    }
+    .0 != 0
+}
+
+fn insert_paced(token: &TargetToken, edit: Option<NativeEdit>, units: &[u16]) -> InsertOutcome {
+    let until = Instant::now() + PACE_BUDGET;
+    for (index, &unit) in units.iter().enumerate() {
+        let stop = |reason| {
+            if index == 0 {
+                not_written(reason)
+            } else {
+                InsertOutcome::Partial
+            }
+        };
+        let Some(hwnd) = target::write_focus(token) else {
+            return stop(NotWrittenReason::TargetChanged);
+        };
+        if index > 0 {
+            // A sent WM_NULL checks responsiveness; it is not a queue-drain
+            // acknowledgement. Give GetMessage/TranslateMessage a turn too.
+            if !responsive(hwnd) {
+                return InsertOutcome::Partial;
+            }
+            thread::sleep(PACKET_PAUSE);
+        }
+        let same_field = match edit {
+            Some(edit) => edit.writable_now(hwnd) && (index != 0 || edit.caret_unchanged()),
+            // Chromium/Office can move between distinct fields on one HWND.
+            None => target::same_uia_focus(token),
+        };
+        if !same_field || target::write_focus(token) != Some(hwnd) {
+            return stop(NotWrittenReason::TargetChanged);
+        }
+        if modifiers_held() {
+            return stop(NotWrittenReason::ModifiersHeld);
+        }
+        if Instant::now() >= until {
+            return stop(NotWrittenReason::Refused);
+        }
+        // Even adjacent surrogate halves are paced individually: two VK_PACKET
+        // values queued before translation can both resolve to the later unit.
+        match unsafe { SendInput(&packet(unit), std::mem::size_of::<INPUT>() as i32) } {
+            2 => {}
+            0 => return stop(NotWrittenReason::Refused),
+            _ => return InsertOutcome::Partial,
+        }
+        // In diagnostics the fallback can additionally observe the trusted
+        // native caret. Await a complete scalar, not a lone high surrogate.
+        // This reads only the selection index, never the inserted text.
+        if let Some(edit) = edit.filter(|_| !(0xd800..=0xdbff).contains(&unit)) {
+            let ack_deadline = until.min(Instant::now() + Duration::from_millis(200));
+            loop {
+                if target::write_focus(token) != Some(hwnd) || Instant::now() >= ack_deadline {
+                    return InsertOutcome::Partial;
+                }
+                if edit.caret_advanced((index + 1) as u32) {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(2));
+            }
+        }
+    }
+    InsertOutcome::Delivered
 }
 
 impl Inserter for SendInputInserter {
     fn insert_once(&self, token: &TargetToken, text: &str) -> InsertOutcome {
-        let not_written = |reason| InsertOutcome::NotWritten { reason };
-        let Some(batch) = inputs(text) else {
+        let edit = target::native_edit(token);
+        let direct = edit.filter(|_| !self.force_paced);
+        let lines = match direct {
+            Some(edit) if edit.multiline && edit.rich => LineEnds::Rich,
+            Some(edit) if edit.multiline => LineEnds::Edit,
+            _ => LineEnds::Single,
+        };
+        let Some(mut units) = utf16(text, lines) else {
             return not_written(NotWrittenReason::Unsupported);
         };
         let deadline = Instant::now() + Duration::from_millis(1500);
@@ -82,12 +249,10 @@ impl Inserter for SendInputInserter {
         if !target::arm_single_write(token) {
             return not_written(NotWrittenReason::TargetChanged);
         }
-        // Windows offers no atomic operation that binds SendInput to this HWND.
-        // This is the sole attempt; a partial acceptance is never retried.
-        match unsafe { SendInput(&batch, std::mem::size_of::<INPUT>() as i32) } as usize {
-            0 => not_written(NotWrittenReason::Refused),
-            count if count == batch.len() => InsertOutcome::Delivered,
-            _ => InsertOutcome::Partial,
+        // One logical attempt, with no fallback or retry after any write call.
+        match direct {
+            Some(edit) => insert_native(token, edit, &mut units),
+            None => insert_paced(token, edit, &units),
         }
     }
 }
@@ -97,11 +262,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn unicode_units_have_adjacent_down_up_pairs() {
-        let batch = inputs("é🦀").unwrap();
-        assert_eq!(batch.len(), 6);
-        for (pair, expected) in batch.chunks_exact(2).zip([0x00e9, 0xd83e, 0xdd80]) {
-            for (entry, flags) in pair
+    fn each_unicode_unit_is_a_separate_down_up_packet() {
+        let units = utf16("é🦀", LineEnds::Single).unwrap();
+        assert_eq!(&units[..], &[0x00e9, 0xd83e, 0xdd80]);
+        for &expected in units.iter() {
+            for (entry, flags) in packet(expected)
                 .iter()
                 .zip([KEYEVENTF_UNICODE, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP])
             {
@@ -115,11 +280,9 @@ mod tests {
     }
 
     #[test]
-    fn only_bounded_single_line_text_is_admitted() {
+    fn text_admissibility_and_line_endings_are_path_specific() {
         for rejected in [
             "",
-            "a\r",
-            "a\n",
             "a\t",
             "a\u{1b}",
             "a\0",
@@ -127,11 +290,22 @@ mod tests {
             "a\u{2028}",
             "a\u{2029}",
         ] {
-            assert!(inputs(rejected).is_none());
+            for lines in [LineEnds::Single, LineEnds::Edit, LineEnds::Rich] {
+                assert!(utf16(rejected, lines).is_none());
+            }
         }
-        assert!(inputs(&"é".repeat(MAX_UNITS)).is_some());
-        assert!(inputs(&"é".repeat(MAX_UNITS + 1)).is_none());
-        assert!(inputs(&"🦀".repeat(MAX_UNITS / 2)).is_some());
-        assert!(inputs(&"🦀".repeat(MAX_UNITS / 2 + 1)).is_none());
+        assert!(utf16("a\nb", LineEnds::Single).is_none());
+        for (lines, exact) in [
+            (LineEnds::Edit, "a\r\nb\r\nc\r\nd"),
+            (LineEnds::Rich, "a\rb\rc\rd"),
+        ] {
+            let got = utf16("a\nb\r\nc\rd", lines).unwrap();
+            assert_eq!(String::from_utf16(&got).unwrap(), exact);
+        }
+        assert!(utf16(&"é".repeat(MAX_UNITS), LineEnds::Single).is_some());
+        assert!(utf16(&"é".repeat(MAX_UNITS + 1), LineEnds::Single).is_none());
+        assert!(utf16(&"🦀".repeat(MAX_UNITS / 2), LineEnds::Single).is_some());
+        assert!(utf16(&"🦀".repeat(MAX_UNITS / 2 + 1), LineEnds::Single).is_none());
+        assert!(utf16(&"\n".repeat(MAX_UNITS / 2 + 1), LineEnds::Edit).is_none());
     }
 }
