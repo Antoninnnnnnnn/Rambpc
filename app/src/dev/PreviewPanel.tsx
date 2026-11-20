@@ -17,6 +17,7 @@ const OUTCOMES: { label: string; outcome: TakeOutcome | null; draft: DraftKind }
   { label: "Kept: NotWritten", outcome: { kind: "kept-in-sambler", reason: { kind: "not-written", reason: "unsupported" } }, draft: "complete" },
   { label: "Kept: Incomplete (gaps)", outcome: { kind: "kept-in-sambler", reason: { kind: "incomplete" } }, draft: "gaps" },
   { label: "NoText", outcome: { kind: "no-text" }, draft: "none" },
+  { label: "NoText + blocked passage", outcome: { kind: "no-text" }, draft: "gaps" },
   { label: "Cancelled", outcome: { kind: "cancelled" }, draft: "none" },
   { label: "Interrupted: network, recovered", outcome: { kind: "interrupted", reason: { kind: "network" }, recovered: true }, draft: "gaps" },
   { label: "Interrupted: mic denied", outcome: { kind: "interrupted", reason: { kind: "microphone", error: { kind: "access-denied" } }, recovered: false }, draft: "none" },

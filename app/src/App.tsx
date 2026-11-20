@@ -10,6 +10,7 @@ import { HistoryScreen } from "./screens/HistoryScreen";
 import { Home } from "./screens/Home";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { AccessProvider } from "./state/access";
+import { DraftSafetyProvider } from "./state/draftSafety";
 import {
   NavigationContext,
   useNavigation,
@@ -29,7 +30,9 @@ export function AppProviders({ bridge, children }: { bridge: Bridge; children: R
       <AnnouncerProvider>
         <UiStateProvider>
           <SettingsProvider>
-            <AccessProvider>{children}</AccessProvider>
+            <AccessProvider>
+              <DraftSafetyProvider>{children}</DraftSafetyProvider>
+            </AccessProvider>
           </SettingsProvider>
         </UiStateProvider>
       </AnnouncerProvider>
