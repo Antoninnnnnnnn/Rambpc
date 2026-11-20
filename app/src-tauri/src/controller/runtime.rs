@@ -729,7 +729,11 @@ impl Runtime {
                 let guard = probe.safety.watch_target(&*target, token);
                 // Do not send audio if focus became protected before the
                 // watch was installed. Ordinary changes do not disarm it.
-                if let Err(change) = target.revalidate(token) {
+                #[cfg(windows)]
+                let checked = crate::platform::windows::revalidate_after_install(&*target, token);
+                #[cfg(not(windows))]
+                let checked = target.revalidate(token);
+                if let Err(change) = checked {
                     probe.safety.on_target_change(change);
                 }
                 Some(guard)

@@ -187,10 +187,12 @@ pub(super) struct BodyCaret {
 }
 
 impl BodyCaret {
+    pub(super) fn same_document(&self, other: &Self) -> bool {
+        self.kind == other.kind && same_object(&self.document, &other.document)
+    }
+
     pub(super) fn same(&self, other: &Self) -> bool {
-        self.kind == other.kind
-            && self.index == other.index
-            && same_object(&self.document, &other.document)
+        self.index == other.index && self.same_document(other)
     }
 }
 

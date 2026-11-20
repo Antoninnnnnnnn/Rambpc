@@ -18,6 +18,7 @@ const profile = join(root, 'profile');
 const html = pathToFileURL(join(root, 'editor.html')).href;
 const code = app === 'code';
 const coldSwitch = !code && process.env.SAMBLER_FIXTURE_SWITCH === '1';
+const twoWindows = coldSwitch && process.env.SAMBLER_FIXTURE_TWO_WINDOWS === '1';
 const one = 'sambler fixture é🦀';
 const two = `${one}\nsecond line`;
 const flags = ['--disable-background-networking', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'];
@@ -32,7 +33,8 @@ function summarize(name, samples) {
   };
   const counts = ['exact', 'caret', 'undo', 'safe'].map(k => `${k}=${samples.filter(s => s[k]).length}/${runs}`).join(' ');
   const times = ['capture_ms', 'recheck_ms', 'visible_ms', 'insertion_ms', ...(coldSwitch ? ['activation_ms', 'input_ms'] : [])].map(k => `${k}=${percentiles(k)}`).join(' ');
-  console.log(`${app} ${name} ${counts} ${times}`);
+  const targeting = coldSwitch ? ` hold_ms=${process.env.SAMBLER_FIXTURE_HOLD_MS ?? 750} late=${samples.filter(s => s.late === 'true').length}/${runs} native_render=${samples.filter(s => s.native_render === 'true').length}/${runs} refused_dom_focused=${samples.filter(s => s.refusalFocused === true).length} refused_dom_unfocused=${samples.filter(s => s.refusalFocused === false).length}` : '';
+  console.log(`${app} ${name} ${counts} ${times}${targeting}`);
 }
 async function waitFor(callback, tries = 90, pause = 15) {
   for (let i = 0; i < tries; i++) {
@@ -66,10 +68,17 @@ const evalJs = async expression => {
   if (reply.exceptionDetails) throw Error('Fixture script failed');
   return reply.result.value;
 };
-async function native(command) {
+async function native(command, finishPassword) {
   const reply = lines.next();
   probeHandle.stdin.write(`${command}\n`);
-  const result = await reply;
+  let result = await reply;
+  if (result.value?.startsWith('phase=')) {
+    if (!finishPassword) throw Error('Unexpected fixture phase');
+    await finishPassword(result.value.slice(6));
+    const finished = lines.next();
+    probeHandle.stdin.write('finish\n');
+    result = await finished;
+  }
   if (result.done) throw Error('Native fixture exited');
   const line = result.value;
   const fields = Object.fromEntries([...line.matchAll(/(\w+)=([\w.()-]+)/g)].map(([,k,v]) => [k, v]));
@@ -87,6 +96,8 @@ async function launchBrowser() {
     <textarea id="multi" aria-label="Fixture textarea"></textarea>
     <div id="rich" role="textbox" aria-label="Fixture rich editor" aria-multiline="true" contenteditable="true" style="border:1px solid;padding:12px;white-space:pre-wrap"></div>
     <button>Fixture submit</button>
+    <button type="button" id="late-anchor">Late target anchor</button>
+    <input type="password" id="late-password" aria-label="Fixture password">
   </form>
   <script>
     window.submits = 0;
@@ -213,17 +224,47 @@ try {
       console.log(`${app} startup readiness eligible=${Boolean(ready)} attempts=${attempts} elapsed_ms=${(performance.now()-started).toFixed(0)}`);
       if (!ready) throw Error('Disposable fixture never exposed an eligible field');
     }
-    const cases = coldSwitch ? [['single','one']] : [['single','one'],['single','two'],['multi','one'],['multi','two'],['rich','one'],['rich','two']];
+    const primaryHwnd = twoWindows ? (await native('fixture-window')).window : undefined;
+    let otherWindow;
+    if (twoWindows) {
+      otherWindow = (await cdp('Target.createTarget', {url:'about:blank', newWindow:true})).targetId;
+      await cdp('Page.bringToFront');
+    }
+    const focusOnly = process.env.SAMBLER_FIXTURE_FOCUS_ONLY === '1';
+    const cases = focusOnly ? [] : coldSwitch ? [['single','one']] : [['single','one'],['single','two'],['multi','one'],['multi','two'],['rich','one'],['rich','two']];
     for (const [id, mode] of cases) {
       const samples = [];
       for (let i = 0; i < runs; i++) {
         await evalJs(`window.fixtureSignal?.abort(); window.fixtureSignal = null; window.setupFixture('${id}')`);
         await delay(50);
-        if (!(await native('foreground')).keys) throw Error('Could not activate the disposable field fixture');
-        const sample = await native(coldSwitch ? 'cold-one' : mode);
+        const activated = await waitFor(async () => {
+          if ((await native('foreground')).keys) return true;
+          await cdp('Page.bringToFront');
+          return false;
+        }, 4, 100);
+        if (!activated) {
+          summarize(`${id}/${mode}/interrupted`, samples);
+          throw Error(`Could not activate the disposable field fixture at case ${i + 1}`);
+        }
+        let switchMs;
+        if (twoWindows) {
+          await cdp('Target.activateTarget', {targetId:otherWindow});
+          if (!await waitFor(async () => (await native('fixture-window')).window !== primaryHwnd, 15, 10)) {
+            throw Error('Second disposable browser window did not become foreground');
+          }
+          const switching = performance.now();
+          await cdp('Page.bringToFront');
+          if (!await waitFor(async () => (await native('fixture-window')).window === primaryHwnd, 15, 10)) {
+            throw Error('Primary disposable browser window did not become foreground');
+          }
+          switchMs = performance.now() - switching;
+        }
+        const sample = await native(twoWindows ? 'cold-current' : coldSwitch ? 'cold-one' : mode);
+        if (Number.isFinite(switchMs)) sample.activation_ms = switchMs;
         if (coldSwitch && !sample.outcome) {
           const focused = await evalJs("document.hasFocus() && document.activeElement.id === 'single'");
-          statuses[`post-switch DOM focus on capture refusal=${focused}`] = true;
+          sample.refusalFocused = focused;
+          statuses[`post-switch DOM focus on refusal=${focused}`] = true;
           if (process.env.SAMBLER_FIXTURE_MSAA === '1') await native('msaa');
         }
         if (id === 'single' && mode === 'two') {
@@ -247,7 +288,40 @@ try {
       }
       summarize(`${id}/${mode}${coldSwitch ? '/after-switch' : ''}`, samples);
     }
-    for (const mode of coldSwitch ? [] : ['one', 'two']) {
+    if (process.env.SAMBLER_FIXTURE_LATE_PASSWORD === '1') {
+      if (!(await native('foreground')).keys) throw Error('Could not activate the disposable password fixture');
+      await evalJs("document.getElementById('late-anchor').focus()");
+      await delay(75);
+      const result = await native('late-password', async () => {
+        await evalJs("document.getElementById('late-password').focus()");
+        await delay(125);
+      });
+      const untouched = await evalJs("document.getElementById('late-password').value.length === 0 && window.submits === 0");
+      console.log(`${app} late password: late=${result.late} protected=${result.protected} blocked=${result.blocked} untouched=${untouched}`);
+      if (result.late !== 'true' || result.protected !== 'true' || result.blocked !== 'true' || !untouched) {
+        throw Error('Late password guard was not verified');
+      }
+    }
+    if (focusOnly) {
+      for (const mode of ['leave-return', 'move-caret', 'different-field']) {
+        if (!(await native('foreground')).keys) throw Error('Could not activate the disposable field fixture');
+        await evalJs("window.fixtureSignal?.abort(); window.fixtureSignal = null; window.setupFixture('single')");
+        await delay(100);
+        const result = await native(mode, async phase => {
+          if (phase === 'move-caret') await evalJs("document.getElementById('single').setSelectionRange(0,0)");
+          else if (phase === 'different-field') await evalJs("document.getElementById('multi').focus()");
+          else throw Error('Unexpected strict-target fixture phase');
+        });
+        const before = 'left  right';
+        const expected = mode === 'move-caret' ? one + before : `left ${one} right`;
+        const success = mode === 'different-field'
+          ? result.recheck === 'Err(FocusMoved)' && await evalJs(`document.getElementById('single').value === ${JSON.stringify(before)} && !window.visible`)
+          : result.outcome === 'Delivered' && await evalJs(`document.getElementById('single').value === ${JSON.stringify(expected)} && document.getElementById('single').selectionStart === ${one.length + (mode === 'leave-return' ? 5 : 0)}`);
+        console.log(`${app} strict ${mode}: passed=${Boolean(success)} observed=${result.observed}`);
+        if (!success) throw Error('Strict-target fixture failed');
+      }
+    }
+    for (const mode of coldSwitch || focusOnly ? [] : ['one', 'two']) {
       const samples = [];
       for (let i = 0; i < runs; i++) {
         if (!(await native('foreground')).keys) throw Error('Could not activate the disposable omnibox fixture');

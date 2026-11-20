@@ -10,10 +10,11 @@ use crate::{
     settings::InsertionMethod,
 };
 use std::{
+    cell::Cell,
     collections::HashMap,
     sync::{
         Arc, Mutex, OnceLock, Weak,
-        atomic::{AtomicBool, AtomicU32, Ordering},
+        atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
         mpsc,
     },
     thread,
@@ -251,7 +252,6 @@ impl Worker {
                 let mut state = State {
                     automation,
                     records: HashMap::new(),
-                    last_id: 0,
                 };
                 while !worker_expired.load(Ordering::Acquire) {
                     let Ok(job) = requests.recv() else {
@@ -364,24 +364,127 @@ impl TriggerFocus {
     }
 
     pub(crate) fn identifies(self, token: &TargetToken) -> bool {
-        identity(token)
-            .is_some_and(|id| self.window == Some(id.window) && self.focused == id.native_focus)
+        identity(token).is_some_and(|id| {
+            self.window == Some(id.window) && (id.late.is_some() || self.focused == id.native_focus)
+        })
     }
 }
+
+#[derive(Clone, Copy)]
+struct LateWindow {
+    root: Window,
+    integrity: u32,
+    app: AppKind,
+}
+
+#[derive(Clone, Copy)]
+struct LateField {
+    native_focus: Option<usize>,
+    multiline: Option<bool>,
+}
+
+impl LateWindow {
+    fn capture(root: Window) -> Option<Self> {
+        if root.pid == std::process::id() || !on_default_desktop() {
+            return None;
+        }
+        // Late Paste intentionally remembers only the foreground root: Chromium
+        // can give its root HWND focus for both the page and the omnibox. A field
+        // change inside this root cannot disarm an as-yet unidentified field.
+        // End-of-take UIA must fully qualify and freeze the actual editor first.
+        let process = Handle(
+            unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, root.pid) }.ok()?,
+        );
+        let app = app_kind(process.0);
+        // Do not relax targeting for terminals embedded in Chromium shells.
+        if app == AppKind::VsCode {
+            return None;
+        }
+        let integrity = integrity(process.0).filter(|&level| {
+            integrity(unsafe { GetCurrentProcess() }).is_some_and(|ours| level <= ours)
+        })?;
+        let late = Self {
+            root,
+            integrity,
+            app,
+        };
+        late.check().ok()?;
+        Some(late)
+    }
+
+    fn check(self) -> Result<(), TargetChange> {
+        if !on_default_desktop() {
+            return Err(TargetChange::Protected);
+        }
+        if Window::new(self.root.handle()) != Some(self.root) {
+            return Err(TargetChange::WindowGone);
+        }
+        if Window::foreground() != Some(self.root) {
+            return Err(TargetChange::FocusMoved);
+        }
+        Ok(())
+    }
+}
+
+static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
 struct Identity {
     worker: Arc<Worker>,
     id: u64,
     window: Window,
     native_focus: Option<usize>,
-    native_edit: Option<NativeEdit>,
+    native_edit: Mutex<Option<NativeEdit>>,
     office: bool,
     info: TargetInfo,
+    late: Option<LateWindow>,
+    qualified_late: OnceLock<LateField>,
     attempted: AtomicBool,
     write_permission: OnceLock<Arc<AtomicBool>>,
     protection: OnceLock<Protection>,
     changed: OnceLock<TargetChange>,
     lifetime: Arc<()>,
+}
+
+impl Identity {
+    fn new(
+        worker: Arc<Worker>,
+        window: Window,
+        native_focus: Option<usize>,
+        info: TargetInfo,
+    ) -> Self {
+        Self {
+            worker,
+            id: NEXT_ID.fetch_add(1, Ordering::Relaxed),
+            window,
+            native_focus,
+            info,
+            native_edit: Mutex::new(None),
+            office: false,
+            late: None,
+            qualified_late: OnceLock::new(),
+            attempted: AtomicBool::new(false),
+            write_permission: OnceLock::new(),
+            protection: OnceLock::new(),
+            changed: OnceLock::new(),
+            lifetime: Arc::new(()),
+        }
+    }
+
+    fn latch_protection(&self) {
+        let _ = self.changed.set(TargetChange::Protected);
+        if let Some(protection) = self.protection.get() {
+            protection.live.store(false, Ordering::Release);
+            protection.detected.store(true, Ordering::Release);
+        }
+    }
+
+    fn verdict(self) -> TargetVerdict {
+        let info = self.info;
+        TargetVerdict::Eligible {
+            token: TargetToken(Arc::new(self)),
+            info,
+        }
+    }
 }
 
 impl Drop for Identity {
@@ -397,7 +500,6 @@ impl Drop for Identity {
 struct State {
     automation: IUIAutomation,
     records: HashMap<u64, (Weak<()>, Snapshot)>,
-    last_id: u64,
 }
 
 struct Snapshot {
@@ -446,17 +548,21 @@ impl State {
         &mut self,
         worker: Arc<Worker>,
         expected: Option<Window>,
+        try_late: bool,
         deadline: Instant,
     ) -> TargetVerdict {
         let snapshot = loop {
             if expected.is_some() && Window::foreground() != expected {
                 return Reject::from(NoFocusedField).into();
             }
-            match inspect(&self.automation) {
+            match inspect(&self.automation, false) {
                 Ok(snapshot) if expected.is_none_or(|window| window == snapshot.window) => {
                     break snapshot;
                 }
                 Ok(_) => return Reject::from(NoFocusedField).into(),
+                Err(Reject::Uncertain(NoFocusedField | Unresponsive)) if try_late => {
+                    return Reject::from(NoFocusedField).into();
+                }
                 Err(Reject::Uncertain(NoFocusedField | Unresponsive | Unsupported))
                     if expected.is_some() && Instant::now() + CHROMIUM_RETRY < deadline =>
                 {
@@ -467,40 +573,95 @@ impl State {
                 Err(reject) => return reject.into(),
             }
         };
-        self.last_id += 1;
-        let identity = Identity {
+        let mut identity = Identity::new(
             worker,
-            id: self.last_id,
-            window: snapshot.window,
-            native_focus: snapshot.native_focus,
-            native_edit: snapshot.native_edit,
-            office: matches!(snapshot.caret, Caret::Office(_)),
-            info: snapshot.info,
-            attempted: AtomicBool::new(false),
-            write_permission: OnceLock::new(),
-            protection: OnceLock::new(),
-            changed: OnceLock::new(),
-            lifetime: Arc::new(()),
-        };
-        let info = snapshot.info;
+            snapshot.window,
+            snapshot.native_focus,
+            snapshot.info,
+        );
+        identity.native_edit = Mutex::new(snapshot.native_edit);
+        identity.office = matches!(snapshot.caret, Caret::Office(_));
         self.records
             .insert(identity.id, (Arc::downgrade(&identity.lifetime), snapshot));
-        TargetVerdict::Eligible {
-            token: TargetToken(Arc::new(identity)),
-            info,
+        identity.verdict()
+    }
+
+    fn qualify_late(
+        &mut self,
+        id: &Identity,
+        late: LateWindow,
+        deadline: Instant,
+        pin_caret: bool,
+    ) -> Result<LateField, TargetChange> {
+        late.check()?;
+        let process = Handle(
+            unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, late.root.pid) }
+                .map_err(|_| TargetChange::WindowGone)?,
+        );
+        if integrity(process.0) != Some(late.integrity) {
+            return Err(TargetChange::Unknown);
+        }
+        if let Some((_, known)) = self.records.get_mut(&id.id) {
+            let range = recheck_chromium(&self.automation, known, pin_caret)?;
+            if !pin_caret {
+                known.caret = Caret::Text(range);
+            }
+            return Ok(LateField {
+                native_focus: known.native_focus,
+                multiline: known.info.multiline,
+            });
+        }
+        loop {
+            late.check()?;
+            match inspect(&self.automation, true) {
+                Ok(snapshot) => {
+                    if snapshot.window != late.root
+                        || !matches!(snapshot.caret, Caret::Text(_))
+                        || snapshot.native_edit.is_some()
+                    {
+                        return Err(TargetChange::FocusMoved);
+                    }
+                    late.check()?;
+                    if Instant::now() >= deadline {
+                        return Err(TargetChange::Unknown);
+                    }
+                    let field = LateField {
+                        native_focus: snapshot.native_focus,
+                        multiline: snapshot.info.multiline,
+                    };
+                    self.records
+                        .insert(id.id, (Arc::downgrade(&id.lifetime), snapshot));
+                    return Ok(field);
+                }
+                Err(Reject::Protected) => return Err(TargetChange::Protected),
+                Err(Reject::Uncertain(NoFocusedField | Unresponsive))
+                    if Instant::now() + CHROMIUM_RETRY < deadline =>
+                {
+                    thread::sleep(CHROMIUM_RETRY)
+                }
+                Err(Reject::Uncertain(Selection)) => return Err(TargetChange::SelectionChanged),
+                Err(_) => return Err(TargetChange::Unknown),
+            }
         }
     }
 
-    fn revalidate(&mut self, id: u64) -> Result<(), TargetChange> {
+    fn revalidate(&mut self, id: u64, pin_caret: bool) -> Result<Option<NativeEdit>, TargetChange> {
         use TargetChange::*;
-        let old = &self.records.get(&id).ok_or(Unknown)?.1;
+        let old = &mut self.records.get_mut(&id).ok_or(Unknown)?.1;
         if old.window.chromium_widget()
             && Window::foreground() == Some(old.window)
             && matches!(old.caret, Caret::Text(_))
         {
-            return recheck_chromium(&self.automation, old);
+            let range = recheck_chromium(&self.automation, old, pin_caret)?;
+            if !pin_caret {
+                old.caret = Caret::Text(range);
+                if let Some(edit) = &mut old.native_edit {
+                    edit.selection = edit_selection(edit.hwnd()).map_err(|_| SelectionChanged)?;
+                }
+            }
+            return Ok(old.native_edit);
         }
-        let now = inspect(&self.automation);
+        let now = inspect(&self.automation, false);
         // Protection takes precedence even when the password field is in a different window.
         if matches!(now, Err(Reject::Protected)) {
             return Err(Protected);
@@ -517,33 +678,26 @@ impl State {
             _ => Unknown,
         })?;
         if now.window != old.window
+            || now.native_focus != old.native_focus
             || !unsafe { self.automation.CompareElements(&old.element, &now.element) }
                 .map_err(|_| Unknown)?
                 .as_bool()
         {
             return Err(FocusMoved);
         }
-        if old.native_edit != now.native_edit {
-            return Err(SelectionChanged);
+        if old.native_edit.map(NativeEdit::shape) != now.native_edit.map(NativeEdit::shape)
+            || old.info.multiline != now.info.multiline
+        {
+            return Err(Unknown);
         }
         match (&old.caret, &now.caret) {
-            (Caret::Office(a), Caret::Office(b)) => {
-                if a.same(b) {
-                    Ok(())
-                } else {
-                    Err(SelectionChanged)
-                }
+            (Caret::Office(a), Caret::Office(b)) if !a.same_document(b) => return Err(FocusMoved),
+            (Caret::Office(a), Caret::Office(b)) if pin_caret && !a.same(b) => {
+                return Err(SelectionChanged);
             }
-            (Caret::Text(a), Caret::Text(b)) => {
-                for endpoint in [TextPatternRangeEndpoint_Start, TextPatternRangeEndpoint_End] {
-                    if unsafe { a.CompareEndpoints(endpoint, b, endpoint) }.map_err(|_| Unknown)?
-                        != 0
-                    {
-                        return Err(SelectionChanged);
-                    }
-                }
-                Ok(())
-            }
+            (Caret::Office(_), Caret::Office(_)) => {}
+            (Caret::Text(a), Caret::Text(b)) if pin_caret => compare_carets(a, b)?,
+            (Caret::Text(_), Caret::Text(_)) => {}
             (
                 Caret::Edit {
                     hwnd: a,
@@ -554,14 +708,17 @@ impl State {
                     selection: j,
                 },
             ) if a == b => {
-                if i == j {
-                    Ok(())
-                } else {
-                    Err(SelectionChanged)
+                if pin_caret && i != j {
+                    return Err(SelectionChanged);
                 }
             }
-            _ => Err(Unknown),
+            _ => return Err(Unknown),
         }
+        if !pin_caret {
+            old.caret = now.caret;
+            old.native_edit = now.native_edit;
+        }
+        Ok(old.native_edit)
     }
 }
 
@@ -571,6 +728,22 @@ fn identity(token: &TargetToken) -> Option<&Identity> {
 
 pub(super) fn revalidate_token(token: &TargetToken) -> Result<(), TargetChange> {
     revalidate(token, false)
+}
+
+pub(crate) fn revalidate_after_install(
+    probe: &dyn TargetProbe,
+    token: &TargetToken,
+) -> Result<(), TargetChange> {
+    if is_late(token) {
+        revalidate(token, true)
+    } else {
+        probe.revalidate(token)
+    }
+}
+
+#[doc(hidden)]
+pub fn is_late(token: &TargetToken) -> bool {
+    identity(token).is_some_and(|target| target.late.is_some())
 }
 
 fn consumed(token: &TargetToken) -> bool {
@@ -585,23 +758,68 @@ fn revalidate(token: &TargetToken, watching: bool) -> Result<(), TargetChange> {
     if let Some(&change) = target.changed.get() {
         return Err(change);
     }
+    if let Some(late) = target.late {
+        let result = if watching {
+            late.check()
+        } else if insertion_method() != InsertionMethod::Paste {
+            Err(TargetChange::Unknown)
+        } else {
+            let budget = if target.qualified_late.get().is_some() {
+                CHROMIUM_RECHECK_BUDGET
+            } else {
+                CHROMIUM_CAPTURE_BUDGET
+            };
+            let deadline = Instant::now() + budget;
+            let pin_caret = consumed(token);
+            let token = token.clone();
+            target
+                .worker
+                .request_until(deadline, move |state| {
+                    let id = identity(&token).ok_or(TargetChange::Unknown)?;
+                    state.qualify_late(id, late, deadline, pin_caret)
+                })
+                .unwrap_or(Err(TargetChange::Unknown))
+                .map(|field| {
+                    let _ = target.qualified_late.set(field);
+                })
+        };
+        if watching && consumed(token) {
+            return Ok(());
+        }
+        if result == Err(TargetChange::Protected) {
+            target.latch_protection();
+        }
+        return target.changed.get().copied().map_or(result, Err);
+    }
     let id = target.id;
     let budget = if target.window.chromium_widget() {
         CHROMIUM_RECHECK_BUDGET
     } else {
         REQUEST_BUDGET
     };
+    let pin_caret = watching || consumed(token);
     let result = target
         .worker
-        .request_until(Instant::now() + budget, move |state| state.revalidate(id))
-        .unwrap_or(Err(TargetChange::Unknown));
+        .request_until(Instant::now() + budget, move |state| {
+            state.revalidate(id, pin_caret)
+        })
+        .unwrap_or(Err(TargetChange::Unknown))
+        .and_then(|edit| {
+            if !pin_caret {
+                *target
+                    .native_edit
+                    .lock()
+                    .map_err(|_| TargetChange::Unknown)? = edit;
+            }
+            Ok(())
+        });
     // The insertion path owns focus checks after committing to an attempt.
     // An in-flight poll may observe the caret moving from our own first packet.
     if watching && consumed(token) {
         return Ok(());
     }
-    if let Err(change) = result {
-        let _ = target.changed.set(change);
+    if result == Err(TargetChange::Protected) {
+        target.latch_protection();
     }
     target.changed.get().copied().map_or(result, Err)
 }
@@ -649,8 +867,13 @@ pub(super) fn write_focus(token: &TargetToken) -> Option<HWND> {
     {
         return None;
     }
+    let expected_focus = if id.late.is_some() {
+        id.qualified_late.get()?.native_focus
+    } else {
+        id.native_focus
+    };
     let focus = focus_hwnd(id.window);
-    (focus.map(|hwnd| hwnd.0 as usize) == id.native_focus)
+    (focus.map(|hwnd| hwnd.0 as usize) == expected_focus)
         .then(|| focus.unwrap_or_else(|| id.window.handle()))
 }
 
@@ -660,7 +883,7 @@ pub(super) fn arm_single_write(token: &TargetToken) -> bool {
 }
 
 pub(super) fn native_edit(token: &TargetToken) -> Option<NativeEdit> {
-    identity(token)?.native_edit
+    *identity(token)?.native_edit.lock().ok()?
 }
 
 pub(super) fn office_body(token: &TargetToken) -> bool {
@@ -668,7 +891,12 @@ pub(super) fn office_body(token: &TargetToken) -> bool {
 }
 
 pub(super) fn known_multiline(token: &TargetToken) -> bool {
-    identity(token).is_some_and(|id| id.info.multiline == Some(true))
+    identity(token).is_some_and(|id| {
+        id.qualified_late
+            .get()
+            .map_or(id.info.multiline, |field| field.multiline)
+            == Some(true)
+    })
 }
 
 pub(super) fn outlook_paste_only(token: &TargetToken) -> bool {
@@ -757,14 +985,32 @@ fn checked_chromium_focus(
     Ok(focus)
 }
 
-fn recheck_chromium(automation: &IUIAutomation, old: &Snapshot) -> Result<(), TargetChange> {
+fn compare_carets(
+    saved: &IUIAutomationTextRange,
+    current: &IUIAutomationTextRange,
+) -> Result<(), TargetChange> {
+    for endpoint in [TextPatternRangeEndpoint_Start, TextPatternRangeEndpoint_End] {
+        if unsafe { saved.CompareEndpoints(endpoint, current, endpoint) }
+            .map_err(|_| TargetChange::Unknown)?
+            != 0
+        {
+            return Err(TargetChange::SelectionChanged);
+        }
+    }
+    Ok(())
+}
+
+fn recheck_chromium(
+    automation: &IUIAutomation,
+    old: &Snapshot,
+    pin_caret: bool,
+) -> Result<IUIAutomationTextRange, TargetChange> {
     use TargetChange::*;
     let focus = checked_chromium_focus(automation, old)?;
     let Caret::Text(saved) = &old.caret else {
         return Err(Unknown);
     };
-    // Revalidate the range endpoints, not the object identity of the range.
-    // A selected single-line range must match at both ends.
+    // The current range is authoritative until arming the actual write.
     let text: IUIAutomationTextPattern =
         unsafe { focus.GetCurrentPatternAs(UIA_TextPatternId) }.map_err(|_| Unknown)?;
     let selected = unsafe { text.GetSelection() }.map_err(|_| Unknown)?;
@@ -774,12 +1020,13 @@ fn recheck_chromium(automation: &IUIAutomation, old: &Snapshot) -> Result<(), Ta
     let range = unsafe { selected.GetElement(0) }.map_err(|_| Unknown)?;
     let start = TextPatternRangeEndpoint_Start;
     let end = TextPatternRangeEndpoint_End;
-    if (old.info.multiline != Some(false)
-        && unsafe { range.CompareEndpoints(start, &range, end) }.map_err(|_| Unknown)? != 0)
-        || unsafe { saved.CompareEndpoints(start, &range, start) }.map_err(|_| Unknown)? != 0
-        || unsafe { saved.CompareEndpoints(end, &range, end) }.map_err(|_| Unknown)? != 0
+    if old.info.multiline != Some(false)
+        && unsafe { range.CompareEndpoints(start, &range, end) }.map_err(|_| Unknown)? != 0
     {
         return Err(SelectionChanged);
+    }
+    if pin_caret {
+        compare_carets(saved, &range)?;
     }
     if unsafe { range.GetAttributeValue(UIA_IsReadOnlyAttributeId) }
         .ok()
@@ -795,7 +1042,7 @@ fn recheck_chromium(automation: &IUIAutomation, old: &Snapshot) -> Result<(), Ta
             return Err(Unknown);
         }
     }
-    Ok(())
+    Ok(range)
 }
 
 pub(super) fn same_uia_focus(token: &TargetToken) -> bool {
@@ -833,6 +1080,10 @@ pub(super) struct NativeEdit {
 }
 
 impl NativeEdit {
+    fn shape(self) -> (usize, bool, bool) {
+        (self.hwnd, self.rich, self.multiline)
+    }
+
     pub(super) fn hwnd(self) -> HWND {
         HWND(self.hwnd as _)
     }
@@ -889,6 +1140,62 @@ fn edit_selection(hwnd: HWND) -> Result<[u32; 2], Reject> {
     Ok([start, end])
 }
 
+thread_local! {
+    static LATE_FOREGROUND: Cell<Option<(Window, bool)>> = const { Cell::new(None) };
+}
+
+// Foreground events preserve a switch away and back between cheap HWND polls.
+// Use a per-watch hook because a late take must also work if prewarm failed.
+struct LateWatchHook(HWINEVENTHOOK);
+impl LateWatchHook {
+    fn new(root: Window) -> Option<Self> {
+        unsafe extern "system" fn moved(
+            _: HWINEVENTHOOK,
+            _: u32,
+            hwnd: HWND,
+            _: i32,
+            _: i32,
+            _: u32,
+            _: u32,
+        ) {
+            let _ = LATE_FOREGROUND.try_with(|state| {
+                if let Some((root, false)) = state.get()
+                    && hwnd != root.handle()
+                {
+                    state.set(Some((root, true)));
+                }
+            });
+        }
+        LATE_FOREGROUND.set(Some((root, false)));
+        let hook = unsafe {
+            SetWinEventHook(
+                EVENT_SYSTEM_FOREGROUND,
+                EVENT_SYSTEM_FOREGROUND,
+                None,
+                Some(moved),
+                0,
+                0,
+                WINEVENT_OUTOFCONTEXT,
+            )
+        };
+        (!hook.0.is_null()).then_some(Self(hook))
+    }
+
+    fn displaced(&self) -> bool {
+        let mut message = MSG::default();
+        unsafe {
+            let _ = PeekMessageW(&mut message, None, 0, 0, PM_NOREMOVE);
+        }
+        LATE_FOREGROUND.get().is_some_and(|(_, moved)| moved)
+    }
+}
+impl Drop for LateWatchHook {
+    fn drop(&mut self) {
+        let _ = unsafe { UnhookWinEvent(self.0) };
+        LATE_FOREGROUND.set(None);
+    }
+}
+
 struct Watch {
     stopped: Arc<AtomicBool>,
     thread: thread::Thread,
@@ -903,20 +1210,58 @@ impl Drop for Watch {
 impl TargetProbe for UiaTargetProbe {
     fn capture(&self) -> TargetVerdict {
         let expected = Window::foreground().filter(|window| window.chromium_widget());
+        let late = if insertion_method() == InsertionMethod::Paste {
+            expected.and_then(LateWindow::capture)
+        } else {
+            None
+        };
+        let try_late = late.is_some();
         let deadline = Instant::now()
-            + if expected.is_some() {
+            + if expected.is_some() && !try_late {
                 CHROMIUM_CAPTURE_BUDGET
             } else {
                 REQUEST_BUDGET
             };
-        self.worker()
+        let verdict = self
+            .worker()
             .and_then(|worker| {
                 let owner = worker.clone();
                 worker.request_until(deadline, move |state| {
-                    state.capture(owner, expected, deadline)
+                    state.capture(owner, expected, try_late, deadline)
                 })
             })
-            .unwrap_or_else(|| Reject::from(Unresponsive).into())
+            .unwrap_or_else(|| Reject::from(Unresponsive).into());
+        if matches!(
+            verdict,
+            TargetVerdict::Uncertain {
+                reason: NoFocusedField | Unresponsive
+            }
+        ) && let Some(late) = late
+        {
+            if let Err(change) = late.check() {
+                return if change == TargetChange::Protected {
+                    TargetVerdict::Protected
+                } else {
+                    verdict
+                };
+            }
+            // A hung press-time apartment may have been retired; give the
+            // late token a usable generation for end-of-take qualification.
+            if let Some(worker) = self.worker() {
+                let mut id = Identity::new(
+                    worker,
+                    late.root,
+                    None,
+                    TargetInfo {
+                        app: late.app,
+                        multiline: None,
+                    },
+                );
+                id.late = Some(late);
+                return id.verdict();
+            }
+        }
+        verdict
     }
 
     fn watch(
@@ -935,6 +1280,9 @@ impl TargetProbe for UiaTargetProbe {
         let worker = thread::Builder::new()
             .name("sambler-target-watch".into())
             .spawn(move || {
+                let late_hook = identity(&worker_token)
+                    .and_then(|id| id.late)
+                    .and_then(|late| LateWatchHook::new(late.root));
                 let mut displaced = false;
                 while !worker_stop.load(Ordering::Acquire) && !consumed(&worker_token) {
                     if displaced {
@@ -950,11 +1298,16 @@ impl TargetProbe for UiaTargetProbe {
                             break;
                         }
                         if protected_focus(&id.worker) {
-                            protection.live.store(false, Ordering::Release);
-                            protection.detected.store(true, Ordering::Release);
+                            id.latch_protection();
                             break;
                         }
-                    } else if let Err(change) = revalidate(&worker_token, true) {
+                    } else if let Err(change) = revalidate(&worker_token, true).and_then(|()| {
+                        if late_hook.as_ref().is_some_and(LateWatchHook::displaced) {
+                            Err(TargetChange::FocusMoved)
+                        } else {
+                            Ok(())
+                        }
+                    }) {
                         let callback = worker_callback.lock().ok().and_then(|mut slot| slot.take());
                         if worker_stop.load(Ordering::Acquire) {
                             break;
@@ -1265,7 +1618,7 @@ fn belongs(
     }
 }
 
-fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
+fn inspect(automation: &IUIAutomation, require_explicit_password_false: bool) -> Result<Snapshot, Reject> {
     if !on_default_desktop() {
         return Err(Reject::Protected);
     }
@@ -1340,7 +1693,10 @@ fn inspect(automation: &IUIAutomation) -> Result<Snapshot, Reject> {
         }
         _ => None,
     };
-    if password != Some(false) && !(plain_edit && styles.is_some()) && office_body.is_none() {
+    if password != Some(false)
+        && (require_explicit_password_false
+            || (!(plain_edit && styles.is_some()) && office_body.is_none()))
+    {
         return Err(Unsupported.into());
     }
     if !unsafe { element.CurrentIsEnabled() }
@@ -1523,12 +1879,14 @@ mod tests {
                 pid: 1,
             },
             native_focus: None,
-            native_edit: None,
+            native_edit: Mutex::new(None),
             office: false,
             info: TargetInfo {
                 app: AppKind::Other,
                 multiline: None,
             },
+            late: None,
+            qualified_late: OnceLock::new(),
             attempted: AtomicBool::new(true),
             write_permission: OnceLock::new(),
             protection: OnceLock::new(),
