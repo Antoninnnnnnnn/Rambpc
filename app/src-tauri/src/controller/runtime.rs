@@ -3,17 +3,17 @@
 
 use super::{
     ControllerDeps, ControllerHandle, ControllerInit, CopyError,
-    state::{Effect, Input, Now, State},
+    state::{Effect, Input, InsertionPlan, Now, State},
 };
 use crate::{
-    ipc::PersonalRules,
     ipc::{
-        DraftView, InterruptReason, Phase, RefusalReason, UiState, UnavailableReason, UsageStats,
+        DraftView, InterruptReason, KeptReason, PersonalRules, Phase, RefusalReason, UiState,
+        UnavailableReason, UsageStats,
     },
     model::TakeId,
     ports::{
         ClipboardError, InsertOutcome, MicError, NotWrittenReason, PcmRate, TargetChange,
-        TargetVerdict, UncertainReason, WatchGuard,
+        TargetProbe, TargetToken, TargetVerdict, UncertainReason, WatchGuard,
     },
     rambler::{self, CaptureHealth, OpenedMic, RamblerAccess, Segment},
     storage::{
@@ -27,7 +27,7 @@ use std::{
     collections::VecDeque,
     future::pending,
     sync::{
-        Arc, Mutex, OnceLock,
+        Arc, Mutex,
         atomic::{AtomicBool, Ordering},
     },
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -68,16 +68,35 @@ struct PendingCommands {
     active: Option<TakeSafety>,
 }
 
+#[derive(Clone)]
 struct TakeSafety {
     id: TakeId,
+    // One gate for PCM, collection and native writes. Ordinary focus changes
+    // do not revoke it; the final field check decides where writing is allowed.
     live: Arc<AtomicBool>,
-    write_allowed: Arc<AtomicBool>,
+    protected: Arc<AtomicBool>,
 }
 
 impl TakeSafety {
     fn revoke(&self) {
-        self.write_allowed.store(false, Ordering::Release);
         self.live.store(false, Ordering::Release);
+    }
+
+    fn on_target_change(&self, change: TargetChange) {
+        if change == TargetChange::Protected {
+            self.revoke();
+            self.protected.store(true, Ordering::Release);
+        }
+    }
+
+    fn watch_target(&self, target: &dyn TargetProbe, token: &TargetToken) -> WatchGuard {
+        #[cfg(windows)]
+        crate::platform::windows::bind_protection(token, &self.live, &self.protected);
+        let safety = self.clone();
+        target.watch(
+            token,
+            Box::new(move |change| safety.on_target_change(change)),
+        )
     }
 
     fn revokes(&self, command: &Command) -> bool {
@@ -199,10 +218,7 @@ impl Commands {
 struct TakeIo {
     id: TakeId,
     live: Arc<AtomicBool>,
-    write_allowed: Arc<AtomicBool>,
-    change: Arc<OnceLock<TargetChange>>,
     protected: Arc<AtomicBool>,
-    change_read: bool,
     guard: Option<WatchGuard>,
     health: Arc<CaptureHealth>,
     history: Option<Ticket>,
@@ -215,7 +231,7 @@ impl TakeIo {
         TakeSafety {
             id: self.id,
             live: self.live.clone(),
-            write_allowed: self.write_allowed.clone(),
+            protected: self.protected.clone(),
         }
     }
 
@@ -223,10 +239,7 @@ impl TakeIo {
         Self {
             id,
             live: Arc::new(AtomicBool::new(true)),
-            write_allowed: Arc::new(AtomicBool::new(true)),
-            change: Arc::new(OnceLock::new()),
             protected: Arc::new(AtomicBool::new(false)),
-            change_read: false,
             guard: None,
             health: Arc::new(CaptureHealth::new(origin)),
             history: None,
@@ -237,13 +250,9 @@ impl TakeIo {
 }
 
 struct Probe {
-    id: TakeId,
+    safety: TakeSafety,
     #[cfg(windows)]
     trigger: Option<crate::platform::windows::TriggerFocus>,
-    live: Arc<AtomicBool>,
-    protected: Arc<AtomicBool>,
-    write_allowed: Arc<AtomicBool>,
-    change: Arc<OnceLock<TargetChange>>,
 }
 
 enum Work {
@@ -254,7 +263,7 @@ enum Work {
     ),
     Opened(TakeId, Result<OpenedMic, MicError>),
     MicFree(TakeId),
-    Inserted(TakeId, InsertOutcome, Option<TargetChange>),
+    Inserted(TakeId, Result<InsertOutcome, KeptReason>),
     Copied(Result<(), CopyError>, CopyReply),
     Cleaned,
 }
@@ -498,21 +507,12 @@ impl Runtime {
     }
 
     fn inspect(&mut self) {
-        // A focus displacement is latched synchronously by its callback, not
-        // queued behind completed text where it could lose the insertion race.
-        let change = self.io.as_mut().and_then(|io| {
-            if io.protected.load(Ordering::Acquire) {
-                return Some((io.id, TargetChange::Protected));
-            }
-            if io.change_read {
-                return None;
-            }
-            let change = *io.change.get()?;
-            io.change_read = true;
-            Some((io.id, change))
-        });
-        if let Some((id, change)) = change {
-            self.apply(Input::TargetChanged(id, change));
+        // Protected focus is latched synchronously, not queued behind
+        // completed text where it could lose the insertion race.
+        if let Some(io) = &self.io
+            && io.protected.load(Ordering::Acquire)
+        {
+            self.apply(Input::TargetChanged(io.id, TargetChange::Protected));
         }
         if let Some(io) = &self.io
             && let Some(reason) = io.health.failure()
@@ -557,15 +557,11 @@ impl Runtime {
             Effect::Probe(take) => {
                 #[cfg(windows)]
                 let trigger = self.trigger.take();
-                let io = self.take_io(take);
+                let safety = self.take_io(take).safety();
                 self.probe_next = Some(Probe {
-                    id: take,
+                    safety,
                     #[cfg(windows)]
                     trigger,
-                    live: io.live.clone(),
-                    protected: io.protected.clone(),
-                    write_allowed: io.write_allowed.clone(),
-                    change: io.change.clone(),
                 });
                 self.probe_if_idle();
             }
@@ -634,43 +630,26 @@ impl Runtime {
                     }
                 }
             }
-            Effect::Insert(id, token, text) => {
-                let io = self.io.as_ref().unwrap();
-                let can_enter = io.write_allowed.clone();
-                let signal = io.change.clone();
+            Effect::Insert(id, plan, text) => {
+                let safety = self.io.as_ref().unwrap().safety();
                 let target = self.deps.target.clone();
                 let inserter = self.deps.inserter.clone();
                 self.jobs.spawn_blocking(move || {
-                    let change = signal.get().copied().or_else(|| {
-                        if can_enter.load(Ordering::Acquire) {
-                            target.revalidate(&token).err()
-                        } else {
-                            None
-                        }
-                    });
-                    // The reducer has already consumed the one attempt. Keep
-                    // its revocation flag live through all native write checks.
-                    #[cfg(windows)]
-                    crate::platform::windows::bind_write_permission(&token, &can_enter);
-                    if change.is_some() || !can_enter.load(Ordering::Acquire) {
-                        return Work::Inserted(
-                            id,
-                            InsertOutcome::NotWritten {
-                                reason: NotWrittenReason::TargetChanged,
-                            },
-                            change.or_else(|| signal.get().copied()),
-                        );
-                    }
-                    // The port performs its own last check after waiting for
-                    // modifiers. Once inside the port, Windows cannot retract it.
-                    Work::Inserted(id, inserter.insert_once(&token, &text), None)
+                    Work::Inserted(
+                        id,
+                        insert_at_end(&safety, &*target, &*inserter, plan, &text),
+                    )
                 });
             }
         }
     }
 
     fn retire(&mut self, id: TakeId) {
-        if self.probe_next.as_ref().is_some_and(|probe| probe.id == id) {
+        if self
+            .probe_next
+            .as_ref()
+            .is_some_and(|probe| probe.safety.id == id)
+        {
             self.probe_next = None;
         }
         if let Some(io) = self.io.take() {
@@ -733,7 +712,7 @@ impl Runtime {
                 }
             };
             let verdict = capture_in_trigger_focus(&*target, || {
-                probe.live.load(Ordering::Acquire) && current()
+                probe.safety.live.load(Ordering::Acquire) && current()
             });
             #[cfg(windows)]
             let verdict = match (probe.trigger, verdict) {
@@ -744,39 +723,20 @@ impl Runtime {
                 }
                 (_, verdict) => verdict,
             };
-            let guard = if probe.live.load(Ordering::Acquire)
+            let guard = if probe.safety.live.load(Ordering::Acquire)
                 && let Ok(TargetVerdict::Eligible { token, .. }) = &verdict
             {
-                let (live, signal) = (probe.live.clone(), probe.change.clone());
-                let protected = probe.protected.clone();
-                #[cfg(windows)]
-                crate::platform::windows::bind_protection(token, &live, &protected);
-                let can_enter = probe.write_allowed.clone();
-                let guard = target.watch(
-                    token,
-                    Box::new(move |change| {
-                        can_enter.store(false, Ordering::Release);
-                        if change == TargetChange::Protected {
-                            live.store(false, Ordering::Release);
-                            protected.store(true, Ordering::Release);
-                        }
-                        let _ = signal.set(change);
-                    }),
-                );
-                // Detect displacement between capture and installing the watch.
+                let guard = probe.safety.watch_target(&*target, token);
+                // Do not send audio if focus became protected before the
+                // watch was installed. Ordinary changes do not disarm it.
                 if let Err(change) = target.revalidate(token) {
-                    probe.write_allowed.store(false, Ordering::Release);
-                    if change == TargetChange::Protected {
-                        probe.live.store(false, Ordering::Release);
-                        probe.protected.store(true, Ordering::Release);
-                    }
-                    let _ = probe.change.set(change);
+                    probe.safety.on_target_change(change);
                 }
                 Some(guard)
             } else {
                 None
             };
-            Work::Target(probe.id, verdict, guard)
+            Work::Target(probe.safety.id, verdict, guard)
         });
     }
 
@@ -824,10 +784,7 @@ impl Runtime {
                 }
             },
             Work::MicFree(id) => self.apply(Input::MicFree(id)),
-            Work::Inserted(id, outcome, change) => {
-                if let Some(change) = change {
-                    self.apply(Input::TargetChanged(id, change));
-                }
+            Work::Inserted(id, outcome) => {
                 if self
                     .io
                     .as_ref()
@@ -937,6 +894,74 @@ impl Runtime {
         }
         self.warm_if_idle();
     }
+}
+
+fn insert_at_end(
+    safety: &TakeSafety,
+    target: &dyn TargetProbe,
+    inserter: &dyn crate::ports::Inserter,
+    plan: InsertionPlan,
+    text: &str,
+) -> Result<InsertOutcome, KeptReason> {
+    let target_changed = |change| KeptReason::TargetChanged { change };
+    let ensure_live = || {
+        safety
+            .live
+            .load(Ordering::Acquire)
+            .then_some(())
+            .ok_or_else(|| target_changed(TargetChange::Unknown))
+    };
+    ensure_live()?;
+    let (original, allow_retarget) = match plan {
+        InsertionPlan::Original(token) => (Some(token), false),
+        InsertionPlan::CursorAtEnd(original) => (original, true),
+    };
+    let original = if let Some(token) = original {
+        match target.revalidate(&token) {
+            Ok(()) => Some(token),
+            Err(change) if !allow_retarget || change == TargetChange::Protected => {
+                return Err(target_changed(change));
+            }
+            Err(_) => None,
+        }
+    } else {
+        None
+    };
+    let (token, _watch) = if let Some(token) = original {
+        (token, None) // The take already watches its original field.
+    } else {
+        ensure_live()?;
+        match target.capture() {
+            TargetVerdict::Eligible { token, .. } => {
+                ensure_live()?;
+                let watch = safety.watch_target(target, &token);
+                (token, Some(watch))
+            }
+            TargetVerdict::Protected => return Err(target_changed(TargetChange::Protected)),
+            TargetVerdict::Uncertain { reason } => {
+                return Err(KeptReason::UncertainTarget { reason });
+            }
+            TargetVerdict::Sambler => return Err(KeptReason::SamblerDestination),
+        }
+    };
+
+    // This is the sole attempt. The native port rechecks its chosen token and
+    // the same revocable gate after modifier waits and before writing.
+    #[cfg(windows)]
+    crate::platform::windows::bind_write_permission(&token, &safety.live);
+    ensure_live()?;
+    let outcome = inserter.insert_once(&token, text);
+    if outcome
+        == (InsertOutcome::NotWritten {
+            reason: NotWrittenReason::TargetChanged,
+        })
+        && safety.live.load(Ordering::Acquire)
+        && let Err(change) = target.revalidate(&token)
+    {
+        // Classify a race at the last native check; never attempt another write.
+        return Err(target_changed(change));
+    }
+    Ok(outcome)
 }
 
 fn displaced_trigger() -> RefusalReason {
@@ -1056,10 +1081,8 @@ fn safety_commands_revoke_capture_and_insertion_before_the_actor_reads_them() {
         overflow.lock().unwrap().active = Some(io.safety());
         inbox.send(Command::Input(Input::Cancel(Some(TakeId(1)))));
         assert!(io.live.load(Ordering::Acquire));
-        assert!(io.write_allowed.load(Ordering::Acquire));
         inbox.send(Command::Input(command)); // Saturated; the actor never processes it.
         assert!(!io.live.load(Ordering::Acquire));
-        assert!(!io.write_allowed.load(Ordering::Acquire));
     }
 }
 

@@ -20,6 +20,7 @@ use crate::{
         WatchGuard,
     },
     rambler::Segment,
+    settings::InsertionTarget,
 };
 use bytes::Bytes;
 use fixture::{TestServer, bounded, replies};
@@ -44,8 +45,12 @@ const FIRST: &str = "Premier passage.";
 const SECOND: &str = "Deuxième passage.";
 
 fn eligible() -> TargetVerdict {
+    eligible_at(1)
+}
+
+fn eligible_at(field: u8) -> TargetVerdict {
     TargetVerdict::Eligible {
-        token: TargetToken(Arc::new(())),
+        token: TargetToken(Arc::new(field)),
         info: TargetInfo {
             app: AppKind::Notepad,
             multiline: Some(true),
@@ -120,6 +125,8 @@ type OnChange = Box<dyn FnOnce(TargetChange) + Send>;
 struct Target {
     verdict: Mutex<TargetVerdict>,
     delayed: Mutex<Option<std_mpsc::Receiver<()>>>,
+    capturing_delayed: Notify,
+    captures: AtomicUsize,
     change: Mutex<Option<Arc<Mutex<Option<OnChange>>>>>,
 }
 struct Watch(Arc<Mutex<Option<OnChange>>>);
@@ -130,8 +137,10 @@ impl Drop for Watch {
 }
 impl TargetProbe for Target {
     fn capture(&self) -> TargetVerdict {
+        self.captures.fetch_add(1, Ordering::SeqCst);
         let wait = self.delayed.lock().unwrap().take();
         if let Some(wait) = wait {
+            self.capturing_delayed.notify_one();
             let _ = wait.recv_timeout(Duration::from_secs(5));
         }
         self.verdict.lock().unwrap().clone()
@@ -141,8 +150,16 @@ impl TargetProbe for Target {
         *self.change.lock().unwrap() = Some(callback.clone());
         Box::new(Watch(callback))
     }
-    fn revalidate(&self, _: &TargetToken) -> Result<(), TargetChange> {
-        Ok(())
+    fn revalidate(&self, original: &TargetToken) -> Result<(), TargetChange> {
+        match &*self.verdict.lock().unwrap() {
+            TargetVerdict::Eligible { token, .. }
+                if token.0.downcast_ref::<u8>() == original.0.downcast_ref::<u8>() =>
+            {
+                Ok(())
+            }
+            TargetVerdict::Protected => Err(TargetChange::Protected),
+            _ => Err(TargetChange::FocusMoved),
+        }
     }
 }
 impl Target {
@@ -154,10 +171,14 @@ impl Target {
 }
 
 #[derive(Default)]
-struct TextRecorder(Mutex<Vec<String>>);
+struct TextRecorder(Mutex<Vec<String>>, Mutex<Vec<u8>>);
 impl Inserter for TextRecorder {
-    fn insert_once(&self, _: &TargetToken, text: &str) -> InsertOutcome {
+    fn insert_once(&self, token: &TargetToken, text: &str) -> InsertOutcome {
         self.0.lock().unwrap().push(text.to_owned());
+        self.1
+            .lock()
+            .unwrap()
+            .push(*token.0.downcast_ref::<u8>().unwrap());
         InsertOutcome::Delivered
     }
 }
@@ -242,6 +263,8 @@ impl Rig {
         let target = Arc::new(Target {
             verdict: Mutex::new(eligible()),
             delayed: Default::default(),
+            capturing_delayed: Notify::new(),
+            captures: AtomicUsize::new(0),
             change: Default::default(),
         });
         let inserted = Arc::new(TextRecorder::default());
@@ -470,10 +493,16 @@ async fn release_while_opening_ignores_callbacks_that_start_after_release() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn target_change_stays_disarmed_and_kept_result_does_not_block_next_take() {
+async fn original_mode_keeps_text_when_away_and_the_kept_result_does_not_block_next_take() {
     let rig = Rig::new(Gesture::Hold, false, None).await;
     let first = rig.listening().await;
+    // The take must still use OriginalField even if the preference changes now.
+    rig.ctl.apply_settings(Settings {
+        insertion_target: InsertionTarget::CursorAtEnd,
+        ..Settings::default()
+    });
     rig.mic.feed(&[0; 975]);
+    *rig.target.verdict.lock().unwrap() = eligible_at(2);
     rig.target.change(TargetChange::FocusMoved);
     rig.ctl.hotkey(KeyEdge::Released);
     assert_eq!(
@@ -516,6 +545,172 @@ async fn target_change_stays_disarmed_and_kept_result_does_not_block_next_take()
     assert_eq!(stats.takes_total, 2);
     assert_eq!(stats.words_total, 4);
     rig.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn leaving_and_returning_inserts_once_into_the_original_field_in_either_mode() {
+    for mode in [InsertionTarget::OriginalField, InsertionTarget::CursorAtEnd] {
+        let rig = Rig::new(Gesture::Hold, false, None).await;
+        rig.ctl.apply_settings(Settings {
+            insertion_target: mode,
+            ..Settings::default()
+        });
+        let take = rig.listening().await;
+        *rig.target.verdict.lock().unwrap() = eligible_at(2);
+        rig.target.change(TargetChange::FocusMoved);
+        rig.mic.feed(&[0; 975]);
+        *rig.target.verdict.lock().unwrap() = eligible();
+        rig.ctl.hotkey(KeyEdge::Released);
+        rig.ctl.finish(take);
+        assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Inserted));
+        assert_eq!(*rig.inserted.1.lock().unwrap(), [1]);
+        assert_eq!(rig.target.captures.load(Ordering::SeqCst), 1);
+        rig.close().await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cursor_at_end_inserts_once_after_an_eligible_or_uncertain_start() {
+    for uncertain_start in [false, true] {
+        let rig = Rig::new(Gesture::Hold, false, None).await;
+        rig.ctl.apply_settings(Settings {
+            insertion_target: InsertionTarget::CursorAtEnd,
+            ..Settings::default()
+        });
+        if uncertain_start {
+            *rig.target.verdict.lock().unwrap() = TargetVerdict::Uncertain {
+                reason: UncertainReason::Selection,
+            };
+        }
+        let take = rig.listening().await;
+        *rig.target.verdict.lock().unwrap() = eligible_at(2);
+        if !uncertain_start {
+            rig.target.change(TargetChange::FocusMoved);
+        }
+        rig.mic.feed(&[0; 975]);
+        rig.ctl.hotkey(KeyEdge::Released);
+        rig.ctl.finish(take);
+        assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Inserted));
+        assert_eq!(*rig.inserted.1.lock().unwrap(), [2]);
+        assert_eq!(rig.target.captures.load(Ordering::SeqCst), 2);
+        rig.close().await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cursor_at_end_never_retargets_an_explicit_sambler_destination() {
+    for in_app in [false, true] {
+        let rig = Rig::new(Gesture::Hold, false, None).await;
+        rig.ctl.apply_settings(Settings {
+            always_keep_in_sambler: !in_app,
+            insertion_target: InsertionTarget::CursorAtEnd,
+            ..Settings::default()
+        });
+        *rig.target.verdict.lock().unwrap() = TargetVerdict::Uncertain {
+            reason: UncertainReason::Selection,
+        };
+        let take = if in_app {
+            rig.ctl.dictate_in_sambler();
+            let ui = wait(&rig.ctl, |s| {
+                s.phase == Phase::Listening && s.destination.is_some()
+            })
+            .await;
+            bounded(rig.mic.ready.notified()).await;
+            ui.take.unwrap()
+        } else {
+            rig.listening().await
+        };
+        *rig.target.verdict.lock().unwrap() = eligible_at(2);
+        rig.mic.feed(&[0; 975]);
+        rig.ctl.finish(take);
+        assert_eq!(
+            rig.idle().await.last_outcome,
+            Some(TakeOutcome::KeptInSambler {
+                reason: KeptReason::UncertainTarget {
+                    reason: UncertainReason::Selection
+                },
+            })
+        );
+        assert!(rig.inserted.1.lock().unwrap().is_empty());
+        assert_eq!(rig.target.captures.load(Ordering::SeqCst), 1);
+        rig.close().await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cursor_at_end_keeps_text_when_end_capture_has_no_eligible_field() {
+    for (verdict, reason) in [
+        (TargetVerdict::Sambler, KeptReason::SamblerDestination),
+        (
+            TargetVerdict::Uncertain {
+                reason: UncertainReason::ReadOnly,
+            },
+            KeptReason::UncertainTarget {
+                reason: UncertainReason::ReadOnly,
+            },
+        ),
+    ] {
+        let rig = Rig::new(Gesture::Hold, false, None).await;
+        rig.ctl.apply_settings(Settings {
+            insertion_target: InsertionTarget::CursorAtEnd,
+            ..Settings::default()
+        });
+        rig.listening().await;
+        *rig.target.verdict.lock().unwrap() = verdict;
+        rig.target.change(TargetChange::FocusMoved);
+        rig.mic.feed(&[0; 975]);
+        rig.ctl.hotkey(KeyEdge::Released);
+        assert_eq!(
+            rig.idle().await.last_outcome,
+            Some(TakeOutcome::KeptInSambler { reason })
+        );
+        assert_eq!(
+            rig.ctl.draft().await.unwrap().full_text.as_deref(),
+            Some(FIRST)
+        );
+        assert!(rig.inserted.1.lock().unwrap().is_empty());
+        assert_eq!(rig.target.captures.load(Ordering::SeqCst), 2);
+        rig.close().await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn end_capture_respects_protected_focus_and_cancellation() {
+    for cancel in [false, true] {
+        let rig = Rig::new(Gesture::Hold, false, None).await;
+        rig.ctl.apply_settings(Settings {
+            insertion_target: InsertionTarget::CursorAtEnd,
+            ..Settings::default()
+        });
+        let take = rig.listening().await;
+        let release = rig.delay_target(eligible_at(2));
+        rig.target.change(TargetChange::FocusMoved);
+        rig.mic.feed(&[0; 975]);
+        rig.ctl.hotkey(KeyEdge::Released);
+        bounded(rig.target.capturing_delayed.notified()).await;
+        if cancel {
+            rig.ctl.cancel(Some(take));
+            assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Cancelled));
+            release.send(()).unwrap(); // An eligible result arrives for the stale take.
+        } else {
+            *rig.target.verdict.lock().unwrap() = TargetVerdict::Protected;
+            release.send(()).unwrap();
+            assert_eq!(
+                rig.idle().await.last_outcome,
+                Some(TakeOutcome::KeptInSambler {
+                    reason: KeptReason::TargetChanged {
+                        change: TargetChange::Protected
+                    },
+                })
+            );
+        }
+        assert!(rig.ctl.recent_drafts().await.is_empty());
+        assert_eq!(rig.ctl.stats().await.unwrap(), UsageStats::default());
+        bounded(rig.ctl.shutdown()).await;
+        assert!(rig.inserted.1.lock().unwrap().is_empty());
+        assert_eq!(rig.target.captures.load(Ordering::SeqCst), 2);
+        rig.close().await;
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -805,7 +1000,7 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     assert_eq!(*take, id);
     assert_eq!(&**text, "Ancienne règle");
     assert!(state.draft().is_none()); // Not committed until the one attempt settles.
-    let completed = state.step(Input::Insertion(id, InsertOutcome::Delivered), at(5));
+    let completed = state.step(Input::Insertion(id, Ok(InsertOutcome::Delivered)), at(5));
     let [Effect::Completed(completion), Effect::Retire(_)] = completed.as_slice() else {
         panic!("expected completion only after insertion settled");
     };
@@ -829,7 +1024,7 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
         matches!(effects.as_slice(), [Effect::Insert(_, _, text)] if &**text == "Nouvelle règle")
     );
     assert!(matches!(
-        state.step(Input::Insertion(next, InsertOutcome::Delivered), at(10)).as_slice(),
+        state.step(Input::Insertion(next, Ok(InsertOutcome::Delivered)), at(10)).as_slice(),
         [Effect::Completed(completion), Effect::Retire(_)]
         if completion.archive.as_ref().is_some_and(|value| &*value.text == "Nouvelle règle")
     ));
@@ -911,7 +1106,7 @@ fn cancel_a_start_b_late_a_and_double_stop_b_produce_one_insertion_effect() {
         matches!(state.step(Input::MicFree(b), at(6)).as_slice(), [Effect::Insert(id, _, text)] if *id == b && &**text == "Only B")
     );
     assert!(state.step(Input::Collection(b, Ok(())), at(7)).is_empty());
-    state.step(Input::Insertion(b, InsertOutcome::Delivered), at(7));
+    state.step(Input::Insertion(b, Ok(InsertOutcome::Delivered)), at(7));
     assert_eq!(state.ui(at(7)).last_outcome, Some(TakeOutcome::Inserted));
     assert_eq!(state.draft().unwrap().full_text.as_deref(), Some("Only B"));
     state.step(Input::Tick { last_frame: None }, at(600_006));
@@ -938,7 +1133,7 @@ fn cancelling_during_insertion_does_not_archive_or_keep_the_draft() {
     assert!(state.draft().is_none());
     assert!(
         state
-            .step(Input::Insertion(id, InsertOutcome::Delivered), at(6))
+            .step(Input::Insertion(id, Ok(InsertOutcome::Delivered)), at(6))
             .is_empty()
     );
 }

@@ -8,7 +8,7 @@ use crate::{
     model::{DestinationKind, Gesture, KeyEdge, Language, MicChoice, SystemEvent, TakeId},
     ports::{InsertOutcome, MicError, TargetChange, TargetToken, TargetVerdict},
     rambler::{FRAME_WAIT_MS, MAX_DRAFT_BYTES, Segment},
-    settings::Settings,
+    settings::{InsertionTarget, Settings},
     text::{self, TextRules},
 };
 use rambler_audio::join_segment_texts;
@@ -50,7 +50,7 @@ pub(super) enum Input {
     Tick { last_frame: Option<u64> },
     Delivered(TakeId, Segment),
     Collection(TakeId, Result<(), InterruptReason>),
-    Insertion(TakeId, InsertOutcome),
+    Insertion(TakeId, Result<InsertOutcome, KeptReason>),
     ClearDraft(Option<TakeId>),
     Shutdown,
 }
@@ -63,7 +63,12 @@ pub(super) enum Effect {
     Stop(TakeId),
     Retire(TakeId),
     Completed(Completion),
-    Insert(TakeId, TargetToken, Arc<str>),
+    Insert(TakeId, InsertionPlan, Arc<str>),
+}
+
+pub(super) enum InsertionPlan {
+    Original(TargetToken),
+    CursorAtEnd(Option<TargetToken>),
 }
 
 pub(super) struct Completion {
@@ -102,8 +107,8 @@ struct Take {
     mic: MicChoice,
     rules: TextRules,
     always_keep: bool,
+    insertion_target: InsertionTarget,
     destination: Option<Destination>,
-    change: Option<TargetChange>,
     pending_insert: Option<(Draft, Completion)>,
     started: u64,
     opened: Option<u64>,
@@ -111,6 +116,24 @@ struct Take {
     listening_ms: u64,
     segments: BTreeMap<usize, Segment>,
     bytes: usize,
+}
+
+impl Take {
+    fn insertion_plan(&self, destination: &Destination) -> Option<InsertionPlan> {
+        match (self.insertion_target, destination) {
+            (InsertionTarget::OriginalField, Destination::Field(token)) => {
+                Some(InsertionPlan::Original(token.clone()))
+            }
+            (InsertionTarget::CursorAtEnd, Destination::Field(token)) => {
+                Some(InsertionPlan::CursorAtEnd(Some(token.clone())))
+            }
+            (
+                InsertionTarget::CursorAtEnd,
+                Destination::Sambler(KeptReason::UncertainTarget { .. }),
+            ) if self.hotkey && !self.always_keep => Some(InsertionPlan::CursorAtEnd(None)),
+            _ => None,
+        }
+    }
 }
 
 struct Draft {
@@ -396,19 +419,19 @@ impl State {
                     }
                 }
             }
-            Input::TargetChanged(id, change) if self.take_id() == Some(id) => {
-                let take = self.take.as_mut().unwrap();
-                if change != TargetChange::Protected {
-                    take.change.get_or_insert(change);
-                } else if take.destination.is_none() {
+            Input::TargetChanged(id, TargetChange::Protected) if self.take_id() == Some(id) => {
+                let take = self.take.as_ref().unwrap();
+                if take.destination.is_none() {
                     self.end(
                         TakeOutcome::Refused {
                             reason: RefusalReason::ProtectedField,
                         },
                         &mut effects,
                     );
-                } else {
+                } else if take.stage == Stage::Listening {
                     self.interrupt(InterruptReason::SystemInterrupted, now, &mut effects);
+                } else {
+                    self.end(protected_end(), &mut effects);
                 }
             }
             Input::MicOpened(id) if self.take_id() == Some(id) => {
@@ -496,26 +519,24 @@ impl State {
                     .as_ref()
                     .is_some_and(|t| t.id == id && t.stage == Stage::Inserting) =>
             {
-                let (mut draft, completion) =
-                    self.take.as_mut().unwrap().pending_insert.take().unwrap();
-                draft.set_lifetime(now, self.settings.draft_minutes);
-                self.save_draft(draft);
-                effects.push(Effect::Completed(completion));
-                self.end(
-                    match outcome {
-                        InsertOutcome::Delivered => TakeOutcome::Inserted,
-                        InsertOutcome::Partial => TakeOutcome::InsertedPartially,
-                        InsertOutcome::NotWritten { reason } => TakeOutcome::KeptInSambler {
-                            reason: if let Some(change) = self.take.as_ref().and_then(|t| t.change)
-                            {
-                                KeptReason::TargetChanged { change }
-                            } else {
-                                KeptReason::NotWritten { reason }
-                            },
-                        },
+                let outcome = match outcome {
+                    Ok(InsertOutcome::Delivered) => TakeOutcome::Inserted,
+                    Ok(InsertOutcome::Partial) => TakeOutcome::InsertedPartially,
+                    Ok(InsertOutcome::NotWritten { reason }) => TakeOutcome::KeptInSambler {
+                        reason: KeptReason::NotWritten { reason },
                     },
-                    &mut effects,
-                );
+                    Err(reason) => TakeOutcome::KeptInSambler { reason },
+                };
+                // Protected focus discards the current result and any pending
+                // archive, without disturbing recents from other takes.
+                if outcome != protected_end() {
+                    let (mut draft, completion) =
+                        self.take.as_mut().unwrap().pending_insert.take().unwrap();
+                    draft.set_lifetime(now, self.settings.draft_minutes);
+                    self.save_draft(draft);
+                    effects.push(Effect::Completed(completion));
+                }
+                self.end(outcome, &mut effects);
             }
             Input::ClearDraft(id) => self
                 .recents
@@ -577,8 +598,8 @@ impl State {
             mic: self.settings.microphone.clone(),
             rules,
             always_keep: self.settings.always_keep_in_sambler,
+            insertion_target: self.settings.insertion_target,
             destination: None,
-            change: None,
             pending_insert: None,
             started: now.mono,
             opened: None,
@@ -720,17 +741,14 @@ impl State {
                 TakeOutcome::NoText
             } else {
                 full = Some(Arc::from(rendered));
-                let reason = match (&take.destination, take.change) {
-                    (Some(Destination::Field(token)), None) => {
-                        take.stage = Stage::Inserting; // Consume the right before the effect.
-                        insert = Some(token.clone());
-                        KeptReason::Incomplete // Not published; wait for Windows.
-                    }
-                    (Some(Destination::Field(_)), Some(change)) => {
-                        KeptReason::TargetChanged { change }
-                    }
-                    (Some(Destination::Sambler(reason)), _) => *reason,
-                    (None, _) => unreachable!("collection requires a verdict"),
+                let destination = take
+                    .destination
+                    .as_ref()
+                    .expect("collection requires a verdict");
+                insert = take.insertion_plan(destination);
+                let reason = match destination {
+                    Destination::Sambler(reason) => *reason,
+                    Destination::Field(_) => KeptReason::Incomplete, // Wait for Windows.
                 };
                 TakeOutcome::KeptInSambler { reason }
             }
@@ -750,10 +768,12 @@ impl State {
                     profile: take.rules.profile,
                 }),
         });
-        if let Some(token) = insert {
-            // Do not displace any recent result until the insertion settles.
+        if let Some(plan) = insert {
+            // One selection and at most one attempt; late or duplicate
+            // collection results cannot start another insertion.
+            take.stage = Stage::Inserting;
             take.pending_insert = Some((Draft::new(id, parts, full.clone()), completion.unwrap()));
-            effects.push(Effect::Insert(id, token, full.unwrap()));
+            effects.push(Effect::Insert(id, plan, full.unwrap()));
         } else {
             if !matches!(outcome, TakeOutcome::NoText)
                 || parts.iter().any(|p| {
@@ -800,6 +820,14 @@ impl State {
         let take = self.take.take().unwrap(); // Invalidate before any cleanup effect.
         effects.push(Effect::Retire(take.id));
         self.outcome = Some(outcome);
+    }
+}
+
+fn protected_end() -> TakeOutcome {
+    TakeOutcome::KeptInSambler {
+        reason: KeptReason::TargetChanged {
+            change: TargetChange::Protected,
+        },
     }
 }
 
