@@ -1,17 +1,14 @@
-# Getting started with Sambler applications
+# Sambler for Windows: application guide
 
-Use `app/` for application interfaces. Each project uses the same Rust
-dictation engine in `crates/`. Run the command-line tool and the tests from
-the repository root.
+This folder contains the Sambler application for Windows. For what it does and
+how to install it, see the [main README](../README.md). This guide is for
+building and changing it.
 
-For the Windows application, start with the [product and engineering dossier
-(in French)](../docs/windows/README.md). The first [implementation milestone](../docs/windows/08-plan-de-construction.md)
-connects a real microphone, the existing Rambler SDK and an identified field
-in another app. Loopback servers supply controlled responses in tests.
-The proposed app has its own Cargo workspace under `app/src-tauri/` and ships
-the same dictation features in a per-user installer and a portable ZIP.
-See the [application architecture](../docs/windows/07-architecture-application.md)
-and [Windows packaging guide](../docs/windows/09-distribution-et-version-portable.md).
+The application uses the Rust dictation engine in `crates/` (see the
+[engine and SDK guide](../docs/engine.md)). Its product and engineering
+dossier, in French, starts at [docs/windows](../docs/windows/README.md), with
+the [application architecture](../docs/windows/07-architecture-application.md)
+and the [packaging guide](../docs/windows/09-distribution-et-version-portable.md).
 
 ## Sambler for Windows (this directory)
 
