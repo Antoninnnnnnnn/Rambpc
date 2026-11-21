@@ -1,5 +1,5 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import type { Settings, UiState } from "../ipc/contract";
 import { createFakeBridge } from "../test/fakeBridge";
 import { appReady, axeViolations, liveRegion, renderApp } from "../test/render";
@@ -48,6 +48,57 @@ describe("Réglages", () => {
     }
     await user.click(within(toc).getByRole("link", { name: "Insertion" }));
     expect(screen.getByRole("region", { name: "Insertion" })).toHaveFocus();
+    expect(within(toc).getByRole("link", { name: "Insertion" })).toHaveAttribute("aria-current", "true");
+    expect(within(toc).getByRole("link", { name: "Apparence" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("marks the section being read while the sheet scrolls", async () => {
+    const observers: { callback: IntersectionObserverCallback; targets: Element[] }[] = [];
+    class FakeObserver {
+      targets: Element[] = [];
+      constructor(callback: IntersectionObserverCallback) {
+        observers.push({ callback, targets: this.targets });
+      }
+      observe(target: Element) {
+        this.targets.push(target);
+      }
+      disconnect() {}
+    }
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    try {
+      await openSettings();
+      const toc = screen.getByRole("navigation", { name: "Sections des réglages" });
+      expect(within(toc).getByRole("link", { name: "Apparence" })).toHaveAttribute("aria-current", "true");
+      const { callback, targets } = observers[observers.length - 1];
+      expect(targets.map((target) => target.id)).toContain("settings-recents");
+      const entry = (id: string, isIntersecting: boolean) =>
+        ({ target: document.getElementById(id)!, isIntersecting }) as unknown as IntersectionObserverEntry;
+      act(() =>
+        callback([entry("settings-appearance", false), entry("settings-recents", true)], {} as IntersectionObserver),
+      );
+      expect(within(toc).getByRole("link", { name: "Récents" })).toHaveAttribute("aria-current", "true");
+      act(() => callback([entry("settings-indicator", true)], {} as IntersectionObserver));
+      // The first section of the band, in reading order.
+      expect(within(toc).getByRole("link", { name: "Barre de dictée" })).toHaveAttribute("aria-current", "true");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("names the dictation language with its description", async () => {
+    await openSettings();
+    const group = screen.getByRole("group", { name: "Langue de dictée" });
+    expect(group).toHaveAccessibleDescription("La langue que vous parlez, figée au début de chaque dictée.");
+    expect(within(group).getByRole("radio", { name: "Français" })).toBeChecked();
+  });
+
+  it("says what Google receives and what stays on this PC", async () => {
+    await openSettings();
+    const privacy = screen.getByRole("region", { name: "Confidentialité" });
+    expect(within(privacy).getByRole("heading", { level: 3, name: "Ce que reçoit Google" })).toBeInTheDocument();
+    expect(privacy).toHaveTextContent(/Votre voix pendant la dictée, avec la langue et les données d’accès de la session\./);
+    expect(within(privacy).getByRole("heading", { level: 3, name: "Ce qui reste sur ce PC" })).toBeInTheDocument();
+    expect(privacy).toHaveTextContent(/Le texte de vos documents, le titre des fenêtres, le presse-papiers/);
   });
 
   it("saves each change with save_settings", async () => {

@@ -41,25 +41,46 @@ export function usePreviewRender(sample: string, settings: Settings): string | n
   return rendered;
 }
 
-export function RenderPreview({ settings, sample }: { settings: Settings; sample: string }) {
+interface Props {
+  settings: Settings;
+  sample: string;
+  /** Labels of the two sides; « Reconnu » and « Inséré » by default. */
+  labels?: { raw: string; result: string };
+  /** Only the rendered side (the raw sentence is shown elsewhere). */
+  compact?: boolean;
+  /** A small title above the preview, hidden with it. */
+  caption?: string;
+  testId?: string;
+}
+
+export function RenderPreview({ settings, sample, labels, compact = false, caption, testId = "render-preview" }: Props) {
   const rendered = usePreviewRender(sample, settings);
   const lang = settings.language === "english" ? "en" : "fr";
   if (rendered === null) return null;
 
-  return (
-    <dl className="preview" data-testid="render-preview">
-      <div className="preview__side">
-        <dt className="preview__label">Reconnu</dt>
-        <dd lang={lang} className="preview__text preview__text--raw">
-          {sample}
-        </dd>
-      </div>
+  const preview = (
+    <dl className={compact ? "preview preview--compact" : "preview"} data-testid={testId}>
+      {compact ? null : (
+        <div className="preview__side">
+          <dt className="preview__label">{labels?.raw ?? "Reconnu"}</dt>
+          <dd lang={lang} className="preview__text preview__text--raw">
+            {sample}
+          </dd>
+        </div>
+      )}
       <div className="preview__side preview__side--result">
-        <dt className="preview__label">Inséré</dt>
+        <dt className="preview__label">{labels?.result ?? "Inséré"}</dt>
         <dd lang={lang} className="preview__text">
           {rendered}
         </dd>
       </div>
     </dl>
+  );
+  if (!caption) return preview;
+  return (
+    <div className="preview-block">
+      <p className="preview-block__caption">{caption}</p>
+      {preview}
+    </div>
   );
 }

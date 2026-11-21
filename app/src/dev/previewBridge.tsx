@@ -26,7 +26,7 @@ import {
 import { matchesShortcut } from "../lib/shortcut";
 import { normalizeAppearance } from "../themes/appearance";
 import { PreviewPanel } from "./PreviewPanel";
-import { createPreviewApps } from "./previewApps";
+import { createPreviewApps, previewVoiceCommands } from "./previewApps";
 import { createPreviewCarnet } from "./previewCarnet";
 import { createPreviewPersonal } from "./previewPersonal";
 import { sampleActivity, sampleStats } from "./sampleActivity";
@@ -329,8 +329,8 @@ export function installPreview(): Bridge {
       console.info(`${PREVIEW_MARKER}: would open ms-settings:privacy-microphone`);
     },
     preview_render: (args) => {
-      const sample = String(args!.sample);
       const s = args!.settings as Settings;
+      const sample = previewVoiceCommands(String(args!.sample), s);
       if (s.profile === "faithful") return sample;
       let out = sample.trim();
       if (s.text.lightPunctuation) out = out.replace(/ (est-ce|does)/, ". $1") + (/(convient|you)$/.test(out) ? " ?" : /[.!?]$/.test(out) ? "" : ".");

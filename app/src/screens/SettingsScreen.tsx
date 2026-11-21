@@ -1,7 +1,9 @@
 // Réglages: every change is saved at once (save_settings) and applies to the
-// next dictation; withdrawing consent applies immediately.
+// next dictation; withdrawing consent applies immediately. The table of
+// contents (a sticky column on a wide sheet, a row of links otherwise) marks
+// the section being read.
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
 import { AccessForm, AccessSummary } from "../components/AccessForm";
 import { AppearanceSettings } from "../components/AppearanceSettings";
@@ -73,10 +75,64 @@ function jumpTo(section: SettingsSection) {
   target?.focus({ preventScroll: true });
 }
 
+/**
+ * The section being read, for the table of contents: the first one (in
+ * document order) crossing the top third of the scrolling sheet, or the last
+ * one once the sheet is scrolled to the end. A jump sets it at once.
+ */
+function useCurrentSection(enabled: boolean, target: SettingsSection | undefined) {
+  const [current, setCurrent] = useState<SettingsSection>(target ?? SECTIONS[0].id);
+  const layoutRef = useRef<HTMLDivElement>(null);
+  // Opened on a section (from another screen): its jump settles first.
+  const holdUntil = useRef(target ? Date.now() + 800 : 0);
+
+  useEffect(() => {
+    const root = layoutRef.current?.closest<HTMLElement>(".main");
+    if (!enabled || !root || typeof IntersectionObserver === "undefined") return;
+    const visible = new Set<string>();
+    const pick = () => {
+      if (Date.now() < holdUntil.current) return;
+      const atEnd = root.scrollTop > 0 && root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
+      const section = atEnd
+        ? SECTIONS[SECTIONS.length - 1]
+        : SECTIONS.find((item) => visible.has(sectionAnchor(item.id)));
+      if (section) setCurrent(section.id);
+    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target.id);
+          else visible.delete(entry.target.id);
+        }
+        pick();
+      },
+      { root, rootMargin: "0px 0px -66% 0px", threshold: 0 },
+    );
+    for (const item of SECTIONS) {
+      const element = document.getElementById(sectionAnchor(item.id));
+      if (element) observer.observe(element);
+    }
+    root.addEventListener("scroll", pick, { passive: true });
+    return () => {
+      observer.disconnect();
+      root.removeEventListener("scroll", pick);
+    };
+  }, [enabled]);
+
+  const choose = (section: SettingsSection) => {
+    // The jump itself scrolls: let it settle before following the scroll again.
+    holdUntil.current = Date.now() + 500;
+    setCurrent(section);
+  };
+
+  return { current, choose, layoutRef };
+}
+
 export function SettingsScreen({ section }: { section?: SettingsSection }) {
   const { settings, loadFailed, errors, update, reload } = useSettings();
   const state = useUiState();
   const loaded = settings !== null;
+  const toc = useCurrentSection(loaded, section);
 
   useEffect(() => {
     if (section && loaded) jumpTo(section);
@@ -112,180 +168,186 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
         Rambler prend effet immédiatement.
       </ScreenHeader>
 
-      <nav className="settings__toc" aria-label="Sections des réglages">
-        <ul>
-          {SECTIONS.map((item) => (
-            <li key={item.id}>
-              <a
-                href={`#${sectionAnchor(item.id)}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  jumpTo(item.id);
-                }}
-              >
-                {item.title}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <div className="settings__layout" ref={toc.layoutRef}>
+        <nav className="settings__toc" aria-label="Sections des réglages">
+          <ul>
+            {SECTIONS.map((item) => (
+              <li key={item.id}>
+                <a
+                  href={`#${sectionAnchor(item.id)}`}
+                  aria-current={toc.current === item.id ? "true" : undefined}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    toc.choose(item.id);
+                    jumpTo(item.id);
+                  }}
+                >
+                  {item.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-      <AppearanceSettings id={sectionAnchor("appearance")} />
+        <div className="settings__sections">
+          <AppearanceSettings id={sectionAnchor("appearance")} />
 
-      <Card id={sectionAnchor("microphone")} title="Micro">
-        <MicrophonePicker />
-        {micAccessDenied(state.lastOutcome) ? (
-          <div className="stack stack--tight">
-            <FieldError>Windows bloque l’accès au micro pour les applications de bureau.</FieldError>
-            <MicPrivacyLink />
-          </div>
-        ) : null}
-      </Card>
+          <Card id={sectionAnchor("microphone")} title="Micro">
+            <MicrophonePicker />
+            {micAccessDenied(state.lastOutcome) ? (
+              <div className="stack stack--tight">
+                <FieldError>Windows bloque l’accès au micro pour les applications de bureau.</FieldError>
+                <MicPrivacyLink />
+              </div>
+            ) : null}
+          </Card>
 
-      <Card id={sectionAnchor("shortcut")} title="Raccourci et geste">
-        <ShortcutField
-          value={settings.shortcut}
-          onChange={(shortcut) => set("shortcut", (s) => ({ ...s, shortcut }))}
-          error={errors.shortcut}
-        />
-        <ChoiceGroup
-          legend="Geste"
-          name="gesture"
-          value={settings.gesture}
-          options={[
-            {
-              value: "hold",
-              label: "Maintenir pour parler",
-              description: "Gardez le raccourci enfoncé pendant que vous parlez, relâchez pour terminer.",
-            },
-            {
-              value: "toggle",
-              label: "Bascule",
-              description: "Appuyez une fois pour commencer, une seconde fois pour terminer.",
-            },
-          ]}
-          onChange={(gesture) => void set("gesture", (s) => ({ ...s, gesture }))}
-          error={error("gesture")}
-        />
-        <Switch
-          label="Annuler avec Échap pendant la dictée"
-          description="Échap n’est intercepté que pendant une dictée ; rien n’est inséré."
-          checked={settings.cancelWithEscape}
-          onChange={(cancelWithEscape) => void set("cancelWithEscape", (s) => ({ ...s, cancelWithEscape }))}
-          error={error("cancelWithEscape")}
-        />
-      </Card>
+          <Card id={sectionAnchor("shortcut")} title="Raccourci et geste">
+            <ShortcutField
+              value={settings.shortcut}
+              onChange={(shortcut) => set("shortcut", (s) => ({ ...s, shortcut }))}
+              error={errors.shortcut}
+            />
+            <ChoiceGroup
+              legend="Geste"
+              name="gesture"
+              value={settings.gesture}
+              options={[
+                {
+                  value: "hold",
+                  label: "Maintenir pour parler",
+                  description: "Gardez le raccourci enfoncé pendant que vous parlez, relâchez pour terminer.",
+                },
+                {
+                  value: "toggle",
+                  label: "Bascule",
+                  description: "Appuyez une fois pour commencer, une seconde fois pour terminer.",
+                },
+              ]}
+              onChange={(gesture) => void set("gesture", (s) => ({ ...s, gesture }))}
+              error={error("gesture")}
+            />
+            <Switch
+              label="Annuler avec Échap pendant la dictée"
+              description="Échap n’est intercepté que pendant une dictée ; rien n’est inséré."
+              checked={settings.cancelWithEscape}
+              onChange={(cancelWithEscape) => void set("cancelWithEscape", (s) => ({ ...s, cancelWithEscape }))}
+              error={error("cancelWithEscape")}
+            />
+          </Card>
 
-      <Card id={sectionAnchor("language")} title="Langue" description="La langue que vous parlez, figée au début de chaque dictée.">
-        <ChoiceGroup
-          legend="Langue de dictée"
-          hideLegend
-          name="language"
-          variant="segmented"
-          value={settings.language}
-          options={[
-            { value: "french", label: "Français" },
-            { value: "english", label: "Anglais" },
-          ]}
-          onChange={(language) => void set("language", (s) => ({ ...s, language }))}
-          error={error("language")}
-        />
-      </Card>
+          <Card id={sectionAnchor("language")} title="Langue">
+            <ChoiceGroup
+              legend="Langue de dictée"
+              description="La langue que vous parlez, figée au début de chaque dictée."
+              name="language"
+              variant="segmented"
+              value={settings.language}
+              options={[
+                { value: "french", label: "Français" },
+                { value: "english", label: "Anglais" },
+              ]}
+              onChange={(language) => void set("language", (s) => ({ ...s, language }))}
+              error={error("language")}
+            />
+          </Card>
 
-      <Card
-        id={sectionAnchor("insertion")}
-        title="Insertion"
-        description="Comment le texte arrive dans les navigateurs, Outlook et les applications web. Le Bloc-notes, WordPad et Word le reçoivent toujours directement."
-      >
-        <ChoiceGroup
-          legend="Méthode d’insertion"
-          hideLegend
-          name="insertion"
-          value={settings.insertion}
-          options={[
-            { value: "paste", label: INSERTION_LABELS.paste, description: INSERTION_DESCRIPTIONS.paste },
-            { value: "typing", label: INSERTION_LABELS.typing, description: INSERTION_DESCRIPTIONS.typing },
-          ]}
-          onChange={(insertion) => void set("insertion", (s) => ({ ...s, insertion }))}
-          error={error("insertion")}
-        />
-      </Card>
+          <Card
+            id={sectionAnchor("insertion")}
+            title="Insertion"
+            description="Comment le texte arrive dans les navigateurs, Outlook et les applications web. Le Bloc-notes, WordPad et Word le reçoivent toujours directement."
+          >
+            <ChoiceGroup
+              legend="Méthode d’insertion"
+              hideLegend
+              name="insertion"
+              value={settings.insertion}
+              options={[
+                { value: "paste", label: INSERTION_LABELS.paste, description: INSERTION_DESCRIPTIONS.paste },
+                { value: "typing", label: INSERTION_LABELS.typing, description: INSERTION_DESCRIPTIONS.typing },
+              ]}
+              onChange={(insertion) => void set("insertion", (s) => ({ ...s, insertion }))}
+              error={error("insertion")}
+            />
+          </Card>
 
-      <Card id={sectionAnchor("destination")} title="Destination">
-        <ChoiceGroup
-          legend="Où insérer le texte"
-          name="insertionTarget"
-          value={settings.insertionTarget}
-          disabled={settings.alwaysKeepInSambler}
-          description={
-            settings.alwaysKeepInSambler
-              ? `Sans effet tant que le texte est toujours gardé dans Sambler. ${PASSWORD_NEVER_TEXT}`
-              : PASSWORD_NEVER_TEXT
-          }
-          options={[
-            {
-              value: "original-field",
-              label: INSERTION_TARGET_LABELS["original-field"],
-              description: INSERTION_TARGET_DESCRIPTIONS["original-field"],
-            },
-            {
-              value: "cursor-at-end",
-              label: INSERTION_TARGET_LABELS["cursor-at-end"],
-              description: INSERTION_TARGET_DESCRIPTIONS["cursor-at-end"],
-            },
-          ]}
-          onChange={(insertionTarget) => void set("insertionTarget", (s) => ({ ...s, insertionTarget }))}
-          error={error("insertionTarget")}
-        />
-        <Switch
-          label="Toujours garder le texte dans Sambler"
-          description="Le texte n’est jamais inséré dans le champ : il vous attend dans Récents, prêt à être copié."
-          checked={settings.alwaysKeepInSambler}
-          onChange={(alwaysKeepInSambler) => void set("alwaysKeepInSambler", (s) => ({ ...s, alwaysKeepInSambler }))}
-          error={error("alwaysKeepInSambler")}
-        />
-      </Card>
+          <Card id={sectionAnchor("destination")} title="Destination">
+            <ChoiceGroup
+              legend="Où insérer le texte"
+              name="insertionTarget"
+              value={settings.insertionTarget}
+              disabled={settings.alwaysKeepInSambler}
+              description={
+                settings.alwaysKeepInSambler
+                  ? `Sans effet tant que le texte est toujours gardé dans Sambler. ${PASSWORD_NEVER_TEXT}`
+                  : PASSWORD_NEVER_TEXT
+              }
+              options={[
+                {
+                  value: "original-field",
+                  label: INSERTION_TARGET_LABELS["original-field"],
+                  description: INSERTION_TARGET_DESCRIPTIONS["original-field"],
+                },
+                {
+                  value: "cursor-at-end",
+                  label: INSERTION_TARGET_LABELS["cursor-at-end"],
+                  description: INSERTION_TARGET_DESCRIPTIONS["cursor-at-end"],
+                },
+              ]}
+              onChange={(insertionTarget) => void set("insertionTarget", (s) => ({ ...s, insertionTarget }))}
+              error={error("insertionTarget")}
+            />
+            <Switch
+              label="Toujours garder le texte dans Sambler"
+              description="Le texte n’est jamais inséré dans le champ : il vous attend dans Récents, prêt à être copié."
+              checked={settings.alwaysKeepInSambler}
+              onChange={(alwaysKeepInSambler) => void set("alwaysKeepInSambler", (s) => ({ ...s, alwaysKeepInSambler }))}
+              error={error("alwaysKeepInSambler")}
+            />
+          </Card>
 
-      <Card id={sectionAnchor("indicator")} title="Barre de dictée" description="La petite barre flottante qui montre l’écoute.">
-        <Switch
-          label="Son de début et de fin"
-          description="Un son discret signale le début de l’écoute et la fin de la dictée."
-          checked={settings.indicator.sound}
-          onChange={(sound) => void set("indicator", (s) => ({ ...s, indicator: { ...s.indicator, sound } }))}
-        />
-        <IndicatorPositionField
-          value={settings.indicator.position}
-          onChange={(position) => void set("indicator", (s) => ({ ...s, indicator: { ...s.indicator, position } }))}
-        />
-        {error("indicator") ? <FieldError>{error("indicator")}</FieldError> : null}
-      </Card>
+          <Card id={sectionAnchor("indicator")} title="Barre de dictée" description="La petite barre flottante qui montre l’écoute.">
+            <Switch
+              label="Son de début et de fin"
+              description="Un son discret signale le début de l’écoute et la fin de la dictée."
+              checked={settings.indicator.sound}
+              onChange={(sound) => void set("indicator", (s) => ({ ...s, indicator: { ...s.indicator, sound } }))}
+            />
+            <IndicatorPositionField
+              value={settings.indicator.position}
+              onChange={(position) => void set("indicator", (s) => ({ ...s, indicator: { ...s.indicator, position } }))}
+            />
+            {error("indicator") ? <FieldError>{error("indicator")}</FieldError> : null}
+          </Card>
 
-      <Card
-        id={sectionAnchor("recents")}
-        title="Récents"
-        description="Aucun audio n’est enregistré. Les textes récents restent en mémoire seulement ; verrouiller Windows ou quitter Sambler les efface."
-      >
-        <ChoiceGroup
-          legend="Garder les textes récents pendant"
-          name="draftMinutes"
-          variant="segmented"
-          value={settings.draftMinutes}
-          options={[
-            { value: 1, label: "1 minute" },
-            { value: 5, label: "5 minutes" },
-            { value: 10, label: "10 minutes" },
-          ]}
-          onChange={(draftMinutes) => void set("draftMinutes", (s) => ({ ...s, draftMinutes }))}
-          error={error("draftMinutes")}
-        />
-        <ClearRecentsNow />
-      </Card>
+          <Card
+            id={sectionAnchor("recents")}
+            title="Récents"
+            description="Aucun audio n’est enregistré. Les textes récents restent en mémoire seulement ; verrouiller Windows ou quitter Sambler les efface."
+          >
+            <ChoiceGroup
+              legend="Garder les textes récents pendant"
+              name="draftMinutes"
+              variant="segmented"
+              value={settings.draftMinutes}
+              options={[
+                { value: 1, label: "1 minute" },
+                { value: 5, label: "5 minutes" },
+                { value: 10, label: "10 minutes" },
+              ]}
+              onChange={(draftMinutes) => void set("draftMinutes", (s) => ({ ...s, draftMinutes }))}
+              error={error("draftMinutes")}
+            />
+            <ClearRecentsNow />
+          </Card>
 
-      <StartupCard />
+          <StartupCard />
 
-      <AccessCard startOpen={section === "access"} />
+          <AccessCard startOpen={section === "access"} />
 
-      <PrivacyCard />
+          <PrivacyCard />
+        </div>
+      </div>
     </div>
   );
 }
@@ -423,13 +485,7 @@ function PrivacyCard() {
     <Card id={sectionAnchor("privacy")} title="Confidentialité">
       <Switch
         label="Dictée avec Rambler (Google)"
-        description={
-          <>
-            Votre voix est transmise à Google pendant que vous parlez, avec la langue et les données d’accès de la
-            session. Le texte de vos documents, le titre des fenêtres et le presse-papiers restent sur ce PC. Désactiver
-            arrête immédiatement toute dictée en cours.
-          </>
-        }
+        description="Votre voix est transmise à Google pendant que vous parlez. Désactiver arrête immédiatement toute dictée en cours."
         checked={consent}
         onChange={async (enabled) => {
           const result = await action.run(() => commands.setConsent(enabled));
@@ -441,6 +497,22 @@ function PrivacyCard() {
         }}
         error={action.error ? commandErrorText(action.error) : undefined}
       />
+      <div className="privacy-split">
+        <div className="privacy-split__item privacy-split__item--sent">
+          <h3 className="privacy-split__title">
+            <Glyph name="globe" />
+            Ce que reçoit Google
+          </h3>
+          <p>Votre voix pendant la dictée, avec la langue et les données d’accès de la session.</p>
+        </div>
+        <div className="privacy-split__item privacy-split__item--kept">
+          <h3 className="privacy-split__title">
+            <Glyph name="shield" />
+            Ce qui reste sur ce PC
+          </h3>
+          <p>Le texte de vos documents, le titre des fenêtres, le presse-papiers, vos mots, vos expressions et l’historique.</p>
+        </div>
+      </div>
       <Row
         label="Historique des dictées"
         description={settings?.history.enabled ? "Activé : le texte est gardé sur ce PC, chiffré." : "Désactivé."}

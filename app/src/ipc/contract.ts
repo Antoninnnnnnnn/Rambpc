@@ -178,7 +178,7 @@ export function defaultSettings(): Settings {
     shortcut: DEFAULT_SHORTCUT,
     cancelWithEscape: true,
     profile: "natural",
-    text: { lightPunctuation: true, typographicSpaces: true, sentenceCase: true },
+    text: { lightPunctuation: true, typographicSpaces: true, sentenceCase: true, voiceCommands: true },
     alwaysKeepInSambler: false,
     indicator: { sound: false, position: "bottom-center" },
     draftMinutes: 10,
@@ -187,6 +187,7 @@ export function defaultSettings(): Settings {
     insertion: "paste",
     insertionTarget: "original-field",
     appearance: { theme: "verre-aurore", colorScheme: "system" },
+    appStyles: [],
   };
 }
 

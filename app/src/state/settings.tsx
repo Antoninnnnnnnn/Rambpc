@@ -30,7 +30,8 @@ export type SettingsField =
   | "launchAtStartup"
   | "insertion"
   | "insertionTarget"
-  | "appearance";
+  | "appearance"
+  | "appStyles";
 
 type Patch = (settings: Settings) => Settings;
 
