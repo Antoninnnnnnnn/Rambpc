@@ -8,14 +8,13 @@
 /// Returns the converted text, or `None` to keep the input unchanged.
 pub(super) fn french_guillemets(text: &str) -> Option<String> {
     let quotes: Vec<usize> = text.match_indices('"').map(|(i, _)| i).collect();
-    if quotes.is_empty() || quotes.len() % 2 != 0 || in_backticks(text) {
+    if quotes.is_empty() || !quotes.len().is_multiple_of(2) || in_backticks(text) {
         return None;
     }
     let mut out = String::with_capacity(text.len() + quotes.len() * 2);
     let mut last = 0;
     let mut changed = false;
-    for pair in quotes.chunks_exact(2) {
-        let (open, close) = (pair[0], pair[1]);
+    for &[open, close] in quotes.as_chunks::<2>().0 {
         let inner = &text[open + 1..close];
         if !prose_quote(text, open, close, inner) {
             continue;
