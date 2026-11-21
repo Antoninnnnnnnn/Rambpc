@@ -375,6 +375,11 @@ function AccessCard({ startOpen }: { startOpen: boolean }) {
           Ces valeurs viennent des variables d’environnement de Windows. Saisir un autre accès le remplace pour Sambler.
         </p>
       ) : null}
+      {status?.source === "builtin" ? (
+        <p className="hint">
+          Sambler utilise son accès intégré : vous n’avez rien à saisir. Remplacez-le ici seulement si on vous le demande.
+        </p>
+      ) : null}
       {editing ? (
         <AccessForm
           onSaved={() => setEditing(false)}
@@ -387,7 +392,7 @@ function AccessCard({ startOpen }: { startOpen: boolean }) {
             <Glyph name="key" />
             {status.configured ? "Modifier l’accès" : "Configurer l’accès"}
           </button>
-          {status.configured && status.source !== "environment" ? (
+          {status.configured && status.source !== "environment" && status.source !== "builtin" ? (
             <button
               type="button"
               className="btn btn--sm btn--ghost"

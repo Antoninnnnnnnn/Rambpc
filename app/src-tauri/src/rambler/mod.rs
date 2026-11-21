@@ -7,6 +7,7 @@
 //! `ContextInput::None`, interpret each segment with `RenderPolicy::AsrOnly`,
 //! and report admitted segments / typed outcome to the controller.
 
+mod builtin;
 mod capture;
 mod recognition;
 
@@ -16,8 +17,8 @@ pub(crate) use recognition::{MAX_DRAFT_BYTES, Segment, collect, connection_failu
 use rambler_transport::{EnvironmentCredentials, Metadata, TransportConfig};
 use zeroize::Zeroizing;
 
-/// Rambler access configured by the person: service address and the three
-/// access values. Never logged; `Debug` is redacted. Never stored in the binary.
+/// Rambler access: service address and the three access values (built in, or
+/// from the environment for development). Never logged; `Debug` is redacted.
 #[derive(Clone)]
 pub struct RamblerAccess {
     authority: String,
@@ -85,6 +86,16 @@ impl RamblerAccess {
             return Ok(None);
         }
         Self::new(&authority, key, package, cert).map(Some)
+    }
+
+    /// The access built into Sambler, on the SDK's default service address.
+    pub fn builtin() -> Result<Self, AccessError> {
+        Self::new(
+            "",
+            Zeroizing::new(builtin::API_KEY.to_owned()),
+            Zeroizing::new(builtin::ANDROID_PACKAGE.to_owned()),
+            Zeroizing::new(builtin::ANDROID_CERT.to_owned()),
+        )
     }
 
     pub fn authority(&self) -> &str {

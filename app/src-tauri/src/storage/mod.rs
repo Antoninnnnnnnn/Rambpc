@@ -314,16 +314,26 @@ impl Store {
     }
 }
 
-/// Access chosen at startup: environment first, then remembered access.
+/// Access chosen at startup: the `RAMBLER_*` environment, then an access the
+/// person replaced it with in Réglages, then the access built into Sambler
+/// (so a first launch asks for nothing).
 pub fn initial_access(store: &Store) -> (Option<RamblerAccess>, AccessSource, Option<AccessError>) {
     match RamblerAccess::from_environment() {
         Ok(Some(access)) => return (Some(access), AccessSource::Environment, None),
         Ok(None) => {}
         Err(error) => return (None, AccessSource::None, Some(error)),
     }
-    match store.load_access() {
-        Some(access) => (Some(access), AccessSource::Saved, None),
-        None => (None, AccessSource::None, None),
+    if let Some(access) = store.load_access() {
+        return (Some(access), AccessSource::Saved, None);
+    }
+    builtin_access()
+}
+
+/// The access built into Sambler, as the startup triple.
+pub fn builtin_access() -> (Option<RamblerAccess>, AccessSource, Option<AccessError>) {
+    match RamblerAccess::builtin() {
+        Ok(access) => (Some(access), AccessSource::Builtin, None),
+        Err(error) => (None, AccessSource::None, Some(error)),
     }
 }
 
@@ -348,6 +358,13 @@ pub fn access_status(
 mod tests {
     use super::*;
     use crate::ports::ProtectError;
+
+    #[test]
+    fn builtin_access_is_valid_and_configures_a_first_launch() {
+        let (access, source, error) = builtin_access();
+        assert!(access.is_some() && error.is_none());
+        assert_eq!(source, AccessSource::Builtin);
+    }
 
     /// Test-only reversible protector (XOR), never used by the app.
     struct XorProtector;
