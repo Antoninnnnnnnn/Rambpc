@@ -191,6 +191,9 @@ pub async fn set_consent(
     {
         let mut current = state.consent.lock().unwrap_or_else(|e| e.into_inner());
         *current = enabled;
+        if !enabled {
+            state.transcriptions.cancel_active();
+        }
         state.controller.set_consent(enabled);
     }
     let saved = blocking(move || {
@@ -260,6 +263,7 @@ fn set_access_inner(app: &AppHandle, access: &AccessInput) -> CmdResult<AccessSt
     };
     {
         let mut current = state.access.lock().unwrap_or_else(|e| e.into_inner());
+        state.transcriptions.cancel_active();
         current.access = Some(parsed.clone());
         current.source = source;
     }
@@ -284,6 +288,7 @@ pub async fn clear_access(app: AppHandle) -> CmdResult<AccessStatus> {
         let _write = state.access_write.lock().map_err(|_| internal_error())?;
         {
             let mut current = state.access.lock().unwrap_or_else(|e| e.into_inner());
+            state.transcriptions.cancel_active();
             current.access = None;
             current.source = AccessSource::None;
         }
@@ -648,6 +653,100 @@ fn set_launch_at_startup_inner(app: &AppHandle, enabled: bool) -> CmdResult<()> 
             "Le démarrage Windows a été modifié, mais les réglages n’ont pas pu être enregistrés.",
         )
     })
+}
+
+#[tauri::command]
+pub async fn pick_audio_file(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Option<String>> {
+    #[cfg(windows)]
+    let path = {
+        use tauri::Manager;
+        let owner = app
+            .get_webview_window(super::MAIN_WINDOW)
+            .ok_or_else(internal_error)?
+            .hwnd()
+            .map_err(|_| internal_error())?
+            .0 as isize;
+        blocking(move || super::transcribe::pick(owner)).await??
+    };
+    #[cfg(not(windows))]
+    let path: Option<std::path::PathBuf> = {
+        let _ = app;
+        None
+    };
+    path.map(|path| {
+        state.transcriptions.allow(&path).ok_or_else(|| {
+            if super::transcribe::supported(&path) {
+                CommandError::new("audio-picker", "Le chemin du fichier audio est illisible.")
+            } else {
+                unsupported_audio()
+            }
+        })
+    })
+    .transpose()
+}
+
+fn unsupported_audio() -> CommandError {
+    CommandError::new(
+        "unsupported-audio",
+        "Format non pris en charge : convertissez en WAV ou Ogg",
+    )
+}
+
+#[tauri::command]
+pub fn transcribe_file(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    path: String,
+) -> CmdResult<crate::ipc::FileTranscription> {
+    if !super::transcribe::supported(std::path::Path::new(&path)) {
+        return Err(unsupported_audio());
+    }
+    // Keep both locks until registration so revocation/credential changes
+    // either precede admission or cancel that exact job afterwards.
+    let consent = state.consent.lock().map_err(|_| internal_error())?;
+    if !*consent {
+        return Err(CommandError::new(
+            "consent-required",
+            "Autorisez l’envoi audio à Google dans Sambler avant de transcrire un fichier.",
+        ));
+    }
+    let access = state.access.lock().map_err(|_| internal_error())?;
+    let credentials = access.access.clone().ok_or_else(|| {
+        CommandError::new(
+            "access-required",
+            "Configurez l’accès à Rambler avant de transcrire un fichier.",
+        )
+    })?;
+    let mut rules = crate::text::TextRules::from_settings(&get_settings(state.clone()));
+    {
+        let personal = state.personal_rules.lock().map_err(|_| internal_error())?;
+        rules.lexicon.clone_from(&personal.lexicon);
+        rules.expressions.clone_from(&personal.expressions);
+    }
+    state.transcriptions.start(
+        path,
+        credentials,
+        rules,
+        Arc::new(move |update| {
+            let _ = app.emit_to(super::MAIN_WINDOW, crate::ipc::EVENT_TRANSCRIPTION, update);
+        }),
+    )
+}
+
+#[tauri::command]
+pub async fn cancel_transcription(
+    state: State<'_, AppState>,
+    id: String,
+) -> CmdResult<crate::ipc::FileTranscription> {
+    state.transcriptions.cancel(&id).await
+}
+
+#[tauri::command]
+pub fn list_transcriptions(state: State<'_, AppState>) -> Vec<crate::ipc::FileTranscription> {
+    state.transcriptions.list()
 }
 
 #[allow(dead_code)]
