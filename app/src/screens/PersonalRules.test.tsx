@@ -159,6 +159,39 @@ describe("Dictionnaire", () => {
     await user.click(within(list).getByRole("button", { name: "Ajouter un mot" }));
     expect(await axeViolations()).toEqual([]);
   });
+
+  it("reads each word as one sentence, the column titles left to the eye", async () => {
+    const { list } = await open("Dictionnaire", { lexicon: [WORD, { ...WORD, id: "w2", heard: "rust", written: "Rust", enabled: false }] });
+    const [on, off] = within(list).getAllByTestId("rule-lexicon");
+    expect(on).toHaveTextContent("projet mélusine devient projet Mélusine Actif");
+    expect(off).toHaveTextContent("rust devient Rust Désactivé");
+    expect(list.querySelector(".rule-table__head")).toHaveAttribute("aria-hidden", "true");
+    // The words first, then the switch and the actions, in the row's reading order.
+    expect([...on.querySelectorAll("input, button")]).toEqual([
+      within(on).getByRole("switch", { name: /Actif.*projet mélusine/ }),
+      within(on).getByRole("button", { name: /^Modifier.*projet mélusine/ }),
+      within(on).getByRole("button", { name: /^Supprimer.*projet mélusine/ }),
+    ]);
+  });
+
+  it("offers to retry when the words cannot be read", async () => {
+    const bridge = createFakeBridge({ rules: { lexicon: [WORD] } });
+    const working = bridge.handlers.get_personal_rules;
+    bridge.handlers.get_personal_rules = () => {
+      throw { code: "io", message: "" };
+    };
+    const { user } = renderApp(bridge);
+    await appReady();
+    await user.click(screen.getByRole("button", { name: "Dictionnaire" }));
+    const problem = await screen.findByTestId("rules-load-error");
+    expect(problem).toHaveTextContent("Les mots et expressions n’ont pas pu être lus.");
+    expect(screen.queryByTestId("lexicon-section")).not.toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+
+    bridge.handlers.get_personal_rules = working;
+    await user.click(within(problem).getByRole("button", { name: "Réessayer" }));
+    expect(await screen.findByTestId("rule-lexicon")).toHaveTextContent("projet mélusine devient projet Mélusine");
+  });
 });
 
 describe("Raccourcis vocaux", () => {

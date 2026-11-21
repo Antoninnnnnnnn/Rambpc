@@ -495,6 +495,8 @@ export function accessSourceText(source: AccessSource): string {
       return "Aucun accès configuré";
     case "environment":
       return "Variables d’environnement RAMBLER_* de Windows";
+    case "builtin":
+      return "Intégré à Sambler";
     case "saved":
       return "Mémorisé sur ce PC, chiffré pour votre compte Windows";
     case "session":

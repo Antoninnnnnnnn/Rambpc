@@ -286,13 +286,15 @@ pub async fn clear_access(app: AppHandle) -> CmdResult<AccessStatus> {
     blocking(move || {
         let state = tauri::Manager::state::<AppState>(&app);
         let _write = state.access_write.lock().map_err(|_| internal_error())?;
+        // Removing a replacement access goes back to the one built into Sambler.
+        let (fallback, fallback_source, _) = storage::builtin_access();
         {
             let mut current = state.access.lock().unwrap_or_else(|e| e.into_inner());
             state.transcriptions.cancel_active();
-            current.access = None;
-            current.source = AccessSource::None;
+            current.access = fallback.clone();
+            current.source = fallback_source;
         }
-        state.controller.set_access(None);
+        state.controller.set_access(fallback);
         state.store.forget_access().map_err(|_| CommandError::new(
             "save-failed",
             "L’accès a été retiré pour cette session, mais la copie protégée n’a pas pu être supprimée.",

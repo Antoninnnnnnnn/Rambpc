@@ -27,12 +27,21 @@
   padding: var(--space-6) var(--space-6) var(--space-8);
 }
 
+/* The steps and « Fermer » on one line, the counter below. */
 .onboard__top {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
+}
+
+.onboard__close {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.onboard__counter {
+  grid-column: 1 / -1;
 }
 
 .onboard__steps {
@@ -97,7 +106,6 @@
 }
 
 .onboard__counter {
-  margin-top: var(--space-2);
   color: var(--text-3);
   font-size: var(--text-sm);
   font-weight: 560;
@@ -199,6 +207,10 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+}
+
+.onboard__phrase {
+  font-weight: 620;
 }
 
 .onboard__nav {

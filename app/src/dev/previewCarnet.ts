@@ -1,7 +1,18 @@
 // DEV PREVIEW ONLY: simulated Carnet notes and audio file transcriptions
 // (milestone 5). Never part of a production build.
+//
+// A file dropped on the window is simulated from the console:
+//   window.__samblerDropFile("C:\\Users\\Antonin\\Documents\\réunion.m4a")
+// A file name containing « coupure » stops halfway with a partial note.
 
-import { EVENT_TRANSCRIPTION, type FileTranscription, type Note, type NoteMeta } from "../ipc/contract";
+import { EVENT_FILE_DROPPED, EVENT_TRANSCRIPTION, type FileTranscription, type Note, type NoteMeta } from "../ipc/contract";
+
+declare global {
+  interface Window {
+    /** Dev preview only: what the native side emits when a file is dropped on the window. */
+    __samblerDropFile?: (path: string) => void;
+  }
+}
 
 const MINUTE = 60_000;
 
@@ -25,9 +36,11 @@ function sampleNotes(): Note[] {
     "Idées pour la présentation de lundi\n\nCommencer par la démo en direct, puis les chiffres du trimestre. Garder la partie budget pour la fin et prévoir dix minutes de questions.",
     "Transcription · réunion-equipe.m4a\n\nBonjour à tous, on commence par le point sur le recrutement. Deux candidats sont retenus pour le poste de développeur, les entretiens finaux ont lieu jeudi.",
     "Courses\n\nLait d’avoine, citrons, pâtes fraîches, piles AA.",
+    "Ordre du jour du comité\n\n• Budget du trimestre\n• Recrutement des deux postes\n• Questions diverses",
+    "Lettre à Mme Garnier\n\nMadame, je vous remercie pour votre retour sur le devis. Comme convenu par téléphone, je vous propose de commencer les travaux le 2 décembre.",
   ];
   return texts.map((text, index) => {
-    const created = now - (index * 26 + 3) * 60 * MINUTE;
+    const created = now - (index * index * 22 + 3) * 60 * MINUTE;
     return {
       id: `note-${index + 1}`,
       title: titleOf(text),
@@ -69,6 +82,10 @@ export function createPreviewCarnet(emit: Emit, fail: Fail) {
     return structuredClone(job);
   };
 
+  if (import.meta.env.DEV) {
+    window.__samblerDropFile = (path: string) => emit(EVENT_FILE_DROPPED, path);
+  }
+
   return {
     list_notes: () => [...notes].sort((a, b) => b.updatedAt - a.updatedAt).map(meta),
     get_note: (args?: Record<string, unknown>) => {
@@ -102,12 +119,23 @@ export function createPreviewCarnet(emit: Emit, fail: Fail) {
         error: null,
         startedAt: Date.now(),
       };
+      const breaks = /coupure/i.test(fileName);
       window.clearInterval(timer);
       timer = window.setInterval(() => {
         if (job.status !== "running") return window.clearInterval(timer);
-        const progress = Math.min(1, job.progress + 0.06);
+        const progress = Math.min(1, job.progress + 0.02);
         job = { ...job, progress, words: Math.round(progress * 1_180) };
-        if (progress >= 1) {
+        if (breaks && progress >= 0.55) {
+          window.clearInterval(timer);
+          const text = `Transcription · ${fileName}\n\nBonjour à tous, on commence par le point sur le budget. [Passage non transcrit]`;
+          const saved = saveNote(null, text);
+          job = {
+            ...job,
+            status: "failed",
+            noteId: saved.id,
+            error: "La connexion au service a été perdue pendant la transcription.",
+          };
+        } else if (progress >= 1) {
           window.clearInterval(timer);
           const text = `Transcription · ${fileName}\n\nMerci d’avoir pris le temps de nous recevoir. Nous avons repris les trois points du devis : le calendrier, le budget et la maintenance.`;
           const saved = saveNote(null, text);
