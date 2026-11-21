@@ -1,6 +1,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { HistoryEntry, Settings } from "../ipc/contract";
+import { formatEntryDate } from "../labels/history";
 import { createFakeBridge, historyEntry, type FakeBridge } from "../test/fakeBridge";
 import { appReady, axeViolations, liveRegion, recordAnnouncements, renderApp } from "../test/render";
 
@@ -198,5 +199,101 @@ describe("Historique", () => {
     await openHistory({ settings: ON, history: ENTRIES });
     await screen.findAllByTestId("history-entry");
     expect(await axeViolations()).toEqual([]);
+  });
+});
+
+describe("Historique, jour par jour", () => {
+  // Noon today, then earlier days: away from midnight whatever the clock says.
+  const noon = new Date();
+  noon.setHours(12, 0, 0, 0);
+  const daysAgo = (days: number, hour: number) => {
+    const date = new Date(noon);
+    date.setDate(date.getDate() - days);
+    date.setHours(hour, 5);
+    return date.getTime();
+  };
+  const BY_DAY: HistoryEntry[] = [
+    historyEntry("t1", "Rendez-vous jeudi à 14 h.", 0, daysAgo(0, 11)),
+    historyEntry("t2", "Penser au devis.", 0, daysAgo(0, 9)),
+    historyEntry("y1", null, 0, daysAgo(1, 18)),
+  ];
+
+  it("groups the dictations by day, in lists named by their day", async () => {
+    await openHistory({ settings: ON, history: BY_DAY });
+    await screen.findAllByTestId("history-entry");
+    const today = screen.getByRole("list", { name: "Aujourd’hui 2 dictées · 8 mots" });
+    const yesterday = screen.getByRole("list", { name: "Hier 1 dictée" });
+    expect(within(today).getAllByTestId("history-entry")).toHaveLength(2);
+    expect(within(yesterday).getAllByTestId("history-entry")).toHaveLength(1);
+
+    // The time is shown; the heading still reads the whole date.
+    const [first] = within(today).getAllByTestId("history-entry");
+    expect(first).toHaveTextContent("11:05");
+    expect(first).toHaveTextContent("5 mots");
+    expect(within(first).getByRole("heading", { level: 3 })).toHaveAccessibleName(formatEntryDate(daysAgo(0, 11)));
+    expect(within(first).getByRole("button", { name: /^Copier/ })).toHaveAccessibleName(
+      `Copier la dictée du ${formatEntryDate(daysAgo(0, 11))}`,
+    );
+    expect(within(first).getByRole("button", { name: /^Supprimer/ })).toHaveAccessibleName(
+      `Supprimer la dictée du ${formatEntryDate(daysAgo(0, 11))}`,
+    );
+  });
+
+  it("says when a day may continue on the next page", async () => {
+    const many = Array.from({ length: 60 }, (_, index) => historyEntry(`p${index}`, "Une dictée.", index, daysAgo(0, 11)));
+    await openHistory({ settings: ON, history: many });
+    await screen.findAllByTestId("history-entry");
+    expect(screen.getByRole("list", { name: "Aujourd’hui 50 dictées affichées · 100 mots" })).toBeInTheDocument();
+  });
+
+  it("shows an empty search as such, the way back included", async () => {
+    const { user } = await openHistory({ settings: ON, history: ENTRIES });
+    await screen.findAllByTestId("history-entry");
+    await user.type(screen.getByRole("searchbox", { name: "Rechercher dans l’historique" }), "introuvable");
+    await user.click(screen.getByRole("button", { name: "Rechercher" }));
+    const empty = await screen.findByTestId("history-empty");
+    expect(empty).toHaveTextContent("Rien trouvé");
+    expect(empty).toHaveTextContent("Aucune dictée ne correspond à cette recherche.");
+    expect(screen.getByRole("button", { name: "Effacer la recherche" })).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("offers to retry when the list cannot be read, without stale entries", async () => {
+    const { bridge, user } = await openHistory({ settings: ON, history: ENTRIES });
+    await screen.findAllByTestId("history-entry");
+    const working = bridge.handlers.get_history;
+    bridge.handlers.get_history = () => {
+      throw { code: "io", message: "" };
+    };
+    await user.type(screen.getByRole("searchbox", { name: "Rechercher dans l’historique" }), "budget");
+    await user.click(screen.getByRole("button", { name: "Rechercher" }));
+    const problem = await screen.findByTestId("history-list-error");
+    expect(problem).toHaveTextContent("L’historique n’a pas pu être lu.");
+    expect(screen.queryAllByTestId("history-entry")).toHaveLength(0);
+    expect(screen.queryByText("Chargement…")).not.toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+
+    bridge.handlers.get_history = working;
+    await user.click(within(problem).getByRole("button", { name: "Réessayer" }));
+    await waitFor(() => expect(screen.getAllByTestId("history-entry")).toHaveLength(1));
+    expect(screen.queryByTestId("history-list-error")).not.toBeInTheDocument();
+  });
+
+  it("offers to retry when the status cannot be read", async () => {
+    const bridge = createFakeBridge({ settings: ON, history: ENTRIES });
+    const working = bridge.handlers.get_history_status;
+    bridge.handlers.get_history_status = () => {
+      throw { code: "io", message: "" };
+    };
+    const { user } = renderApp(bridge);
+    await appReady();
+    await user.click(screen.getByRole("button", { name: "Historique" }));
+    const problem = await screen.findByTestId("history-status-error");
+    expect(problem).toHaveTextContent("L’état de l’historique n’a pas pu être lu.");
+
+    bridge.handlers.get_history_status = working;
+    await user.click(within(problem).getByRole("button", { name: "Réessayer" }));
+    await waitFor(() => expect(screen.queryByTestId("history-status-error")).not.toBeInTheDocument());
+    expect(await screen.findAllByTestId("history-entry")).toHaveLength(3);
   });
 });

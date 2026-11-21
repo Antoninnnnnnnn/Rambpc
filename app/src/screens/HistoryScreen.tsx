@@ -1,6 +1,7 @@
 // Historique: optional, off by default. Only this view asks for history text
-// (`get_history`), keeps it in component state and shows it as plain text.
-// Announcements are fixed French copy and counts, never entry or search text.
+// (`get_history`), keeps it in component state and shows it as plain text,
+// grouped by day. Announcements are fixed French copy and counts, never entry
+// or search text.
 
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
@@ -11,14 +12,19 @@ import { toCommandError, useBridge } from "../ipc/bridge";
 import type { CommandError, HistoryEntry, HistoryStatus } from "../ipc/contract";
 import { clipboardErrorText, commandErrorText, settingSaveErrorText } from "../labels/fr";
 import {
+  dayCountText,
   daysLabel,
   entryCountText,
   formatEntryDate,
+  formatEntryTime,
   formatExpiry,
+  groupByDay,
   HISTORY_DAY_CHOICES,
   LANGUAGE_LABELS,
   PROFILE_LABELS,
   resultCountText,
+  wordCount,
+  wordsText,
 } from "../labels/history";
 import { useSettings } from "../state/settings";
 import { useUiState } from "../state/ui";
@@ -70,6 +76,9 @@ export function HistoryScreen() {
         setNextCursor(page.nextCursor);
         return page;
       } catch (error) {
+        // Never leave another query's entries under this one.
+        setEntries(null);
+        setNextCursor(null);
         setListError(toCommandError(error));
         return null;
       }
@@ -211,23 +220,27 @@ export function HistoryScreen() {
   const count = status?.entryCount ?? 0;
   const showList = available && (enabled || count > 0 || (entries?.length ?? 0) > 0);
   const historyError = errors.history;
+  const days = entries ? groupByDay(entries) : [];
+  const positions = new Map(entries?.map((entry, index) => [entry.id, index]));
 
   return (
-    <div className="screen">
+    <div className="screen history-screen">
       <ScreenHeader title="Historique">
         Retrouvez le texte de vos dernières dictées. Seul le texte est conservé, sur ce PC, protégé par votre compte
         Windows. Aucun son n’est enregistré.
       </ScreenHeader>
 
       {statusError ? (
-        <div className="stack stack--tight">
-          <FieldError>L’état de l’historique n’a pas pu être lu.</FieldError>
-          <div className="btn-row">
+        <Notice
+          tone="error"
+          title="L’état de l’historique n’a pas pu être lu."
+          testId="history-status-error"
+          actions={
             <button type="button" className="btn btn--sm" onClick={() => void reload(activeSearch)}>
               Réessayer
             </button>
-          </div>
-        </div>
+          }
+        />
       ) : null}
 
       {!available ? (
@@ -240,7 +253,134 @@ export function HistoryScreen() {
         </Notice>
       ) : null}
 
-      <Card title="Conservation">
+      {/* The dictations first: on a wide sheet, Conservation sits beside them. */}
+      {showList ? (
+        <section className="history" aria-labelledby={ids.list}>
+          <h2 id={ids.list} ref={listHeading} tabIndex={-1} className="section-title">
+            Dictées enregistrées
+          </h2>
+          <form role="search" className="history__search" onSubmit={(event) => void runSearch(event)}>
+            <label htmlFor={ids.search} className="visually-hidden">
+              Rechercher dans l’historique
+            </label>
+            <div className="history__search-row">
+              <span className="history__search-field">
+                <Glyph name="search" />
+                <input
+                  id={ids.search}
+                  className="input"
+                  type="search"
+                  value={search}
+                  placeholder="Rechercher dans l’historique"
+                  onChange={(event) => setSearch(event.currentTarget.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </span>
+              <button type="submit" className="btn">
+                Rechercher
+              </button>
+              {activeSearch ? (
+                <button type="button" className="btn btn--ghost" onClick={() => void clearSearch()}>
+                  Effacer la recherche
+                </button>
+              ) : null}
+            </div>
+          </form>
+
+          {entries === null ? (
+            listError ? (
+              <Notice
+                tone="error"
+                headingLevel={3}
+                title={commandErrorText(listError, "L’historique n’a pas pu être lu.")}
+                testId="history-list-error"
+                actions={
+                  <button type="button" className="btn btn--sm" onClick={() => void loadFirstPage(activeSearch)}>
+                    Réessayer
+                  </button>
+                }
+              />
+            ) : (
+              <p className="muted">Chargement…</p>
+            )
+          ) : entries.length === 0 ? (
+            <div className="empty history__empty" data-testid="history-empty">
+              <span className="empty__icon">
+                <Glyph name={activeSearch ? "search" : "inbox"} />
+              </span>
+              {activeSearch ? (
+                <>
+                  <p className="empty__title">Rien trouvé</p>
+                  <p className="hint">Aucune dictée ne correspond à cette recherche.</p>
+                </>
+              ) : (
+                <>
+                  <p className="empty__title">Aucune dictée enregistrée pour le moment.</p>
+                  <p className="hint">
+                    Vos prochaines dictées apparaîtront ici, jour par jour, pendant{" "}
+                    {daysLabel(settings.history.retentionDays)}.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              <p id={ids.copy} className="hint history__copy-note" data-testid="history-copy-note">
+                Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du
+                presse-papiers de Windows (Win+V).
+              </p>
+              <ol className="history__days" aria-describedby={ids.count} data-testid="history-list">
+                {days.map((day, index) => {
+                  const dayId = `${ids.list}-day-${day.key}`;
+                  const words = day.entries.reduce((sum, entry) => sum + wordCount(entry.text), 0);
+                  // The last day may continue on the next page.
+                  const partial = index === days.length - 1 && nextCursor !== null;
+                  return (
+                    <li key={day.key} className="history-day">
+                      <p id={dayId} className="history-day__title">
+                        <span className="history-day__name">{day.label}</span>{" "}
+                        <span className="history-day__count">{dayCountText(day.entries.length, words, partial)}</span>
+                      </p>
+                      <ul className="history__list" aria-labelledby={dayId}>
+                        {day.entries.map((entry) => (
+                          <HistoryItem
+                            key={entry.id}
+                            entry={entry}
+                            copyNoteId={ids.copy}
+                            onDelete={() => void removeEntry(entry.id, positions.get(entry.id) ?? 0)}
+                          />
+                        ))}
+                      </ul>
+                    </li>
+                  );
+                })}
+              </ol>
+            </>
+          )}
+          <p id={ids.count} className="visually-hidden">
+            {entries ? `${entries.length} dictées affichées.` : ""}
+          </p>
+
+          {nextCursor ? (
+            <div className="btn-row history__more">
+              <button
+                type="button"
+                className="btn"
+                aria-disabled={loadingMore || undefined}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? "Chargement…" : "Afficher plus"}
+              </button>
+            </div>
+          ) : null}
+          {listError && entries !== null ? (
+            <FieldError>{commandErrorText(listError, "L’historique n’a pas pu être lu.")}</FieldError>
+          ) : null}
+        </section>
+      ) : null}
+
+      <Card title="Conservation" className="history-keep">
         <Switch
           label="Conserver mes dictées sur ce PC"
           description={
@@ -306,85 +446,8 @@ export function HistoryScreen() {
         </div>
       </Card>
 
-      {showList ? (
-        <section className="history" aria-labelledby={ids.list}>
-          <h2 id={ids.list} ref={listHeading} tabIndex={-1} className="section-title">
-            Dictées enregistrées
-          </h2>
-          <form role="search" className="history__search" onSubmit={(event) => void runSearch(event)}>
-            <label htmlFor={ids.search} className="visually-hidden">
-              Rechercher dans l’historique
-            </label>
-            <div className="history__search-row">
-              <span className="history__search-field">
-                <Glyph name="search" />
-                <input
-                  id={ids.search}
-                  className="input"
-                  type="search"
-                  value={search}
-                  placeholder="Rechercher dans l’historique"
-                  onChange={(event) => setSearch(event.currentTarget.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-              </span>
-              <button type="submit" className="btn">
-                Rechercher
-              </button>
-              {activeSearch ? (
-                <button type="button" className="btn btn--ghost" onClick={() => void clearSearch()}>
-                  Effacer la recherche
-                </button>
-              ) : null}
-            </div>
-          </form>
-
-          {listError ? <FieldError>{commandErrorText(listError, "L’historique n’a pas pu être lu.")}</FieldError> : null}
-
-          {entries === null ? (
-            <p className="muted">Chargement…</p>
-          ) : entries.length === 0 ? (
-            <p className="muted" data-testid="history-empty">
-              {activeSearch ? "Aucune dictée ne correspond à cette recherche." : "Aucune dictée enregistrée pour le moment."}
-            </p>
-          ) : (
-            <>
-              <p id={ids.copy} className="hint" data-testid="history-copy-note">
-                Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du
-                presse-papiers de Windows (Win+V).
-              </p>
-              <ul className="history__list" aria-describedby={ids.count} data-testid="history-list">
-                {entries.map((entry, index) => (
-                  <HistoryItem
-                    key={entry.id}
-                    entry={entry}
-                    copyNoteId={ids.copy}
-                    onDelete={() => void removeEntry(entry.id, index)}
-                  />
-                ))}
-              </ul>
-            </>
-          )}
-          <p id={ids.count} className="visually-hidden">
-            {entries ? `${entries.length} dictées affichées.` : ""}
-          </p>
-
-          {nextCursor ? (
-            <div className="btn-row history__more">
-              <button
-                type="button"
-                className="btn"
-                aria-disabled={loadingMore || undefined}
-                onClick={() => void loadMore()}
-              >
-                {loadingMore ? "Chargement…" : "Afficher plus"}
-              </button>
-            </div>
-          ) : null}
-        </section>
-      ) : available && !enabled ? (
-        <div className="empty" data-testid="history-off">
+      {!showList && available && !enabled ? (
+        <div className="empty history-off" data-testid="history-off">
           <span className="empty__icon">
             <Glyph name="history" />
           </span>
@@ -413,6 +476,7 @@ function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
   const [copied, setCopied] = useState(false);
   const titleId = useId();
   const date = formatEntryDate(entry.createdAtMs);
+  const words = wordCount(entry.text);
   const lang = entry.language === "english" ? "en" : "fr";
 
   const onCopy = async () => {
@@ -429,14 +493,15 @@ function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
   return (
     <li className="history-item" data-testid="history-entry">
       <article aria-labelledby={titleId}>
-        <div className="history-item__head">
-          <h3 id={titleId} className="history-item__date" tabIndex={-1} data-history-entry-title>
-            <time dateTime={new Date(entry.createdAtMs).toISOString()}>{date}</time>
-          </h3>
-          <p className="history-item__meta">
-            {LANGUAGE_LABELS[entry.language]} · {PROFILE_LABELS[entry.profile]} · {formatExpiry(entry.expiresAtMs)}
-          </p>
-        </div>
+        {/* The day is the group's label: the time is shown, the full date is read. */}
+        <h3 id={titleId} className="history-item__date" tabIndex={-1} data-history-entry-title>
+          <time dateTime={new Date(entry.createdAtMs).toISOString()}>
+            <span className="history-item__time" aria-hidden="true">
+              {formatEntryTime(entry.createdAtMs)}
+            </span>
+            <span className="visually-hidden">{date}</span>
+          </time>
+        </h3>
         {entry.text !== null ? (
           <p className="history-item__text" lang={lang} data-testid="history-text">
             {entry.text}
@@ -446,23 +511,34 @@ function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
             Texte illisible sous ce compte Windows : la dictée est conservée mais ne peut pas être affichée ici.
           </p>
         )}
+        <p className="history-item__meta">
+          {LANGUAGE_LABELS[entry.language]} · {PROFILE_LABELS[entry.profile]} · {formatExpiry(entry.expiresAtMs)}
+        </p>
+        {words > 0 ? <p className="history-item__words">{wordsText(words)}</p> : null}
         <div className="history-item__actions">
           <button
             type="button"
-            className="btn btn--sm"
+            className="btn btn--sm history-item__copy"
             disabled={entry.text === null}
             aria-describedby={copyNoteId}
             onClick={() => void onCopy()}
           >
             <Glyph name={copied ? "check" : "copy"} />
-            Copier<span className="visually-hidden"> la dictée du {date}</span>
+            <span className="btn__label">Copier</span>
+            <span className="visually-hidden"> la dictée du {date}</span>
           </button>
-          <button type="button" className="btn btn--sm btn--ghost" onClick={onDelete}>
+          <button type="button" className="btn btn--sm btn--ghost history-item__delete" onClick={onDelete}>
             <Glyph name="trash" />
-            Supprimer<span className="visually-hidden"> la dictée du {date}</span>
+            <span className="btn__label">Supprimer</span>
+            <span className="visually-hidden"> la dictée du {date}</span>
           </button>
-          {copied ? <span className="history-item__feedback">Copiée.</span> : null}
         </div>
+        {copied ? (
+          <p className="history-item__feedback">
+            <Glyph name="check" />
+            Copiée.
+          </p>
+        ) : null}
         {copy.error ? <FieldError>{clipboardErrorText(copy.error)}</FieldError> : null}
       </article>
     </li>
