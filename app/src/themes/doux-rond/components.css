@@ -994,6 +994,19 @@
     border-color: Highlight;
   }
 
+  /* Segmented choices: the track and the chosen segment keep a rim. */
+  :root[data-theme="doux-rond"] .choices--segmented .choices__options {
+    border: 1px solid CanvasText;
+  }
+
+  :root[data-theme="doux-rond"] .choices--segmented .choice__input:checked + .choice__body {
+    border: 2px solid Highlight;
+  }
+
+  :root[data-theme="doux-rond"] .choices--cards .choice__input:checked + .choice__body {
+    border: 2px solid Highlight;
+  }
+
   :root[data-theme="doux-rond"] .switch input:checked + .switch__track,
   :root[data-theme="doux-rond"] .switch input:checked:hover:not(:disabled) + .switch__track {
     background: Highlight;

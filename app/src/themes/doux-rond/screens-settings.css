@@ -1,0 +1,858 @@
+/* Doux et rond: the Style and Réglages screens (design/maquettes/
+   doux-rond.html, « réglages »). Each section opens with a round pêche chip
+   carrying its icon and its title in soft Fraunces, on the milk sheet; its
+   settings lie on one hollow plate, one band per setting with hairlines
+   between. Réglages reads its sections from a quiet column on the left, the
+   section being read on a pêche veil with a corail dot.
+
+   Style: what is said is a lilac speech bubble in italic Fraunces, what
+   Sambler writes a milk paper bubble; each application a small milk card.
+
+   The section icons are CSS masks (only the alpha of their strokes counts;
+   the chip paints them with the theme's corail). Colours from theme.css
+   only; every rule starts with :root[data-theme="doux-rond"]. Structure
+   stays in StyleScreen.css and SettingsScreen.css (containers `style` and
+   `settings`). */
+
+/* ================================================================ section icons */
+
+/* A section without an icon of its own gets a dot. */
+:root[data-theme="doux-rond"] .card {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='4' fill='black'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-appearance"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 3.5a8.5 8.5 0 0 1 0 17z' fill='black'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-microphone"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3'/%3E%3Cpath d='M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3.5'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-shortcut"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='6' width='18' height='12' rx='2.5'/%3E%3Cpath d='M7 10h.01M10.3 10h.01M13.7 10h.01M17 10h.01M8 14h8'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-language"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M3.5 12h17M12 3.5c2.3 2.4 3.5 5.2 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.2-3.5-8.5S9.7 5.9 12 3.5z'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-insertion"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5.5' y='5' width='13' height='15.5' rx='2'/%3E%3Cpath d='M9 5V4.2a.7.7 0 0 1 .7-.7h4.6a.7.7 0 0 1 .7.7V5M9 11h6M9 14.5h4'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-destination"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4.5c1.7 0 3 .8 3 2.5v10c0 1.7-1.3 2.5-3 2.5M15 4.5c-1.7 0-3 .8-3 2.5v10c0 1.7 1.3 2.5 3 2.5M10 12h4'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-indicator"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='7.5' width='18' height='9' rx='4.5'/%3E%3Ccircle cx='8' cy='12' r='1.1' fill='black'/%3E%3Ccircle cx='12' cy='12' r='1.1' fill='black'/%3E%3Ccircle cx='16' cy='12' r='1.1' fill='black'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-recents"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7.5V12l3 2'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-startup"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5v8M7 6.5a7.5 7.5 0 1 0 10 0'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-access"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='15' r='4'/%3E%3Cpath d='M10.9 12.1L19 4M15.5 7.5l2.5 2.5M17.5 5.5l2 2'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] [id="settings-privacy"] {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l7 2.8v5.2c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.3z'/%3E%3Cpath d='M9 12l2.2 2.2L15.3 10'/%3E%3C/svg%3E");
+}
+
+/* Style: Votre style, Règles, Aperçu, Commandes de dictée, Par application. */
+:root[data-theme="doux-rond"] .style > .card:has(.choices--cards) {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 18l4.5-12 4.5 12M5.2 13.6h5.6'/%3E%3Cpath d='M20.5 18v-5.2a2.8 2.8 0 0 0-5.3-1.2M20.5 15.5c-.6 1.6-1.7 2.5-3.1 2.5-1.3 0-2.2-.8-2.2-1.9 0-1.4 1.4-2 5.3-2.1'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] .style > .card:not(.voice-card):has(.row--switch) {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 19.5l1-4.2L15.8 5a2 2 0 0 1 2.9 0l.3.3a2 2 0 0 1 0 2.9L8.7 18.5z'/%3E%3Cpath d='M14 6.8l3.2 3.2'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] .style > .card:has(.style__sample) {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] .style > .voice-card {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 5.5v6a3 3 0 0 1-3 3h-11'/%3E%3Cpath d='M9 10.5l-4 4 4 4'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="doux-rond"] .style > .apps-card {
+  --dr-ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='13.5' y='4' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='4' y='13.5' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='13.5' y='13.5' width='6.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
+}
+
+/* ================================================================ sections and plates */
+
+:root[data-theme="doux-rond"] :is(.settings__sections, .style) {
+  gap: 2.125rem;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .card {
+  gap: 0.75rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* The section head: the round chip, the title, the description under it. */
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__header {
+  position: relative;
+  align-items: center;
+  min-height: 2.125rem;
+  padding-left: 2.875rem;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__header::before,
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__header::after {
+  content: "";
+  position: absolute;
+  top: -0.25rem;
+  left: 0;
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 50%;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__header::before {
+  background: var(--accent-soft);
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__header::after {
+  background: var(--dr-corail);
+  mask: var(--dr-ic, none) center / 1.125rem 1.125rem no-repeat;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__titles {
+  gap: 0.25rem;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__desc {
+  max-width: 46rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* The plate: a hollow on the milk sheet, no rim. */
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__body {
+  gap: 0;
+  padding: 0.25rem 1.25rem;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+}
+
+/* One band per setting, hairlines between. */
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__body > * {
+  padding-block: 1rem;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__body > * + * {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* An error or a hint under a setting belongs to its band. */
+:root[data-theme="doux-rond"] :is(.settings, .style) .card__body > * + :is(.field-error, .hint) {
+  margin-top: -0.5rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) :is(.row__label, .choices__legend, .card__body .field__label) {
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) :is(.row__desc, .card__body .hint, .choice__desc) {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .choices--cards .choices__options {
+  gap: 0.75rem;
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .choices--cards .choice__label {
+  font-size: 0.95rem;
+  font-weight: 680;
+}
+
+/* Choice cards and fields are milk on the hollow. */
+:root[data-theme="doux-rond"] :is(.settings, .style) .choices--cards .choice__body {
+  background: var(--sheet);
+}
+
+:root[data-theme="doux-rond"] :is(.settings, .style) .choices--cards .choice__input:checked + .choice__body {
+  background: var(--accent-soft);
+}
+
+/* ================================================================ Réglages: table of contents */
+
+/* Narrow: a row of soft pills. */
+:root[data-theme="doux-rond"] .settings__toc ul {
+  gap: 0.375rem;
+}
+
+:root[data-theme="doux-rond"] .settings__toc a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.875rem;
+  color: var(--text-2);
+  font-size: 0.84rem;
+  font-weight: 580;
+  text-decoration: none;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-full);
+}
+
+/* The dot: empty, then corail on the section being read. */
+:root[data-theme="doux-rond"] .settings__toc a::before {
+  content: "";
+  flex: none;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: transparent;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .settings__toc a:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+:root[data-theme="doux-rond"] .settings__toc a[aria-current="true"] {
+  color: var(--text);
+  font-weight: 650;
+  background: var(--accent-soft);
+  border: 0;
+}
+
+:root[data-theme="doux-rond"] .settings__toc a[aria-current="true"]::before {
+  background: var(--dr-corail);
+}
+
+/* In the row of pills, only the current one shows its dot. */
+:root[data-theme="doux-rond"] .settings__toc a:not([aria-current="true"])::before {
+  display: none;
+}
+
+:root[data-theme="doux-rond"] .settings__toc a[aria-current="true"] {
+  padding-left: 0.75rem;
+}
+
+/* Wide: a quiet column. */
+@container settings (min-width: 44rem) {
+  :root[data-theme="doux-rond"] .settings__layout {
+    grid-template-columns: 11.5rem minmax(0, 1fr);
+    column-gap: 2.125rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc {
+    top: 1.25rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc ul {
+    gap: 0.125rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc a,
+  :root[data-theme="doux-rond"] .settings__toc a[aria-current="true"] {
+    display: flex;
+    min-height: 2.25rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.88rem;
+    line-height: 1.25;
+    background: transparent;
+    border-radius: var(--radius-sm);
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc a:hover {
+    background: var(--surface);
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc a[aria-current="true"] {
+    background: var(--accent-soft);
+  }
+
+  /* In the column, every link keeps the dot's place, so the names align. */
+  :root[data-theme="doux-rond"] .settings__toc a:not([aria-current="true"])::before {
+    display: block;
+  }
+}
+
+/* ================================================================ Réglages: rows */
+
+/* Micro: the choice, then the level test, each a band of the plate. */
+:root[data-theme="doux-rond"] .settings .card__body > .mic {
+  gap: 0;
+  padding-block: 0;
+}
+
+:root[data-theme="doux-rond"] .settings .mic > * {
+  padding-block: 1rem;
+}
+
+:root[data-theme="doux-rond"] .settings .mic > * + * {
+  border-top: 1px solid var(--border);
+}
+
+/* The level test: the voice on a milk pill. */
+:root[data-theme="doux-rond"] .settings .mic-test {
+  gap: 0.5rem;
+  padding-inline: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+:root[data-theme="doux-rond"] .settings .mic-test__wave {
+  min-height: 2.5rem;
+  padding: 0.25rem 1rem;
+  background: var(--sheet);
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+:root[data-theme="doux-rond"] .settings .mic-test--on .mic-test__wave {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 0 0 4px var(--accent-soft);
+}
+
+/* Raccourci: the keys and « Modifier » in one milk field. */
+:root[data-theme="doux-rond"] .settings .shortcut__current {
+  justify-self: start;
+  gap: 0.625rem;
+  min-height: 3rem;
+  padding: 0.375rem 0.375rem 0.375rem 0.75rem;
+  background: var(--field-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+:root[data-theme="doux-rond"] .settings .shortcut__value {
+  min-height: 0;
+  padding: 0;
+  font-size: var(--text-md);
+  background: transparent;
+  border: 0;
+}
+
+:root[data-theme="doux-rond"] .settings .shortcut__current kbd {
+  min-width: 1.75rem;
+  padding: 0.25em 0.55em;
+}
+
+/* Listening for keys: the lilac ring of focus, a lilac prompt. */
+:root[data-theme="doux-rond"] .settings .shortcut__capture {
+  min-height: 3rem;
+  background: var(--field-bg);
+  border: 1.5px solid var(--dr-lilas);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 4px var(--dr-lilas-voile);
+}
+
+:root[data-theme="doux-rond"] .settings .shortcut__capture--invalid {
+  border-color: var(--error);
+  box-shadow: 0 0 0 4px var(--error-soft);
+}
+
+:root[data-theme="doux-rond"] .settings .shortcut__placeholder {
+  color: var(--dr-lilas-encre);
+  font-weight: 600;
+}
+
+/* Micro: the list keeps its full width, under its name (a microphone's name
+   is long). */
+:root[data-theme="doux-rond"] .settings .mic .field {
+  row-gap: 0.5rem;
+}
+
+:root[data-theme="doux-rond"] .settings .mic .field > .mic__row {
+  grid-template-columns: minmax(0, 26rem) auto;
+  justify-content: start;
+}
+
+/* Wide enough: name and description on the left, the control on the right
+   (Raccourci, and the segmented choices: Langue, Récents). */
+@container settings (min-width: 36rem) {
+  :root[data-theme="doux-rond"] .settings .shortcut {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label control"
+      "hint control";
+    align-items: center;
+    column-gap: 1.5rem;
+    row-gap: 0.125rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings .shortcut > .field__label {
+    grid-area: label;
+    align-self: end;
+  }
+
+  :root[data-theme="doux-rond"] .settings .shortcut > .hint {
+    grid-area: hint;
+    align-self: start;
+  }
+
+  :root[data-theme="doux-rond"] .settings .shortcut > :is(.shortcut__current, .shortcut__capture) {
+    grid-area: control;
+  }
+
+  :root[data-theme="doux-rond"] .settings .shortcut__capture {
+    min-width: 16rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings .shortcut > .field-error {
+    grid-column: 1 / -1;
+    margin-top: 0.375rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings .card__body > .choices--segmented:has(> .choices__legend) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 1.5rem;
+    row-gap: 0.125rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings .card__body > .choices--segmented:has(> .choices__legend) > .choices__desc {
+    margin: 0;
+  }
+
+  :root[data-theme="doux-rond"] .settings .card__body > .choices--segmented:has(> .choices__legend) > .choices__options {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  :root[data-theme="doux-rond"]
+    .settings
+    .card__body
+    > .choices--segmented:has(> .choices__legend):has(> .choices__desc)
+    > .choices__options {
+    grid-row: 1 / span 2;
+  }
+
+  :root[data-theme="doux-rond"] .settings .card__body > .choices--segmented:has(> .choices__legend) > .field-error {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Accès à Rambler: the summary as quiet lines, the state as a menthe pastille. */
+:root[data-theme="doux-rond"] .settings .access-summary dt {
+  font-size: 0.875rem;
+}
+
+:root[data-theme="doux-rond"] .settings .access-summary__state--ok {
+  justify-self: start;
+  padding: 0.125rem 0.625rem 0.125rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 680;
+  background: var(--success-soft);
+  border-radius: var(--radius-full);
+}
+
+:root[data-theme="doux-rond"] .settings .access-summary dd:has(> .access-summary__state--ok) {
+  display: flex;
+}
+
+:root[data-theme="doux-rond"] .settings .card__body > .access-form {
+  max-width: none;
+}
+
+:root[data-theme="doux-rond"] .settings .access-form > * {
+  max-width: 34rem;
+}
+
+:root[data-theme="doux-rond"] .settings .access-form__intro {
+  color: var(--text-2);
+  background: var(--sheet);
+}
+
+:root[data-theme="doux-rond"] .settings .access-form__advanced {
+  background: var(--sheet);
+  border: 0;
+}
+
+/* Confidentialité: two milk tiles, what leaves in pêche, what stays in menthe. */
+:root[data-theme="doux-rond"] .settings .privacy-split {
+  gap: 0.75rem;
+}
+
+:root[data-theme="doux-rond"] .settings .privacy-split__item {
+  gap: 0.375rem;
+  padding: 0.875rem 1rem 1rem;
+  background: var(--sheet);
+  border-radius: var(--radius-md);
+}
+
+:root[data-theme="doux-rond"] .settings .privacy-split__title {
+  gap: 0.625rem;
+  font-size: 0.9rem;
+}
+
+:root[data-theme="doux-rond"] .settings .privacy-split__title .icon {
+  width: 1.875rem;
+  height: 1.875rem;
+  padding: 0.375rem;
+  flex: none;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 50%;
+}
+
+:root[data-theme="doux-rond"] .settings .privacy-split__item--kept .privacy-split__title .icon {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+/* ================================================================ Style */
+
+/* Previews: what is said in a lilac speech bubble, what Sambler writes on a
+   milk paper bubble. Each bubble keeps a small corner toward its side. */
+:root[data-theme="doux-rond"] .style .preview {
+  gap: 0.75rem;
+}
+
+:root[data-theme="doux-rond"] .style .preview__side {
+  gap: 0.375rem;
+  padding: 0.75rem 1rem 0.875rem;
+  background: var(--dr-lilas-voile);
+  border-radius: 1.125rem 1.125rem 1.125rem 0.375rem;
+}
+
+:root[data-theme="doux-rond"] .style .preview__side--result {
+  background: var(--sheet);
+  border-radius: 1.125rem 1.125rem 0.375rem 1.125rem;
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] .style .preview--compact .preview__side--result {
+  border-radius: 1.125rem 1.125rem 1.125rem 0.375rem;
+}
+
+:root[data-theme="doux-rond"] .style .preview__label {
+  color: var(--dr-lilas-encre);
+  font-size: 0.78rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root[data-theme="doux-rond"] .style .preview__side--result .preview__label {
+  color: var(--accent-ink);
+}
+
+:root[data-theme="doux-rond"] .style .preview__text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* The spoken words: italic soft Fraunces, as in the mockup's bubbles. */
+:root[data-theme="doux-rond"] .style .preview__text--raw {
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 480;
+  line-height: 1.45;
+}
+
+:root[data-theme="doux-rond"] .style .preview-block {
+  gap: 0.625rem;
+}
+
+:root[data-theme="doux-rond"] .style .preview-block__caption {
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+/* Stacked: the bubbles answer each other across the plate. */
+@container style (max-width: 40rem) {
+  :root[data-theme="doux-rond"] .style .preview:not(.preview--compact) > .preview__side {
+    margin-right: 1.75rem;
+  }
+
+  :root[data-theme="doux-rond"] .style .preview:not(.preview--compact) > .preview__side--result {
+    margin-right: 0;
+    margin-left: 1.75rem;
+  }
+}
+
+/* Notes: lilac for a reminder, beurre when something needs a look. */
+:root[data-theme="doux-rond"] .style .style-note {
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--dr-lilas-encre);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background: var(--dr-lilas-voile);
+  border-radius: var(--radius-md);
+}
+
+:root[data-theme="doux-rond"] .style .card__body > .style-note {
+  margin-block: 1rem;
+  padding-block: 0.75rem;
+  border-top: 0;
+}
+
+:root[data-theme="doux-rond"] .style .card__body > .style-note + * {
+  border-top: 0;
+  padding-top: 0;
+}
+
+:root[data-theme="doux-rond"] .style .style-note--warning {
+  color: var(--text);
+  background: var(--warning-soft);
+}
+
+:root[data-theme="doux-rond"] .style .style-note--warning .link-btn {
+  color: var(--warning);
+}
+
+/* Dictation commands: what is said in a lilac bubble, the result on a key. */
+:root[data-theme="doux-rond"] .style .voice-commands__head {
+  padding-bottom: 0.5rem;
+  color: var(--text-2);
+  font-size: 0.8rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root[data-theme="doux-rond"] .style .voice-command {
+  align-items: center;
+  padding-block: 0.5rem;
+}
+
+:root[data-theme="doux-rond"] .style .voice-command__spoken {
+  justify-self: start;
+  padding: 0.25rem 0.75rem 0.3125rem;
+  color: var(--dr-lilas-encre);
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-style: italic;
+  font-weight: 520;
+  line-height: 1.25;
+  background: var(--dr-lilas-voile);
+  border-radius: 0.875rem 0.875rem 0.875rem 0.3125rem;
+}
+
+:root[data-theme="doux-rond"] .style .voice-command__effect {
+  align-items: center;
+  gap: 0.875rem;
+  font-size: 0.86rem;
+}
+
+:root[data-theme="doux-rond"] .style .voice-command__result {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.125rem;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  font-family: var(--font-text);
+  font-size: 0.88rem;
+  font-weight: 680;
+  background: var(--key-bg);
+  border: 1px solid var(--key-border);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--key-shadow);
+}
+
+/* Per application: each one a small milk card on the plate. */
+:root[data-theme="doux-rond"] .style .app-styles {
+  gap: 0.5rem;
+}
+
+:root[data-theme="doux-rond"] .style .app-style {
+  background: var(--sheet);
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .style .app-style:not(.app-style--open):hover {
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] .style .app-style--open {
+  box-shadow:
+    0 0 0 1.5px var(--border),
+    var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] .style .app-style__header {
+  gap: 0.625rem;
+  padding: 0.4375rem 0.5rem 0.4375rem 0.75rem;
+}
+
+/* The application: a small lilac tile, as in Activité. */
+:root[data-theme="doux-rond"] .style .app-mono {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--dr-lilas-encre);
+  font-family: var(--font-text);
+  font-size: 0.75rem;
+  font-weight: 750;
+  background: var(--dr-lilas-voile);
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .style .app-style__toggle {
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-sm);
+}
+
+:root[data-theme="doux-rond"] .style .app-style__toggle:hover {
+  background: var(--surface);
+}
+
+:root[data-theme="doux-rond"] .style .app-style__name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .style .app-style__summary {
+  font-size: 0.82rem;
+}
+
+:root[data-theme="doux-rond"] .style .app-style__panel {
+  gap: 0;
+  padding: 0.25rem 1rem 1rem 3.375rem;
+  border-top: 1px solid var(--border);
+}
+
+:root[data-theme="doux-rond"] .style .app-style__panel > * {
+  padding-block: 0.625rem;
+}
+
+:root[data-theme="doux-rond"] .style .app-style__panel > .choices + .choices {
+  border-top: 1px solid var(--border);
+}
+
+:root[data-theme="doux-rond"] .style .app-style__panel .choices__legend {
+  font-size: 0.9rem;
+  font-weight: 620;
+}
+
+:root[data-theme="doux-rond"] .style .app-style__panel .choices--segmented .choice__body {
+  padding: 0.3125rem 0.8125rem;
+  font-size: 0.82rem;
+}
+
+:root[data-theme="doux-rond"] .style .app-style__panel > .preview {
+  margin-top: 0.375rem;
+  padding-block: 0;
+}
+
+/* A preview on milk: the bubble takes the hollow's tint instead. */
+:root[data-theme="doux-rond"] .style .app-style__panel .preview__side--result {
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .style .app-styles__empty {
+  font-size: 0.9rem;
+}
+
+/* The picker: a milk tray with a dashed rim, the applications as pills. */
+:root[data-theme="doux-rond"] .style .app-picker {
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--sheet);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+:root[data-theme="doux-rond"] .style .app-picker__title {
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+:root[data-theme="doux-rond"] .style .app-picker__app {
+  padding-left: 0.3125rem;
+}
+
+:root[data-theme="doux-rond"] .style .app-picker__app .app-mono {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.68rem;
+  border-radius: 50%;
+}
+
+@container style (max-width: 40rem) {
+  :root[data-theme="doux-rond"] .style .app-style__panel {
+    padding-left: 1rem;
+  }
+}
+
+/* ================================================================ narrow sheet */
+
+@container style (max-width: 32rem) {
+  :root[data-theme="doux-rond"] .style .card__body {
+    padding-inline: 1rem;
+  }
+
+  :root[data-theme="doux-rond"] .style .voice-command {
+    padding-block: 0.625rem;
+  }
+}
+
+@container settings (max-width: 32rem) {
+  :root[data-theme="doux-rond"] .settings .card__body {
+    padding-inline: 1rem;
+  }
+
+  :root[data-theme="doux-rond"] .settings .mic .field > .mic__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ================================================================ forced colors */
+
+@media (forced-colors: active) {
+  /* The chips are decoration: gone, the titles flush. */
+  :root[data-theme="doux-rond"] :is(.settings, .style) .card__header {
+    padding-left: 0;
+  }
+
+  :root[data-theme="doux-rond"] :is(.settings, .style) .card__header::before,
+  :root[data-theme="doux-rond"] :is(.settings, .style) .card__header::after {
+    display: none;
+  }
+
+  :root[data-theme="doux-rond"] :is(.settings, .style) .card__body {
+    border: 1px solid CanvasText;
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc a {
+    border: 1px solid transparent;
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc a[aria-current="true"] {
+    border: 2px solid Highlight;
+  }
+
+  :root[data-theme="doux-rond"] .settings__toc a[aria-current="true"]::before {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+
+  :root[data-theme="doux-rond"] .style :is(.app-style, .voice-command__spoken, .preview__side, .app-picker),
+  :root[data-theme="doux-rond"] .settings :is(.shortcut__current, .privacy-split__item, .access-summary__state--ok) {
+    border: 1px solid CanvasText;
+  }
+}

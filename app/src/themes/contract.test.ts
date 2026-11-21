@@ -4,7 +4,7 @@
 // without media queries on the colour scheme. Component CSS uses tokens only.
 
 // @ts-expect-error type error without @types/node package (as in vite.config.ts)
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { THEME_IDS } from "./registry";
 
@@ -58,17 +58,31 @@ describe("theme contract", () => {
   });
 
   // Colours live in theme.css (and a bar skin's palette); a theme's
-  // component CSS, its slots and its preview use tokens only.
+  // component CSS, its slots, its preview and (Doux et rond) its screens use
+  // tokens only.
+  const screens = (id: string): string[] =>
+    id === "doux-rond"
+      ? readdirSync(new URL(`./${id}/`, import.meta.url)).filter((file: string) => /^screens-.+\.css$/.test(file))
+      : [];
   const styling: [string, string][] = [];
   for (const id of THEME_IDS) {
-    for (const file of ["components.css", "galets.css", "preview.css"]) {
+    for (const file of ["components.css", "galets.css", "preview.css", ...screens(id)]) {
       const css = read(`./${id}/${file}`);
       if (css !== undefined) styling.push([`${id}/${file}`, css]);
     }
   }
 
+  it("checks the Doux et rond screens", () => {
+    expect(styling.map(([file]) => file)).toEqual(
+      expect.arrayContaining(["doux-rond/screens-activity.css", "doux-rond/screens-settings.css"]),
+    );
+  });
+
   it.each(styling)("%s has no literal colour", (_file, css) => {
     const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(withoutComments).not.toMatch(/#[0-9a-f]{3,8}\b|\b(rgb|rgba|hsl|hsla|oklch|lab)\(/i);
+    // Named colours too, outside url(…) (an icon mask only uses its alpha).
+    const withoutUrls = withoutComments.replace(/url\((?:"[^"]*"|'[^']*'|[^)]*)\)/g, "url()");
+    expect(withoutComments).not.toMatch(/#[0-9a-f]{3,8}\b|\b(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|hwb)\(/i);
+    expect(withoutUrls).not.toMatch(/:\s*[^;{}]*\b(white|black)\b/i);
   });
 });
