@@ -341,6 +341,13 @@ pub async fn get_activity(state: State<'_, AppState>) -> CmdResult<crate::ipc::A
 }
 
 #[tauri::command]
+pub async fn get_known_apps(
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<crate::settings::AppIdentity>> {
+    state.controller.known_apps().await.ok_or_else(internal_error)
+}
+
+#[tauri::command]
 pub async fn copy_draft(state: State<'_, AppState>, take: Option<u64>) -> CmdResult<()> {
     state
         .controller

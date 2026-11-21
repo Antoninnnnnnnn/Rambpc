@@ -2,7 +2,10 @@
 //! counters; one ordered writer persists snapshots off the controller task.
 
 use super::{DataRoot, write_atomic};
-use crate::ipc::{ActivityDay, ActivityStats, UsageStats};
+use crate::{
+    ipc::{ActivityDay, ActivityStats, AppWords, UsageStats},
+    settings::AppIdentity,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, path::PathBuf};
 use tokio::{sync::watch, task::JoinHandle};
@@ -21,20 +24,40 @@ struct Totals {
     daily_words: BTreeMap<i64, u64>,
     /// Completed takes per local day (added in 0.10; older files start empty).
     daily_takes: BTreeMap<i64, u64>,
+    // Local serial day -> executable id -> display name and word count.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    daily_apps: BTreeMap<i64, BTreeMap<String, AppCount>>,
     words_total: u64,
     takes_total: u64,
     listening_ms: u64,
 }
 
+#[derive(Clone, Default, Deserialize, Serialize)]
+struct AppCount {
+    name: String,
+    words: u64,
+}
+
 impl Totals {
-    fn add(&mut self, day: i64, words: u64, listening_ms: u64) {
+    fn add(&mut self, day: i64, words: u64, listening_ms: u64, app: Option<AppIdentity>) {
         let daily = self.daily_words.entry(day).or_default();
         *daily = daily.saturating_add(words);
         let takes = self.daily_takes.entry(day).or_default();
         *takes = takes.saturating_add(1);
+        if let Some(app) = app {
+            let count = self
+                .daily_apps
+                .entry(day)
+                .or_default()
+                .entry(app.id)
+                .or_default();
+            count.name = app.name;
+            count.words = count.words.saturating_add(words);
+        }
         let oldest = day.saturating_sub(KEEP_DAYS);
         self.daily_words.retain(|d, _| *d > oldest);
         self.daily_takes.retain(|d, _| *d > oldest);
+        self.daily_apps.retain(|d, _| *d > oldest);
         self.words_total = self.words_total.saturating_add(words);
         self.takes_total = self.takes_total.saturating_add(1);
         self.listening_ms = self.listening_ms.saturating_add(listening_ms);
@@ -45,8 +68,30 @@ impl Totals {
             || self.daily_words.get(&day).is_some_and(|w| *w > 0)
     }
 
+    fn app_words(&self, days: impl std::ops::RangeBounds<i64>) -> Vec<AppWords> {
+        let mut totals: BTreeMap<&str, (&str, u64)> = BTreeMap::new();
+        for (_, apps) in self.daily_apps.range(days) {
+            for (id, count) in apps {
+                let (name, words) = totals.entry(id).or_default();
+                *name = &count.name; // Newest display name in the requested range.
+                *words = words.saturating_add(count.words);
+            }
+        }
+        let mut apps: Vec<_> = totals
+            .into_iter()
+            .map(|(id, (name, words))| AppWords {
+                app: name.to_owned(),
+                words,
+                id: id.to_owned(),
+            })
+            .collect();
+        apps.sort_unstable_by(|a, b| b.words.cmp(&a.words).then_with(|| a.id.cmp(&b.id)));
+        apps
+    }
+
     fn activity(&self, today: i64) -> ActivityStats {
-        let days = (today - (ACTIVITY_DAYS - 1)..=today)
+        let window = today - (ACTIVITY_DAYS - 1)..=today;
+        let days = window.clone()
             .map(|day| ActivityDay {
                 date: date_string(day),
                 words: self.daily_words.get(&day).copied().unwrap_or_default(),
@@ -84,7 +129,11 @@ impl Totals {
             longest_streak_end: longest_end.map(date_string),
             first_day: active_days.first().copied().map(date_string),
             listening_ms_total: self.listening_ms,
-            apps: None,
+            apps: self
+                .daily_apps
+                .values()
+                .any(|apps| !apps.is_empty())
+                .then(|| self.app_words(window)),
         }
     }
 
@@ -132,8 +181,8 @@ impl Stats {
         }
     }
 
-    pub(crate) fn record(&mut self, words: u64, listening_ms: u64) {
-        self.totals.add(local_day(), words, listening_ms);
+    pub(crate) fn record(&mut self, words: u64, listening_ms: u64, app: Option<AppIdentity>) {
+        self.totals.add(local_day(), words, listening_ms, app);
         if let Some(path) = self.path.take() {
             // A watch slot coalesces queued snapshots, never reorders writes,
             // and bounds memory even on slow portable storage.
@@ -165,6 +214,17 @@ impl Stats {
 
     pub(crate) fn activity(&self) -> ActivityStats {
         self.totals.activity(local_day())
+    }
+
+    pub(crate) fn known_apps(&self) -> Vec<AppIdentity> {
+        self.totals
+            .app_words(..)
+            .into_iter()
+            .map(|app| AppIdentity {
+                id: app.id,
+                name: app.app,
+            })
+            .collect()
     }
 
     pub(crate) async fn close(&mut self) {
@@ -242,7 +302,7 @@ mod tests {
         assert_eq!(civil_day(2025, 1, 1) - 1, civil_day(2024, 12, 31));
         assert_eq!(civil_day(2100, 3, 1) - 1, civil_day(2100, 2, 28));
         for (age, words, minutes) in [(-1, 15, 1), (0, 60, 1), (6, 24, 2), (7, 7, 1)] {
-            totals.add(today - age, words, minutes * 60_000);
+            totals.add(today - age, words, minutes * 60_000, None);
         }
         assert_eq!(
             totals.view(today),
@@ -267,19 +327,25 @@ mod tests {
             ephemeral: false,
         };
         let mut stats = Stats::load(&root);
-        stats.record(5, 5_000);
+        let word = AppIdentity { id: "winword".into(), name: "Word".into() };
+        stats.record(5, 5_000, Some(word.clone()));
         stats.close().await;
         let mut stats = Stats::load(&root);
-        stats.record(15, 15_000);
-        stats.record(10, 10_000);
+        stats.record(15, 15_000, None);
+        stats.record(10, 10_000, Some(word.clone()));
         stats.close().await;
         let path = root.dir.join(STATS_FILE);
         let saved = fs::read(&path).unwrap();
         let json: serde_json::Value = serde_json::from_slice(&saved).unwrap();
         assert_eq!(json["wordsTotal"], 30);
         assert_eq!(json["listeningMs"], 30_000);
-        assert_eq!(json.as_object().unwrap().len(), 5);
-        let view = Stats::load(&root).view();
+        assert_eq!(json.as_object().unwrap().len(), 6);
+        assert_eq!(json["dailyApps"][local_day().to_string()], serde_json::json!({
+            "winword": {"name": "Word", "words": 15}
+        }));
+        let reloaded = Stats::load(&root);
+        assert_eq!(reloaded.known_apps(), [word]);
+        let view = reloaded.view();
         assert_eq!(view.words_this_week, 30);
         assert_eq!(view.takes_total, 3);
         assert_eq!(view.average_wpm, Some(60));
@@ -287,7 +353,8 @@ mod tests {
         root.ephemeral = true;
         let mut ephemeral = Stats::load(&root);
         assert_eq!(ephemeral.view(), UsageStats::default());
-        ephemeral.record(1, 1_000);
+        assert!(ephemeral.known_apps().is_empty());
+        ephemeral.record(1, 1_000, None);
         ephemeral.close().await;
         assert_eq!(ephemeral.view().words_total, 1);
         assert_eq!(fs::read(&path).unwrap(), saved);
@@ -304,7 +371,7 @@ mod tests {
         // A 3-day run ending 10 days ago, then today missing but yesterday and
         // the day before active: current streak 2, longest 3.
         for age in [12, 11, 10, 2, 1] {
-            totals.add(today - age, 10, 60_000);
+            totals.add(today - age, 10, 60_000, None);
         }
         let activity = totals.activity(today);
         assert_eq!(activity.days.len(), 112);
@@ -316,16 +383,53 @@ mod tests {
         assert_eq!(activity.first_day.as_deref(), Some("2026-11-09"));
         assert_eq!(activity.listening_ms_total, 300_000);
         assert!(activity.apps.is_none());
-        totals.add(today, 5, 1_000);
+        totals.add(today, 5, 1_000, None);
         assert_eq!(totals.activity(today).current_streak, 3);
         // Counters older than the retention window are pruned.
-        totals.add(today + KEEP_DAYS + 30, 1, 1_000);
+        totals.add(today + KEEP_DAYS + 30, 1, 1_000, None);
         assert!(totals.daily_takes.keys().all(|d| *d > today + 30));
-        // Files written before per-day takes existed still load.
+    }
+
+    #[test]
+    fn app_activity_uses_112_days_but_known_apps_use_all_retained_days() {
+        let today = civil_day(2026, 11, 21);
+        let mut totals = Totals::default();
+        for (age, id, name, words) in [
+            (-1, "future", "Future", 10), // The local clock can move back.
+            (KEEP_DAYS, "pruned", "Pruned", 1000),
+            (KEEP_DAYS - 1, "old", "Old", 50),
+            (112, "firefox", "Firefox", 90),
+            (111, "firefox", "Old description", 15),
+            (1, "notepad", "Notepad", 10),
+            (0, "firefox", "Firefox", 5),
+        ] {
+            totals.add(today - age, words, 1_000, Some(AppIdentity { id: id.into(), name: name.into() }));
+        }
+        totals.add(today, 100, 1_000, None); // Recents-only also contribute to overall usage.
+        assert_eq!(totals.view(today).words_today, 105);
+        assert_eq!(totals.activity(today).apps.unwrap(), [
+            AppWords { id: "firefox".into(), app: "Firefox".into(), words: 20 },
+            AppWords { id: "notepad".into(), app: "Notepad".into(), words: 10 },
+        ]);
+        assert_eq!(totals.activity(today + ACTIVITY_DAYS + 1).apps, Some(vec![]));
+        let stats = Stats { totals, ..Stats::default() };
+        let ids: Vec<_> = stats.known_apps().into_iter().map(|app| app.id).collect();
+        assert_eq!(ids, ["firefox", "old", "future", "notepad"]);
+        // The day 799 days back was retained at `today`, but expires one day later.
+        let mut totals = stats.totals;
+        totals.add(today + 1, 1, 1_000, None);
+        assert!(!totals.daily_apps.contains_key(&(today - KEEP_DAYS + 1)));
+    }
+
+    #[test]
+    fn older_files_without_app_counters_keep_their_usage() {
         let old: Totals = serde_json::from_str(
             r#"{"dailyWords":{"739000":5},"wordsTotal":5,"takesTotal":1,"listeningMs":1000}"#,
         )
         .unwrap();
         assert!(old.daily_takes.is_empty());
+        assert!(old.activity(739000).apps.is_none());
+        assert_eq!(old.view(739000).words_today, 5);
+        assert_eq!(old.view(739000).takes_total, 1);
     }
 }

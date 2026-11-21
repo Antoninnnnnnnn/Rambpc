@@ -1,3 +1,6 @@
+#[path = "app_identity.rs"]
+mod app_identity;
+
 use super::{
     insertion_method,
     office::{self, OfficeKind},
@@ -12,6 +15,9 @@ use crate::{
 use std::{
     cell::Cell,
     collections::HashMap,
+    ffi::OsString,
+    os::windows::ffi::OsStringExt,
+    path::{Path, PathBuf},
     sync::{
         Arc, Mutex, OnceLock, Weak,
         atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
@@ -22,7 +28,8 @@ use std::{
 };
 use windows::Win32::{
     Foundation::{
-        CloseHandle, ERROR_SUCCESS, GetLastError, HANDLE, HWND, LPARAM, SetLastError, WPARAM,
+        CloseHandle, ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, GetLastError, HANDLE, HWND, LPARAM,
+        SetLastError, WPARAM,
     },
     Security::{
         GetSidSubAuthority, GetSidSubAuthorityCount, GetTokenInformation, TOKEN_MANDATORY_LABEL,
@@ -384,7 +391,7 @@ struct LateField {
 }
 
 impl LateWindow {
-    fn capture(root: Window) -> Option<Self> {
+    fn capture(root: Window) -> Option<(Self, Option<PathBuf>)> {
         if root.pid == std::process::id() || !on_default_desktop() {
             return None;
         }
@@ -395,7 +402,8 @@ impl LateWindow {
         let process = Handle(
             unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, root.pid) }.ok()?,
         );
-        let app = app_kind(process.0);
+        let image = process_image(process.0);
+        let app = app_kind(image.as_deref());
         // Do not relax targeting for terminals embedded in Chromium shells.
         if app == AppKind::VsCode {
             return None;
@@ -409,7 +417,7 @@ impl LateWindow {
             app,
         };
         late.check().ok()?;
-        Some(late)
+        Some((late, image))
     }
 
     fn check(self) -> Result<(), TargetChange> {
@@ -478,8 +486,9 @@ impl Identity {
         }
     }
 
-    fn verdict(self) -> TargetVerdict {
-        let info = self.info;
+    fn verdict(self, image: Option<&Path>) -> TargetVerdict {
+        let mut info = self.info.clone();
+        info.app_identity = image.and_then(app_identity::identify);
         TargetVerdict::Eligible {
             token: TargetToken(Arc::new(self)),
             info,
@@ -509,6 +518,7 @@ struct Snapshot {
     element: IUIAutomationElement,
     caret: Caret,
     info: TargetInfo,
+    image: Option<PathBuf>,
 }
 
 enum Caret {
@@ -550,18 +560,18 @@ impl State {
         expected: Option<Window>,
         try_late: bool,
         deadline: Instant,
-    ) -> TargetVerdict {
-        let snapshot = loop {
+    ) -> Result<(Identity, Option<PathBuf>), Reject> {
+        let mut snapshot = loop {
             if expected.is_some() && Window::foreground() != expected {
-                return Reject::from(NoFocusedField).into();
+                return Err(NoFocusedField.into());
             }
             match inspect(&self.automation, false) {
                 Ok(snapshot) if expected.is_none_or(|window| window == snapshot.window) => {
                     break snapshot;
                 }
-                Ok(_) => return Reject::from(NoFocusedField).into(),
+                Ok(_) => return Err(NoFocusedField.into()),
                 Err(Reject::Uncertain(NoFocusedField | Unresponsive)) if try_late => {
-                    return Reject::from(NoFocusedField).into();
+                    return Err(NoFocusedField.into());
                 }
                 Err(Reject::Uncertain(NoFocusedField | Unresponsive | Unsupported))
                     if expected.is_some() && Instant::now() + CHROMIUM_RETRY < deadline =>
@@ -570,20 +580,21 @@ impl State {
                     // yet. Requery only in the original foreground window.
                     thread::sleep(CHROMIUM_RETRY);
                 }
-                Err(reject) => return reject.into(),
+                Err(reject) => return Err(reject),
             }
         };
+        let image = snapshot.image.take();
         let mut identity = Identity::new(
             worker,
             snapshot.window,
             snapshot.native_focus,
-            snapshot.info,
+            snapshot.info.clone(),
         );
         identity.native_edit = Mutex::new(snapshot.native_edit);
         identity.office = matches!(snapshot.caret, Caret::Office(_));
         self.records
             .insert(identity.id, (Arc::downgrade(&identity.lifetime), snapshot));
-        identity.verdict()
+        Ok((identity, image))
     }
 
     fn qualify_late(
@@ -1222,27 +1233,24 @@ impl TargetProbe for UiaTargetProbe {
             } else {
                 REQUEST_BUDGET
             };
-        let verdict = self
-            .worker()
-            .and_then(|worker| {
-                let owner = worker.clone();
-                worker.request_until(deadline, move |state| {
-                    state.capture(owner, expected, try_late, deadline)
-                })
+        let rejected = match self.worker().and_then(|worker| {
+            let owner = worker.clone();
+            worker.request_until(deadline, move |state| {
+                state.capture(owner, expected, try_late, deadline)
             })
-            .unwrap_or_else(|| Reject::from(Unresponsive).into());
-        if matches!(
-            verdict,
-            TargetVerdict::Uncertain {
-                reason: NoFocusedField | Unresponsive
-            }
-        ) && let Some(late) = late
+        }) {
+            Some(Ok((id, image))) => return id.verdict(image.as_deref()),
+            Some(Err(reject)) => reject,
+            None => Unresponsive.into(),
+        };
+        if matches!(rejected, Reject::Uncertain(NoFocusedField | Unresponsive))
+            && let Some((late, image)) = late
         {
             if let Err(change) = late.check() {
                 return if change == TargetChange::Protected {
                     TargetVerdict::Protected
                 } else {
-                    verdict
+                    rejected.into()
                 };
             }
             // A hung press-time apartment may have been retired; give the
@@ -1254,14 +1262,15 @@ impl TargetProbe for UiaTargetProbe {
                     None,
                     TargetInfo {
                         app: late.app,
+                        app_identity: None,
                         multiline: None,
                     },
                 );
                 id.late = Some(late);
-                return id.verdict();
+                return id.verdict(image.as_deref());
             }
         }
-        verdict
+        rejected.into()
     }
 
     fn watch(
@@ -1429,26 +1438,30 @@ fn integrity(process: HANDLE) -> Option<u32> {
     }
 }
 
-fn app_kind(process: HANDLE) -> AppKind {
-    let mut buffer = [0u16; 1024];
-    let mut len = buffer.len() as u32;
-    if unsafe {
-        QueryFullProcessImageNameW(
-            process,
-            PROCESS_NAME_FORMAT(0),
-            PWSTR(buffer.as_mut_ptr()),
-            &mut len,
-        )
+fn process_image(process: HANDLE) -> Option<PathBuf> {
+    let image = |buffer: &mut [u16]| {
+        let mut len = buffer.len() as u32;
+        unsafe {
+            QueryFullProcessImageNameW(
+                process,
+                PROCESS_NAME_FORMAT(0),
+                PWSTR(buffer.as_mut_ptr()),
+                &mut len,
+            )?;
+        }
+        Ok::<_, windows::core::Error>(PathBuf::from(OsString::from_wide(&buffer[..len as usize])))
+    };
+    match image(&mut [0; 1024]) {
+        Err(error) if error.code() == ERROR_INSUFFICIENT_BUFFER.to_hresult() => {
+            image(&mut vec![0; 32_768]).ok()
+        }
+        result => result.ok(),
     }
-    .is_err()
-    {
-        return AppKind::Other;
-    }
-    let name = buffer[..len as usize]
-        .rsplit(|&unit| unit == b'\\' as u16)
-        .next()
-        .unwrap_or_default();
-    match String::from_utf16_lossy(name).to_ascii_lowercase().as_str() {
+}
+
+fn app_kind(image: Option<&Path>) -> AppKind {
+    let name = image.and_then(Path::file_name).unwrap_or_default();
+    match name.to_string_lossy().to_ascii_lowercase().as_str() {
         "notepad.exe" => AppKind::Notepad,
         "winword.exe" => AppKind::Word,
         "outlook.exe" | "olk.exe" => AppKind::Outlook,
@@ -1675,7 +1688,8 @@ fn inspect(automation: &IUIAutomation, require_explicit_password_false: bool) ->
     if unsafe { element.CurrentProcessId() }.map_err(|_| NoFocusedField)? as u32 != window.pid {
         return Err(NoFocusedField.into());
     }
-    let app = app_kind(process.0);
+    let image = process_image(process.0);
+    let app = app_kind(image.as_deref());
     let element_hwnd =
         unsafe { element.CurrentNativeWindowHandle() }.map_err(|_| NoFocusedField)?;
     let is_code_chat = belongs(automation, &element, element_hwnd, window, app)?;
@@ -1732,8 +1746,10 @@ fn inspect(automation: &IUIAutomation, require_explicit_password_false: bool) ->
             caret: Caret::Office(caret),
             info: TargetInfo {
                 app,
+                app_identity: None,
                 multiline: Some(true),
             },
+            image,
         });
     }
     let native_readonly = styles.map(|style| style & ES_READONLY as u32 != 0);
@@ -1842,7 +1858,12 @@ fn inspect(automation: &IUIAutomation, require_explicit_password_false: bool) ->
         native_edit,
         element,
         caret,
-        info: TargetInfo { app, multiline },
+        info: TargetInfo {
+            app,
+            app_identity: None,
+            multiline,
+        },
+        image,
     })
 }
 
@@ -1883,6 +1904,7 @@ mod tests {
             office: false,
             info: TargetInfo {
                 app: AppKind::Other,
+                app_identity: None,
                 multiline: None,
             },
             late: None,

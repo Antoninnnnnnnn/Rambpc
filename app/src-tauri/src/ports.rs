@@ -8,7 +8,10 @@
 //! contain audio, dictated text, document text, window titles, user paths or
 //! access values.
 
-use crate::model::{MicChoice, SystemEvent};
+use crate::{
+    model::{MicChoice, SystemEvent},
+    settings::AppIdentity,
+};
 use serde::Serialize;
 use std::any::Any;
 use std::sync::Arc;
@@ -131,9 +134,11 @@ pub enum AppKind {
     Other,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct TargetInfo {
     pub app: AppKind,
+    /// Executable identity for local counters and rendering, when Windows supplies it.
+    pub app_identity: Option<AppIdentity>,
     /// Whether the field accepts several lines, when known.
     pub multiline: Option<bool>,
 }
