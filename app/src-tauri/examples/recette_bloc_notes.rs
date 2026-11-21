@@ -196,6 +196,7 @@ mod recette {
         let wav_path = args.get(1).ok_or("usage: <wav> <fr|en> <scenario>")?;
         let language = match args.get(2).map(String::as_str) {
             Some("en") => Language::English,
+            Some("auto") => Language::Auto,
             _ => Language::French,
         };
         let scenario = args.get(3).cloned().unwrap_or_else(|| "all".into());

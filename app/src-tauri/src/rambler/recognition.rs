@@ -59,6 +59,7 @@ pub(crate) async fn collect(
         profile.segmentation.pause_search = std::time::Duration::ZERO;
     }
     profile.session.config.language = language.code().into();
+    profile.session.config.secondary_languages = language.secondary_codes();
     profile.session.credentials = Some(Arc::new(access.metadata().clone()));
     profile.session.context = ContextInput::None;
     collect_profile(&engine, profile, rate, input, segments).await

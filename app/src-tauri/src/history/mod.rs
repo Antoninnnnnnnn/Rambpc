@@ -519,10 +519,10 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<(HistoryEntry, Vec<u8>)
             id: row.get(0)?,
             created_at_ms: row.get(1)?,
             expires_at_ms: row.get(2)?,
-            language: if row.get::<_, u8>(3)? == 0 {
-                Language::French
-            } else {
-                Language::English
+            language: match row.get::<_, u8>(3)? {
+                0 => Language::French,
+                2 => Language::Auto,
+                _ => Language::English,
             },
             profile: if row.get::<_, u8>(4)? == 0 {
                 RenderProfile::Natural
@@ -544,6 +544,7 @@ fn encode_language(value: Language) -> u8 {
     match value {
         Language::French => 0,
         Language::English => 1,
+        Language::Auto => 2,
     }
 }
 fn encode_profile(value: RenderProfile) -> u8 {

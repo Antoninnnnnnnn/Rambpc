@@ -15,17 +15,28 @@ pub struct TakeId(pub u64);
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Language {
+    /// French and English in the same take: Rambler recognizes both, and the
+    /// local typography follows the language detected in each result.
     #[default]
+    Auto,
     French,
     English,
 }
 
 impl Language {
-    /// BCP-47 code sent to Rambler in `ProtocolConfig::language`.
+    /// Primary BCP-47 code sent to Rambler in `ProtocolConfig::language`.
     pub fn code(self) -> &'static str {
         match self {
-            Language::French => "fr-FR",
+            Language::Auto | Language::French => "fr-FR",
             Language::English => "en-US",
+        }
+    }
+
+    /// Secondary codes sent in `ProtocolConfig::secondary_languages`.
+    pub fn secondary_codes(self) -> Vec<String> {
+        match self {
+            Language::Auto => vec!["en-US".into()],
+            Language::French | Language::English => Vec::new(),
         }
     }
 }

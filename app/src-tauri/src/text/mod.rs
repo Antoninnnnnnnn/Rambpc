@@ -54,6 +54,7 @@ pub struct Expression {
     pub enabled: bool,
 }
 
+mod language;
 mod personal;
 mod prose;
 mod quotes;
@@ -87,6 +88,17 @@ fn lf(text: &str) -> Cow<'_, str> {
 
 /// Render the complete admitted text of a take with frozen rules.
 pub fn render(admitted: &str, rules: &TextRules) -> String {
+    // Automatic language: the typography follows the text of this take.
+    let resolved;
+    let rules = if rules.language == Language::Auto {
+        resolved = TextRules {
+            language: language::detect(admitted),
+            ..rules.clone()
+        };
+        &resolved
+    } else {
+        rules
+    };
     let natural = rules.profile == RenderProfile::Natural;
     // In Faithful the admitted bytes (including line endings) are authoritative.
     let admitted = if natural {

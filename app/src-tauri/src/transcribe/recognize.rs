@@ -159,6 +159,7 @@ pub(super) async fn run(
     )
     .expect("valid file transcription profile");
     profile.session.config.language = rules.language.code().into();
+    profile.session.config.secondary_languages = rules.language.secondary_codes();
     profile.session.context = ContextInput::None;
     profile.session.credentials = Some(Arc::new(access.metadata().clone()));
     run_with_profile(path, job, access.transport_config(), profile, rules, sink).await

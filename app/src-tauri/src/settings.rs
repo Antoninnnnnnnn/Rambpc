@@ -149,7 +149,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             version: SETTINGS_VERSION,
-            language: Language::French,
+            language: Language::Auto,
             microphone: MicChoice::SystemDefault,
             gesture: Gesture::Hold,
             shortcut: DEFAULT_SHORTCUT.into(),
@@ -286,7 +286,7 @@ mod tests {
     #[test]
     fn defaults_match_the_dossier() {
         let s = Settings::default();
-        assert_eq!(s.language, Language::French);
+        assert_eq!(s.language, Language::Auto);
         assert_eq!(s.gesture, Gesture::Hold);
         assert_eq!(s.shortcut, "Ctrl+Shift+F2");
         assert_eq!(s.profile, RenderProfile::Natural);

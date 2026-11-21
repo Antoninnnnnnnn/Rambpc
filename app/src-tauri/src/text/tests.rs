@@ -770,3 +770,21 @@ fn french_guillemets_respect_language_profile_and_app_overrides() {
     no_typography.options.typographic_spaces = false;
     assert!(crate::text::render("Il a dit \"oui\".", &no_typography).contains("\"oui\""));
 }
+
+#[test]
+fn auto_language_picks_the_typography_per_take() {
+    let rules = crate::text::TextRules::from_settings(&crate::settings::Settings::default());
+    assert_eq!(rules.language, crate::model::Language::Auto);
+    assert_eq!(
+        crate::text::render("Il a dit \"parfait\" pour la réunion.", &rules),
+        "Il a dit «\u{202f}parfait\u{202f}» pour la réunion."
+    );
+    assert_eq!(
+        crate::text::render("He said \"great\" for the meeting.", &rules),
+        "He said \"great\" for the meeting."
+    );
+    assert_eq!(
+        crate::text::render("Can you join the call ?", &rules),
+        "Can you join the call?"
+    );
+}
