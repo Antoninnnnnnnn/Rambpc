@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react";
 import { useBridge } from "../ipc/bridge";
 import { EVENT_LEVEL, EVENT_MIC_TEST_LEVEL } from "../ipc/contract";
+import { listenShared } from "../ipc/shared";
 import { createWaveform } from "../lib/waveform";
 import "./Waveform.css";
 
@@ -31,22 +32,16 @@ export function Waveform({ event, active, onLevel, bars = 23, className }: Props
     wave.reset();
     if (!active) return () => wave.destroy();
     let disposed = false;
-    let unlisten: (() => void) | undefined;
-    bridge
-      .listen(event, (level) => {
-        if (disposed) return;
-        const clamped = Math.min(1, Math.max(0, Number.isFinite(level) ? level : 0));
-        wave.push(clamped);
-        onLevelRef.current?.(clamped);
-      })
-      .then((stop) => {
-        if (disposed) stop();
-        else unlisten = stop;
-      })
-      .catch(() => {});
+    // Shared with the theme backdrop, which follows the same level.
+    const unlisten = listenShared(bridge, event, (level) => {
+      if (disposed) return;
+      const clamped = Math.min(1, Math.max(0, Number.isFinite(level) ? level : 0));
+      wave.push(clamped);
+      onLevelRef.current?.(clamped);
+    });
     return () => {
       disposed = true;
-      unlisten?.();
+      unlisten();
       wave.reset();
       wave.destroy();
     };

@@ -24,8 +24,10 @@ import {
   type UsageStats,
 } from "../ipc/contract";
 import { matchesShortcut } from "../lib/shortcut";
+import { normalizeAppearance } from "../themes/appearance";
 import { PreviewPanel } from "./PreviewPanel";
 import { createPreviewPersonal } from "./previewPersonal";
+import { sampleActivity, sampleStats } from "./sampleActivity";
 
 export const PREVIEW_MARKER = "DEV PREVIEW (simulated, never shipped)";
 
@@ -91,7 +93,9 @@ export function installPreview(): Bridge {
   let nextTake = 1;
   let copyMode: CopyMode = "ok";
   let failNextSave = false;
-  let stats: UsageStats = { wordsToday: 1240, wordsThisWeek: 5312, wordsTotal: 48210, takesTotal: 612, averageWpm: 132 };
+  // Counters and per-day activity that agree: 48 312 words, 23 days in a row.
+  const activity = sampleActivity();
+  let stats: UsageStats = sampleStats(activity);
   const timers = { level: 0, micTest: 0, phase: 0, expiry: 0 };
 
   const availability = (): Availability => {
@@ -113,6 +117,7 @@ export function installPreview(): Bridge {
     gesture: settings.gesture,
     shortcut: settings.shortcut,
     recentCount: 0,
+    appearance: settings.appearance,
   };
 
   const publish = (patch: Partial<UiState> = {}) => {
@@ -124,6 +129,7 @@ export function installPreview(): Bridge {
       recentCount: recents.length,
       gesture: settings.gesture,
       shortcut: settings.shortcut,
+      appearance: settings.appearance,
     };
     emit(EVENT_STATE, state);
     watchers.forEach((watcher) => watcher());
@@ -316,6 +322,7 @@ export function installPreview(): Bridge {
       return publish();
     },
     get_stats: () => stats,
+    get_activity: () => structuredClone(activity),
     open_mic_privacy_settings: () => {
       console.info(`${PREVIEW_MARKER}: would open ms-settings:privacy-microphone`);
     },
@@ -393,8 +400,24 @@ export function installPreview(): Bridge {
   //   view:     the sidebar label to open after start
   //   click:    a CSS selector to click once the screen is shown
   //   history:  1 to enable the history; panel: 0 to hide the dev panel
+  //   theme:    verre-aurore | sable; scheme: system | light | dark (saved appearance)
+  //   legacy:   1 for a native side that predates themes (no `appearance` field)
   const params = new URLSearchParams(window.location.search);
   const scenario = params.get("scenario");
+  if (params.has("theme") || params.has("scheme")) {
+    settings = {
+      ...settings,
+      appearance: normalizeAppearance({
+        theme: params.get("theme") ?? settings.appearance?.theme,
+        colorScheme: (params.get("scheme") ?? settings.appearance?.colorScheme) as never,
+      }),
+    };
+  }
+  if (params.get("legacy") === "1") {
+    const { appearance: _dropped, ...legacy } = settings;
+    settings = legacy;
+  }
+  state = { ...state, appearance: settings.appearance };
   if (scenario) {
     consent = true;
     if (scenario !== "needs-access") access = { configured: true, source: "saved", authority: null, canRemember: true };

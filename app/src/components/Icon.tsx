@@ -304,8 +304,10 @@ export function Glyph({ name, className }: { name: GlyphName; className?: string
 }
 
 /**
- * Sambler's mark: the blue tile with a text cursor and two voice waves
- * (app-icon.svg), redrawn with a softer gradient and a light sheen.
+ * Sambler's mark: a tile with a text cursor and two voice waves
+ * (app-icon.svg), redrawn with a softer gradient and a light sheen. Its
+ * colours come from the theme (`--mark-*`): blue in Sable, plum and braise
+ * in Verre et aurore.
  */
 export function AppMark({ className }: { className?: string }) {
   const id = useId().replace(/:/g, "");
@@ -320,23 +322,35 @@ export function AppMark({ className }: { className?: string }) {
     >
       <defs>
         <linearGradient id={`${id}-tile`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#3b82f6" />
-          <stop offset="1" stopColor="#1d4ed8" />
+          <stop offset="0" style={{ stopColor: "var(--mark-tile-from)" }} />
+          <stop offset="1" style={{ stopColor: "var(--mark-tile-to)" }} />
         </linearGradient>
         <linearGradient id={`${id}-sheen`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.22" />
-          <stop offset="0.55" stopColor="#ffffff" stopOpacity="0" />
+          <stop offset="0" style={{ stopColor: "var(--mark-ink)", stopOpacity: 0.22 }} />
+          <stop offset="0.55" style={{ stopColor: "var(--mark-ink)", stopOpacity: 0 }} />
         </linearGradient>
       </defs>
       <rect className="app-mark__tile" x="64" y="64" width="896" height="896" rx="216" fill={`url(#${id}-tile)`} />
       <rect x="64" y="64" width="896" height="896" rx="216" fill={`url(#${id}-sheen)`} />
-      <g fill="#ffffff">
+      <g style={{ fill: "var(--mark-ink)" }}>
         <rect x="300" y="262" width="56" height="500" rx="28" />
         <rect x="236" y="262" width="184" height="44" rx="22" />
         <rect x="236" y="718" width="184" height="44" rx="22" />
       </g>
-      <path d="M500 390a150 150 0 0 1 0 244" fill="none" stroke="#a5e4ff" strokeWidth="56" strokeLinecap="round" />
-      <path d="M600 310a250 250 0 0 1 0 404" fill="none" stroke="#ffffff" strokeWidth="56" strokeLinecap="round" />
+      <path
+        d="M500 390a150 150 0 0 1 0 244"
+        fill="none"
+        style={{ stroke: "var(--mark-wave)" }}
+        strokeWidth="56"
+        strokeLinecap="round"
+      />
+      <path
+        d="M600 310a250 250 0 0 1 0 404"
+        fill="none"
+        style={{ stroke: "var(--mark-ink)" }}
+        strokeWidth="56"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

@@ -4,6 +4,7 @@ import { createContext, useContext } from "react";
 export type View = "home" | "dictionary" | "shortcuts" | "style" | "history" | "settings";
 
 export type SettingsSection =
+  | "appearance"
   | "microphone"
   | "shortcut"
   | "language"

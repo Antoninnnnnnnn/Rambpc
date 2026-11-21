@@ -29,7 +29,8 @@ export type SettingsField =
   | "history"
   | "launchAtStartup"
   | "insertion"
-  | "insertionTarget";
+  | "insertionTarget"
+  | "appearance";
 
 type Patch = (settings: Settings) => Settings;
 

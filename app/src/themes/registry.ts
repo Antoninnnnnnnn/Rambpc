@@ -14,8 +14,13 @@ export interface ThemeManifest {
   label: string;
   /** One short sentence under the name. */
   description: string;
-  /** 3 to 5 colours for the picker preview, per scheme (first = background). */
+  /**
+   * 3 to 5 colours for the picker preview, per scheme. By position:
+   * background, surface (sheet), text, accent, then an optional second accent.
+   */
   swatches: { light: readonly string[]; dark: readonly string[] };
+  /** Optional ambient colours drawn behind the preview (e.g. the aurora). */
+  glow?: { light: readonly string[]; dark: readonly string[] };
 }
 
 export const THEMES: Record<ThemeId, ThemeManifest> = {
@@ -23,7 +28,14 @@ export const THEMES: Record<ThemeId, ThemeManifest> = {
     id: "verre-aurore",
     label: "Verre et aurore",
     description: "Du verre dépoli sur une aube lente, qui s’éclaire quand vous parlez.",
-    swatches: { light: [], dark: [] },
+    swatches: {
+      light: ["#f4ece6", "#fffaf6", "#2a1c21", "#b4461a", "#3cc4a2"],
+      dark: ["#100a10", "#241820", "#f7ede7", "#ff9a6a", "#6edbbf"],
+    },
+    glow: {
+      light: ["#ffb08a", "#ffd27a", "#a6e2cf", "#f6b0c2"],
+      dark: ["#c4471e", "#d48a26", "#138470", "#93294f"],
+    },
   },
   sable: {
     id: "sable",

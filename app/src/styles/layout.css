@@ -1,7 +1,13 @@
-/* App shell: own title bar, sidebar on the sand canvas, content on a sheet. */
+/* App shell: own title bar, sidebar (the rail) and content on a sheet (the
+   panel), over the canvas or the theme's backdrop. Panels are frosted when
+   the theme sets `--glass-filter` (at most title bar, rail and panel: never
+   a blurred surface inside another one). */
 
 .frame,
 .app {
+  position: relative;
+  /* The theme backdrop (z-index: -1) paints above the canvas, below the shell. */
+  isolation: isolate;
   height: 100vh;
   min-height: 0;
   background: var(--canvas);
@@ -33,11 +39,45 @@
   min-height: 0;
   margin: 0 0.5rem 0.5rem 0;
   overflow-y: auto;
-  background: var(--sheet);
-  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--panel-shadow);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
   scroll-padding-top: var(--space-4);
+}
+
+/* Without backdrop blur, or when the system asks for less transparency, the
+   panels turn solid so that text never sits on a sharp backdrop. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app > .sidebar {
+    background: var(--rail-bg-solid);
+  }
+
+  .main,
+  .onboard__main {
+    background: var(--panel-bg-solid);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .titlebar,
+  .app > .sidebar,
+  .main,
+  .onboard__main {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .app > .sidebar {
+    background: var(--rail-bg-solid);
+  }
+
+  .main,
+  .onboard__main {
+    background: var(--panel-bg-solid);
+  }
 }
 
 .main__inner {

@@ -1,6 +1,7 @@
 // Live dictation state: shape icon + label + hint, voice bars and timer while
 // listening, « Terminer » / « Annuler » for the active take (by take id), and
-// « Dicter dans Sambler » when idle.
+// « Dicter dans Sambler » when idle. The theme may add a decorative tile
+// beside it (status art slot).
 
 import { useEffect, useId, useRef, useState } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
@@ -11,6 +12,7 @@ import { useUiCommands } from "../state/commands";
 import { useSettings } from "../state/settings";
 import { useUiState } from "../state/ui";
 import { useAction } from "../state/useAction";
+import { ThemeStatusArt } from "../themes/slots";
 import { FieldError, Keys } from "./controls";
 import { Glyph, StatusIcon } from "./Icon";
 import { Waveform } from "./Waveform";
@@ -76,79 +78,87 @@ export function StatusCard({ headingLevel = 2, dictateLabel = "Dicter dans Sambl
       <Heading id={headingId} className="visually-hidden">
         État de la dictée
       </Heading>
-      <div className="live__main">
-        <span className="live__badge">
-          <StatusIcon shape={status.shape} />
-        </span>
-        <div className="live__text">
-          <p className="live__label">{status.label}</p>
-          <p className="live__hint">
-            {status.shape === "available" ? <ShortcutHint gesture={state.gesture} shortcut={state.shortcut} /> : status.hint}
-          </p>
-        </div>
-        {phase === "listening" ? <ListeningTimer state={state} /> : null}
-      </div>
-
-      {phase === "listening" ? (
-        <div className="live__wave">
-          <Waveform event={EVENT_LEVEL} active bars={57} />
-        </div>
-      ) : phase === "finalizing" || phase === "preparing" ? (
-        <div className="live__wave">
-          <span className="live__dots" aria-hidden="true">
-            <span />
-            <span />
-            <span />
+      <div className="live__content">
+        <div className="live__main">
+          <span className="live__badge">
+            <StatusIcon shape={status.shape} />
           </span>
-        </div>
-      ) : null}
-
-      {active && state.destination === "sambler" ? (
-        <p className="live__note">Le texte de cette dictée restera dans Sambler.</p>
-      ) : null}
-
-      {active && take !== null ? (
-        <div className="live__actions">
-          <div className="btn-row">
-            {phase !== "finalizing" ? (
-              <button type="button" className="btn btn--primary" onClick={() => void run(() => commands.finishTake(take))}>
-                <Glyph name="stop" />
-                Terminer
-              </button>
-            ) : null}
-            <button type="button" className="btn" onClick={() => void run(() => commands.cancelTake(take))}>
-              Annuler
-            </button>
-          </div>
-          {escapeCancels ? (
-            <p className="live__note">
-              <Keys shortcut="Escape" /> annule aussi la dictée.
+          <div className="live__text">
+            <p className="live__label">{status.label}</p>
+            <p className="live__hint">
+              {status.shape === "available" ? <ShortcutHint gesture={state.gesture} shortcut={state.shortcut} /> : status.hint}
             </p>
-          ) : null}
+          </div>
+          {phase === "listening" ? <ListeningTimer state={state} /> : null}
         </div>
-      ) : null}
 
-      {!active && dictateLabel ? (
-        <div className="live__actions">
-          <button
-            type="button"
-            className="btn"
-            onClick={() => void dictate.run(commands.dictateInSambler)}
-            disabled={!startable}
-            aria-describedby={dictateHint}
-          >
-            <Glyph name="mic" />
-            {dictateLabel}
-          </button>
-          <p id={dictateHint} className="live__note">
-            {startable
-              ? "Sans raccourci : le texte reste dans Sambler, prêt à être copié."
-              : "Disponible quand la dictée est activée et que Rambler répond."}
-          </p>
-        </div>
-      ) : null}
-      {error ? <FieldError>{commandErrorText(error)}</FieldError> : null}
-      {dictate.error ? <FieldError>{commandErrorText(dictate.error)}</FieldError> : null}
+        {phase === "listening" ? (
+          <div className="live__wave">
+            <Waveform event={EVENT_LEVEL} active bars={57} />
+          </div>
+        ) : phase === "finalizing" || phase === "preparing" ? (
+          <div className="live__wave">
+            <span className="live__dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+        ) : null}
+
+        {active && state.destination === "sambler" ? (
+          <p className="live__note">Le texte de cette dictée restera dans Sambler.</p>
+        ) : null}
+
+        {active && take !== null ? (
+          <div className="live__actions">
+            <div className="btn-row">
+              {phase !== "finalizing" ? (
+                <button type="button" className="btn btn--primary" onClick={() => void run(() => commands.finishTake(take))}>
+                  <Glyph name="stop" />
+                  Terminer
+                </button>
+              ) : null}
+              <button type="button" className="btn" onClick={() => void run(() => commands.cancelTake(take))}>
+                Annuler
+              </button>
+            </div>
+            {escapeCancels ? (
+              <p className="live__note">
+                <Keys shortcut="Escape" /> annule aussi la dictée.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!active && dictateLabel ? (
+          <div className="live__actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void dictate.run(commands.dictateInSambler)}
+              disabled={!startable}
+              aria-describedby={dictateHint}
+            >
+              <Glyph name="mic" />
+              {dictateLabel}
+            </button>
+            <p id={dictateHint} className="live__note">
+              {startable
+                ? "Sans raccourci : le texte reste dans Sambler, prêt à être copié."
+                : "Disponible quand la dictée est activée et que Rambler répond."}
+            </p>
+          </div>
+        ) : null}
+        {error ? <FieldError>{commandErrorText(error)}</FieldError> : null}
+        {dictate.error ? <FieldError>{commandErrorText(dictate.error)}</FieldError> : null}
+      </div>
+      <ThemeStatusArt
+        phase={phase}
+        ready={phase === "idle" && state.availability.kind === "ready"}
+        gesture={state.gesture}
+        shortcut={state.shortcut}
+      />
     </section>
   );
 }

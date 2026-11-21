@@ -1,14 +1,13 @@
-/* Sambler design tokens. One identity on every OS: warm "sand" neutrals,
-   ink text and the logo's blue as the only accent. Sizes are in rem so text
-   zoom (up to 200 %) scales the whole layout; contrast pairs are WCAG AA. */
+/* Theme-independent design tokens: type scale, spacing, radii, control sizes,
+   layout widths and motion. Sizes are in rem so text zoom (up to 200 %)
+   scales the whole layout.
+
+   Colours, shadows, fonts, glass and the voice/aurora hooks belong to the
+   themes (themes/<id>/theme.css, keyed on data-theme and data-scheme). A
+   theme may also override some of the values below (radii, content width):
+   its `:root[data-theme="<id>"]` selector wins over this `:root`. */
 
 :root {
-  color-scheme: light dark;
-
-  --font-sans: "Inter Sambler", "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
-
   --text-xs: 0.75rem;
   --text-sm: 0.8125rem;
   --text-md: 0.875rem;
@@ -43,92 +42,4 @@
   --dur-fast: 120ms;
   --dur: 200ms;
   --dur-slow: 320ms;
-
-  /* Light: sand canvas, white sheet. */
-  --canvas: #f4f2ee;
-  --sheet: #ffffff;
-  --surface: #fbfaf8;
-  --surface-2: #f4f2ee;
-  --surface-hover: #f1efea;
-  --surface-pressed: #e9e6e0;
-  --raised: #ffffff;
-  --border: #e7e4de;
-  --border-strong: #d3cfc7;
-  --input-border: #cdc9c1;
-
-  --text: #18191d;
-  --text-2: #55585f;
-  --text-3: #686b72;
-  --text-disabled: #9a9ca1;
-
-  --accent: #2357e0;
-  --accent-hover: #1d4bc4;
-  --accent-pressed: #1a43ad;
-  --accent-soft: #eaf0fe;
-  --accent-soft-2: #dbe5fd;
-  --accent-ink: #1d4bc4;
-  --on-accent: #ffffff;
-  --focus: #2357e0;
-
-  --success: #1a7f4b;
-  --success-soft: #e6f4ec;
-  --warning: #9a5800;
-  --warning-soft: #fdf2de;
-  --error: #c42b1c;
-  --error-soft: #fcebe9;
-  /* Destructive buttons: white text on it, 5.4:1. */
-  --danger: #c42b1c;
-  --danger-hover: #a92417;
-
-  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23686b72' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
-
-  --shadow-xs: 0 1px 1px rgba(30, 25, 15, 0.04);
-  --shadow-sm: 0 1px 2px rgba(30, 25, 15, 0.06), 0 1px 1px rgba(30, 25, 15, 0.03);
-  --shadow-md: 0 1px 2px rgba(30, 25, 15, 0.05), 0 6px 20px rgba(30, 25, 15, 0.07);
-  --ring: 0 0 0 3px rgba(35, 87, 224, 0.18);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #0f1013;
-    --sheet: #17181c;
-    --surface: #1c1d22;
-    --surface-2: #212329;
-    --surface-hover: #24262c;
-    --surface-pressed: #2b2d34;
-    --raised: #23252b;
-    --border: #2a2c33;
-    --border-strong: #3a3d45;
-    --input-border: #444750;
-
-    --text: #edeef0;
-    --text-2: #a9adb5;
-    --text-3: #8f939b;
-    --text-disabled: #62666e;
-
-    --accent: #7da6ff;
-    --accent-hover: #9bbbff;
-    --accent-pressed: #b3cbff;
-    --accent-soft: rgba(125, 166, 255, 0.13);
-    --accent-soft-2: rgba(125, 166, 255, 0.2);
-    --accent-ink: #a9c4ff;
-    --on-accent: #0a1430;
-    --focus: #9bbbff;
-
-    --success: #5bd19a;
-    --success-soft: rgba(91, 209, 154, 0.12);
-    --warning: #f2b54a;
-    --warning-soft: rgba(242, 181, 74, 0.12);
-    --error: #ff8a80;
-    --error-soft: rgba(255, 138, 128, 0.12);
-    --danger: #d93a2b;
-    --danger-hover: #e5503f;
-
-    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a9adb5' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
-
-    --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.25);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
-    --ring: 0 0 0 3px rgba(125, 166, 255, 0.25);
-  }
 }

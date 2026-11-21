@@ -4,6 +4,7 @@
 import { useEffect, useId, useState } from "react";
 import { announcement, useAnnounce } from "../a11y/announcer";
 import { AccessForm, AccessSummary } from "../components/AccessForm";
+import { AppearanceSettings } from "../components/AppearanceSettings";
 import { Card, ChoiceGroup, FieldError, Row, Switch } from "../components/controls";
 import { Glyph } from "../components/Icon";
 import { MicPrivacyLink, MicrophonePicker } from "../components/Microphone";
@@ -30,6 +31,7 @@ import { ScreenHeader } from "./ScreenHeader";
 import "./SettingsScreen.css";
 
 const SECTIONS: { id: SettingsSection; title: string }[] = [
+  { id: "appearance", title: "Apparence" },
   { id: "microphone", title: "Micro" },
   { id: "shortcut", title: "Raccourci" },
   { id: "language", title: "Langue" },
@@ -127,6 +129,8 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
           ))}
         </ul>
       </nav>
+
+      <AppearanceSettings id={sectionAnchor("appearance")} />
 
       <Card id={sectionAnchor("microphone")} title="Micro">
         <MicrophonePicker />

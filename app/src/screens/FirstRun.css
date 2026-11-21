@@ -10,10 +10,12 @@
   place-items: start center;
   background:
     radial-gradient(60rem 30rem at 50% -10%, var(--accent-soft) 0%, transparent 70%),
-    var(--sheet);
-  border: 1px solid var(--border);
+    var(--panel-bg);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--panel-shadow);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
 }
 
 .onboard__panel {
@@ -114,7 +116,7 @@
 .onboard__mark {
   width: 3.25rem;
   height: 3.25rem;
-  filter: drop-shadow(0 6px 14px rgba(29, 78, 216, 0.28));
+  filter: drop-shadow(0 6px 14px var(--mark-shadow));
 }
 
 .onboard__title {

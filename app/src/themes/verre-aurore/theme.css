@@ -1,0 +1,265 @@
+/* Thème « Verre et aurore » : une aurore d'aube vit sous la fenêtre, trois
+   plaques de verre dépoli flottent dessus (barre de titre, rail, grande
+   feuille), et l'aurore ne devient vive que là où vit la voix.
+
+                    clair                         sombre
+     fond d'aurore  #f4ece6 aube laiteuse         #100a10 nuit prune
+     verre          rgba(255,250,246,.68)         rgba(29,19,26,.66)
+     encre          #2a1c21                       #f7ede7
+     braise         #b4461a  action, voix         #ff9a6a
+     safran         #8f5508  gardé, chaleur       #ffc46b
+     jade           #0b7260  inséré, prêt         #6edbbf
+
+   Polices : affichage Mona Sans (élargie, 112 %), texte Hanken Grotesk,
+   chiffres et heures Geist Mono (fonts.css). Every semantic token of the
+   contract is defined here, light then dark (see themes/README.md). The
+   `--va-*` variables at the end are private to this theme. */
+
+:root[data-theme="verre-aurore"] {
+  color-scheme: light;
+
+  /* Typography */
+  --font-text: "Hanken Grotesk Sambler", "Segoe UI Variable Text", "Segoe UI", -apple-system, "Cantarell",
+    "Noto Sans", system-ui, sans-serif;
+  --font-display: "Mona Sans Sambler", "Hanken Grotesk Sambler", "Segoe UI Variable Display", -apple-system,
+    "Cantarell", system-ui, sans-serif;
+  --font-mono: "Geist Mono Sambler", "Cascadia Mono", "SF Mono", ui-monospace, Menlo, "DejaVu Sans Mono", monospace;
+  --font-features: normal;
+  --display-stretch: 112%;
+  --display-tracking: -0.025em;
+
+  /* Theme-independent overrides */
+  --radius-sm: 0.625rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.125rem;
+  --sidebar-w: 13.875rem;
+  --content-w: 64rem;
+
+  /* Canvas and surfaces. Surfaces are translucent plates laid on the glass
+     sheet (no blur of their own); fields stay opaque for typing. */
+  --canvas: #f4ece6;
+  --sheet: rgba(255, 252, 250, 0.9);
+  --surface: rgba(255, 255, 255, 0.5);
+  --surface-2: rgba(74, 40, 46, 0.07);
+  --surface-hover: rgba(255, 255, 255, 0.9);
+  --surface-pressed: rgba(74, 40, 46, 0.1);
+  --raised: rgba(255, 255, 255, 0.78);
+  --field-bg: #fffdfb;
+  --border: rgba(74, 40, 46, 0.11);
+  --border-strong: rgba(74, 40, 46, 0.19);
+  --input-border: rgba(74, 40, 46, 0.26);
+
+  /* Shell panels: frosted glass over the aurora */
+  --titlebar-bg: rgba(255, 249, 244, 0.22);
+  --rail-bg: rgba(255, 249, 244, 0.55);
+  --rail-bg-solid: #fbf4ef;
+  --rail-shadow: inset 0 0 0 1px var(--glass-border), inset 0 1px 0 var(--glass-edge), var(--glass-shadow);
+  --panel-bg: rgba(255, 250, 246, 0.72);
+  --panel-bg-solid: #fcf7f3;
+  --panel-border: var(--glass-border);
+  --panel-shadow: inset 0 1px 0 var(--glass-edge), var(--glass-shadow);
+  --glass-blur: 28px;
+  --glass-saturate: 150%;
+  --glass-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  --glass-border: rgba(255, 255, 255, 0.62);
+  --glass-edge: rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 18px 50px -26px rgba(96, 44, 30, 0.2);
+  --glass-strong: rgba(255, 252, 250, 0.94);
+
+  /* Text (AA on the glass over the brightest aurora, see README) */
+  --text: #2a1c21;
+  --text-2: #5a464b;
+  --text-3: #6a575d;
+  --text-disabled: #a08e90;
+
+  /* Accent: braise */
+  --accent: #b4461a;
+  --accent-hover: #9b3a13;
+  --accent-pressed: #86320f;
+  --accent-soft: rgba(180, 70, 26, 0.1);
+  --accent-soft-2: rgba(180, 70, 26, 0.17);
+  --accent-ink: #a03d15;
+  --on-accent: #ffffff;
+  --focus: #b4461a;
+
+  /* Status: jade, safran, alerte */
+  --success: #0b7260;
+  --success-soft: rgba(60, 196, 162, 0.17);
+  --warning: #8a5207;
+  --warning-soft: rgba(240, 168, 60, 0.2);
+  --error: #b2243a;
+  --error-soft: rgba(178, 36, 58, 0.09);
+  --danger: #b2243a;
+  --danger-hover: #951c2f;
+  --on-danger: #ffffff;
+
+  /* Dictation states: the vivid hues of the aurora */
+  --state-ready: #3cc4a2;
+  --state-ready-soft: rgba(60, 196, 162, 0.17);
+  --state-listening: #ff8a5c;
+  --state-listening-soft: rgba(180, 70, 26, 0.1);
+  --state-working: #f0a83c;
+  --state-working-soft: rgba(240, 168, 60, 0.2);
+
+  /* Voice */
+  --voice-low: #3cc4a2;
+  --voice-mid: #f0a83c;
+  --voice-high: #ff8a5c;
+  --wave-from: var(--text);
+  --wave-to: var(--text);
+
+  /* Aurora: milky dawn, vivid where the voice lives */
+  --aurora-base: #f6eee8;
+  --aurora-1: #ffb08a;
+  --aurora-2: #ffd27a;
+  --aurora-3: #a6e2cf;
+  --aurora-4: #f6b0c2;
+  --aurora-live-1: #ff8a57;
+  --aurora-live-2: #ffbd45;
+  --aurora-live-3: #55cdaa;
+  --aurora-live-4: #f087a6;
+  --aurora-blend: normal;
+  --aurora-strength: 0.95;
+  --aurora-curtain-a: rgba(255, 168, 92, 0.6);
+  --aurora-curtain-b: rgba(64, 196, 160, 0.5);
+  --aurora-curtain-strength: 0.3;
+  --aurora-grain: 0.05;
+
+  /* Controls */
+  --key-bg: linear-gradient(#ffffff, #f7f0eb);
+  --key-border: rgba(74, 40, 46, 0.2);
+  --key-shadow: 0 1.5px 0 rgba(74, 40, 46, 0.24), inset 0 1px 0 var(--glass-edge);
+  --switch-thumb: #ffffff;
+  --switch-thumb-off: #ffffff;
+  --switch-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235a464b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  --titlebar-close-bg: #c42b1c;
+  --titlebar-close-pressed: #a32416;
+  --on-titlebar-close: #ffffff;
+
+  /* The Sambler mark on a plum tile, the voice wave in braise */
+  --mark-tile-from: #3d2732;
+  --mark-tile-to: #1d1218;
+  --mark-ink: #fff7f2;
+  --mark-wave: #ff9a6a;
+  --mark-shadow: rgba(96, 44, 30, 0.3);
+
+  /* Shadows: warm. Buttons get the glass edge with --shadow-xs. */
+  --shadow-xs: inset 0 1px 0 var(--glass-edge), 0 1px 1px rgba(96, 44, 30, 0.06);
+  --shadow-sm: 0 1px 3px rgba(96, 44, 30, 0.1);
+  --shadow-md: 0 1px 2px rgba(96, 44, 30, 0.06), 0 10px 26px -14px rgba(96, 44, 30, 0.28);
+  --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 6px 18px -8px rgba(180, 70, 26, 0.45);
+  --ring: 0 0 0 3px rgba(180, 70, 26, 0.12);
+
+  /* Private to this theme */
+  --va-plate-border: rgba(255, 255, 255, 0.72);
+  --va-contour: rgba(74, 40, 46, 0.09);
+  --va-shadow: rgba(96, 44, 30, 0.2);
+  --va-shadow-soft: rgba(96, 44, 30, 0.1);
+  --va-key-glass: rgba(255, 255, 255, 0.82);
+  --va-key-drop: rgba(74, 40, 46, 0.24);
+  --va-on-vivid: #3a2200;
+  --va-window-hover: rgba(42, 28, 33, 0.08);
+  --va-segment-on: rgba(255, 252, 250, 0.94);
+}
+
+:root[data-theme="verre-aurore"][data-scheme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #100a10;
+  --sheet: rgba(36, 24, 32, 0.92);
+  --surface: rgba(255, 236, 226, 0.045);
+  --surface-2: rgba(0, 0, 0, 0.28);
+  --surface-hover: rgba(255, 236, 226, 0.1);
+  --surface-pressed: rgba(255, 236, 226, 0.14);
+  --raised: rgba(255, 236, 226, 0.08);
+  --field-bg: #1c1319;
+  --border: rgba(255, 226, 212, 0.09);
+  --border-strong: rgba(255, 226, 212, 0.17);
+  --input-border: rgba(255, 226, 212, 0.24);
+
+  --titlebar-bg: rgba(24, 15, 21, 0.26);
+  --rail-bg: rgba(24, 15, 21, 0.78);
+  --rail-bg-solid: #1a1117;
+  --panel-bg: rgba(29, 19, 26, 0.8);
+  --panel-bg-solid: #1d141a;
+  --glass-border: rgba(255, 232, 220, 0.1);
+  --glass-edge: rgba(255, 232, 220, 0.12);
+  --glass-shadow: 0 18px 50px -26px rgba(0, 0, 0, 0.55);
+  --glass-strong: rgba(36, 24, 32, 0.95);
+
+  --text: #f7ede7;
+  --text-2: #d2c0bc;
+  --text-3: #bfaaa5;
+  --text-disabled: #6f5d5b;
+
+  --accent: #ff9a6a;
+  --accent-hover: #ffb48f;
+  --accent-pressed: #ffc7a9;
+  --accent-soft: rgba(255, 154, 106, 0.14);
+  --accent-soft-2: rgba(255, 154, 106, 0.22);
+  --accent-ink: #ffab84;
+  --on-accent: #2b0e05;
+  --focus: #ffb48f;
+
+  --success: #6edbbf;
+  --success-soft: rgba(110, 219, 191, 0.13);
+  --warning: #ffc46b;
+  --warning-soft: rgba(255, 196, 107, 0.13);
+  --error: #ff8a98;
+  --error-soft: rgba(255, 138, 152, 0.12);
+  --danger: #ff8a98;
+  --danger-hover: #ffa6b1;
+  --on-danger: #2b0710;
+
+  --state-ready: #34c09f;
+  --state-ready-soft: rgba(110, 219, 191, 0.13);
+  --state-listening: #ff8a5c;
+  --state-listening-soft: rgba(255, 154, 106, 0.14);
+  --state-working: #f0a83c;
+  --state-working-soft: rgba(255, 196, 107, 0.13);
+
+  --voice-low: #34c09f;
+
+  --aurora-base: #0f090f;
+  --aurora-1: #c4471e;
+  --aurora-2: #d48a26;
+  --aurora-3: #138470;
+  --aurora-4: #93294f;
+  --aurora-live-1: #e35a28;
+  --aurora-live-2: #f2a33a;
+  --aurora-live-3: #19a88a;
+  --aurora-live-4: #b8386a;
+  --aurora-blend: screen;
+  --aurora-strength: 0.88;
+  --aurora-curtain-a: rgba(255, 178, 92, 0.55);
+  --aurora-curtain-b: rgba(60, 210, 170, 0.5);
+  --aurora-grain: 0.07;
+
+  --key-bg: linear-gradient(#3a2a33, #2a1d25);
+  --key-border: rgba(255, 226, 212, 0.16);
+  --key-shadow: 0 1.5px 0 rgba(0, 0, 0, 0.55), inset 0 1px 0 var(--glass-edge);
+  --switch-thumb: #fff7f2;
+  --switch-thumb-off: #d2c0bc;
+  --switch-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23d2c0bc' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+
+  --mark-shadow: rgba(0, 0, 0, 0.5);
+
+  --shadow-xs: inset 0 1px 0 var(--glass-edge), 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 26px -14px rgba(0, 0, 0, 0.6);
+  --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 6px 18px -8px rgba(255, 120, 70, 0.45);
+  --ring: 0 0 0 3px rgba(255, 154, 106, 0.2);
+
+  --va-plate-border: rgba(255, 236, 226, 0.08);
+  --va-contour: rgba(0, 0, 0, 0.2);
+  --va-shadow: rgba(0, 0, 0, 0.55);
+  --va-shadow-soft: rgba(0, 0, 0, 0.3);
+  --va-key-glass: rgba(38, 25, 33, 0.78);
+  --va-key-drop: rgba(0, 0, 0, 0.55);
+  --va-on-vivid: #2e1a00;
+  --va-window-hover: rgba(255, 236, 226, 0.09);
+  --va-segment-on: rgba(255, 236, 226, 0.13);
+}

@@ -4,6 +4,9 @@
   gap: var(--space-3);
   min-height: var(--titlebar-h);
   padding: 0 0.4rem 0 var(--space-4);
+  background: var(--titlebar-bg);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -63,12 +66,12 @@
 }
 
 .titlebar__button--close:hover {
-  color: #ffffff;
-  background: #e5484d;
+  color: var(--on-titlebar-close);
+  background: var(--titlebar-close-bg);
 }
 
 .titlebar__button--close:active {
-  background: #c93c40;
+  background: var(--titlebar-close-pressed);
 }
 
 @media (forced-colors: active) {
