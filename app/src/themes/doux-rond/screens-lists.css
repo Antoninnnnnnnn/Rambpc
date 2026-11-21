@@ -1,0 +1,1112 @@
+/* Doux et rond: Dictionnaire, Raccourcis vocaux, Historique and the prise
+   en main (design/maquettes/doux-rond.html, « dictionnaire », « historique »,
+   « bienvenue »). The rows lie straight on the milk sheet, hairlines between,
+   a soft hollow on hover, the actions in a small milk pill like the Accueil's
+   Récents. What Rambler heard wears a wavy rose underline, a spoken trigger
+   is a lilac bubble in italic Fraunces, an inserted text a milk paper.
+
+   Colours from theme.css only; every rule starts with
+   :root[data-theme="doux-rond"]. Structure stays in rules.css,
+   HistoryScreen.css and FirstRun.css. */
+
+/* ================================================================ shared */
+
+/* Icon-only buttons in the row pills: the label stays the accessible name. */
+:root[data-theme="doux-rond"] :is(.rule__actions, .history-item__delete) .btn__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:root[data-theme="doux-rond"] :is(.rules, .history-screen) .empty {
+  padding: 2.75rem 1.5rem 2.25rem;
+}
+
+:root[data-theme="doux-rond"] :is(.rules, .history-screen) .empty__title,
+:root[data-theme="doux-rond"] .history-off > h2 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 580;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* ================================================================ Dictionnaire, Raccourcis vocaux */
+
+:root[data-theme="doux-rond"] .rules {
+  gap: 0.875rem;
+}
+
+:root[data-theme="doux-rond"] .rules__header .section-title {
+  gap: 0.625rem;
+}
+
+/* The count: a pêche pastille, like the mockup's tab counters. */
+:root[data-theme="doux-rond"] .rules__count {
+  min-width: 1.5rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  font-family: var(--font-text);
+  font-size: 0.75rem;
+  font-weight: 720;
+  color: var(--accent-ink);
+  background: var(--accent-soft-2);
+  border: 0;
+  letter-spacing: 0;
+}
+
+/* Notes: lilac to inform, beurre when the Fidèle style is active. */
+:root[data-theme="doux-rond"] .rules-note {
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.6875rem 1rem;
+  color: var(--dr-lilas-encre);
+  font-size: 0.875rem;
+  font-weight: 560;
+  background: var(--dr-lilas-voile);
+  border-radius: var(--radius-md);
+}
+
+:root[data-theme="doux-rond"] .rules-note .icon {
+  margin-top: 0;
+  color: currentColor;
+}
+
+:root[data-theme="doux-rond"] .rules-note--active {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+/* ---------------------------------------------------------------- the table */
+
+/* No plate: the rows lie on the sheet. */
+:root[data-theme="doux-rond"] .rule-table {
+  --rule-arrow: 1.75rem;
+  --rule-end: 7rem;
+  --rule-gap: 0.875rem;
+  --rule-pad: 0.875rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+:root[data-theme="doux-rond"] .rule-table__head {
+  padding-block: 0 0.5rem;
+  color: var(--text-2);
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+  border-bottom: 0;
+}
+
+:root[data-theme="doux-rond"] .rule-list {
+  gap: 0;
+}
+
+:root[data-theme="doux-rond"] .rule {
+  position: relative;
+  align-items: center;
+  min-height: 3.625rem;
+  padding-block: 0.625rem;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .rule--expression {
+  align-items: start;
+}
+
+/* A hairline between rows, gone around the row under the pointer. */
+:root[data-theme="doux-rond"] .rule + .rule {
+  border-top: 0;
+  box-shadow: 0 -1px 0 var(--border);
+}
+
+:root[data-theme="doux-rond"] .rule:not(.rule--editing, .rule--conflict):is(:hover, :focus-within) {
+  background: var(--surface);
+}
+
+:root[data-theme="doux-rond"] .rule:is(:hover, :focus-within),
+:root[data-theme="doux-rond"] .rule:is(:hover, :focus-within) + .rule {
+  box-shadow: none;
+}
+
+/* « Rambler écrit »: what was heard, underlined in a wavy rose. */
+:root[data-theme="doux-rond"] .rule__from {
+  color: var(--text-2);
+  font-size: 0.95rem;
+  font-weight: 450;
+  text-decoration: underline wavy var(--dr-rose);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 5px;
+  text-decoration-skip-ink: none;
+}
+
+:root[data-theme="doux-rond"] .rule__arrow {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--text-3);
+}
+
+:root[data-theme="doux-rond"] .rule__to {
+  font-size: 1rem;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+:root[data-theme="doux-rond"] .rule__target > .rule__meta {
+  margin-left: auto;
+}
+
+/* Triggers: lilac speech bubbles in italic Fraunces. */
+:root[data-theme="doux-rond"] .rule__trigger {
+  gap: 0.4375rem;
+  padding: 0.4375rem 0.875rem 0.5rem 0.6875rem;
+  color: var(--dr-lilas-encre);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 520;
+  line-height: 1.25;
+  background: var(--dr-lilas-voile);
+  border-radius: 1rem 1rem 1rem 0.3125rem;
+}
+
+:root[data-theme="doux-rond"] .rule__voice {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  margin-top: 0.125rem;
+  color: currentColor;
+}
+
+:root[data-theme="doux-rond"] .rule__body > .rule__arrow {
+  margin-top: 0.5rem;
+}
+
+/* The inserted text: a milk paper with a soft rim. */
+:root[data-theme="doux-rond"] .rule__payload {
+  padding: 0.625rem 0.875rem;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  background: var(--sheet);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* State: the switch says it; « Désactivé » becomes a misty pastille. */
+:root[data-theme="doux-rond"] .rule__state:not(.rule__state--off),
+:root[data-theme="doux-rond"] .rule__meta:not(:has(.chip, .rule__state--off)) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:root[data-theme="doux-rond"] .rule__state--off {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.5rem;
+  padding: 0 0.625rem 0 0.5625rem;
+  color: var(--dr-brume-encre);
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 680;
+  background: var(--dr-brume-fond);
+  border-radius: var(--radius-full);
+}
+
+:root[data-theme="doux-rond"] .rule__state--off::before {
+  content: "";
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+:root[data-theme="doux-rond"] .rule--disabled .rule__body {
+  opacity: 1;
+}
+
+:root[data-theme="doux-rond"] .rule--disabled :is(.rule__from, .rule__to, .rule__trigger, .rule__payload) {
+  opacity: 0.55;
+}
+
+:root[data-theme="doux-rond"] .rule--disabled .rule__from {
+  text-decoration-color: transparent;
+}
+
+:root[data-theme="doux-rond"] .rule--conflict {
+  background: var(--error-soft);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .rule--conflict + .rule {
+  box-shadow: none;
+}
+
+/* The switch, then round actions that appear on hover or focus. */
+:root[data-theme="doux-rond"] .rule__end {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+
+:root[data-theme="doux-rond"] .rule__actions {
+  order: -1;
+  flex-wrap: nowrap;
+  gap: 0.125rem;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .rule:is(:hover, :focus-within) .rule__actions {
+  opacity: 1;
+}
+
+:root[data-theme="doux-rond"] .rule__actions .btn {
+  width: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  color: var(--text-2);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .rule__actions .btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+:root[data-theme="doux-rond"] .rule__actions .rule__delete:hover {
+  color: var(--error);
+  background: var(--error-soft);
+}
+
+:root[data-theme="doux-rond"] .rule__actions .icon {
+  width: 1.0625rem;
+  height: 1.0625rem;
+}
+
+@media (hover: none) {
+  :root[data-theme="doux-rond"] .rule__actions {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------- forms */
+
+/* Adding: a pêche veil, like the mockup's form row. */
+:root[data-theme="doux-rond"] .rules__form {
+  padding: 1.25rem 1.375rem 1.375rem;
+  background: var(--accent-soft);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .rule--editing {
+  padding-block: 1rem 1.125rem;
+  background: var(--accent-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .rule--editing + .rule {
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .rule-form__title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .rule-preview {
+  gap: 0.375rem;
+  padding: 0.75rem 1rem;
+  background: var(--sheet);
+  border-radius: 1.125rem 1.125rem 0.375rem 1.125rem;
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] :is(.rule-preview__title, .try__result-label) {
+  font-size: 0.78rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root[data-theme="doux-rond"] .rule-preview__title {
+  color: var(--accent-ink);
+}
+
+/* ---------------------------------------------------------------- sentence tester */
+
+/* What Sambler writes: a milk paper bubble on the hollow. */
+:root[data-theme="doux-rond"] .try__result {
+  gap: 0.375rem;
+  padding: 0.75rem 1rem 0.875rem;
+  background: var(--sheet);
+  border-radius: 1.125rem 1.125rem 0.375rem 1.125rem;
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] .try__result-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- narrow sheet */
+
+@container (max-width: 34rem) {
+  :root[data-theme="doux-rond"] .rule-table {
+    --rule-pad: 0.625rem;
+  }
+
+  :root[data-theme="doux-rond"] .rule-table__head {
+    display: none;
+  }
+
+  :root[data-theme="doux-rond"] .rule {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  :root[data-theme="doux-rond"] .rule__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-theme="doux-rond"] .rule__body > * {
+    grid-column: 1;
+  }
+
+  :root[data-theme="doux-rond"] .rule__pair {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.625rem;
+  }
+
+  :root[data-theme="doux-rond"] .rule__body > .rule__arrow {
+    display: none;
+  }
+
+  :root[data-theme="doux-rond"] .rule__end {
+    min-height: 2rem;
+  }
+}
+
+/* ================================================================ Historique */
+
+/* Wide sheet: the dictations, and Conservation beside them on a hollow. */
+@container (min-width: 54rem) {
+  :root[data-theme="doux-rond"] .history-screen:has(> :is(.history, .history-off)) {
+    grid-template-columns: minmax(0, 1fr) 19rem;
+    grid-auto-flow: row dense;
+    column-gap: 2rem;
+  }
+
+  :root[data-theme="doux-rond"] .history-screen > * {
+    grid-column: 1 / -1;
+  }
+
+  :root[data-theme="doux-rond"] .history-screen > :is(.history, .history-off) {
+    grid-column: 1;
+    align-self: start;
+  }
+
+  :root[data-theme="doux-rond"] .history-screen:has(> :is(.history, .history-off)) > .history-keep {
+    grid-column: 2;
+    align-self: start;
+  }
+
+  @media (min-height: 40rem) {
+    :root[data-theme="doux-rond"] .history-screen:has(> .history) > .history-keep {
+      position: sticky;
+      top: 1rem;
+    }
+  }
+}
+
+/* Conservation: the shield on a milk chip beside the title. */
+:root[data-theme="doux-rond"] .history-keep {
+  gap: 0.875rem;
+  padding: 1.25rem 1.375rem 1.375rem;
+}
+
+:root[data-theme="doux-rond"] .history-keep .card__header {
+  position: relative;
+  align-items: center;
+  min-height: 2.25rem;
+  padding-left: 3rem;
+}
+
+:root[data-theme="doux-rond"] .history-keep .card__header::before,
+:root[data-theme="doux-rond"] .history-keep .card__header::after {
+  content: "";
+  position: absolute;
+  top: -0.125rem;
+  left: 0;
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: 50%;
+}
+
+:root[data-theme="doux-rond"] .history-keep .card__header::before {
+  background: var(--sheet);
+}
+
+:root[data-theme="doux-rond"] .history-keep .card__header::after {
+  background: var(--dr-corail);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l7 2.8v5.2c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.3z'/%3E%3Cpath d='M9 12l2.2 2.2L15.3 10'/%3E%3C/svg%3E")
+    center / 1.1875rem 1.1875rem no-repeat;
+}
+
+:root[data-theme="doux-rond"] .history-keep .card__title {
+  font-size: 1.15rem;
+}
+
+:root[data-theme="doux-rond"] .history-keep .card__body {
+  gap: 0.875rem;
+}
+
+:root[data-theme="doux-rond"] .history-keep .card__body > :is(.row, .choices, .stack) + :is(.row, .choices, .stack) {
+  padding-top: 0.875rem;
+}
+
+:root[data-theme="doux-rond"] .history-keep .row--switch {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+:root[data-theme="doux-rond"] .history-keep .row--switch .row__text {
+  flex: 1 1 auto;
+}
+
+:root[data-theme="doux-rond"] .history-keep .row--switch .switch {
+  margin-top: 0.125rem;
+}
+
+:root[data-theme="doux-rond"] .history-keep :is(.row__label, .choices__legend) {
+  font-weight: 650;
+}
+
+:root[data-theme="doux-rond"] .history-keep :is(.row__desc, .hint) {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+/* « Tout effacer », « Désactiver et effacer »: in the rose of a refusal. */
+:root[data-theme="doux-rond"] .history-keep .btn-row > .btn--ghost:not(:disabled) {
+  color: var(--error);
+}
+
+:root[data-theme="doux-rond"] .history-keep .btn-row > .btn--ghost:not(:disabled):hover {
+  background: var(--error-soft);
+}
+
+/* ---------------------------------------------------------------- search */
+
+:root[data-theme="doux-rond"] .history {
+  gap: 0.75rem;
+}
+
+:root[data-theme="doux-rond"] .history__search-row {
+  gap: 0.5rem;
+}
+
+/* A soft pill field that turns milk with the lilac ring on focus. */
+:root[data-theme="doux-rond"] .history__search-field .input {
+  min-height: 2.625rem;
+  padding-left: 2.75rem;
+  background: var(--surface-2);
+  border-color: transparent;
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .history__search-field .input:hover {
+  border-color: var(--input-border);
+}
+
+:root[data-theme="doux-rond"] .history__search-field .input:focus-visible {
+  background: var(--field-bg);
+  border-color: var(--focus);
+  outline: 0;
+  box-shadow: var(--ring);
+}
+
+:root[data-theme="doux-rond"] .history__search-field .icon {
+  left: 1rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--text-2);
+}
+
+:root[data-theme="doux-rond"] .history__search-row .btn {
+  min-height: 2.625rem;
+}
+
+:root[data-theme="doux-rond"] .history__copy-note {
+  padding-left: 0.875rem;
+}
+
+/* ---------------------------------------------------------------- days */
+
+:root[data-theme="doux-rond"] .history__days {
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+:root[data-theme="doux-rond"] .history-day {
+  gap: 0.25rem;
+}
+
+:root[data-theme="doux-rond"] .history-day__title {
+  gap: 0.75rem;
+  padding: 0 0.875rem;
+}
+
+:root[data-theme="doux-rond"] .history-day__name {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 580;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .history-day__count {
+  color: var(--text-2);
+  font-size: 0.8rem;
+}
+
+/* ---------------------------------------------------------------- rows */
+
+:root[data-theme="doux-rond"] .history__list {
+  gap: 0.125rem;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+:root[data-theme="doux-rond"] .history-item + .history-item {
+  border-top: 0;
+}
+
+:root[data-theme="doux-rond"] .history-item > article {
+  position: relative;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  gap: 0 0.875rem;
+  padding: 0.75rem 0.75rem 0.75rem 0.875rem;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .history-item > article:is(:hover, :focus-within) {
+  background: var(--surface);
+}
+
+/* Times and counts in DM Mono, as on the mockup. */
+:root[data-theme="doux-rond"] .history-item__date {
+  padding-top: 0.0625rem;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.8;
+}
+
+:root[data-theme="doux-rond"] .history-item__text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+:root[data-theme="doux-rond"] .history-item__unreadable {
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* No row gap (the actions' row is empty unless the screen has no hover):
+   the details keep their own space. */
+:root[data-theme="doux-rond"] .history-item__meta {
+  margin-top: 0.25rem;
+  color: var(--text-2);
+  font-size: 0.78rem;
+}
+
+:root[data-theme="doux-rond"] .history-item .field-error {
+  margin-top: 0.375rem;
+}
+
+:root[data-theme="doux-rond"] .history-item__words {
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  line-height: 1.9;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+/* The actions: a small milk pill that takes the place of the count on hover
+   or focus (out of the grid areas, placed against the whole row). */
+:root[data-theme="doux-rond"] .history-item__actions {
+  grid-area: auto;
+  position: absolute;
+  top: 0.4375rem;
+  right: 0.5rem;
+  z-index: 1;
+  flex-wrap: nowrap;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0.1875rem;
+  background: var(--glass-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .history-item > article:is(:hover, :focus-within) .history-item__actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+:root[data-theme="doux-rond"] .history-item > article:is(:hover, :focus-within) .history-item__words {
+  opacity: 0;
+}
+
+:root[data-theme="doux-rond"] .history-item__actions .btn {
+  min-height: 2rem;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .history-item__actions .btn:hover {
+  background: var(--surface-2);
+}
+
+:root[data-theme="doux-rond"] .history-item__copy {
+  padding: 0 0.75rem 0 0.625rem;
+}
+
+:root[data-theme="doux-rond"] .history-item__delete {
+  width: 2rem;
+  padding: 0;
+  color: var(--text-2);
+}
+
+:root[data-theme="doux-rond"] .history-item__actions .history-item__delete:hover {
+  color: var(--error);
+  background: var(--error-soft);
+}
+
+:root[data-theme="doux-rond"] .history-item__actions .icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* « Copiée. »: a small ink toast under the text, a menthe check. */
+:root[data-theme="doux-rond"] .history-item__feedback {
+  justify-self: start;
+  gap: 0.625rem;
+  margin-top: 0.25rem;
+  padding: 0.3125rem 1rem 0.3125rem 0.3125rem;
+  color: var(--panel-bg);
+  font-weight: 650;
+  background: var(--text);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  animation: dr-toast-in 0.26s cubic-bezier(0.3, 1.45, 0.55, 1);
+}
+
+:root[data-theme="doux-rond"] .history-item__feedback .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0.28rem;
+  flex: none;
+  color: var(--dr-sur-menthe);
+  background: var(--dr-menthe);
+  border-radius: 50%;
+  stroke-width: 2.6;
+}
+
+/* Touch screens: no hover, the actions stay visible under the text. */
+@media (hover: none) {
+  :root[data-theme="doux-rond"] .history-item__actions {
+    grid-area: actions;
+    position: static;
+    margin-top: 0.375rem;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  :root[data-theme="doux-rond"] .history-item > article:is(:hover, :focus-within) .history-item__words {
+    opacity: 1;
+  }
+}
+
+/* Narrow sheet: time and count on top, the text below. */
+@container (max-width: 34rem) {
+  :root[data-theme="doux-rond"] .history-item > article {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "time     words"
+      "text     text"
+      "meta     meta"
+      "actions  actions"
+      "feedback feedback";
+  }
+
+  :root[data-theme="doux-rond"] .history-item .field-error {
+    grid-column: 1 / -1;
+  }
+
+  :root[data-theme="doux-rond"] :is(.history-item__text, .history-item__unreadable) {
+    margin-top: 0.125rem;
+  }
+
+  :root[data-theme="doux-rond"] .history__search-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  :root[data-theme="doux-rond"] .history__search-field {
+    grid-column: auto;
+  }
+}
+
+/* ================================================================ prise en main */
+
+/* The sheet wakes up with a pêche-and-lilac dawn, like the Accueil's hero
+   (decoration only: the sheet's colour stays its token). */
+:root[data-theme="doux-rond"] .onboard__main {
+  container: onboard / inline-size;
+  background-image:
+    radial-gradient(70% 42rem at 0% 0%, var(--dr-hero-a), transparent 62%),
+    radial-gradient(60% 36rem at 100% 100%, var(--dr-hero-b), transparent 64%);
+}
+
+:root[data-theme="doux-rond"] .onboard__panel {
+  max-width: 46rem;
+  gap: 1.5rem;
+  padding: 2rem 2.5rem 2.75rem;
+}
+
+/* ---------------------------------------------------------------- the steps */
+
+/* Progress as soft bars: menthe once done, corail for the current step. */
+:root[data-theme="doux-rond"] .onboard__top {
+  row-gap: 1.5rem;
+}
+
+:root[data-theme="doux-rond"] .onboard__steps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.625rem;
+}
+
+:root[data-theme="doux-rond"] .onboard__steps li {
+  position: relative;
+  align-items: flex-start;
+  gap: 0.4375rem;
+  padding: 0.875rem 0 0;
+  color: var(--text-2);
+  font-size: 0.84rem;
+  font-weight: 580;
+  line-height: 1.35;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .onboard__steps li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0.3125rem;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+}
+
+:root[data-theme="doux-rond"] .onboard__steps li.is-done::before {
+  background: var(--dr-menthe);
+}
+
+:root[data-theme="doux-rond"] .onboard__steps li.is-current {
+  color: var(--text);
+  font-weight: 680;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .onboard__steps li.is-current::before {
+  background: var(--dr-corail);
+}
+
+/* The step's mark: its number, a menthe check once done, a corail dot now. */
+:root[data-theme="doux-rond"] .onboard__dot {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.0625rem;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: none;
+  border: 0;
+}
+
+:root[data-theme="doux-rond"] .is-done .onboard__dot {
+  color: var(--success);
+  background: none;
+}
+
+:root[data-theme="doux-rond"] .is-done .onboard__dot .icon {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  stroke-width: 2.4;
+}
+
+:root[data-theme="doux-rond"] .is-current .onboard__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  margin: 0.375rem 0.3125rem 0;
+  overflow: hidden;
+  color: transparent;
+  font-size: 0;
+  background: var(--dr-corail);
+  border-radius: 50%;
+}
+
+/* « Étape 1 sur 3 »: a small pêche eyebrow above the title. */
+:root[data-theme="doux-rond"] .onboard__counter {
+  color: var(--accent-ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+:root[data-theme="doux-rond"] .onboard__close {
+  align-self: start;
+  margin-top: -0.375rem;
+}
+
+/* ---------------------------------------------------------------- the step */
+
+:root[data-theme="doux-rond"] .onboard__step {
+  gap: 1.375rem;
+}
+
+:root[data-theme="doux-rond"] .onboard__mark {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+:root[data-theme="doux-rond"] .onboard__title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 580;
+  line-height: 1.08;
+  letter-spacing: var(--display-tracking);
+}
+
+:root[data-theme="doux-rond"] .onboard__lead {
+  max-width: 40rem;
+  font-size: 1.05rem;
+}
+
+/* Cards: hollows on the sheet, the icon on a round chip. */
+:root[data-theme="doux-rond"] .onboard__columns {
+  gap: 0.875rem;
+}
+
+:root[data-theme="doux-rond"] .onboard__card {
+  gap: 0.875rem;
+  padding: 1.25rem 1.375rem 1.375rem;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+}
+
+:root[data-theme="doux-rond"] .onboard__card-title {
+  gap: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .onboard__card-title .icon {
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0.5rem;
+  flex: none;
+  color: var(--dr-corail);
+  background: var(--accent-soft);
+  border-radius: 50%;
+}
+
+/* What stays on this PC: menthe, like the ready state. */
+:root[data-theme="doux-rond"] .onboard__card + .onboard__card .onboard__card-title .icon {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+:root[data-theme="doux-rond"] .onboard__card ul {
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+:root[data-theme="doux-rond"] .onboard__card li::marker {
+  color: var(--dr-corail);
+}
+
+:root[data-theme="doux-rond"] .onboard__done {
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.125rem 0.75rem 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 620;
+  border-radius: var(--radius-md);
+}
+
+:root[data-theme="doux-rond"] .onboard__done .icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: 0;
+  padding: 0.35rem;
+  flex: none;
+  color: var(--dr-sur-menthe);
+  background: var(--dr-menthe);
+  border-radius: 50%;
+  stroke-width: 2.4;
+}
+
+/* The phrase to say: a milk speech bubble in italic Fraunces. */
+:root[data-theme="doux-rond"] .onboard__instruction {
+  padding: 1.125rem 1.375rem 1.25rem;
+  color: var(--text-2);
+  font-size: 1rem;
+  line-height: 2.2;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+}
+
+:root[data-theme="doux-rond"] .onboard__phrase {
+  display: inline-block;
+  margin-inline: 0.125rem;
+  padding: 0.1875rem 0.875rem 0.25rem;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-style: italic;
+  font-weight: 520;
+  line-height: 1.5;
+  background: var(--sheet);
+  border-radius: 1rem 1rem 1rem 0.3125rem;
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] .onboard__nav {
+  padding-top: 0.75rem;
+}
+
+@container onboard (max-width: 40rem) {
+  :root[data-theme="doux-rond"] .onboard__panel {
+    padding: 1.5rem 1.25rem 2rem;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__title {
+    font-size: 1.875rem;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__phrase {
+    font-size: 1.1rem;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__steps {
+    gap: 0.5rem;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__steps li {
+    font-size: 0.8rem;
+  }
+}
+
+/* ================================================================ forced colors */
+
+@media (forced-colors: active) {
+  :root[data-theme="doux-rond"] :is(.history-item__actions, .history-item__feedback, .rule__trigger, .rule__state--off, .rules-note, .rules__count) {
+    border: 1px solid CanvasText;
+  }
+
+  :root[data-theme="doux-rond"] .rule__actions {
+    opacity: 1;
+  }
+
+  :root[data-theme="doux-rond"] :is(.rules__form, .rule--editing, .rule-preview, .try__result, .onboard__card, .onboard__instruction) {
+    border: 1px solid CanvasText;
+  }
+
+  :root[data-theme="doux-rond"] .history-keep .card__header {
+    padding-left: 0;
+  }
+
+  :root[data-theme="doux-rond"] .history-keep .card__header::before,
+  :root[data-theme="doux-rond"] .history-keep .card__header::after {
+    display: none;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__main {
+    background-image: none;
+  }
+
+  /* The progress bars: CanvasText to come, Highlight for the current step. */
+  :root[data-theme="doux-rond"] .onboard__steps li::before {
+    forced-color-adjust: none;
+    background: GrayText;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__steps li.is-done::before {
+    background: CanvasText;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__steps li.is-current::before,
+  :root[data-theme="doux-rond"] .is-current .onboard__dot {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+
+  :root[data-theme="doux-rond"] .onboard__steps li.is-current {
+    border: 0;
+  }
+}

@@ -74,7 +74,11 @@ describe("theme contract", () => {
 
   it("checks the Doux et rond screens", () => {
     expect(styling.map(([file]) => file)).toEqual(
-      expect.arrayContaining(["doux-rond/screens-activity.css", "doux-rond/screens-settings.css"]),
+      expect.arrayContaining([
+        "doux-rond/screens-activity.css",
+        "doux-rond/screens-settings.css",
+        "doux-rond/screens-lists.css",
+      ]),
     );
   });
 
