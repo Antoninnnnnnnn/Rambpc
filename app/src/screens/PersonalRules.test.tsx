@@ -122,7 +122,7 @@ describe("Dictionnaire", () => {
     await user.click(screen.getByRole("button", { name: "Essayer" }));
     expect(bridge.invoke).toHaveBeenCalledWith("preview_render", {
       sample: "réunion projet mélusine",
-      settings: expect.objectContaining({ profile: "natural", language: "french" }),
+      settings: expect.objectContaining({ profile: "natural", language: "auto" }),
     });
     expect(await screen.findByTestId("rules-try-result")).toHaveTextContent("réunion projet Mélusine");
   });

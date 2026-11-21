@@ -3,13 +3,20 @@
 
 import { useEffect, useState } from "react";
 import { useBridge } from "../ipc/bridge";
-import type { Settings } from "../ipc/contract";
+import type { Language, Settings } from "../ipc/contract";
+import { textLang } from "../labels/history";
 
-/** Raw recognizer-like samples owned by the UI (not dictated text). */
-export const PREVIEW_SAMPLES = {
-  french: "je ne pourrai pas venir jeudi à 14 h est-ce que mardi vous convient",
+const FRENCH_SAMPLE = "je ne pourrai pas venir jeudi à 14 h est-ce que mardi vous convient";
+
+/**
+ * Raw recognizer-like samples owned by the UI (not dictated text). In automatic
+ * mode the French sample gets French typography, as a French take would.
+ */
+export const PREVIEW_SAMPLES: Record<Language, string> = {
+  auto: FRENCH_SAMPLE,
+  french: FRENCH_SAMPLE,
   english: "i will not be able to come on thursday at 2 pm does tuesday work for you",
-} as const;
+};
 
 /** `preview_render` for `sample`, debounced; null while pending or on failure. */
 export function usePreviewRender(sample: string, settings: Settings): string | null {
@@ -55,7 +62,7 @@ interface Props {
 
 export function RenderPreview({ settings, sample, labels, compact = false, caption, testId = "render-preview" }: Props) {
   const rendered = usePreviewRender(sample, settings);
-  const lang = settings.language === "english" ? "en" : "fr";
+  const lang = textLang(settings.language);
   if (rendered === null) return null;
 
   const preview = (

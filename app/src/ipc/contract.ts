@@ -26,7 +26,11 @@
 /** `TakeId(u64)`, `#[serde(transparent)]`. Monotonic, never reused. */
 export type TakeId = number;
 
-export type Language = "french" | "english";
+/**
+ * `auto`: French and English in the same take (Rambler gets fr-FR plus en-US);
+ * the typography follows the language guessed from each result.
+ */
+export type Language = "auto" | "french" | "english";
 
 export type RenderProfile = "natural" | "faithful";
 
@@ -172,7 +176,7 @@ export const HISTORY_DAYS_CHOICES = [1, 7, 30] as const;
 export function defaultSettings(): Settings {
   return {
     version: SETTINGS_VERSION,
-    language: "french",
+    language: "auto",
     microphone: { kind: "system-default" },
     gesture: "hold",
     shortcut: DEFAULT_SHORTCUT,

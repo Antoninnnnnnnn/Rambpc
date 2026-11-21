@@ -34,11 +34,24 @@ const LAYOUT: [RegExp, string][] = [
 ];
 
 /**
+ * The language a take is rendered in. In automatic mode, a rough stand-in for
+ * the native guess: English function words against French ones.
+ */
+export function previewLanguage(sample: string, settings: Settings): "french" | "english" {
+  if (settings.language !== "auto") return settings.language;
+  const words = sample.toLowerCase().match(/[\p{L}']+/gu) ?? [];
+  const count = (list: string[]) => words.filter((word) => list.includes(word)).length;
+  const english = count(["the", "and", "is", "to", "you", "i", "it", "on", "at", "for", "will", "does", "be", "not"]);
+  const french = count(["le", "la", "les", "de", "et", "je", "vous", "pas", "ne", "à", "est", "que", "un", "une"]);
+  return english > french ? "english" : "french";
+}
+
+/**
  * A rough stand-in for the native commands, applied to the sample before the
  * preview's light rules: Naturel and French only, like the native side.
  */
 export function previewVoiceCommands(sample: string, settings: Settings): string {
-  if (settings.profile !== "natural" || !settings.text.voiceCommands || settings.language !== "french") return sample;
+  if (settings.profile !== "natural" || !settings.text.voiceCommands || previewLanguage(sample, settings) !== "french") return sample;
   let out = sample;
   for (const [pattern, text] of LAYOUT) out = out.replace(pattern, text);
   out = out.replace(/^ +| +$/gm, "");

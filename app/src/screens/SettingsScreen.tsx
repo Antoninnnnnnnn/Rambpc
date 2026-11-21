@@ -239,13 +239,25 @@ export function SettingsScreen({ section }: { section?: SettingsSection }) {
           <Card id={sectionAnchor("language")} title="Langue">
             <ChoiceGroup
               legend="Langue de dictée"
-              description="La langue que vous parlez, figée au début de chaque dictée."
+              description="Les langues que Sambler reconnaît, figées au début de chaque dictée."
               name="language"
-              variant="segmented"
               value={settings.language}
               options={[
-                { value: "french", label: "Français" },
-                { value: "english", label: "Anglais" },
+                {
+                  value: "auto",
+                  label: "Automatique (français et anglais)",
+                  description: "Parlez français, anglais, ou les deux : Sambler s’adapte à chaque dictée.",
+                },
+                {
+                  value: "french",
+                  label: "Français uniquement",
+                  description: "Reconnaissance et typographie françaises à chaque dictée.",
+                },
+                {
+                  value: "english",
+                  label: "Anglais uniquement",
+                  description: "Reconnaissance et ponctuation anglaises à chaque dictée.",
+                },
               ]}
               onChange={(language) => void set("language", (s) => ({ ...s, language }))}
               error={error("language")}

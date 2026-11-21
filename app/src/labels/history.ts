@@ -4,7 +4,22 @@ import type { Language, RenderProfile } from "../ipc/contract";
 
 export const HISTORY_DAY_CHOICES = [1, 7, 30] as const;
 
-export const LANGUAGE_LABELS: Record<Language, string> = { french: "Français", english: "Anglais" };
+export const LANGUAGE_LABELS: Record<Language, string> = { auto: "Automatique", french: "Français", english: "Anglais" };
+
+/**
+ * `lang` of dictated text. Undefined in automatic mode, where the language of
+ * a take is not recorded: the text inherits the page language.
+ */
+export function textLang(language: Language): "fr" | "en" | undefined {
+  return language === "english" ? "en" : language === "french" ? "fr" : undefined;
+}
+
+/** « Français · Naturel · Expire dans 6 jours »; no language in automatic mode. */
+export function entryMeta(language: Language, profile: RenderProfile, expiry: string): string {
+  return [language === "auto" ? null : LANGUAGE_LABELS[language], PROFILE_LABELS[profile], expiry]
+    .filter((part) => part !== null)
+    .join(" · ");
+}
 export const PROFILE_LABELS: Record<RenderProfile, string> = { natural: "Naturel", faithful: "Fidèle" };
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {

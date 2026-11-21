@@ -26,7 +26,7 @@ import {
 import { matchesShortcut } from "../lib/shortcut";
 import { normalizeAppearance } from "../themes/appearance";
 import { PreviewPanel } from "./PreviewPanel";
-import { createPreviewApps, previewVoiceCommands } from "./previewApps";
+import { createPreviewApps, previewLanguage, previewVoiceCommands } from "./previewApps";
 import { createPreviewCarnet } from "./previewCarnet";
 import { createPreviewPersonal } from "./previewPersonal";
 import { sampleActivity, sampleStats } from "./sampleActivity";
@@ -337,7 +337,7 @@ export function installPreview(): Bridge {
       if (s.text.sentenceCase) out = out.replace(/(^|[.?!] )(\p{L})/gu, (_m, p: string, c: string) => p + c.toUpperCase());
       if (s.text.typographicSpaces) out = out.replace(/ \?$/, " ?");
       else out = out.replace(/ \?$/, "?");
-      if (s.language === "english") out = out.replace(/ \?$/, "?").replace(/\bi\b/g, "I");
+      if (previewLanguage(sample, s) === "english") out = out.replace(/ \?$/, "?").replace(/\bi\b/g, "I");
       return out;
     },
     ...createPreviewApps(),

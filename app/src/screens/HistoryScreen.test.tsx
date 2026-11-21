@@ -66,6 +66,14 @@ describe("Historique", () => {
     expect(within(items[2]).getByRole("button", { name: /^Copier/ })).toBeDisabled();
   });
 
+  it("names no language for an automatic dictation", async () => {
+    const entry = { ...historyEntry("auto", "Please review the PR, merci.", 5), language: "auto" as const };
+    await openHistory({ settings: ON, history: [entry] });
+    const [item] = await screen.findAllByTestId("history-entry");
+    expect(within(item).getByText(/Expire dans/)).toHaveTextContent(/^Naturel · Expire dans 6 jours$/);
+    expect(within(item).getByTestId("history-text")).not.toHaveAttribute("lang");
+  });
+
   it("copies and deletes one entry", async () => {
     const { bridge, user } = await openHistory({ settings: ON, history: ENTRIES });
     const [first, second] = await screen.findAllByTestId("history-entry");

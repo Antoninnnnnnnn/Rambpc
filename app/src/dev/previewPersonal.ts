@@ -28,7 +28,7 @@ function sampleHistory(retentionDays: number): HistoryEntry[] {
       id: `preview-${index}`,
       createdAtMs: created,
       expiresAtMs: created + retentionDays * DAY,
-      language: index % 5 === 4 ? "english" : "french",
+      language: index % 5 === 4 ? "english" : index % 2 === 0 ? "auto" : "french",
       profile: index % 3 === 2 ? "faithful" : "natural",
       text: texts[index % texts.length],
     } satisfies HistoryEntry;

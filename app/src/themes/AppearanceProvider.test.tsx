@@ -117,7 +117,7 @@ describe("appearance: source of truth and cache", () => {
     expect(root.dataset.scheme).toBe("dark");
     expect(cached()).toEqual({ theme: "doux-rond", colorScheme: "dark" });
     // The rest of the settings is saved unchanged.
-    expect(lastSaved(bridge)).toMatchObject({ language: "french", shortcut: "Ctrl+Shift+F2" });
+    expect(lastSaved(bridge)).toMatchObject({ language: "auto", shortcut: "Ctrl+Shift+F2" });
   });
 
   it("rolls back a refused change and says why", async () => {

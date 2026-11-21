@@ -85,11 +85,21 @@ describe("Réglages", () => {
     }
   });
 
-  it("names the dictation language with its description", async () => {
+  it("names the dictation language with its description, automatic by default", async () => {
     await openSettings();
     const group = screen.getByRole("group", { name: "Langue de dictée" });
-    expect(group).toHaveAccessibleDescription("La langue que vous parlez, figée au début de chaque dictée.");
-    expect(within(group).getByRole("radio", { name: "Français" })).toBeChecked();
+    expect(group).toHaveAccessibleDescription("Les langues que Sambler reconnaît, figées au début de chaque dictée.");
+    const radios = within(group).getAllByRole("radio");
+    expect(radios.map((radio) => radio.getAttribute("value"))).toEqual(["auto", "french", "english"]);
+    const auto = within(group).getByRole("radio", { name: "Automatique (français et anglais)" });
+    expect(auto).toBeChecked();
+    expect(auto).toHaveAccessibleDescription("Parlez français, anglais, ou les deux : Sambler s’adapte à chaque dictée.");
+    expect(within(group).getByRole("radio", { name: "Français uniquement" })).not.toBeChecked();
+  });
+
+  it("keeps an explicit language from older settings", async () => {
+    await openSettings({ settings: { language: "french" } });
+    expect(screen.getByRole("radio", { name: "Français uniquement" })).toBeChecked();
   });
 
   it("says what Google receives and what stays on this PC", async () => {
@@ -103,7 +113,7 @@ describe("Réglages", () => {
 
   it("saves each change with save_settings", async () => {
     const { bridge, user } = await openSettings();
-    await user.click(screen.getByRole("radio", { name: "Anglais" }));
+    await user.click(screen.getByRole("radio", { name: "Anglais uniquement" }));
     await user.click(screen.getByRole("switch", { name: "Toujours garder le texte dans Sambler" }));
     await user.click(screen.getByRole("radio", { name: "5 minutes" }));
     await user.click(screen.getByRole("radio", { name: /Bascule/ }));

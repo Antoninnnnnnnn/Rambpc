@@ -15,14 +15,14 @@ import {
   dayCountText,
   daysLabel,
   entryCountText,
+  entryMeta,
   formatEntryDate,
   formatEntryTime,
   formatExpiry,
   groupByDay,
   HISTORY_DAY_CHOICES,
-  LANGUAGE_LABELS,
-  PROFILE_LABELS,
   resultCountText,
+  textLang,
   wordCount,
   wordsText,
 } from "../labels/history";
@@ -477,7 +477,7 @@ function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
   const titleId = useId();
   const date = formatEntryDate(entry.createdAtMs);
   const words = wordCount(entry.text);
-  const lang = entry.language === "english" ? "en" : "fr";
+  const lang = textLang(entry.language);
 
   const onCopy = async () => {
     setCopied(false);
@@ -512,7 +512,7 @@ function HistoryItem({ entry, copyNoteId, onDelete }: HistoryItemProps) {
           </p>
         )}
         <p className="history-item__meta">
-          {LANGUAGE_LABELS[entry.language]} · {PROFILE_LABELS[entry.profile]} · {formatExpiry(entry.expiresAtMs)}
+          {entryMeta(entry.language, entry.profile, formatExpiry(entry.expiresAtMs))}
         </p>
         {words > 0 ? <p className="history-item__words">{wordsText(words)}</p> : null}
         <div className="history-item__actions">

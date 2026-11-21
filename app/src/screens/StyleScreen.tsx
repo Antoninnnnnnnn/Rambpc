@@ -8,6 +8,7 @@ import { useEffect, useId, useState } from "react";
 import { Card, ChoiceGroup, FieldError, Switch } from "../components/controls";
 import { PREVIEW_SAMPLES, RenderPreview } from "../components/RenderPreview";
 import { settingSaveErrorText } from "../labels/fr";
+import { textLang } from "../labels/history";
 import { nb, PROFILE_DESCRIPTIONS, PROFILE_LABELS, TEXT_OPTION_DESCRIPTIONS, TEXT_OPTION_LABELS } from "../labels/style";
 import { useSettings } from "../state/settings";
 import { ScreenHeader } from "./ScreenHeader";
@@ -20,7 +21,7 @@ const LIGHT_RULES = ["lightPunctuation", "typographicSpaces", "sentenceCase"] as
 export function StyleScreen() {
   const { settings, errors, update, loadFailed, reload } = useSettings();
   const sampleId = useId();
-  const language = settings?.language ?? "french";
+  const language = settings?.language ?? "auto";
   const [sample, setSample] = useState<string>(PREVIEW_SAMPLES[language]);
   const [edited, setEdited] = useState(false);
 
@@ -104,7 +105,7 @@ export function StyleScreen() {
             maxLength={500}
             value={sample}
             spellCheck={false}
-            lang={language === "english" ? "en" : "fr"}
+            lang={textLang(language)}
             onChange={(event) => {
               setEdited(true);
               setSample(event.currentTarget.value);
