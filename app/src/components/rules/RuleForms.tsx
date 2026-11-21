@@ -71,7 +71,7 @@ export function LexiconForm({ initial, onSubmit, onCancel }: FormProps<LexiconEn
           <input
             ref={first}
             id={`${id}-heard`}
-            className="input"
+            className="input rule-form__heard"
             value={heard}
             onChange={(event) => setHeard(event.currentTarget.value)}
             autoComplete="off"
@@ -188,7 +188,7 @@ export function ExpressionForm({ initial, onSubmit, onCancel }: FormProps<Expres
         <input
           ref={first}
           id={`${id}-trigger`}
-          className="input"
+          className="input rule-form__trigger"
           value={trigger}
           onChange={(event) => setTrigger(event.currentTarget.value)}
           autoComplete="off"

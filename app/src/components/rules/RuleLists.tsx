@@ -7,7 +7,7 @@ import type { CommandError, Expression, LexiconEntry, RuleKind, Settings } from 
 import { commandErrorText } from "../../labels/fr";
 import { conflictSummary, conflictsFor } from "../../labels/rules";
 import { FieldError } from "../controls";
-import { Glyph, type GlyphName } from "../Icon";
+import { Glyph, ToneIcon, type GlyphName } from "../Icon";
 import { Notice } from "../Notice";
 import { ExpressionForm, LexiconForm } from "./RuleForms";
 import type { RulesStore } from "./useRules";
@@ -41,14 +41,19 @@ function useFocusAfterRender() {
 export function RulesStatus({ store }: { store: RulesStore }) {
   if (store.loadError) {
     return (
-      <div className="stack stack--tight">
-        <FieldError>Les mots et expressions n’ont pas pu être lus.</FieldError>
-        <div className="btn-row">
+      <Notice
+        tone="error"
+        title="Les mots et expressions n’ont pas pu être lus."
+        headingLevel={2}
+        testId="rules-load-error"
+        actions={
           <button type="button" className="btn btn--sm" onClick={store.load}>
             Réessayer
           </button>
-        </div>
-      </div>
+        }
+      >
+        <p>Rien n’a été modifié. Réessayez dans un instant.</p>
+      </Notice>
     );
   }
   const unsaved = store.conflicts.length > 0 || store.saveError !== null;
@@ -96,12 +101,28 @@ interface ListShellProps {
   onAdd: () => void;
   form: ReactNode;
   empty: { glyph: GlyphName; title: string; text: ReactNode };
+  /** Visual column titles: what is matched, what is written, the switch. */
+  columns: [string, string, string];
   children: ReactNode;
   testId: string;
   note?: ReactNode;
 }
 
-function ListShell({ title, addLabel, count, readOnly, adding, addRef, onAdd, form, empty, children, testId, note }: ListShellProps) {
+function ListShell({
+  title,
+  addLabel,
+  count,
+  readOnly,
+  adding,
+  addRef,
+  onAdd,
+  form,
+  empty,
+  columns,
+  children,
+  testId,
+  note,
+}: ListShellProps) {
   const headingId = useId();
   return (
     <section className="rules" aria-labelledby={headingId} data-testid={testId}>
@@ -128,7 +149,18 @@ function ListShell({ title, addLabel, count, readOnly, adding, addRef, onAdd, fo
           <p className="hint">{empty.text}</p>
         </div>
       ) : null}
-      {count > 0 ? <ul className="rule-list">{children}</ul> : null}
+      {count > 0 ? (
+        <div className={readOnly ? "rule-table rule-table--readonly" : "rule-table"}>
+          {/* Column titles for the eye; each row says « devient » or names its parts. */}
+          <div className="rule-table__head" aria-hidden="true">
+            <span>{columns[0]}</span>
+            <span />
+            <span>{columns[1]}</span>
+            {readOnly ? null : <span className="rule-table__state">{columns[2]}</span>}
+          </div>
+          <ul className="rule-list">{children}</ul>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -169,11 +201,13 @@ export function LexiconList({ store, faithful }: { store: RulesStore; faithful: 
       note={
         faithful ? (
           <p className="rules-note rules-note--active" data-testid="faithful-note">
+            <ToneIcon tone="warning" />
             Style Fidèle actif : seuls les mots marqués « Aussi en Fidèle » sont remplacés.
           </p>
         ) : null
       }
       form={<LexiconForm initial={null} onSubmit={(value) => save(value, true)} onCancel={() => close(addKey("lexicon"))} />}
+      columns={["Rambler écrit", "Je veux", "Actif"]}
       empty={{
         glyph: "dictionary",
         title: "Aucun mot pour le moment",
@@ -219,13 +253,15 @@ export function LexiconList({ store, faithful }: { store: RulesStore; faithful: 
               <span className="rule__from">{entry.heard}</span>
               <Glyph name="arrow-right" className="rule__arrow" />
               <span className="visually-hidden"> devient </span>
-              <span className="rule__to">{entry.written}</span>
-            </p>
-            <p className="rule__meta">
-              <span className={entry.enabled ? "rule__state" : "rule__state rule__state--off"}>
-                {entry.enabled ? "Actif" : "Désactivé"}
+              <span className="rule__target">
+                <span className="rule__to">{entry.written}</span>{" "}
+                <span className="rule__meta">
+                  <span className={entry.enabled ? "rule__state" : "rule__state rule__state--off"}>
+                    {entry.enabled ? "Actif" : "Désactivé"}
+                  </span>
+                  {entry.applyInFaithful ? <span className="chip">Aussi en Fidèle</span> : null}
+                </span>
               </span>
-              {entry.applyInFaithful ? <span className="chip">Aussi en Fidèle</span> : null}
             </p>
           </RuleItem>
         ),
@@ -271,6 +307,7 @@ export function ExpressionList({ store, faithful }: { store: RulesStore; faithfu
       testId="expression-section"
       note={
         <p className={faithful ? "rules-note rules-note--active" : "rules-note"} data-testid="faithful-note">
+          <ToneIcon tone={faithful ? "warning" : "info"} />
           {faithful
             ? "Style Fidèle actif : vos expressions ne s’appliquent pas. Elles reprennent en style Naturel."
             : "Les expressions sont inactives en style Fidèle."}
@@ -283,6 +320,7 @@ export function ExpressionList({ store, faithful }: { store: RulesStore; faithfu
           onCancel={() => close(addKey("expression"))}
         />
       }
+      columns={["Vous dites", "Sambler insère", "Active"]}
       empty={{
         glyph: "shortcuts",
         title: "Aucune expression pour le moment",
@@ -325,8 +363,10 @@ export function ExpressionList({ store, faithful }: { store: RulesStore; faithfu
             }}
           >
             <p className="rule__trigger">
+              <Glyph name="mic" className="rule__voice" />
               <span className="visually-hidden">Déclencheur : </span>« {expression.trigger} »
             </p>
+            <Glyph name="arrow-right" className="rule__arrow" />
             <p className="rule__payload">
               <span className="visually-hidden">Texte inséré : </span>
               {expression.text}
@@ -363,6 +403,7 @@ function RuleItem({ kind, entry, store, readOnly, editRef, onEdit, onToggle, onD
     <li
       className={[
         "rule",
+        `rule--${kind}`,
         messages.length > 0 ? "rule--conflict" : entry.enabled ? "" : "rule--disabled",
         readOnly ? "rule--readonly" : "",
       ]
@@ -371,25 +412,6 @@ function RuleItem({ kind, entry, store, readOnly, editRef, onEdit, onToggle, onD
       data-testid={`rule-${kind}`}
       data-rule-id={entry.id}
     >
-      {!readOnly ? (
-        <span className="switch switch--sm rule__toggle">
-          <input
-            id={`${id}-enabled`}
-            type="checkbox"
-            role="switch"
-            checked={entry.enabled}
-            onChange={(event) => onToggle(event.currentTarget.checked)}
-            aria-label={`${kind === "lexicon" ? "Actif" : "Active"} : « ${name} »`}
-          />
-          <span className="switch__track" aria-hidden="true">
-            <span className="switch__thumb">
-              <svg viewBox="0 0 12 12" width="12" height="12" focusable="false">
-                <path d="M3 6.2l2 2 4-4.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          </span>
-        </span>
-      ) : null}
       <div className="rule__body">
         {children}
         {messages.length > 0 ? (
@@ -403,15 +425,36 @@ function RuleItem({ kind, entry, store, readOnly, editRef, onEdit, onToggle, onD
         ) : null}
       </div>
       {!readOnly ? (
-        <div className="rule__actions">
-          <button ref={editRef} type="button" className="btn btn--sm btn--ghost" onClick={onEdit}>
-            <Glyph name="edit" />
-            Modifier<span className="visually-hidden"> « {name} »</span>
-          </button>
-          <button type="button" className="btn btn--sm btn--ghost" onClick={onDelete}>
-            <Glyph name="trash" />
-            Supprimer<span className="visually-hidden"> « {name} »</span>
-          </button>
+        <div className="rule__end">
+          <span className="switch switch--sm rule__toggle">
+            <input
+              id={`${id}-enabled`}
+              type="checkbox"
+              role="switch"
+              checked={entry.enabled}
+              onChange={(event) => onToggle(event.currentTarget.checked)}
+              aria-label={`${kind === "lexicon" ? "Actif" : "Active"} : « ${name} »`}
+            />
+            <span className="switch__track" aria-hidden="true">
+              <span className="switch__thumb">
+                <svg viewBox="0 0 12 12" width="12" height="12" focusable="false">
+                  <path d="M3 6.2l2 2 4-4.4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </span>
+          </span>
+          <div className="rule__actions">
+            <button ref={editRef} type="button" className="btn btn--sm btn--ghost rule__edit" onClick={onEdit}>
+              <Glyph name="edit" />
+              <span className="btn__label">Modifier</span>
+              <span className="visually-hidden"> « {name} »</span>
+            </button>
+            <button type="button" className="btn btn--sm btn--ghost rule__delete" onClick={onDelete}>
+              <Glyph name="trash" />
+              <span className="btn__label">Supprimer</span>
+              <span className="visually-hidden"> « {name} »</span>
+            </button>
+          </div>
         </div>
       ) : null}
     </li>
