@@ -1,13 +1,17 @@
 // Usage counters from `get_stats`: words today, this week, in total, and the
-// average speed. Counts only, never text. Hidden if the counters cannot be read.
+// average speed, and a quiet way to Activité. Counts only, never text. Hidden
+// if the counters cannot be read.
 
 import { useId } from "react";
 import { formatCount, takesText, wordsUnit } from "../labels/fr";
+import { useNavigation } from "../state/navigation";
 import { useStats } from "../state/stats";
+import { Glyph } from "./Icon";
 import "./StatsRow.css";
 
 export function StatsRow() {
   const { stats } = useStats();
+  const { go } = useNavigation();
   const headingId = useId();
   if (!stats) return null;
 
@@ -46,6 +50,12 @@ export function StatsRow() {
           </div>
         ))}
       </dl>
+      <p className="stats__more">
+        <button type="button" className="link-btn" onClick={() => go("activity")}>
+          Voir l’activité
+          <Glyph name="arrow-right" />
+        </button>
+      </p>
     </section>
   );
 }

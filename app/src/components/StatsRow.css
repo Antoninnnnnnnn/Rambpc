@@ -42,6 +42,27 @@
   font-size: var(--text-sm);
 }
 
+/* When a theme lays the counters out as a grid column, the tiles take the
+   height and the link stays on its own line below them. */
+.stats {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.stats__more {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.stats__more .link-btn {
+  color: var(--text-2);
+}
+
+.stats__more .link-btn:hover {
+  color: var(--text);
+}
+
 @media (forced-colors: active) {
   .stats__tile {
     border: 1px solid CanvasText;
