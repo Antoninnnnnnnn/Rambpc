@@ -147,9 +147,51 @@ export type GlyphName =
   | "key"
   | "globe"
   | "clock"
-  | "inbox";
+  | "inbox"
+  | "notebook"
+  | "activity"
+  | "file-audio"
+  | "apps"
+  | "return";
 
 const GLYPHS: Record<GlyphName, ReactNode> = {
+  // A notebook with a spiral edge: the Carnet.
+  notebook: (
+    <>
+      <path d="M7 3.5h10.5A1.5 1.5 0 0 1 19 5v14a1.5 1.5 0 0 1-1.5 1.5H7z" />
+      <path d="M4.5 7h3M4.5 12h3M4.5 17h3M11 8.5h5M11 12h5" />
+    </>
+  ),
+  // Bars of different heights: activity.
+  activity: (
+    <>
+      <path d="M5 20V13M10 20V6M15 20v-9M20 20V9" />
+      <path d="M3.5 20.5h17" />
+    </>
+  ),
+  // A page with a sound wave: an audio file.
+  "file-audio": (
+    <>
+      <path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z" />
+      <path d="M14 3.5V8h4.5M9 15v-2M11.5 17v-6M14 15.5v-3" />
+    </>
+  ),
+  // Four tiles: applications.
+  apps: (
+    <>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    </>
+  ),
+  // A return arrow: a spoken layout command.
+  return: (
+    <>
+      <path d="M19.5 5.5v6a3 3 0 0 1-3 3h-11" />
+      <path d="M9 10.5l-4 4 4 4" />
+    </>
+  ),
   home: (
     <>
       <path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-3.5v-5.5h-6v5.5H5.5A1.5 1.5 0 0 1 4 19z" />

@@ -222,6 +222,29 @@ export function createFakeBridge(options: Options = {}): FakeBridge {
     set_launch_at_startup: ({ enabled }: { enabled: boolean }) => {
       fake.settings = { ...fake.settings, launchAtStartup: enabled };
     },
+    // Milestone 5 defaults: empty and harmless. Tests override `fake.handlers.*`.
+    get_known_apps: () => [],
+    get_voice_commands: () => [],
+    list_notes: () => [],
+    get_note: () => {
+      throw { code: "note-not-found", message: "Cette note n’existe plus." };
+    },
+    save_note: ({ note }: { note: { id: string | null; text: string } }) => ({
+      id: note.id ?? "note-1",
+      title: note.text.split("\n")[0].slice(0, 80),
+      createdAt: 0,
+      updatedAt: 0,
+      words: note.text.split(/\s+/).filter(Boolean).length,
+    }),
+    delete_note: () => undefined,
+    pick_audio_file: () => null,
+    transcribe_file: () => {
+      throw { code: "transcription-unavailable", message: "Transcription indisponible." };
+    },
+    cancel_transcription: () => {
+      throw { code: "transcription-not-found", message: "Cette transcription n’existe plus." };
+    },
+    list_transcriptions: () => [],
   };
 
   const run = async (command: CommandName, args: unknown) => {

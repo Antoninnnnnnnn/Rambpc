@@ -1,7 +1,15 @@
 import { createContext, useContext } from "react";
 
 /** Sidebar destinations. */
-export type View = "home" | "dictionary" | "shortcuts" | "style" | "history" | "settings";
+export type View =
+  | "home"
+  | "carnet"
+  | "dictionary"
+  | "shortcuts"
+  | "style"
+  | "history"
+  | "activity"
+  | "settings";
 
 export type SettingsSection =
   | "appearance"

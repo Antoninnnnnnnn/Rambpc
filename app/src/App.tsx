@@ -6,6 +6,8 @@ import { Sidebar } from "./components/Sidebar";
 import { TitleBar } from "./components/TitleBar";
 import { BridgeProvider, type Bridge } from "./ipc/bridge";
 import { hasConsent } from "./labels/fr";
+import { ActivityScreen } from "./screens/ActivityScreen";
+import { CarnetScreen } from "./screens/CarnetScreen";
 import { DictionaryScreen } from "./screens/DictionaryScreen";
 import { FirstRun } from "./screens/FirstRun";
 import { HistoryScreen } from "./screens/HistoryScreen";
@@ -149,6 +151,8 @@ function MainLayout({ view, target, autoFocus }: MainLayoutProps) {
         <div className="main__inner">
           {view === "home" ? (
             <Home focusRecents={target.section === "home-recents" ? target.nonce : 0} />
+          ) : view === "carnet" ? (
+            <CarnetScreen />
           ) : view === "dictionary" ? (
             <DictionaryScreen />
           ) : view === "shortcuts" ? (
@@ -157,6 +161,8 @@ function MainLayout({ view, target, autoFocus }: MainLayoutProps) {
             <StyleScreen />
           ) : view === "history" ? (
             <HistoryScreen />
+          ) : view === "activity" ? (
+            <ActivityScreen />
           ) : (
             <SettingsScreen key={target.nonce} section={settingsSection} />
           )}

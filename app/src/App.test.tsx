@@ -45,19 +45,30 @@ describe("title bar", () => {
 });
 
 describe("navigation", () => {
-  it("offers the six destinations and marks the current one", async () => {
+  it("offers the eight destinations and marks the current one", async () => {
     const { user } = renderApp(createFakeBridge());
     await appReady();
     const nav = screen.getByRole("navigation", { name: "Navigation principale" });
     const names = within(nav).getAllByRole("button").map((button) => button.textContent);
-    expect(names).toEqual(["Accueil", "Dictionnaire", "Raccourcis vocaux", "Style", "Historique", "Réglages"]);
+    expect(names).toEqual([
+      "Accueil",
+      "Carnet",
+      "Dictionnaire",
+      "Raccourcis vocaux",
+      "Style",
+      "Historique",
+      "Activité",
+      "Réglages",
+    ]);
     expect(within(nav).getByRole("button", { name: "Accueil" })).toHaveAttribute("aria-current", "page");
 
     for (const [button, title] of [
+      ["Carnet", "Carnet"],
       ["Dictionnaire", "Dictionnaire"],
       ["Raccourcis vocaux", "Raccourcis vocaux"],
       ["Style", "Style"],
       ["Historique", "Historique"],
+      ["Activité", "Activité"],
       ["Réglages", "Réglages"],
     ]) {
       await user.click(within(nav).getByRole("button", { name: button }));

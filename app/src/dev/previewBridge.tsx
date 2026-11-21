@@ -26,6 +26,8 @@ import {
 import { matchesShortcut } from "../lib/shortcut";
 import { normalizeAppearance } from "../themes/appearance";
 import { PreviewPanel } from "./PreviewPanel";
+import { createPreviewApps } from "./previewApps";
+import { createPreviewCarnet } from "./previewCarnet";
 import { createPreviewPersonal } from "./previewPersonal";
 import { sampleActivity, sampleStats } from "./sampleActivity";
 
@@ -338,6 +340,8 @@ export function installPreview(): Bridge {
       if (s.language === "english") out = out.replace(/ \?$/, "?").replace(/\bi\b/g, "I");
       return out;
     },
+    ...createPreviewApps(),
+    ...createPreviewCarnet(emit, fail),
     ...createPreviewPersonal(
       () => settings,
       (next) => {

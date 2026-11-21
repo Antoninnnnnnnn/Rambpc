@@ -10,10 +10,12 @@ import "./Sidebar.css";
 
 export const NAV_ITEMS: { view: View; label: string; glyph: GlyphName }[] = [
   { view: "home", label: "Accueil", glyph: "home" },
+  { view: "carnet", label: "Carnet", glyph: "notebook" },
   { view: "dictionary", label: "Dictionnaire", glyph: "dictionary" },
   { view: "shortcuts", label: "Raccourcis vocaux", glyph: "shortcuts" },
   { view: "style", label: "Style", glyph: "style" },
   { view: "history", label: "Historique", glyph: "history" },
+  { view: "activity", label: "Activité", glyph: "activity" },
 ];
 
 /** A result of the latest take waits in Sambler (not inserted, or only partly). */
