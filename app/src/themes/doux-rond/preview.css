@@ -1,0 +1,104 @@
+/* Doux et rond: its card in Réglages > Apparence, whatever the active theme.
+   Only the manifest's colours (--preview-*, set by AppearanceSettings.tsx):
+   a pebble window of iris on its soft desktop, a milk sheet with the living
+   shape (pêche body, lilas back) and a pêche pill. Decorative. */
+
+.theme-preview[data-preview="doux-rond"] {
+  padding: 0.75rem 0.875rem 0.625rem;
+}
+
+/* The window: a rounded pebble of iris, the rail on it, the sheet beside. */
+.theme-preview[data-preview="doux-rond"] .theme-preview__window {
+  grid-template-columns: 25% minmax(0, 1fr);
+  gap: 0.25rem;
+  height: 4.75rem;
+  padding: 0.3rem 0.3rem 0.3rem 0;
+  background: var(--preview-bg);
+  border-radius: 0.875rem;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--preview-text) 7%, transparent),
+    0 10px 18px -12px color-mix(in srgb, var(--preview-extra) 70%, transparent);
+}
+
+.theme-preview[data-preview="doux-rond"][data-glass] .theme-preview__rail {
+  gap: 0.3rem;
+  padding: 0.35rem 0.25rem 0.35rem 0.35rem;
+  background: none;
+}
+
+.theme-preview[data-preview="doux-rond"] .theme-preview__rail i {
+  height: 0.3125rem;
+  border-radius: 999px;
+}
+
+/* The current item: a milk pill with a pêche dot. */
+.theme-preview[data-preview="doux-rond"] .theme-preview__rail i:first-child {
+  width: 100%;
+  height: 0.5rem;
+  background:
+    radial-gradient(circle at 0.3rem 50%, var(--preview-accent) 0 0.12rem, transparent 0.14rem),
+    var(--preview-surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--preview-text) 14%, transparent);
+}
+
+.theme-preview[data-preview="doux-rond"][data-glass] .theme-preview__sheet {
+  position: relative;
+  gap: 0.28rem;
+  padding: 0.5rem 0.45rem 0.45rem 2.35rem;
+  background: var(--preview-surface);
+  border-radius: 0.625rem;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--preview-text) 8%, transparent);
+}
+
+/* The living shape: a lilas back and a pêche body, offset like two pebbles. */
+.theme-preview[data-preview="doux-rond"] .theme-preview__sheet::before,
+.theme-preview[data-preview="doux-rond"] .theme-preview__sheet::after {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  left: 0.45rem;
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.theme-preview[data-preview="doux-rond"] .theme-preview__sheet::before {
+  transform: translate(0.16rem, 0.14rem);
+  background: linear-gradient(200deg, var(--preview-extra), color-mix(in srgb, var(--preview-extra) 55%, var(--preview-accent)));
+  border-radius: 58% 42% 52% 48% / 46% 56% 44% 54%;
+}
+
+.theme-preview[data-preview="doux-rond"] .theme-preview__sheet::after {
+  transform: translate(-0.06rem, -0.06rem) scale(0.9);
+  background:
+    radial-gradient(45% 40% at 34% 30%, color-mix(in srgb, var(--preview-surface) 70%, transparent), transparent),
+    linear-gradient(150deg, color-mix(in srgb, var(--preview-accent) 45%, var(--preview-surface)), var(--preview-accent) 60%);
+  border-radius: 46% 54% 44% 56% / 55% 45% 55% 45%;
+}
+
+.theme-preview[data-preview="doux-rond"] .theme-preview__title {
+  width: 62%;
+  height: 0.45rem;
+  border-radius: 999px;
+}
+
+.theme-preview[data-preview="doux-rond"] .theme-preview__line {
+  border-radius: 999px;
+}
+
+.theme-preview[data-preview="doux-rond"] .theme-preview__button {
+  width: 42%;
+  height: 0.7rem;
+  border-radius: 999px;
+}
+
+.theme-preview[data-preview="doux-rond"] .theme-preview__swatches i {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+@media (forced-colors: active) {
+  .theme-preview[data-preview="doux-rond"] .theme-preview__sheet::before,
+  .theme-preview[data-preview="doux-rond"] .theme-preview__sheet::after {
+    display: none;
+  }
+}

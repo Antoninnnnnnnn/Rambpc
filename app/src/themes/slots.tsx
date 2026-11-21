@@ -8,6 +8,7 @@
 import type { ComponentType } from "react";
 import type { Gesture, PhaseKind } from "../ipc/contract";
 import { useActiveTheme } from "./AppearanceProvider";
+import { GaletsStatusArt } from "./doux-rond/Galets";
 import type { ThemeId } from "./registry";
 import { AuroraBackdrop, AuroraStatusArt } from "./verre-aurore/Aurora";
 
@@ -29,7 +30,8 @@ export interface ThemeSlots {
 
 export const THEME_SLOTS: Record<ThemeId, ThemeSlots> = {
   "verre-aurore": { Backdrop: AuroraBackdrop, StatusArt: AuroraStatusArt },
-  sable: {},
+  // No backdrop: the pebble window is a plain iris shell.
+  "doux-rond": { StatusArt: GaletsStatusArt },
 };
 
 export function ThemeBackdrop() {

@@ -404,7 +404,7 @@ export function installPreview(): Bridge {
   //   view:     the sidebar label to open after start
   //   click:    a CSS selector to click once the screen is shown
   //   history:  1 to enable the history; panel: 0 to hide the dev panel
-  //   theme:    verre-aurore | sable; scheme: system | light | dark (saved appearance)
+  //   theme:    verre-aurore | doux-rond; scheme: system | light | dark (saved appearance)
   //   legacy:   1 for a native side that predates themes (no `appearance` field)
   const params = new URLSearchParams(window.location.search);
   const scenario = params.get("scenario");

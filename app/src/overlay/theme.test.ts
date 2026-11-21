@@ -45,19 +45,19 @@ describe("floating bar appearance", () => {
   });
 
   it("paints the cached appearance first, then the one each state carries", () => {
-    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "dark" }));
+    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "doux-rond", colorScheme: "dark" }));
     const follow = followAppearance(page);
-    expect(page.dataset).toMatchObject({ theme: "sable", scheme: "dark" });
+    expect(page.dataset).toMatchObject({ theme: "doux-rond", scheme: "dark" });
     follow(uiState({ appearance: { theme: "verre-aurore", colorScheme: "light" } }));
     expect(page.dataset).toMatchObject({ theme: "verre-aurore", scheme: "light" });
     expect(page.style.colorScheme).toBe("light");
   });
 
   it("keeps what it has when a state carries no appearance (older native)", () => {
-    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "dark" }));
+    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "doux-rond", colorScheme: "dark" }));
     const follow = followAppearance(page);
     follow(uiState({ appearance: undefined }));
-    expect(page.dataset).toMatchObject({ theme: "sable", scheme: "dark" });
+    expect(page.dataset).toMatchObject({ theme: "doux-rond", scheme: "dark" });
     follow(uiState({ appearance: { theme: "verre-aurore", colorScheme: "light" } }));
     follow(uiState({ phase: { kind: "listening" }, take: 2, appearance: undefined }));
     expect(page.dataset).toMatchObject({ theme: "verre-aurore", scheme: "light" });
@@ -71,20 +71,29 @@ describe("floating bar appearance", () => {
 
   it("falls back to the default theme for an unknown id, and to Système for an unknown scheme", () => {
     fakeSystemScheme(true);
-    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "light" }));
+    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "doux-rond", colorScheme: "light" }));
     const follow = followAppearance(page);
     follow(uiState({ appearance: { theme: "neon", colorScheme: "sepia" as never } }));
     expect(page.dataset).toMatchObject({ theme: DEFAULT_THEME, scheme: "dark" });
   });
 
+  it("wears the default theme for a Sable left in the cache or still sent by the native side", () => {
+    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "dark" }));
+    const follow = followAppearance(page);
+    expect(page.dataset).toMatchObject({ theme: DEFAULT_THEME, scheme: "dark" });
+    follow(uiState({ appearance: { theme: "doux-rond", colorScheme: "light" } }));
+    follow(uiState({ appearance: { theme: "sable", colorScheme: "light" } }));
+    expect(page.dataset).toMatchObject({ theme: DEFAULT_THEME, scheme: "light" });
+  });
+
   it("follows Windows live in Système, not with an explicit scheme", () => {
     const system = fakeSystemScheme(false);
     const follow = followAppearance(page);
-    follow(uiState({ appearance: { theme: "sable", colorScheme: "system" } }));
+    follow(uiState({ appearance: { theme: "doux-rond", colorScheme: "system" } }));
     expect(page.dataset.scheme).toBe("light");
     system.flip(true);
     expect(page.dataset.scheme).toBe("dark");
-    follow(uiState({ appearance: { theme: "sable", colorScheme: "light" } }));
+    follow(uiState({ appearance: { theme: "doux-rond", colorScheme: "light" } }));
     system.flip(false);
     system.flip(true);
     expect(page.dataset.scheme).toBe("light");
@@ -92,7 +101,7 @@ describe("floating bar appearance", () => {
 
   it("never writes the cache: the main window owns it", () => {
     const follow = followAppearance(page);
-    follow(uiState({ appearance: { theme: "sable", colorScheme: "dark" } }));
+    follow(uiState({ appearance: { theme: "doux-rond", colorScheme: "dark" } }));
     expect(localStorage.getItem(APPEARANCE_CACHE_KEY)).toBeNull();
   });
 });
@@ -106,7 +115,7 @@ describe("overlay preview appearance parameters", () => {
 
   it("forces the theme and the scheme", () => {
     expect(parse("theme=verre-aurore&scheme=dark")).toEqual({ theme: "verre-aurore", colorScheme: "dark" });
-    expect(parse("theme=sable")).toEqual({ theme: "sable", colorScheme: "system" });
+    expect(parse("theme=doux-rond")).toEqual({ theme: "doux-rond", colorScheme: "system" });
     expect(parse("scheme=light")).toEqual({ theme: DEFAULT_THEME, colorScheme: "light" });
   });
 

@@ -1,0 +1,129 @@
+/* Doux et rond: the living shape drawn by Galets.tsx in the Accueil status
+   card. The script writes the outlines and `--niveau` (0..1, the smoothed
+   voice level, absent at rest); everything else is here. Colours come from
+   theme.css only, one set of gradient stops per tint (`data-tint`).
+
+   Cost: three short paths redrawn at 12 to 30 frames a second at rest, every
+   frame while listening; the halo moves by opacity and scale only. Nothing
+   moves while the window is hidden or with reduced motion. */
+
+.doux-galets {
+  --niveau: 0;
+  --g-1: var(--dr-voix-1);
+  --g-2: var(--dr-voix-2);
+  --g-3: var(--dr-voix-3);
+  --g-back-1: var(--dr-voix-4);
+  --g-back-2: var(--dr-voix-3);
+  --g-halo: var(--dr-halo);
+  --g-halo-rest: 0.5;
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 10.5rem;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+.doux-galets[data-tint="lilas"] {
+  --g-1: var(--dr-lilas-1);
+  --g-2: color-mix(in srgb, var(--dr-lilas-1), var(--dr-lilas-2));
+  --g-3: var(--dr-lilas-2);
+  --g-back-1: var(--dr-voix-3);
+  --g-back-2: var(--dr-lilas-2);
+  --g-halo: color-mix(in srgb, var(--dr-lilas) 45%, transparent);
+}
+
+.doux-galets[data-tint="brume"] {
+  --g-1: var(--dr-brume-1);
+  --g-2: color-mix(in srgb, var(--dr-brume-1), var(--dr-brume-2));
+  --g-3: var(--dr-brume-2);
+  --g-back-1: var(--dr-brume-2);
+  --g-back-2: var(--dr-brume-1);
+  --g-halo-rest: 0;
+}
+
+/* Listening: the halo glows brighter and rises with the voice. */
+.doux-galets[data-mode="ecoute"] {
+  --g-halo-rest: 0.62;
+}
+
+.doux-galets__halo {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--g-halo), transparent);
+  opacity: calc(var(--g-halo-rest) + var(--niveau) * 0.5);
+  scale: calc(1 + var(--niveau) * 0.5);
+  transition:
+    opacity 0.6s ease,
+    background 0.6s ease;
+  will-change: scale, opacity;
+}
+
+.doux-galets__shape {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.doux-galets__body {
+  opacity: 0.94;
+}
+
+.doux-galets__stop {
+  transition: stop-color 0.6s ease;
+}
+
+.doux-galets__stop--1 {
+  stop-color: var(--g-1);
+}
+
+.doux-galets__stop--2 {
+  stop-color: var(--g-2);
+}
+
+.doux-galets__stop--3 {
+  stop-color: var(--g-3);
+}
+
+.doux-galets__stop--back-1 {
+  stop-color: var(--g-back-1);
+}
+
+.doux-galets__stop--back-2 {
+  stop-color: var(--g-back-2);
+}
+
+.doux-galets__stop--sheen {
+  stop-color: var(--dr-reflet);
+  stop-opacity: 0.7;
+}
+
+.doux-galets__stop--sheen-out {
+  stop-color: var(--dr-reflet);
+  stop-opacity: 0;
+}
+
+/* Not available yet: the pebbles doze, without sheen. */
+.doux-galets[data-tint="brume"] .doux-galets__sheen {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doux-galets__halo {
+    scale: 1;
+    transition: none;
+  }
+
+  .doux-galets__stop {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .doux-galets {
+    display: none;
+  }
+}

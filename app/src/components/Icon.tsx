@@ -348,8 +348,8 @@ export function Glyph({ name, className }: { name: GlyphName; className?: string
 /**
  * Sambler's mark: a tile with a text cursor and two voice waves
  * (app-icon.svg), redrawn with a softer gradient and a light sheen. Its
- * colours come from the theme (`--mark-*`): blue in Sable, plum and braise
- * in Verre et aurore.
+ * colours come from the theme (`--mark-*`): plum and braise in Verre et
+ * aurore, pêche to lilas in Doux et rond.
  */
 export function AppMark({ className }: { className?: string }) {
   const id = useId().replace(/:/g, "");
