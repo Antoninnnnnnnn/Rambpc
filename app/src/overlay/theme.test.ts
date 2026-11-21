@@ -1,6 +1,7 @@
 // The floating bar's theme: cached copy first, then the appearance carried by
 // each state event; fallbacks for an older native or an unknown theme.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { previewAppearance } from "../dev/overlayPreview";
 import { uiState } from "../test/fakeBridge";
 import { APPEARANCE_CACHE_KEY } from "../themes/appearance";
 import { DEFAULT_THEME } from "../themes/registry";
@@ -96,3 +97,20 @@ describe("floating bar appearance", () => {
   });
 });
 
+describe("overlay preview appearance parameters", () => {
+  const parse = (query: string) => previewAppearance(new URLSearchParams(query));
+
+  it("sends nothing without parameters, like an older native", () => {
+    expect(parse("state=listening&wall=dark")).toBeUndefined();
+  });
+
+  it("forces the theme and the scheme", () => {
+    expect(parse("theme=verre-aurore&scheme=dark")).toEqual({ theme: "verre-aurore", colorScheme: "dark" });
+    expect(parse("theme=sable")).toEqual({ theme: "sable", colorScheme: "system" });
+    expect(parse("scheme=light")).toEqual({ theme: DEFAULT_THEME, colorScheme: "light" });
+  });
+
+  it("passes an unknown theme on, so the bar's fallback shows", () => {
+    expect(parse("theme=neon&scheme=sepia")).toEqual({ theme: "neon", colorScheme: "system" });
+  });
+});
