@@ -17,6 +17,7 @@
 
 #[path = "../history/mod.rs"]
 pub(crate) mod history;
+pub(crate) mod notes;
 mod personal;
 mod startup;
 pub(crate) mod stats;

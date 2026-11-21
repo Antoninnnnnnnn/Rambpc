@@ -508,8 +508,11 @@ pub struct ActivityDay {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppWords {
+    /// Display name.
     pub app: String,
     pub words: u64,
+    /// Lowercased executable name without extension.
+    pub id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
@@ -528,4 +531,116 @@ pub struct ActivityStats {
     pub listening_ms_total: u64,
     /// Words per target application; `None` until the host records it.
     pub apps: Option<Vec<AppWords>>,
+}
+
+// ---------------------------------------------------------------- milestone 5
+//
+// | command              | args                                   | returns            |
+// |----------------------|----------------------------------------|--------------------|
+// | `get_known_apps`     | —                                      | `AppIdentity[]` (most used first) |
+// | `get_voice_commands` | —                                      | `VoiceCommandInfo[]` |
+// | `list_notes`         | —                                      | `NoteMeta[]` (most recently updated first) |
+// | `get_note`           | `id: string`                           | `Note`             |
+// | `save_note`          | `note: { id: string \| null, text }`   | `NoteMeta` (null id creates; ≤ 200 000 chars, ≤ 1 000 notes) |
+// | `delete_note`        | `id: string`                           | `()`               |
+// | `pick_audio_file`  | —                                      | `string \| null` (native open dialog; the path is remembered as allowed) |
+// | `transcribe_file`    | `path: string` (from `pick_audio_file` or `sambler://file-dropped` only) | `FileTranscription` (one at a time) |
+// | `cancel_transcription` | `id: string`                         | `FileTranscription` |
+// | `list_transcriptions` | —                                     | `FileTranscription[]` (this session, newest first) |
+//
+// Events: `sambler://transcription` → `FileTranscription` (~4 Hz while running
+// and at the end; never any text); `sambler://file-dropped` → full path of an
+// audio file dropped on the main window (now allowed for `transcribe_file`).
+// A finished transcription becomes a Carnet note « Transcription · <fileName> ».
+// `ActivityStats.apps` is now filled (`AppWords` gains `id`).
+
+pub const EVENT_TRANSCRIPTION: &str = "sambler://transcription";
+pub const EVENT_FILE_DROPPED: &str = "sambler://file-dropped";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VoiceCommandInfo {
+    /// What to say, e.g. « à la ligne ».
+    pub spoken: String,
+    /// What it produces, shown literally (e.g. "↵" for a line break).
+    pub result: String,
+    pub description: String,
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteMeta {
+    pub id: String,
+    /// First non-empty line, at most 80 characters.
+    pub title: String,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub words: u64,
+}
+
+impl std::fmt::Debug for NoteMeta {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NoteMeta")
+            .field("id", &self.id)
+            .field("created_at", &self.created_at)
+            .field("updated_at", &self.updated_at)
+            .field("words", &self.words)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Note {
+    #[serde(flatten)]
+    pub meta: NoteMeta,
+    pub text: String,
+}
+
+impl std::fmt::Debug for Note {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Note").field("meta", &self.meta).finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteInput {
+    pub id: Option<String>,
+    pub text: String,
+}
+
+impl std::fmt::Debug for NoteInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NoteInput").field("id", &self.id).finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FileTranscriptionStatus {
+    Running,
+    Done,
+    Failed,
+    Cancelled,
+}
+
+/// One audio file transcription of this session. Never carries text.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileTranscription {
+    pub id: String,
+    /// Base name only, no folder.
+    pub file_name: String,
+    pub duration_ms: Option<u64>,
+    pub status: FileTranscriptionStatus,
+    /// 0..=1.
+    pub progress: f32,
+    pub words: u64,
+    /// The Carnet note holding the text (also set for a partial result).
+    pub note_id: Option<String>,
+    /// French, text-free reason when failed.
+    pub error: Option<String>,
+    /// Unix epoch milliseconds.
+    pub started_at: u64,
 }

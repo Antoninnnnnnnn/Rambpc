@@ -5,7 +5,7 @@ mod fixture;
 
 use super::{
     runtime::spawn_loopback,
-    state::{Effect, Input, Now, State},
+    state::{Effect, Input, InsertionPlan, InsertionRequest, InsertionResult, Now, State},
     *,
 };
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
         WatchGuard,
     },
     rambler::Segment,
-    settings::InsertionTarget,
+    settings::{AppStyle, InsertionTarget, TextOptionsPatch},
 };
 use bytes::Bytes;
 use fixture::{TestServer, bounded, replies};
@@ -49,10 +49,19 @@ fn eligible() -> TargetVerdict {
 }
 
 fn eligible_at(field: u8) -> TargetVerdict {
+    eligible_in(field, notepad())
+}
+
+fn notepad() -> AppIdentity {
+    AppIdentity { id: "notepad".into(), name: "Bloc-notes".into() }
+}
+
+fn eligible_in(field: u8, app: AppIdentity) -> TargetVerdict {
     TargetVerdict::Eligible {
         token: TargetToken(Arc::new(field)),
         info: TargetInfo {
-            app: AppKind::Notepad,
+            app: AppKind::Other,
+            app_identity: Some(app),
             multiline: Some(true),
         },
     }
@@ -544,6 +553,10 @@ async fn original_mode_keeps_text_when_away_and_the_kept_result_does_not_block_n
     let stats = rig.ctl.stats().await.unwrap();
     assert_eq!(stats.takes_total, 2);
     assert_eq!(stats.words_total, 4);
+    let apps = rig.ctl.activity().await.unwrap().apps.unwrap();
+    assert_eq!(apps.len(), 1);
+    assert_eq!(apps[0].id, "notepad");
+    assert_eq!(apps[0].words, 2); // The first, kept take still counts only overall.
     rig.close().await;
 }
 
@@ -595,6 +608,55 @@ async fn cursor_at_end_inserts_once_after_an_eligible_or_uncertain_start() {
         assert_eq!(rig.target.captures.load(Ordering::SeqCst), 2);
         rig.close().await;
     }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cursor_at_end_renders_once_for_the_new_app_and_counts_the_text_it_delivered() {
+    use crate::{ipc::PersonalRules, text::LexiconEntry};
+    let rig = Rig::new(Gesture::Hold, false, None).await;
+    let word = AppIdentity { id: "winword".into(), name: "Word".into() };
+    let settings = Settings {
+        profile: RenderProfile::Faithful,
+        insertion_target: InsertionTarget::CursorAtEnd,
+        app_styles: vec![AppStyle {
+            // Deliberately use an older display name: only the ID should match.
+            app: AppIdentity { name: "Microsoft Word".into(), ..word.clone() },
+            profile: Some(RenderProfile::Natural),
+            text: None,
+        }],
+        ..Settings::default()
+    };
+    rig.ctl.apply_settings(settings.clone());
+    rig.ctl.apply_personal_rules(Arc::new(PersonalRules {
+        lexicon: vec![LexiconEntry {
+            id: "test".into(),
+            heard: "passage".into(),
+            written: "résultat final".into(),
+            enabled: true,
+            apply_in_faithful: false,
+        }],
+        expressions: vec![],
+        unreadable: false,
+    }));
+    let take = rig.listening().await;
+    rig.ctl.apply_settings(Settings { app_styles: vec![], ..settings });
+    *rig.target.verdict.lock().unwrap() = eligible_in(2, word.clone());
+    rig.target.change(TargetChange::FocusMoved);
+    rig.mic.feed(&[0; 975]);
+    rig.ctl.hotkey(KeyEdge::Released);
+    rig.ctl.finish(take);
+    assert_eq!(rig.idle().await.last_outcome, Some(TakeOutcome::Inserted));
+    let expected = "Premier résultat final.";
+    assert_eq!(*rig.inserted.0.lock().unwrap(), [expected]);
+    assert_eq!(*rig.inserted.1.lock().unwrap(), [2]);
+    assert_eq!(rig.ctl.draft().await.unwrap().full_text.as_deref(), Some(expected));
+    assert_eq!(rig.ctl.known_apps().await.unwrap(), [word]);
+    assert_eq!(rig.ctl.activity().await.unwrap().apps.unwrap(), [crate::ipc::AppWords {
+        id: "winword".into(),
+        app: "Word".into(),
+        words: 3,
+    }]);
+    rig.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -971,6 +1033,57 @@ async fn late_a_cannot_insert_or_cancel_b_and_duplicate_stop_inserts_b_once() {
 }
 
 #[test]
+fn original_app_overrides_the_profile_or_only_the_listed_text_options() {
+    for (profile, text, expected, expected_profile) in [
+        (Some(RenderProfile::Faithful), None, "bonjour,,monsieur", RenderProfile::Faithful),
+        (None, Some(TextOptionsPatch { sentence_case: Some(false), ..Default::default() }),
+            "bonjour, monsieur", RenderProfile::Natural),
+    ] {
+        let mut state = ready();
+        state.use_profile(Arc::new(crate::ipc::PersonalRules {
+            lexicon: vec![], expressions: vec![], unreadable: false,
+        }));
+        state.step(Input::Settings(Settings {
+            app_styles: vec![AppStyle { app: notepad(), profile, text }],
+            ..Settings::default()
+        }), at(0));
+        let id = start(&mut state, 0);
+        state.step(Input::Delivered(id, segment(0, 0..100, "bonjour,,monsieur")), at(1));
+        state.step(Input::Finish(id), at(2));
+        state.step(Input::MicFree(id), at(3));
+        let effects = state.step(Input::Collection(id, Ok(())), at(4));
+        let [Effect::Insert(_, request)] = effects.as_slice() else {
+            panic!("expected insertion")
+        };
+        assert_eq!(&*request.initial.as_ref().unwrap().text, expected);
+        let completed = state.step(attempt(id, request, InsertOutcome::Delivered), at(5));
+        let [Effect::Completed(completion), Effect::Retire(_)] = completed.as_slice() else {
+            panic!("expected completion")
+        };
+        assert_eq!(completion.delivered_app, Some(notepad()));
+        assert_eq!(completion.archive.as_ref().unwrap().profile, expected_profile);
+        assert_eq!(state.draft().unwrap().full_text.as_deref(), Some(expected));
+    }
+}
+
+#[test]
+fn incomplete_or_refused_insertion_does_not_attribute_words_to_the_app() {
+    for outcome in [InsertOutcome::Partial, InsertOutcome::NotWritten { reason: crate::ports::NotWrittenReason::Refused }] {
+        let mut state = ready();
+        let id = start(&mut state, 0);
+        state.step(Input::Delivered(id, segment(0, 0..100, FIRST)), at(1));
+        state.step(Input::Finish(id), at(2));
+        state.step(Input::MicFree(id), at(3));
+        let effects = state.step(Input::Collection(id, Ok(())), at(4));
+        let [Effect::Insert(_, request)] = effects.as_slice() else {
+            panic!("expected insertion")
+        };
+        let completed = state.step(attempt(id, request, outcome), at(5));
+        assert!(matches!(completed.as_slice(), [Effect::Completed(c), Effect::Retire(_)] if c.words == 2 && c.delivered_app.is_none()));
+    }
+}
+
+#[test]
 fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     use crate::{ipc::PersonalRules, text::LexiconEntry};
     let rules = |written: &str| {
@@ -994,13 +1107,14 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     state.step(Input::Finish(id), at(2));
     state.step(Input::MicFree(id), at(3));
     let effects = state.step(Input::Collection(id, Ok(())), at(4));
-    let [Effect::Insert(take, _, text)] = effects.as_slice() else {
+    let [Effect::Insert(take, request)] = effects.as_slice() else {
         panic!("expected insertion")
     };
+    let text = &request.initial.as_ref().unwrap().text;
     assert_eq!(*take, id);
     assert_eq!(&**text, "Ancienne règle");
     assert!(state.draft().is_none()); // Not committed until the one attempt settles.
-    let completed = state.step(Input::Insertion(id, Ok(InsertOutcome::Delivered)), at(5));
+    let completed = state.step(attempt(id, request, InsertOutcome::Delivered), at(5));
     let [Effect::Completed(completion), Effect::Retire(_)] = completed.as_slice() else {
         panic!("expected completion only after insertion settled");
     };
@@ -1020,14 +1134,26 @@ fn frozen_rules_render_the_draft_insertion_and_archive_identically() {
     state.step(Input::Finish(next), at(7));
     state.step(Input::MicFree(next), at(8));
     let effects = state.step(Input::Collection(next, Ok(())), at(9));
-    assert!(
-        matches!(effects.as_slice(), [Effect::Insert(_, _, text)] if &**text == "Nouvelle règle")
-    );
+    let [Effect::Insert(_, request)] = effects.as_slice() else {
+        panic!("expected insertion")
+    };
+    assert_eq!(&*request.initial.as_ref().unwrap().text, "Nouvelle règle");
     assert!(matches!(
-        state.step(Input::Insertion(next, Ok(InsertOutcome::Delivered)), at(10)).as_slice(),
+        state.step(attempt(next, request, InsertOutcome::Delivered), at(10)).as_slice(),
         [Effect::Completed(completion), Effect::Retire(_)]
         if completion.archive.as_ref().is_some_and(|value| &*value.text == "Nouvelle règle")
     ));
+}
+
+fn attempt(id: TakeId, request: &InsertionRequest, outcome: InsertOutcome) -> Input {
+    let InsertionPlan::Original(field) = &request.plan else {
+        panic!("expected original field")
+    };
+    Input::Insertion(id, Ok(InsertionResult::Attempted {
+        rendered: request.initial.as_ref().unwrap().clone(),
+        outcome,
+        app: field.app.clone(),
+    }))
 }
 
 fn at(mono: u64) -> Now {
@@ -1102,11 +1228,14 @@ fn cancel_a_start_b_late_a_and_double_stop_b_produce_one_insertion_effect() {
     state.step(Input::Delivered(b, segment(0, 0..100, "Only B")), at(5));
     state.step(Input::Delivered(b, segment(0, 0..100, "Duplicate")), at(5));
     assert!(state.step(Input::Collection(b, Ok(())), at(5)).is_empty());
-    assert!(
-        matches!(state.step(Input::MicFree(b), at(6)).as_slice(), [Effect::Insert(id, _, text)] if *id == b && &**text == "Only B")
-    );
+    let effects = state.step(Input::MicFree(b), at(6));
+    let [Effect::Insert(id, request)] = effects.as_slice() else {
+        panic!("expected insertion")
+    };
+    assert_eq!(*id, b);
+    assert_eq!(&*request.initial.as_ref().unwrap().text, "Only B");
     assert!(state.step(Input::Collection(b, Ok(())), at(7)).is_empty());
-    state.step(Input::Insertion(b, Ok(InsertOutcome::Delivered)), at(7));
+    state.step(attempt(b, request, InsertOutcome::Delivered), at(7));
     assert_eq!(state.ui(at(7)).last_outcome, Some(TakeOutcome::Inserted));
     assert_eq!(state.draft().unwrap().full_text.as_deref(), Some("Only B"));
     state.step(Input::Tick { last_frame: None }, at(600_006));
@@ -1128,14 +1257,13 @@ fn cancelling_during_insertion_does_not_archive_or_keep_the_draft() {
     state.step(Input::Finish(id), at(2));
     state.step(Input::MicFree(id), at(3));
     let effects = state.step(Input::Collection(id, Ok(())), at(4));
-    assert!(matches!(effects.as_slice(), [Effect::Insert(take, ..)] if *take == id));
+    let [Effect::Insert(take, request)] = effects.as_slice() else {
+        panic!("expected insertion")
+    };
+    assert_eq!(*take, id);
     state.step(Input::Cancel(Some(id)), at(5));
     assert!(state.draft().is_none());
-    assert!(
-        state
-            .step(Input::Insertion(id, Ok(InsertOutcome::Delivered)), at(6))
-            .is_empty()
-    );
+    assert!(state.step(attempt(id, request, InsertOutcome::Delivered), at(6)).is_empty());
 }
 
 #[test]

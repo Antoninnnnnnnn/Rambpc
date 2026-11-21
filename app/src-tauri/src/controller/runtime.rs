@@ -3,7 +3,7 @@
 
 use super::{
     ControllerDeps, ControllerHandle, ControllerInit, CopyError,
-    state::{Effect, Input, InsertionPlan, Now, State},
+    state::{Effect, Field, Input, InsertionPlan, InsertionRequest, InsertionResult, Now, State},
 };
 use crate::{
     ipc::{
@@ -16,6 +16,7 @@ use crate::{
         TargetProbe, TargetToken, TargetVerdict, UncertainReason, WatchGuard,
     },
     rambler::{self, CaptureHealth, OpenedMic, RamblerAccess, Segment},
+    settings::AppIdentity,
     storage::{
         history::{History, Ticket},
         stats::Stats,
@@ -53,6 +54,7 @@ pub(super) enum Command {
     Recent(oneshot::Sender<Vec<DraftView>>),
     Stats(oneshot::Sender<UsageStats>),
     Activity(oneshot::Sender<crate::ipc::ActivityStats>),
+    KnownApps(oneshot::Sender<Vec<AppIdentity>>),
     Clear(Option<TakeId>, oneshot::Sender<UiState>),
     Copy(Option<TakeId>, CopyReply),
 }
@@ -176,7 +178,7 @@ impl Inbox {
                 let _ = reply.send(Vec::new());
             }
             (_, Command::Stats(_)) => (),
-            (_, Command::Activity(_)) => (),
+            (_, Command::Activity(_) | Command::KnownApps(_)) => (),
             (_, Command::Copy(_, reply)) => {
                 let _ = reply.send(Err(ClipboardError::Busy.into()));
             }
@@ -265,7 +267,7 @@ enum Work {
     ),
     Opened(TakeId, Result<OpenedMic, MicError>),
     MicFree(TakeId),
-    Inserted(TakeId, Result<InsertOutcome, KeptReason>),
+    Inserted(TakeId, Result<InsertionResult, KeptReason>),
     Copied(Result<(), CopyError>, CopyReply),
     Cleaned,
 }
@@ -429,6 +431,9 @@ impl Runtime {
                     }
                     Some(Command::Activity(reply)) => {
                         let _ = reply.send(self.stats.activity());
+                    }
+                    Some(Command::KnownApps(reply)) => {
+                        let _ = reply.send(self.stats.known_apps());
                     }
                     Some(Command::Clear(id, reply)) => {
                         self.apply(Input::ClearDraft(id));
@@ -627,7 +632,7 @@ impl Runtime {
                     && io.id == completion.id
                     && io.live.load(Ordering::Acquire)
                 {
-                    self.stats.record(completion.words, completion.listening_ms);
+                    self.stats.record(completion.words, completion.listening_ms, completion.delivered_app);
                     if let (Some(history), Some(ticket), Some(take)) =
                         (&self.history, io.history.take(), completion.archive)
                     {
@@ -635,15 +640,12 @@ impl Runtime {
                     }
                 }
             }
-            Effect::Insert(id, plan, text) => {
+            Effect::Insert(id, request) => {
                 let safety = self.io.as_ref().unwrap().safety();
                 let target = self.deps.target.clone();
                 let inserter = self.deps.inserter.clone();
                 self.jobs.spawn_blocking(move || {
-                    Work::Inserted(
-                        id,
-                        insert_at_end(&safety, &*target, &*inserter, plan, &text),
-                    )
+                    Work::Inserted(id, insert_at_end(&safety, &*target, &*inserter, request))
                 });
             }
         }
@@ -909,9 +911,8 @@ fn insert_at_end(
     safety: &TakeSafety,
     target: &dyn TargetProbe,
     inserter: &dyn crate::ports::Inserter,
-    plan: InsertionPlan,
-    text: &str,
-) -> Result<InsertOutcome, KeptReason> {
+    request: InsertionRequest,
+) -> Result<InsertionResult, KeptReason> {
     let target_changed = |change| KeptReason::TargetChanged { change };
     let ensure_live = || {
         safety
@@ -921,13 +922,13 @@ fn insert_at_end(
             .ok_or_else(|| target_changed(TargetChange::Unknown))
     };
     ensure_live()?;
-    let (original, allow_retarget) = match plan {
-        InsertionPlan::Original(token) => (Some(token), false),
-        InsertionPlan::CursorAtEnd(original) => (original, true),
+    let (original, allow_retarget) = match &request.plan {
+        InsertionPlan::Original(field) => (Some(field), false),
+        InsertionPlan::CursorAtEnd(original) => (original.as_ref(), true),
     };
-    let original = if let Some(token) = original {
-        match target.revalidate(&token) {
-            Ok(()) => Some(token),
+    let validated = if let Some(field) = original {
+        match target.revalidate(&field.token) {
+            Ok(()) => Some(field.clone()),
             Err(change) if !allow_retarget || change == TargetChange::Protected => {
                 return Err(target_changed(change));
             }
@@ -936,15 +937,19 @@ fn insert_at_end(
     } else {
         None
     };
-    let (token, _watch) = if let Some(token) = original {
-        (token, None) // The take already watches its original field.
+    let (field, _watch) = if let Some(field) = validated {
+        (field, None) // The take already watches its original field.
     } else {
         ensure_live()?;
         match target.capture() {
-            TargetVerdict::Eligible { token, .. } => {
+            TargetVerdict::Eligible { token, info } => {
                 ensure_live()?;
                 let watch = safety.watch_target(target, &token);
-                (token, Some(watch))
+                let field = Field {
+                    token,
+                    app: info.app_identity,
+                };
+                (field, Some(watch))
             }
             TargetVerdict::Protected => return Err(target_changed(TargetChange::Protected)),
             TargetVerdict::Uncertain { reason } => {
@@ -953,13 +958,24 @@ fn insert_at_end(
             TargetVerdict::Sambler => return Err(KeptReason::SamblerDestination),
         }
     };
+    let rendered = if original.and_then(Field::app_id) == field.app_id() {
+        request.initial
+    } else {
+        request.rendering.render(&request.joined, field.app_id())
+    };
+    ensure_live()?;
+    let rendered = match rendered {
+        Ok(rendered) => rendered,
+        Err(error) => return Ok(InsertionResult::Unrenderable(error)),
+    };
+    let Field { token, app } = field;
 
     // This is the sole attempt. The native port rechecks its chosen token and
     // the same revocable gate after modifier waits and before writing.
     #[cfg(windows)]
     crate::platform::windows::bind_write_permission(&token, &safety.live);
     ensure_live()?;
-    let outcome = inserter.insert_once(&token, text);
+    let outcome = inserter.insert_once(&token, &rendered.text);
     if outcome
         == (InsertOutcome::NotWritten {
             reason: NotWrittenReason::TargetChanged,
@@ -970,7 +986,11 @@ fn insert_at_end(
         // Classify a race at the last native check; never attempt another write.
         return Err(target_changed(change));
     }
-    Ok(outcome)
+    Ok(InsertionResult::Attempted {
+        rendered,
+        outcome,
+        app,
+    })
 }
 
 fn displaced_trigger() -> RefusalReason {

@@ -48,6 +48,45 @@ pub struct Settings {
     /// Theme of the main window and the floating bar. Theme ids are defined by
     /// the web UI; the native side only stores and forwards them.
     pub appearance: AppearanceSettings,
+    /// Per-application overrides of the rendering profile and light rules.
+    /// At most 50, unique by `app.id` (the last one wins when normalizing).
+    pub app_styles: Vec<AppStyle>,
+}
+
+pub const MAX_APP_STYLES: usize = 50;
+
+/// A target application as recorded locally (never sent to Rambler).
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppIdentity {
+    /// Lowercased executable name without extension, e.g. "winword".
+    pub id: String,
+    /// Display name, e.g. "Word".
+    pub name: String,
+}
+
+/// Fields left `None` keep the global value.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppStyle {
+    pub app: AppIdentity,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<RenderProfile>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<TextOptionsPatch>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TextOptionsPatch {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub light_punctuation: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub typographic_spaces: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sentence_case: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice_commands: Option<bool>,
 }
 
 pub const DEFAULT_THEME: &str = "verre-aurore";
@@ -125,6 +164,7 @@ impl Default for Settings {
             insertion: InsertionMethod::Paste,
             insertion_target: InsertionTarget::OriginalField,
             appearance: AppearanceSettings::default(),
+            app_styles: Vec::new(),
         }
     }
 }
@@ -136,6 +176,11 @@ pub struct TextOptions {
     pub light_punctuation: bool,
     pub typographic_spaces: bool,
     pub sentence_case: bool,
+    /// Spoken layout commands (« à la ligne », « ouvrez les guillemets »…),
+    /// Naturel only. Field-level default `false`: settings files written before
+    /// 0.11 keep today's behaviour; new settings get `true` from `Default`.
+    #[serde(default)]
+    pub voice_commands: bool,
 }
 
 impl Default for TextOptions {
@@ -144,6 +189,7 @@ impl Default for TextOptions {
             light_punctuation: true,
             typographic_spaces: true,
             sentence_case: true,
+            voice_commands: true,
         }
     }
 }
@@ -204,6 +250,17 @@ impl Settings {
         if !valid {
             self.appearance.theme = DEFAULT_THEME.into();
         }
+        // Unique by app id (last wins), at most MAX_APP_STYLES, order kept.
+        let mut seen = std::collections::HashSet::new();
+        let mut unique: Vec<AppStyle> = self
+            .app_styles
+            .drain(..)
+            .rev()
+            .filter(|style| !style.app.id.is_empty() && seen.insert(style.app.id.clone()))
+            .collect();
+        unique.reverse();
+        unique.truncate(MAX_APP_STYLES);
+        self.app_styles = unique;
     }
 
     /// Reject values outside the documented choices. The shortcut is only

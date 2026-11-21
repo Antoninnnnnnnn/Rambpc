@@ -58,8 +58,13 @@ mod personal;
 mod prose;
 #[cfg(test)]
 mod tests;
+mod voice;
 
 pub use personal::{RuleConflict, RuleConflictReason, RuleKind, RuleRef, validate_rules};
+
+pub(crate) fn voice_commands() -> Vec<crate::ipc::VoiceCommandInfo> {
+    voice::catalog()
+}
 
 use std::borrow::Cow;
 
@@ -68,6 +73,7 @@ use std::borrow::Cow;
 enum Piece<'a> {
     Prose(&'a str),
     Literal(Cow<'a, str>),
+    Layout(voice::Layout),
 }
 
 fn lf(text: &str) -> Cow<'_, str> {
@@ -87,11 +93,15 @@ pub fn render(admitted: &str, rules: &TextRules) -> String {
     } else {
         admitted.into()
     };
-    let pieces = personal::substitute(&admitted, rules);
+    let mut pieces = personal::substitute(&admitted, rules);
+    if natural && rules.options.voice_commands && rules.language == Language::French {
+        pieces = voice::apply(&admitted, pieces);
+    }
     if natural
         && (rules.options.light_punctuation
             || rules.options.typographic_spaces
-            || rules.options.sentence_case)
+            || rules.options.sentence_case
+            || pieces.iter().any(|piece| matches!(piece, Piece::Layout(_))))
     {
         prose::format(&pieces, rules, admitted.len())
     } else {
@@ -100,6 +110,7 @@ pub fn render(admitted: &str, rules: &TextRules) -> String {
             output.push_str(match &piece {
                 Piece::Prose(text) => text,
                 Piece::Literal(text) => text,
+                Piece::Layout(layout) => layout.text(),
             });
         }
         output
