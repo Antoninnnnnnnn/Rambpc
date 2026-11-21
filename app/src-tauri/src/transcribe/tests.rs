@@ -418,3 +418,39 @@ async fn cancellation_closes_a_stalled_rpc_without_saving() {
     assert!(view.note_id.is_none());
     bounded(server.close()).await;
 }
+
+/// Manual check against the real service (never run by default):
+/// `SAMBLER_REAL_AUDIO=<absolute path> cargo test real_service_file -- --ignored --nocapture`
+/// with the `RAMBLER_*` access in the environment.
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "calls the real Rambler service"]
+async fn real_service_file_transcription_creates_a_note() {
+    let Some(path) = std::env::var_os("SAMBLER_REAL_AUDIO") else {
+        return;
+    };
+    let access = crate::rambler::RamblerAccess::from_environment()
+        .expect("valid access")
+        .expect("RAMBLER_* access in the environment");
+    let job = Arc::new(Job::new("real.wav".into(), Arc::new(|_| {})));
+    let saved: Arc<std::sync::Mutex<Option<String>>> = Arc::default();
+    let sink_saved = saved.clone();
+    let outcome = recognize::run(
+        PathBuf::from(path),
+        &job,
+        access,
+        TextRules::default(),
+        Arc::new(move |title: &str, text: &str| {
+            *sink_saved.lock().unwrap() = Some(format!("{title}\n\n{text}"));
+            Ok("real-note".into())
+        }),
+    )
+    .await;
+    let view = job.finish(outcome);
+    println!(
+        "status={:?} words={} duration_ms={:?} note={:?} error={:?}",
+        view.status, view.words, view.duration_ms, view.note_id, view.error
+    );
+    println!("note text: {:?}", saved.lock().unwrap());
+    assert_eq!(view.status, Status::Done);
+    assert!(view.words > 0);
+}

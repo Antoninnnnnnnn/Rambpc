@@ -9,8 +9,8 @@ use crate::{
 };
 use bytes::Bytes;
 use rambler_audio::{
-    CompletedDictationSegment, InteractivePcmProfile, PcmInput, join_segment_texts, pcm_channel,
-    stream_long_pcm_dictation,
+    CompletedDictationSegment, InteractivePcmProfile, LongDictationOptions, PcmInput,
+    join_segment_texts, pcm_channel, stream_long_pcm_dictation,
 };
 use rambler_engine::{
     AudioSource, CollectorLimits, ContextInput, DictationOutcome, Engine, EngineError,
@@ -27,6 +27,13 @@ const PARTIAL: &str =
 const TOO_MUCH_TEXT: &str = "La transcription dépasse la taille maximale d’une note.";
 const NOTE_FAILED: &str = "Impossible d’enregistrer la transcription dans le Carnet.";
 const MAX_NOTE_CHARS: usize = 200_000;
+/// Audio per RPC segment for files (same as live dictation).
+const FILE_SEGMENT: std::time::Duration = std::time::Duration::from_secs(120);
+/// A file is uploaded much faster than real time, but Rambler still works at
+/// roughly real time: after the end of a segment's upload, finalization can
+/// take about as long as the segment itself (measured: the live profile's 5 s
+/// finalization budget fails on a 15 s file). Leave the segment length plus a margin.
+const FILE_FINALIZE: std::time::Duration = std::time::Duration::from_secs(150);
 
 #[derive(Default)]
 pub(super) struct Outcome {
@@ -143,7 +150,14 @@ pub(super) async fn run(
     rules: TextRules,
     sink: NoteSink,
 ) -> Outcome {
-    let mut profile = InteractivePcmProfile::default();
+    let mut profile = InteractivePcmProfile::new(
+        LongDictationOptions {
+            segment_budget: FILE_SEGMENT,
+            ..LongDictationOptions::default()
+        },
+        FILE_FINALIZE,
+    )
+    .expect("valid file transcription profile");
     profile.session.config.language = rules.language.code().into();
     profile.session.context = ContextInput::None;
     profile.session.credentials = Some(Arc::new(access.metadata().clone()));
