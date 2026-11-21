@@ -78,6 +78,7 @@ describe("theme contract", () => {
         "doux-rond/screens-activity.css",
         "doux-rond/screens-settings.css",
         "doux-rond/screens-lists.css",
+        "doux-rond/screens-carnet.css",
       ]),
     );
   });

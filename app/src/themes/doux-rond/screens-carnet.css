@@ -1,0 +1,595 @@
+/* Doux et rond: the Carnet (notes, dictation into a note, audio file
+   transcription) and the window-wide drop banner. The list lies on the milk
+   sheet like the Accueil's Récents, the open note on a pêche veil with a
+   corail dot; the note itself is a hollow, its field straight on it.
+
+   No aurora here: while Sambler listens to a note, a soft pêche-and-lilac
+   glow breathes around it with the voice (--voix, written by the editor),
+   a dawn rises inside it, and the strip's badge becomes a living pebble.
+   A transcription in progress wears the same pebble and a pêche-to-lilac
+   progress. Everything is still with reduced motion.
+
+   Colours from theme.css only; every rule starts with
+   :root[data-theme="doux-rond"]. Structure stays in components/carnet/*.css
+   and CarnetScreen.css. */
+
+/* ================================================================ header */
+
+:root[data-theme="doux-rond"] .carnet {
+  row-gap: 1.5rem;
+}
+
+:root[data-theme="doux-rond"] .carnet__header {
+  row-gap: 0.5rem;
+}
+
+@container carnet (min-width: 40rem) {
+  :root[data-theme="doux-rond"] .carnet__panes {
+    grid-template-columns: minmax(14rem, 17.5rem) minmax(0, 1fr);
+    column-gap: 1.75rem;
+  }
+}
+
+/* ================================================================ list */
+
+:root[data-theme="doux-rond"] .note-list {
+  gap: 0.75rem;
+}
+
+:root[data-theme="doux-rond"] .note-list__head {
+  padding: 0.25rem 0.875rem 0;
+}
+
+:root[data-theme="doux-rond"] .note-list__title {
+  font-size: 1.2rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .note-list__count {
+  color: var(--text-2);
+  font-size: 0.78rem;
+}
+
+/* The search: a soft pill that turns milk with the lilac ring on focus. */
+:root[data-theme="doux-rond"] .note-list__search .note-list__search-input {
+  min-height: 2.5rem;
+  padding-left: 2.625rem;
+  background: var(--surface-2);
+  border-color: transparent;
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .note-list__search .note-list__search-input:hover {
+  border-color: var(--input-border);
+}
+
+:root[data-theme="doux-rond"] .note-list__search .note-list__search-input:focus-visible {
+  background: var(--field-bg);
+  border-color: var(--focus);
+  outline: 0;
+  box-shadow: var(--ring);
+}
+
+:root[data-theme="doux-rond"] .note-list__search-icon {
+  left: 0.9375rem;
+  width: 1.0625rem;
+  height: 1.0625rem;
+  color: var(--text-2);
+}
+
+:root[data-theme="doux-rond"] .note-list__items {
+  gap: 0.125rem;
+}
+
+/* Rows on the sheet; the open note on a pêche veil with a corail dot, its
+   title heavier (not colour alone). */
+:root[data-theme="doux-rond"] .note-row {
+  position: relative;
+  gap: 0.1875rem;
+  padding: 0.625rem 0.875rem 0.6875rem 1.625rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+:root[data-theme="doux-rond"] .note-row::before {
+  content: "";
+  position: absolute;
+  top: 1.125rem;
+  left: 0.75rem;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: transparent;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .note-row:hover {
+  background: var(--surface);
+}
+
+:root[data-theme="doux-rond"] .note-row[aria-current="true"] {
+  background: var(--accent-soft);
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .note-row[aria-current="true"]::before {
+  background: var(--dr-corail);
+}
+
+:root[data-theme="doux-rond"] .note-row__title {
+  font-size: 0.95rem;
+}
+
+:root[data-theme="doux-rond"] .note-row__meta {
+  color: var(--text-2);
+  font-size: 0.78rem;
+}
+
+/* A transcribed note: the file icon in lilac. */
+:root[data-theme="doux-rond"] .note-row__kind {
+  color: var(--dr-lilas-encre);
+}
+
+:root[data-theme="doux-rond"] .note-list__empty {
+  padding-inline: 0.875rem;
+}
+
+/* ================================================================ editor */
+
+/* The note: a hollow on the milk sheet, the lilac ring on focus. */
+:root[data-theme="doux-rond"] .note-editor {
+  padding: 0.75rem 1.5rem 0.875rem;
+  border-color: transparent;
+}
+
+:root[data-theme="doux-rond"] .note-editor:has(.note-editor__field:focus-visible) {
+  border-color: var(--focus);
+  box-shadow: var(--ring);
+}
+
+:root[data-theme="doux-rond"] .note-editor__bar {
+  min-height: 2.5rem;
+}
+
+/* « Dicter dans la note »: a pêche pill. */
+:root[data-theme="doux-rond"] .note-editor .note-editor__dictate-btn {
+  min-height: 2.25rem;
+  padding-inline: 0.75rem 1rem;
+  color: var(--accent-ink);
+  background: var(--accent-soft-2);
+}
+
+:root[data-theme="doux-rond"] .note-editor .note-editor__dictate-btn:hover:not([aria-disabled="true"]) {
+  background: color-mix(in srgb, var(--accent) 34%, var(--accent-soft-2));
+}
+
+:root[data-theme="doux-rond"] .note-editor .note-editor__dictate-btn .icon {
+  color: var(--dr-corail);
+}
+
+:root[data-theme="doux-rond"] .note-editor .note-editor__dictate-btn[aria-disabled="true"] {
+  color: var(--text-disabled);
+  background: var(--surface-2);
+}
+
+:root[data-theme="doux-rond"] .note-editor .note-editor__dictate-btn[aria-disabled="true"] .icon {
+  color: currentColor;
+}
+
+:root[data-theme="doux-rond"] .note-editor__tools .btn {
+  color: var(--text-2);
+}
+
+:root[data-theme="doux-rond"] .note-editor__tools .btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+:root[data-theme="doux-rond"] .note-editor__tools .note-editor__delete:hover {
+  color: var(--error);
+  background: var(--error-soft);
+}
+
+:root[data-theme="doux-rond"] .note-save {
+  color: var(--text-2);
+  font-size: 0.78rem;
+}
+
+:root[data-theme="doux-rond"] .note-editor__field {
+  padding-top: 1rem;
+  font-size: 1rem;
+  line-height: 1.7;
+  border-top-color: var(--border);
+}
+
+/* The first line is the title: the placeholder says it softly. */
+:root[data-theme="doux-rond"] .note-editor__field::placeholder {
+  color: var(--text-2);
+}
+
+:root[data-theme="doux-rond"] .note-editor__foot {
+  color: var(--text-2);
+  font-size: 0.78rem;
+  border-top-color: var(--border);
+}
+
+:root[data-theme="doux-rond"] .note-editor__hint {
+  color: var(--text-2);
+}
+
+:root[data-theme="doux-rond"] .note-editor .confirm {
+  background: var(--error-soft);
+}
+
+/* A message about the last dictation: a tinted card, no rim. */
+:root[data-theme="doux-rond"] .note-notice {
+  padding: 0.375rem 0.375rem 0.375rem 0.875rem;
+  border-color: transparent;
+  border-radius: var(--radius-md);
+}
+
+/* ---------------------------------------------------------------- the glow, while listening */
+
+/* Around the note: a pêche rim and a halo of pêche and lilac that grows with
+   the voice. Inside: a dawn rising from the top, as on the Accueil. */
+:root[data-theme="doux-rond"] .note-editor[data-voice] {
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--accent) 75%, transparent),
+    0 0 0 calc(5px + var(--voix, 0) * 3px) var(--state-listening-soft),
+    calc(-14px - var(--voix, 0) * 6px) -6px calc(34px + var(--voix, 0) * 22px) -12px var(--dr-halo),
+    calc(14px + var(--voix, 0) * 6px) 12px calc(34px + var(--voix, 0) * 22px) -12px
+      color-mix(in srgb, var(--dr-voix-4) 55%, transparent);
+  transition: box-shadow 0.12s linear;
+}
+
+:root[data-theme="doux-rond"] .note-editor[data-voice]:is([data-voice="preparing"], [data-voice="finalizing"]) {
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--dr-lilas) 70%, transparent),
+    0 0 0 5px var(--state-working-soft),
+    0 14px 34px -16px color-mix(in srgb, var(--dr-voix-4) 55%, transparent);
+}
+
+/* The glow is on the plate; the neutral ring of the aura is not needed. */
+:root[data-theme="doux-rond"] .note-editor[data-voice] .note-editor__aura {
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .note-editor::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    radial-gradient(55% 9rem at 8% 0%, var(--dr-hero-a-vif), transparent 72%),
+    radial-gradient(50% 8rem at 92% 0%, var(--dr-hero-b), transparent 72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .note-editor[data-voice]::before {
+  opacity: calc(0.7 + var(--voix, 0) * 0.3);
+  transition: opacity 0.12s linear;
+}
+
+:root[data-theme="doux-rond"] .note-editor:is([data-voice="preparing"], [data-voice="finalizing"])::before {
+  opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------- dictation strip */
+
+/* A milk card on the hollow; its badge is a living pebble. */
+:root[data-theme="doux-rond"] .note-dictation {
+  gap: 0.5rem 0.875rem;
+  padding: 0.75rem 1rem 0.75rem 0.75rem;
+  background: var(--sheet);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] .note-dictation--quiet {
+  padding: 0.625rem 1rem;
+  color: var(--text-2);
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .note-dictation__badge {
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--dr-galet-icone);
+  background:
+    radial-gradient(60% 55% at 32% 28%, var(--dr-reflet), transparent 70%),
+    linear-gradient(140deg, var(--dr-voix-1), var(--dr-voix-2) 52%, var(--dr-voix-3));
+  border: 0;
+  border-radius: 58% 42% 54% 46% / 50% 56% 44% 50%;
+  box-shadow:
+    0.3rem 0.25rem 0 -0.0625rem color-mix(in srgb, var(--dr-voix-4) 70%, transparent),
+    0 0.5rem 1.25rem -0.5rem var(--dr-halo);
+  scale: calc(1 + var(--voix, 0) * 0.16);
+  transition: scale 0.12s linear;
+  animation: dr-carnet-galet 7s ease-in-out infinite;
+}
+
+:root[data-theme="doux-rond"] .note-dictation:is([data-phase="preparing"], [data-phase="finalizing"]) .note-dictation__badge {
+  color: var(--dr-galet-icone);
+  background:
+    radial-gradient(60% 55% at 32% 28%, var(--dr-reflet), transparent 70%),
+    linear-gradient(140deg, var(--dr-lilas-1), var(--dr-lilas-2));
+  box-shadow:
+    0.3rem 0.25rem 0 -0.0625rem color-mix(in srgb, var(--dr-voix-3) 60%, transparent),
+    0 0.5rem 1.25rem -0.5rem color-mix(in srgb, var(--dr-lilas) 50%, transparent);
+}
+
+:root[data-theme="doux-rond"] .note-dictation__badge .icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+:root[data-theme="doux-rond"] .note-dictation__label {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .note-dictation__clock {
+  font-family: var(--font-mono);
+}
+
+:root[data-theme="doux-rond"] .note-dictation__hint {
+  font-size: 0.86rem;
+}
+
+:root[data-theme="doux-rond"] .note-dictation__wave .wave {
+  --wave-h: 1.875rem;
+  --wave-bar: 0.25rem;
+  --wave-gap: 0.1875rem;
+}
+
+:root[data-theme="doux-rond"] .note-dictation__dots span {
+  width: 0.5625rem;
+  height: 0.5625rem;
+}
+
+:root[data-theme="doux-rond"] .note-dictation__dots span:nth-child(1) {
+  background: var(--accent);
+}
+
+:root[data-theme="doux-rond"] .note-dictation__dots span:nth-child(2) {
+  background: var(--dr-lilas);
+}
+
+:root[data-theme="doux-rond"] .note-dictation__dots span:nth-child(3) {
+  background: var(--dr-menthe);
+}
+
+/* ================================================================ empty editor */
+
+:root[data-theme="doux-rond"] .carnet__empty-editor {
+  border: 0;
+}
+
+:root[data-theme="doux-rond"] :is(.carnet__empty-icon, .dropzone__icon) {
+  color: var(--dr-corail);
+  background: var(--sheet);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme="doux-rond"] .carnet__empty-icon {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+:root[data-theme="doux-rond"] .carnet__empty-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+/* ================================================================ transcription */
+
+/* The drop zone: a hollow with a soft dashed rim. */
+:root[data-theme="doux-rond"] .dropzone {
+  padding: 0.875rem 1rem;
+  border: 1.5px dashed var(--border-strong);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="doux-rond"] .dropzone:hover {
+  background: var(--surface-2);
+  border-color: var(--input-border);
+}
+
+:root[data-theme="doux-rond"] .dropzone__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .dropzone__hint {
+  font-size: 0.86rem;
+}
+
+:root[data-theme="doux-rond"] .dropzone__formats {
+  color: var(--text-2);
+}
+
+/* One transcription: a hollow, its state on a round chip. */
+:root[data-theme="doux-rond"] .job {
+  padding: 1rem 1.125rem;
+  border-color: transparent;
+}
+
+:root[data-theme="doux-rond"] .job__icon {
+  color: var(--tone);
+  background: var(--sheet);
+  border-radius: 50%;
+  box-shadow: var(--shadow-xs);
+}
+
+:root[data-theme="doux-rond"] .job--done .job__icon {
+  color: var(--success);
+  background: var(--success-soft);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .job--failed .job__icon {
+  color: var(--warning);
+  background: var(--warning-soft);
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .job--cancelled .job__icon {
+  color: var(--dr-brume-encre);
+  background: var(--dr-brume-fond);
+  box-shadow: none;
+}
+
+/* In progress: the voice of a file, so the pebble wakes up. */
+:root[data-theme="doux-rond"] .job--running .job__icon {
+  color: var(--dr-galet-icone);
+  background:
+    radial-gradient(60% 55% at 32% 28%, var(--dr-reflet), transparent 70%),
+    linear-gradient(140deg, var(--dr-voix-1), var(--dr-voix-2) 52%, var(--dr-voix-3));
+  border-radius: 58% 42% 54% 46% / 50% 56% 44% 50%;
+  box-shadow: 0.25rem 0.1875rem 0 -0.0625rem color-mix(in srgb, var(--dr-voix-4) 70%, transparent);
+  animation: dr-carnet-galet 7s ease-in-out infinite;
+}
+
+:root[data-theme="doux-rond"] .job__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .job__track {
+  height: 0.5rem;
+  background: var(--surface-2);
+}
+
+:root[data-theme="doux-rond"] .job__fill {
+  background: linear-gradient(90deg, var(--wave-from), var(--wave-to));
+}
+
+:root[data-theme="doux-rond"] .job__stats {
+  font-size: 0.84rem;
+}
+
+/* ================================================================ drop banner */
+
+/* A milk card that rises softly, the file's pebble beside it. */
+:root[data-theme="doux-rond"] .drop-offer {
+  right: 1.25rem;
+  bottom: 1.25rem;
+  gap: 0.5rem 0.875rem;
+  padding: 1rem 1.125rem 1rem 1rem;
+  background: var(--sheet);
+  border: 0;
+  border-radius: var(--radius-xl);
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 1px var(--border);
+  animation: dr-toast-in 0.26s cubic-bezier(0.3, 1.45, 0.55, 1);
+}
+
+:root[data-theme="doux-rond"] .drop-offer__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--dr-galet-icone);
+  background:
+    radial-gradient(60% 55% at 32% 28%, var(--dr-reflet), transparent 70%),
+    linear-gradient(140deg, var(--dr-voix-1), var(--dr-voix-2) 52%, var(--dr-voix-3));
+  border-radius: 58% 42% 54% 46% / 50% 56% 44% 50%;
+  box-shadow: 0.25rem 0.1875rem 0 -0.0625rem color-mix(in srgb, var(--dr-voix-4) 70%, transparent);
+}
+
+:root[data-theme="doux-rond"] .drop-offer--ended .drop-offer__icon {
+  color: var(--success);
+  background: var(--success-soft);
+  border-radius: 50%;
+  box-shadow: none;
+}
+
+:root[data-theme="doux-rond"] .drop-offer__title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="doux-rond"] .drop-offer__desc {
+  font-size: 0.86rem;
+}
+
+/* ================================================================ motion, contrast */
+
+/* The pebble's slow change of shape. */
+@keyframes dr-carnet-galet {
+  0%,
+  100% {
+    border-radius: 58% 42% 54% 46% / 50% 56% 44% 50%;
+  }
+  50% {
+    border-radius: 46% 54% 44% 56% / 56% 46% 54% 44%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="doux-rond"] :is(.note-dictation__badge, .job--running .job__icon, .drop-offer) {
+    animation: none;
+  }
+
+  :root[data-theme="doux-rond"] .note-dictation__badge {
+    scale: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  :root[data-theme="doux-rond"] .note-editor::before,
+  :root[data-theme="doux-rond"] .note-row::before {
+    display: none;
+  }
+
+  :root[data-theme="doux-rond"] .note-row[aria-current="true"] {
+    border: 2px solid Highlight;
+  }
+
+  :root[data-theme="doux-rond"] :is(.note-dictation__badge, .job__icon, .drop-offer__icon, .carnet__empty-icon, .dropzone__icon) {
+    border: 1px solid CanvasText;
+    border-radius: 50%;
+  }
+
+  :root[data-theme="doux-rond"] :is(.note-editor, .job, .note-notice, .note-dictation, .carnet__empty-editor) {
+    border: 1px solid CanvasText;
+  }
+
+  :root[data-theme="doux-rond"] .dropzone {
+    border: 1px dashed CanvasText;
+  }
+
+  /* The progress and the waiting dots take the system's highlight. */
+  :root[data-theme="doux-rond"] .job__fill,
+  :root[data-theme="doux-rond"] .note-dictation__dots span:nth-child(n) {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+
+  :root[data-theme="doux-rond"] .drop-offer {
+    border: 2px solid CanvasText;
+  }
+}
