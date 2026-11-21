@@ -31,7 +31,8 @@ const TITLES: Record<FirstRunStep, string> = {
   try: "Essai",
 };
 
-export const TRY_SENTENCE = "Rendez-vous jeudi à 14 h";
+// A no-break space in "14 h": the hour never splits across lines.
+export const TRY_SENTENCE = "Rendez-vous jeudi à 14 h";
 
 interface Props {
   initialStep?: FirstRunStep;
@@ -96,6 +97,9 @@ export function FirstRun({ initialStep = "consent", openedByPerson = false, onCl
                 </li>
               ))}
             </ol>
+            <p className="onboard__counter">
+              Étape {index + 1} sur {steps.length}
+            </p>
             {closable ? (
               <button type="button" className="btn btn--sm btn--ghost onboard__close" onClick={onClose}>
                 Fermer la prise en main
@@ -103,9 +107,6 @@ export function FirstRun({ initialStep = "consent", openedByPerson = false, onCl
             ) : null}
           </div>
 
-          <p className="onboard__counter">
-            Étape {index + 1} sur {steps.length}
-          </p>
           {step === "consent" ? (
             <ConsentStep titleRef={titleRef} onNext={next} />
           ) : step === "microphone" ? (
@@ -331,7 +332,8 @@ function TryStep({ titleRef, onBack, onDone }: { titleRef: TitleRef; onBack: () 
       <StepTitle titleRef={titleRef}>Essayez une phrase</StepTitle>
       <p className="onboard__instruction" data-testid="try-instruction">
         {hold ? "Maintenez " : "Appuyez sur "}
-        <Keys shortcut={state.shortcut} />, dites « {TRY_SENTENCE} », puis {hold ? "relâchez." : "appuyez de nouveau."}
+        <Keys shortcut={state.shortcut} />, dites{" "}
+        <span className="onboard__phrase">« {TRY_SENTENCE} »</span>, puis {hold ? "relâchez." : "appuyez de nouveau."}
       </p>
       <p className="muted">Ici, le texte reste dans Sambler pour que vous puissiez le relire.</p>
 
