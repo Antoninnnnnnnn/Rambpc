@@ -819,23 +819,23 @@
     justify-self: center;
     width: 100%;
     max-width: 50rem;
-    padding-block: 2.25rem 1.75rem;
+    padding-block: 1.25rem 0.75rem;
   }
 }
 
 /* ---------------------------------------------------------------- the step */
 
 :root[data-theme="verre-aurore"] .onboard__step {
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 :root[data-theme="verre-aurore"] .onboard__mark {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
 }
 
 :root[data-theme="verre-aurore"] .onboard__title {
-  font-size: 2.625rem;
+  font-size: 2.125rem;
   font-weight: 620;
   font-stretch: 114%;
   line-height: 1.05;
@@ -851,7 +851,7 @@
 :root[data-theme="verre-aurore"] .onboard__instruction {
   padding: 0;
   font-size: 1rem;
-  line-height: 1.9;
+  line-height: 1.7;
   color: var(--text-2);
   background: none;
   border: 0;
@@ -867,7 +867,7 @@
 }
 
 :root[data-theme="verre-aurore"] .onboard__card {
-  padding: 1.125rem 1.25rem;
+  padding: 0.875rem 1.125rem;
   background: var(--surface);
   border-color: var(--va-plate-border);
   box-shadow:
@@ -898,7 +898,17 @@
 }
 
 :root[data-theme="verre-aurore"] .onboard__nav {
-  padding-top: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+/* The try step: the keys are in the instruction already, so the status card
+   keeps to the state and its buttons. */
+:root[data-theme="verre-aurore"] .onboard .live {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:root[data-theme="verre-aurore"] .onboard .status-art {
+  display: none;
 }
 
 @container onboard (max-width: 40rem) {

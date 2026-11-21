@@ -16,7 +16,7 @@
 /* ================================================================ header */
 
 :root[data-theme="doux-rond"] .carnet {
-  row-gap: 1.5rem;
+  row-gap: 1rem;
 }
 
 :root[data-theme="doux-rond"] .carnet__header {

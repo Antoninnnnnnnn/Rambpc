@@ -120,10 +120,10 @@ describe("copy disclosure", () => {
     await appReady();
     const item = await screen.findByTestId("recent-item");
     expect(screen.getByTestId("recents-copy-note")).toHaveTextContent(
-      "Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du presse-papiers de Windows (Win+V).",
+      "Copier remplace le presse-papiers, sans passer par l’historique Win+V.",
     );
     expect(within(item).getByRole("button", { name: /^Copier/ })).toHaveAccessibleDescription(
-      /^Copier remplace le contenu actuel du presse-papiers\. La copie est exclue de l’historique du presse-papiers de Windows \(Win\+V\)\.$/,
+      /^Copier remplace le presse-papiers, sans passer par l’historique Win\+V\.$/,
     );
   });
 

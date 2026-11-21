@@ -83,7 +83,7 @@ export function TranscriptionPanel({ onOpenNote }: Props) {
           </span>
           <p className="dropzone__title">Transcrire un fichier audio</p>
           <p id={hintId} className="dropzone__hint">
-            Déposez-le sur la fenêtre ou choisissez-le : son texte devient une note.{" "}
+            Déposez-le ici ou choisissez-le : son texte devient une note.{" "}
             <span className="dropzone__formats">
               {AUDIO_FORMATS}, {AUDIO_LIMITS}.
             </span>

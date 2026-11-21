@@ -186,7 +186,6 @@ export function CarnetScreen() {
       <h1 tabIndex={-1} data-screen-title>
         Carnet
       </h1>
-      <p className="screen__lead">Vos notes dictées et les transcriptions de fichiers audio, gardées sur ce PC.</p>
       {list.status === "ready" ? (
         <div className="carnet__header-actions">
           <button ref={newButton} type="button" className="btn btn--primary" onClick={() => void newNote()}>

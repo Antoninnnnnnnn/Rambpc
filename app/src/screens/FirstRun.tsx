@@ -187,9 +187,12 @@ function ConsentStep({ titleRef, onNext }: { titleRef: TitleRef; onNext: () => v
 
   return (
     <div className="onboard__step">
-      <div className="onboard__hero">
-        <AppMark className="onboard__mark" />
-      </div>
+      {/* Once enabled, the confirmation takes the mark's place. */}
+      {consent ? null : (
+        <div className="onboard__hero">
+          <AppMark className="onboard__mark" />
+        </div>
+      )}
       <StepTitle titleRef={titleRef}>Votre voix est transmise à Google pendant que vous parlez</StepTitle>
       <p className="onboard__lead">
         Sambler transcrit uniquement avec Rambler, le service de reconnaissance vocale de Google. Rien n’est envoyé tant
@@ -230,8 +233,7 @@ function ConsentStep({ titleRef, onNext }: { titleRef: TitleRef; onNext: () => v
         <>
           <p className="onboard__done">
             <Glyph name="check" />
-            La dictée avec Rambler est activée sur ce PC. Vous pouvez la désactiver à tout moment dans Réglages,
-            Confidentialité.
+            La dictée avec Rambler est activée sur ce PC (désactivable dans Réglages, Confidentialité).
           </p>
           <StepNav onNext={onNext} />
         </>
@@ -335,7 +337,6 @@ function TryStep({ titleRef, onBack, onDone }: { titleRef: TitleRef; onBack: () 
         <Keys shortcut={state.shortcut} />, dites{" "}
         <span className="onboard__phrase">« {TRY_SENTENCE} »</span>, puis {hold ? "relâchez." : "appuyez de nouveau."}
       </p>
-      <p className="muted">Ici, le texte reste dans Sambler pour que vous puissiez le relire.</p>
 
       <AvailabilityBanner headingLevel={2} />
       <StatusCard headingLevel={2} dictateLabel="Dicter dans Sambler, sans raccourci" />
@@ -362,10 +363,10 @@ function TryStep({ titleRef, onBack, onDone }: { titleRef: TitleRef; onBack: () 
           Autres façons d’essayer
         </h2>
         {settings ? (
-          <>
+          <div className="onboard__options">
             <Switch
               label="Mode bascule"
-              description="Appuyez une fois pour commencer, une seconde fois pour terminer, mains libres pendant que vous parlez."
+              description="Une pression pour commencer, une autre pour terminer : mains libres pendant que vous parlez."
               checked={settings.gesture === "toggle"}
               onChange={(toggle) => void update("gesture", (s) => ({ ...s, gesture: toggle ? "toggle" : "hold" }))}
               error={errors.gesture ? commandErrorText(errors.gesture) : undefined}
@@ -376,7 +377,7 @@ function TryStep({ titleRef, onBack, onDone }: { titleRef: TitleRef; onBack: () 
               onChange={(shortcut) => update("shortcut", (s) => ({ ...s, shortcut }))}
               error={errors.shortcut}
             />
-          </>
+          </div>
         ) : null}
         <p className="hint">
           Pour annuler pendant l’essai, appuyez sur <Keys shortcut="Escape" /> ou choisissez « Annuler ».

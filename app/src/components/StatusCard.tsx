@@ -28,12 +28,11 @@ interface Props {
 export function ShortcutHint({ gesture, shortcut }: { gesture: UiState["gesture"]; shortcut: string }) {
   return gesture === "hold" ? (
     <>
-      Dans n’importe quelle application, maintenez <Keys shortcut={shortcut} />, parlez, puis relâchez.
+      Dans n’importe quelle application, maintenez <Keys shortcut={shortcut} />, parlez, relâchez.
     </>
   ) : (
     <>
-      Dans n’importe quelle application, appuyez sur <Keys shortcut={shortcut} /> pour commencer, puis de nouveau pour
-      terminer.
+      Dans n’importe quelle application, appuyez sur <Keys shortcut={shortcut} /> pour commencer et pour terminer.
     </>
   );
 }
@@ -143,9 +142,9 @@ export function StatusCard({ headingLevel = 2, dictateLabel = "Dicter dans Sambl
               <Glyph name="mic" />
               {dictateLabel}
             </button>
-            <p id={dictateHint} className="live__note">
+            <p id={dictateHint} className={startable ? "visually-hidden" : "live__note"}>
               {startable
-                ? "Sans raccourci : le texte reste dans Sambler, prêt à être copié."
+                ? "Sans raccourci, le texte reste dans Sambler."
                 : "Disponible quand la dictée est activée et que Rambler répond."}
             </p>
           </div>

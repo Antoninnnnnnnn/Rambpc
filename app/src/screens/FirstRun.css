@@ -161,7 +161,7 @@
 
 .onboard__card ul {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.3rem;
   color: var(--text-2);
 }
 
@@ -213,6 +213,20 @@
   font-weight: 620;
 }
 
+/* « Mode bascule » and the shortcut side by side when there is room. */
+/* The try step's instruction already says how to start: the status card
+   keeps its hint for the other states only. */
+.onboard .live--available .live__hint {
+  display: none;
+}
+
+.onboard__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  align-items: start;
+  gap: var(--space-3) var(--space-6);
+}
+
 .onboard__nav {
   display: flex;
   flex-wrap: wrap;
@@ -225,6 +239,13 @@
 .onboard__aside {
   margin-top: calc(-1 * var(--space-3));
   text-align: right;
+}
+
+/* The mark is decoration: it gives way in a short window. */
+@media (max-height: 46rem) {
+  .onboard__hero {
+    display: none;
+  }
 }
 
 @media (max-width: 34rem) {

@@ -60,7 +60,7 @@ describe("Récents", () => {
     const second = (await screen.findAllByTestId("recent-item"))[1];
     const copy = within(second).getByRole("button", { name: /^Copier/ });
     expect(copy).toHaveAccessibleDescription(
-      /Copier remplace le contenu actuel du presse-papiers\. La copie est exclue de l’historique du presse-papiers de Windows \(Win\+V\)\. Les passages manquants ne sont pas copiés\./,
+      /Copier remplace le presse-papiers, sans passer par l’historique Win\+V\. Les passages manquants ne sont pas copiés\./,
     );
     await user.click(copy);
     expect(bridge.invoke).toHaveBeenCalledWith("copy_draft", { take: 11 });

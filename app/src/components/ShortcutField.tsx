@@ -164,7 +164,8 @@ export function ShortcutField({ value, onChange, error, label = "Raccourci" }: P
           ) : null}
         </div>
       )}
-      <p id={`${id}-hint`} className="hint">
+      {/* The rules show while a new combination is typed; screen readers always get them. */}
+      <p id={`${id}-hint`} className={capturing ? "hint" : "visually-hidden"}>
         {capturing
           ? "Maintenez Ctrl, Alt ou Maj puis appuyez sur une touche, par exemple Ctrl+Maj+F2. Échap pour annuler."
           : "Les combinaisons avec la touche Windows, F12, Ctrl+Alt et les modificateurs seuls sont refusés."}

@@ -68,8 +68,8 @@ export function greeting(date = new Date()): string {
 export function startHint(gesture: UiState["gesture"], shortcut: string): string {
   const keys = formatShortcut(shortcut);
   return gesture === "hold"
-    ? `Dans n’importe quelle application, maintenez ${keys}, parlez, puis relâchez.`
-    : `Dans n’importe quelle application, appuyez sur ${keys} pour commencer, puis de nouveau pour terminer.`;
+    ? `Dans n’importe quelle application, maintenez ${keys}, parlez, relâchez.`
+    : `Dans n’importe quelle application, appuyez sur ${keys} pour commencer et pour terminer.`;
 }
 
 export function stopHint(gesture: UiState["gesture"], shortcut: string): string {

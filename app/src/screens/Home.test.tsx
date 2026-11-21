@@ -37,7 +37,7 @@ describe("Accueil: greeting and live state", () => {
     await renderHome({ gesture: "toggle", shortcut: "Alt+Shift+D" });
     const card = screen.getByTestId("status-card");
     expect(card).toHaveTextContent(
-      "Dans n’importe quelle application, appuyez sur Alt+Maj+D pour commencer, puis de nouveau pour terminer.",
+      "Dans n’importe quelle application, appuyez sur Alt+Maj+D pour commencer et pour terminer.",
     );
     expect(within(card).getByText("Maj").tagName).toBe("KBD");
   });
@@ -73,7 +73,7 @@ describe("Accueil: greeting and live state", () => {
   it("offers « Dicter dans Sambler » when idle and ready", async () => {
     const { bridge, user } = await renderHome({});
     const button = screen.getByRole("button", { name: "Dicter dans Sambler" });
-    expect(button).toHaveAccessibleDescription(/^Sans raccourci\s: le texte reste dans Sambler, prêt à être copié\.$/);
+    expect(button).toHaveAccessibleDescription("Sans raccourci, le texte reste dans Sambler.");
     await user.click(button);
     expect(bridge.invoke).toHaveBeenCalledWith("dictate_in_sambler");
   });

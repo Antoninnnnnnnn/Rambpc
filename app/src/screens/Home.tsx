@@ -34,7 +34,6 @@ export function Home({ focusRecents = 0 }: { focusRecents?: number }) {
           <span className="visually-hidden">Accueil, </span>
           {greeting()}
         </h1>
-        <p className="screen__lead">Votre voix, au curseur, dans toutes vos applications.</p>
       </header>
 
       <AvailabilityBanner />

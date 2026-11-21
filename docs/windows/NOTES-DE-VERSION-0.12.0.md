@@ -13,6 +13,7 @@ Prérequis : Windows 11 x64 avec WebView2 (inclus dans Windows 11) et une connex
 
 - **Langue automatique (par défaut)** : parlez français, anglais, ou les deux dans la même dictée, sans rien régler. Rambler reconnaît les deux langues ; Sambler applique la typographie française (espaces fines, guillemets « ») au texte français et la ponctuation anglaise au texte anglais. « Français uniquement » et « Anglais uniquement » restent disponibles dans Réglages › Langue.
 - **Guillemets français** : les guillemets droits que Rambler écrit lui-même deviennent « » dans le texte français (rendu Naturel, espaces typographiques activés ; désactivable par application).
+- **Tout tient dans la fenêtre** : à la taille par défaut, l'Accueil, la prise en main et le Carnet s'affichent sans défiler (textes raccourcis, espacements resserrés, fenêtre inchangée). Dans l'Accueil, la liste Récents défile seule.
 
 ## Nouveautés depuis 0.10.0
 

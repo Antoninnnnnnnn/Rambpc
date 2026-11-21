@@ -75,7 +75,7 @@ export const RecentList = forwardRef<RecentListHandle, Props>(function RecentLis
           </Heading>
           {!newestOnly ? (
             <p className="hint">
-              Vos derniers textes, gardés {minutesText(minutes)} en mémoire seulement, jamais sur le disque.
+              Gardés {minutesText(minutes)} en mémoire, jamais sur le disque.
             </p>
           ) : null}
         </div>
@@ -125,8 +125,8 @@ export const RecentList = forwardRef<RecentListHandle, Props>(function RecentLis
       ) : (
         <>
           <p id={copyNoteId} className="hint recents__copy-note" data-testid="recents-copy-note">
-            Copier remplace le contenu actuel du presse-papiers. La copie est exclue de l’historique du presse-papiers de
-            Windows (Win+V).{anyIncomplete ? " Les passages manquants ne sont pas copiés." : null}
+            Copier remplace le presse-papiers, sans passer par l’historique Win+V.
+            {anyIncomplete ? " Les passages manquants ne sont pas copiés." : null}
           </p>
           <ol className="recents__list">
             {shown.map((item, index) => (
