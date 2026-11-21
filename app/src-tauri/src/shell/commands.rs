@@ -502,6 +502,32 @@ pub async fn get_note(state: State<'_, AppState>, id: String) -> CmdResult<crate
     blocking(move || notes.get(&id).map_err(notes_error)).await?
 }
 
+/// Copy a Carnet note with the same private clipboard path as « Copier » in
+/// Récents: excluded from Win+V history and cloud sync. The text never
+/// crosses the WebView.
+#[tauri::command]
+pub async fn copy_note(state: State<'_, AppState>, id: String) -> CmdResult<()> {
+    let notes = state.notes.clone();
+    let clipboard = state.clipboard.clone();
+    blocking(move || {
+        let note = notes.get(&id).map_err(notes_error)?;
+        clipboard.copy_private(&note.text).map_err(|error| match error {
+            ClipboardError::Busy => CommandError::new(
+                "clipboard-busy",
+                "Le presse-papiers est occupé par une autre application. Réessayez.",
+            ),
+            ClipboardError::ExclusionFailed => CommandError::new(
+                "clipboard-exclusion-failed",
+                "Copie annulée : impossible d'exclure le texte de l'historique du presse-papiers.",
+            ),
+            ClipboardError::Other => {
+                CommandError::new("clipboard-other", "La copie a échoué. Réessayez.")
+            }
+        })
+    })
+    .await?
+}
+
 #[tauri::command]
 pub async fn save_note(
     state: State<'_, AppState>,

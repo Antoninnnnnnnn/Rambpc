@@ -545,6 +545,7 @@ pub struct ActivityStats {
 // | `get_note`           | `id: string`                           | `Note`             |
 // | `save_note`          | `note: { id: string \| null, text }`   | `NoteMeta` (null id creates; ≤ 200 000 chars, ≤ 1 000 notes) |
 // | `delete_note`        | `id: string`                           | `()`               |
+// | `copy_note`          | `id: string`                           | `()` or `CommandError` (clipboard-busy, clipboard-exclusion-failed, clipboard-other, plus note errors); private clipboard like Récents |
 // | `pick_audio_file`  | —                                      | `string \| null` (native open dialog; the path is remembered as allowed) |
 // | `transcribe_file`    | `path: string` (from `pick_audio_file` or `sambler://file-dropped` only) | `FileTranscription` (one at a time) |
 // | `cancel_transcription` | `id: string`                         | `FileTranscription` |
