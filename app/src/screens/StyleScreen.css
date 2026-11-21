@@ -1,12 +1,26 @@
+/* Style: the previews, the dictation commands and the per-application styles.
+   Layout and a neutral look from the tokens, for every theme; a theme
+   restyles them in its own CSS (Verre et aurore: screens-settings.css). */
+
+.style {
+  container: style / inline-size;
+}
+
 textarea.style__sample {
   min-height: 3.75rem;
 }
+
+/* ---------------------------------------------------------------- preview */
 
 .preview {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: var(--space-3);
+}
+
+.preview--compact {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .preview__side {
@@ -44,14 +58,323 @@ textarea.style__sample {
   color: var(--text-2);
 }
 
-@media (max-width: 40rem) {
+.preview-block {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.preview-block__caption {
+  font-weight: 580;
+}
+
+@container style (max-width: 40rem) {
   .preview {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
+/* ---------------------------------------------------------------- notes */
+
+.style-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+
+.style-note > .icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.05rem;
+}
+
+.style-note--warning {
+  color: var(--text);
+  background: var(--warning-soft);
+}
+
+.style-note--warning > .icon {
+  color: var(--warning);
+}
+
+/* ---------------------------------------------------------------- dictation commands */
+
+.voice-commands {
+  display: grid;
+  min-width: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.voice-commands--off {
+  opacity: 0.65;
+}
+
+.voice-commands__head,
+.voice-command {
+  display: grid;
+  grid-template-columns: minmax(10rem, 15rem) minmax(0, 1fr);
+  column-gap: var(--space-5);
+}
+
+.voice-commands__head {
+  padding-bottom: var(--space-2);
+  color: var(--text-3);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.voice-commands__list {
+  display: grid;
+}
+
+.voice-command {
+  align-items: baseline;
+  row-gap: 0.25rem;
+  padding-block: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.voice-command__spoken {
+  font-weight: 600;
+}
+
+.voice-command__effect {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.voice-command__result {
+  flex: none;
+  min-width: 2.5rem;
+  padding: 0.05rem 0.45rem;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-align: center;
+  background: var(--surface-2);
+  border-radius: var(--radius-xs);
+}
+
+@container style (max-width: 32rem) {
+  .voice-commands__head {
+    display: none;
+  }
+
+  .voice-command {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .voice-command:first-child {
+    border-top: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- per application */
+
+.app-styles {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-style {
+  min-width: 0;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.app-style__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+}
+
+/* A letter tile standing for the application (decorative). */
+.app-mono {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  line-height: 1;
+  background: var(--surface-2);
+  border-radius: 0.5rem;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.app-style__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+}
+
+.app-style__toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  width: 100%;
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.app-style__toggle:hover {
+  background: var(--surface-hover);
+}
+
+.app-style__name {
+  grid-column: 1;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.app-style__summary {
+  grid-column: 1;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+.app-style__toggle > .icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-2);
+  transition: transform var(--dur) var(--ease);
+}
+
+.app-style__toggle[aria-expanded="true"] > .icon {
+  transform: rotate(180deg);
+}
+
+.app-style__remove {
+  flex: none;
+}
+
+.app-style__panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+/* Each three-state choice is a row: its name on the left, the choices on the right. */
+.app-style__panel > .choices {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-5);
+  row-gap: 0.125rem;
+}
+
+.app-style__panel > .choices > .choices__options {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.app-style__panel > .choices > .field-error {
+  grid-column: 1 / -1;
+}
+
+@container style (max-width: 40rem) {
+  .app-style__panel > .choices {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-style__panel > .choices > .choices__options {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+}
+
+.app-styles__empty {
+  color: var(--text-2);
+}
+
+.app-add {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.app-add .hint {
+  margin: 0;
+}
+
+.app-picker {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+
+.app-picker__title {
+  font-weight: 600;
+}
+
+.app-picker__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-picker__app {
+  padding-left: 0.3rem;
+}
+
+.app-picker__app .app-mono {
+  width: 1.375rem;
+  height: 1.375rem;
+  font-size: 0.6875rem;
+  border-radius: 0.375rem;
+}
+
+/* ---------------------------------------------------------------- forced colors */
+
 @media (forced-colors: active) {
-  .preview__side {
+  .preview__side,
+  .style-note,
+  .app-style,
+  .app-picker,
+  .voice-command__result {
     border: 1px solid CanvasText;
+  }
+
+  .app-mono {
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+    box-shadow: inset 0 0 0 1px CanvasText;
   }
 }

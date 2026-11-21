@@ -1,14 +1,21 @@
 // Style: how recognized words become text. Naturel (light rules) or Fidèle
-// (Rambler as is), the three light rules, and a live preview through
-// `preview_render`. Each change is saved at once and applies to the next take.
+// (Rambler as is), the three light rules, a live preview through
+// `preview_render`, the dictation commands (StyleScreenCommands) and the
+// per-application styles (StyleScreenApps). Each change is saved at once and
+// applies to the next take.
 
 import { useEffect, useId, useState } from "react";
 import { Card, ChoiceGroup, FieldError, Switch } from "../components/controls";
 import { PREVIEW_SAMPLES, RenderPreview } from "../components/RenderPreview";
 import { settingSaveErrorText } from "../labels/fr";
+import { nb, PROFILE_DESCRIPTIONS, PROFILE_LABELS, TEXT_OPTION_DESCRIPTIONS, TEXT_OPTION_LABELS } from "../labels/style";
 import { useSettings } from "../state/settings";
 import { ScreenHeader } from "./ScreenHeader";
+import { AppStylesCard } from "./StyleScreenApps";
+import { VoiceCommandsCard } from "./StyleScreenCommands";
 import "./StyleScreen.css";
+
+const LIGHT_RULES = ["lightPunctuation", "typographicSpaces", "sentenceCase"] as const;
 
 export function StyleScreen() {
   const { settings, errors, update, loadFailed, reload } = useSettings();
@@ -24,7 +31,7 @@ export function StyleScreen() {
 
   if (!settings) {
     return (
-      <div className="screen">
+      <div className="screen style">
         <ScreenHeader title="Style" />
         {loadFailed ? (
           <div className="stack stack--tight">
@@ -46,10 +53,11 @@ export function StyleScreen() {
   const textError = errors.text ? settingSaveErrorText(errors.text) : undefined;
 
   return (
-    <div className="screen">
+    <div className="screen style">
       <ScreenHeader title="Style">
-        Choisissez comment vos mots deviennent du texte. Sambler ne change jamais vos mots : il retouche au plus la
-        ponctuation, les espaces et les majuscules. S’applique à la prochaine dictée.
+        {nb(
+          "Choisissez comment vos mots deviennent du texte. Sambler ne change jamais vos mots : il retouche au plus la ponctuation, les espaces et les majuscules. S’applique à la prochaine dictée.",
+        )}
       </ScreenHeader>
 
       <Card title="Votre style">
@@ -59,16 +67,8 @@ export function StyleScreen() {
           name="profile"
           value={settings.profile}
           options={[
-            {
-              value: "natural",
-              label: "Naturel",
-              description: "Ponctuation, espaces et majuscules légèrement corrigés, sans changer vos mots.",
-            },
-            {
-              value: "faithful",
-              label: "Fidèle",
-              description: "La transcription de Rambler telle quelle, ponctuation comprise.",
-            },
+            { value: "natural", label: PROFILE_LABELS.natural, description: PROFILE_DESCRIPTIONS.natural },
+            { value: "faithful", label: PROFILE_LABELS.faithful, description: PROFILE_DESCRIPTIONS.faithful },
           ]}
           onChange={(profile) => void update("profile", (s) => ({ ...s, profile }))}
           error={errors.profile ? settingSaveErrorText(errors.profile) : undefined}
@@ -79,29 +79,16 @@ export function StyleScreen() {
         title="Règles du style Naturel"
         description={faithful ? "Ces règles sont ignorées en Fidèle." : "Trois retouches légères, chacune réversible."}
       >
-        <Switch
-          label="Ponctuation légère"
-          description="Complète la ponctuation simple, comme le point final."
-          checked={settings.text.lightPunctuation}
-          disabled={faithful}
-          onChange={(lightPunctuation) => void update("text", (s) => ({ ...s, text: { ...s.text, lightPunctuation } }))}
-        />
-        <Switch
-          label="Espaces typographiques"
-          description="Espaces insécables du français avant « : ; ! ? » et dans les guillemets."
-          checked={settings.text.typographicSpaces}
-          disabled={faithful}
-          onChange={(typographicSpaces) =>
-            void update("text", (s) => ({ ...s, text: { ...s.text, typographicSpaces } }))
-          }
-        />
-        <Switch
-          label="Majuscule de phrase"
-          description="Met une majuscule au début de chaque phrase."
-          checked={settings.text.sentenceCase}
-          disabled={faithful}
-          onChange={(sentenceCase) => void update("text", (s) => ({ ...s, text: { ...s.text, sentenceCase } }))}
-        />
+        {LIGHT_RULES.map((key) => (
+          <Switch
+            key={key}
+            label={TEXT_OPTION_LABELS[key]}
+            description={TEXT_OPTION_DESCRIPTIONS[key]}
+            checked={settings.text[key]}
+            disabled={faithful}
+            onChange={(value) => void update("text", (s) => ({ ...s, text: { ...s.text, [key]: value } }))}
+          />
+        ))}
         {textError ? <FieldError>{textError}</FieldError> : null}
       </Card>
 
@@ -140,6 +127,10 @@ export function StyleScreen() {
         </div>
         <RenderPreview settings={settings} sample={sample} />
       </Card>
+
+      <VoiceCommandsCard />
+
+      <AppStylesCard sample={sample} />
     </div>
   );
 }

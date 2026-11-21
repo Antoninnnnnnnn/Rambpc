@@ -38,7 +38,12 @@ describe("Style", () => {
     const { bridge, user } = await openStyle();
     await user.click(screen.getByRole("switch", { name: "Espaces typographiques" }));
     await waitFor(() =>
-      expect(lastSaved(bridge)?.text).toEqual({ lightPunctuation: true, typographicSpaces: false, sentenceCase: true }),
+      expect(lastSaved(bridge)?.text).toEqual({
+        lightPunctuation: true,
+        typographicSpaces: false,
+        sentenceCase: true,
+        voiceCommands: true,
+      }),
     );
   });
 
