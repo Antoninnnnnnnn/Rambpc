@@ -126,7 +126,7 @@ describe("floating bar theming", () => {
     localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "light" }));
     const events = fakeSource();
     mountOverlay(root, events.source, page);
-    events.state(uiState({ phase: { kind: "listening" }, take: 1 }));
+    events.state(uiState({ phase: { kind: "listening" }, take: 1, appearance: undefined }));
     expect(page.dataset.theme).toBe("sable");
     events.state(uiState({ phase: { kind: "finalizing" }, take: 1, appearance: { theme: "neon", colorScheme: "dark" } }));
     expect(page.dataset).toMatchObject({ theme: DEFAULT_THEME, scheme: "dark" });

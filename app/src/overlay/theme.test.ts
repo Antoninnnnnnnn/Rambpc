@@ -56,10 +56,10 @@ describe("floating bar appearance", () => {
   it("keeps what it has when a state carries no appearance (older native)", () => {
     localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "dark" }));
     const follow = followAppearance(page);
-    follow(uiState());
+    follow(uiState({ appearance: undefined }));
     expect(page.dataset).toMatchObject({ theme: "sable", scheme: "dark" });
     follow(uiState({ appearance: { theme: "verre-aurore", colorScheme: "light" } }));
-    follow(uiState({ phase: { kind: "listening" }, take: 2 }));
+    follow(uiState({ phase: { kind: "listening" }, take: 2, appearance: undefined }));
     expect(page.dataset).toMatchObject({ theme: "verre-aurore", scheme: "light" });
   });
 
