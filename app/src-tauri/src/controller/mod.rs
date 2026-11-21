@@ -9,7 +9,7 @@ use crate::ipc::{DraftView, PersonalRules, UiState, UsageStats};
 use crate::model::{KeyEdge, SystemEvent, TakeId};
 use crate::ports::{Clipboard, ClipboardError, Inserter, Microphone, TargetProbe};
 use crate::rambler::RamblerAccess;
-use crate::settings::Settings;
+use crate::settings::{AppIdentity, Settings};
 use crate::storage::{history::History, stats::Stats};
 use runtime::{Command, Inbox};
 use state::Input;
@@ -156,6 +156,13 @@ impl ControllerHandle {
     pub async fn activity(&self) -> Option<crate::ipc::ActivityStats> {
         let (reply, result) = oneshot::channel();
         self.inbox.send(Command::Activity(reply));
+        result.await.ok()
+    }
+
+    /// Identities from retained application counters, most used first.
+    pub async fn known_apps(&self) -> Option<Vec<AppIdentity>> {
+        let (reply, result) = oneshot::channel();
+        self.inbox.send(Command::KnownApps(reply));
         result.await.ok()
     }
 

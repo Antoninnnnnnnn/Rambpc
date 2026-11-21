@@ -5,10 +5,12 @@ use crate::{
         Availability, DraftMeta, DraftPart, DraftView, InterruptReason, KeptReason, PartStatus,
         Phase, RefusalReason, TakeOutcome, UiState, UnavailableReason,
     },
-    model::{DestinationKind, Gesture, KeyEdge, Language, MicChoice, SystemEvent, TakeId},
+    model::{
+        DestinationKind, Gesture, KeyEdge, Language, MicChoice, RenderProfile, SystemEvent, TakeId,
+    },
     ports::{InsertOutcome, MicError, TargetChange, TargetToken, TargetVerdict},
     rambler::{FRAME_WAIT_MS, MAX_DRAFT_BYTES, Segment},
-    settings::{InsertionTarget, Settings},
+    settings::{AppIdentity, AppStyle, InsertionTarget, Settings, TextOptionsPatch},
     text::{self, TextRules},
 };
 use rambler_audio::join_segment_texts;
@@ -50,7 +52,7 @@ pub(super) enum Input {
     Tick { last_frame: Option<u64> },
     Delivered(TakeId, Segment),
     Collection(TakeId, Result<(), InterruptReason>),
-    Insertion(TakeId, Result<InsertOutcome, KeptReason>),
+    Insertion(TakeId, Result<InsertionResult, KeptReason>),
     ClearDraft(Option<TakeId>),
     Shutdown,
 }
@@ -63,19 +65,121 @@ pub(super) enum Effect {
     Stop(TakeId),
     Retire(TakeId),
     Completed(Completion),
-    Insert(TakeId, InsertionPlan, Arc<str>),
+    Insert(TakeId, InsertionRequest),
+}
+
+#[derive(Clone)]
+pub(super) struct Field {
+    pub token: TargetToken,
+    pub app: Option<AppIdentity>,
+}
+
+impl Field {
+    pub(super) fn app_id(&self) -> Option<&str> {
+        self.app.as_ref().map(|app| app.id.as_str())
+    }
 }
 
 pub(super) enum InsertionPlan {
-    Original(TargetToken),
-    CursorAtEnd(Option<TargetToken>),
+    Original(Field),
+    CursorAtEnd(Option<Field>),
+}
+
+pub(super) struct InsertionRequest {
+    pub plan: InsertionPlan,
+    pub initial: Rendered,
+    pub joined: String,
+    pub rendering: Arc<Rendering>,
+}
+
+pub(super) enum InsertionResult {
+    Attempted {
+        rendered: FinalText,
+        outcome: InsertOutcome,
+        app: Option<AppIdentity>,
+    },
+    Unrenderable(RenderError),
 }
 
 pub(super) struct Completion {
     pub id: TakeId,
     pub words: u64,
     pub listening_ms: u64,
+    pub delivered_app: Option<AppIdentity>,
     pub archive: Option<crate::storage::history::CompletedTake>,
+}
+
+#[derive(Clone)]
+pub(super) struct FinalText {
+    pub text: Arc<str>,
+    profile: RenderProfile,
+}
+
+type Rendered = Result<FinalText, RenderError>;
+
+#[derive(Clone, Copy, Debug)]
+pub(super) enum RenderError {
+    Empty,
+    Incomplete,
+}
+
+impl RenderError {
+    fn outcome(self) -> TakeOutcome {
+        match self {
+            Self::Empty => TakeOutcome::NoText,
+            Self::Incomplete => TakeOutcome::KeptInSambler {
+                reason: KeptReason::Incomplete,
+            },
+        }
+    }
+}
+
+pub(super) struct Rendering {
+    global: TextRules,
+    app_styles: Vec<AppStyle>,
+}
+
+impl Rendering {
+    pub(super) fn render(&self, joined: &str, app_id: Option<&str>) -> Rendered {
+        let style = app_id.and_then(|id| self.app_styles.iter().find(|style| style.app.id == id));
+        let mut rules = std::borrow::Cow::Borrowed(&self.global);
+        if let Some(style) = style {
+            let rules = rules.to_mut();
+            if let Some(profile) = style.profile {
+                rules.profile = profile;
+            }
+            if let Some(TextOptionsPatch {
+                light_punctuation,
+                typographic_spaces,
+                sentence_case,
+                voice_commands,
+            }) = &style.text
+            {
+                let options = &mut rules.options;
+                options.light_punctuation = light_punctuation.unwrap_or(options.light_punctuation);
+                options.typographic_spaces = typographic_spaces.unwrap_or(options.typographic_spaces);
+                options.sentence_case = sentence_case.unwrap_or(options.sentence_case);
+                options.voice_commands = voice_commands.unwrap_or(options.voice_commands);
+            }
+        }
+        let text = text::render(joined, &rules);
+        if text.len() > MAX_DRAFT_BYTES {
+            Err(RenderError::Incomplete)
+        } else if text.trim().is_empty() {
+            Err(RenderError::Empty)
+        } else {
+            Ok(FinalText {
+                text: Arc::from(text),
+                profile: rules.profile,
+            })
+        }
+    }
+}
+
+struct FinalDraft {
+    parts: Vec<DraftPart>,
+    rendered: Rendered,
+    created: u64,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -96,7 +200,7 @@ impl Stage {
 
 enum Destination {
     Sambler(KeptReason),
-    Field(TargetToken),
+    Field(Field),
 }
 
 struct Take {
@@ -105,11 +209,11 @@ struct Take {
     gesture: Gesture,
     hotkey: bool,
     mic: MicChoice,
-    rules: TextRules,
+    rendering: Arc<Rendering>,
     always_keep: bool,
     insertion_target: InsertionTarget,
     destination: Option<Destination>,
-    pending_insert: Option<(Draft, Completion)>,
+    pending_insert: Option<FinalDraft>,
     started: u64,
     opened: Option<u64>,
     collecting: bool,
@@ -121,11 +225,11 @@ struct Take {
 impl Take {
     fn insertion_plan(&self, destination: &Destination) -> Option<InsertionPlan> {
         match (self.insertion_target, destination) {
-            (InsertionTarget::OriginalField, Destination::Field(token)) => {
-                Some(InsertionPlan::Original(token.clone()))
+            (InsertionTarget::OriginalField, Destination::Field(field)) => {
+                Some(InsertionPlan::Original(field.clone()))
             }
-            (InsertionTarget::CursorAtEnd, Destination::Field(token)) => {
-                Some(InsertionPlan::CursorAtEnd(Some(token.clone())))
+            (InsertionTarget::CursorAtEnd, Destination::Field(field)) => {
+                Some(InsertionPlan::CursorAtEnd(Some(field.clone())))
             }
             (
                 InsertionTarget::CursorAtEnd,
@@ -405,10 +509,13 @@ impl State {
                         TargetVerdict::Uncertain { reason } => {
                             Ok(Destination::Sambler(KeptReason::UncertainTarget { reason }))
                         }
-                        TargetVerdict::Eligible { token, .. }
+                        TargetVerdict::Eligible { token, info }
                             if take.hotkey && !take.always_keep =>
                         {
-                            Ok(Destination::Field(token))
+                            Ok(Destination::Field(Field {
+                                token,
+                                app: info.app_identity,
+                            }))
                         }
                         TargetVerdict::Sambler | TargetVerdict::Eligible { .. } => {
                             Ok(Destination::Sambler(KeptReason::SamblerDestination))
@@ -520,24 +627,44 @@ impl State {
                     .as_ref()
                     .is_some_and(|t| t.id == id && t.stage == Stage::Inserting) =>
             {
-                let outcome = match outcome {
-                    Ok(InsertOutcome::Delivered) => TakeOutcome::Inserted,
-                    Ok(InsertOutcome::Partial) => TakeOutcome::InsertedPartially,
-                    Ok(InsertOutcome::NotWritten { reason }) => TakeOutcome::KeptInSambler {
-                        reason: KeptReason::NotWritten { reason },
-                    },
-                    Err(reason) => TakeOutcome::KeptInSambler { reason },
-                };
-                // Protected focus discards the current result and any pending
-                // archive, without disturbing recents from other takes.
-                if outcome != protected_end() {
-                    let (mut draft, completion) =
-                        self.take.as_mut().unwrap().pending_insert.take().unwrap();
-                    draft.set_lifetime(now, self.settings.draft_minutes);
-                    self.save_draft(draft);
-                    effects.push(Effect::Completed(completion));
+                if matches!(
+                    outcome,
+                    Err(KeptReason::TargetChanged {
+                        change: TargetChange::Protected,
+                    })
+                ) {
+                    // Protected focus discards the current result and archive,
+                    // without disturbing recents from other takes.
+                    self.end(protected_end(), &mut effects);
+                } else {
+                    let mut draft = self.take.as_mut().unwrap().pending_insert.take().unwrap();
+                    let (outcome, delivered_app) = match outcome {
+                        Ok(InsertionResult::Attempted {
+                            rendered,
+                            outcome,
+                            app,
+                        }) => {
+                            draft.rendered = Ok(rendered);
+                            match outcome {
+                                InsertOutcome::Delivered => (TakeOutcome::Inserted, app),
+                                // We cannot tell how many words a partial write delivered.
+                                InsertOutcome::Partial => (TakeOutcome::InsertedPartially, None),
+                                InsertOutcome::NotWritten { reason } => (
+                                    TakeOutcome::KeptInSambler {
+                                        reason: KeptReason::NotWritten { reason },
+                                    },
+                                    None,
+                                ),
+                            }
+                        }
+                        Ok(InsertionResult::Unrenderable(error)) => {
+                            draft.rendered = Err(error);
+                            (error.outcome(), None)
+                        }
+                        Err(reason) => (TakeOutcome::KeptInSambler { reason }, None),
+                    };
+                    self.finish_draft(draft, outcome, delivered_app, now, &mut effects);
                 }
-                self.end(outcome, &mut effects);
             }
             Input::ClearDraft(id) => self
                 .recents
@@ -597,7 +724,10 @@ impl State {
             gesture: self.settings.gesture,
             hotkey,
             mic: self.settings.microphone.clone(),
-            rules,
+            rendering: Arc::new(Rendering {
+                global: rules,
+                app_styles: self.settings.app_styles.clone(),
+            }),
             always_keep: self.settings.always_keep_in_sambler,
             insertion_target: self.settings.insertion_target,
             destination: None,
@@ -649,7 +779,7 @@ impl State {
                 take.collecting = true;
                 effects.push(Effect::Collect {
                     take: take.id,
-                    language: take.rules.language,
+                    language: take.rendering.global.language,
                 });
             } else if matches!(take.stage, Stage::Finalizing { .. })
                 && self.mic_owner != Some(take.id)
@@ -720,85 +850,109 @@ impl State {
             return;
         };
         let parts = parts(std::mem::take(&mut take.segments), false);
-        let has_text = parts.iter().any(|p| p.status == PartStatus::Admitted);
-        let mut full: Option<Arc<str>> = None;
-        let mut insert = None;
-        let outcome = if !has_text {
-            TakeOutcome::NoText
-        } else if parts.iter().any(|p| p.status != PartStatus::Admitted)
-            || ambiguous_numeric_seam(&parts)
-        {
-            TakeOutcome::KeptInSambler {
-                reason: KeptReason::Incomplete,
-            }
-        } else {
-            let joined = join_segment_texts(parts.iter().filter_map(|p| p.text.as_deref()));
-            let rendered = text::render(&joined, &take.rules);
-            if rendered.len() > MAX_DRAFT_BYTES {
-                TakeOutcome::KeptInSambler {
-                    reason: KeptReason::Incomplete,
-                }
-            } else if rendered.trim().is_empty() {
-                TakeOutcome::NoText
+        let mut draft = FinalDraft {
+            parts,
+            rendered: Err(RenderError::Empty),
+            created: now.unix,
+        };
+        let mut reason = KeptReason::Incomplete;
+        if draft.parts.iter().any(|p| p.status == PartStatus::Admitted) {
+            if draft.parts.iter().any(|p| p.status != PartStatus::Admitted)
+                || ambiguous_numeric_seam(&draft.parts)
+            {
+                draft.rendered = Err(RenderError::Incomplete);
             } else {
-                full = Some(Arc::from(rendered));
+                let joined =
+                    join_segment_texts(draft.parts.iter().filter_map(|p| p.text.as_deref()));
                 let destination = take
                     .destination
                     .as_ref()
                     .expect("collection requires a verdict");
-                insert = take.insertion_plan(destination);
-                let reason = match destination {
-                    Destination::Sambler(reason) => *reason,
-                    Destination::Field(_) => KeptReason::Incomplete, // Wait for Windows.
+                let app_id = match destination {
+                    Destination::Field(field) => field.app_id(),
+                    Destination::Sambler(kept) => {
+                        reason = *kept;
+                        None
+                    }
                 };
-                TakeOutcome::KeptInSambler { reason }
+                draft.rendered = take.rendering.render(&joined, app_id);
+                if let Some(plan) = take.insertion_plan(destination)
+                    && (draft.rendered.is_ok() || matches!(plan, InsertionPlan::CursorAtEnd(_)))
+                {
+                    // Late or duplicate collection cannot start another attempt.
+                    // A different final style can make an empty/oversize render valid.
+                    take.stage = Stage::Inserting;
+                    effects.push(Effect::Insert(
+                        take.id,
+                        InsertionRequest {
+                            plan,
+                            initial: draft.rendered.clone(),
+                            joined,
+                            rendering: take.rendering.clone(),
+                        },
+                    ));
+                    take.pending_insert = Some(draft);
+                    return;
+                }
             }
-        };
-        let id = take.id;
-        let completion = full.as_ref().map(|text| Completion {
-            id,
-            words: text.unicode_words().count() as u64,
-            listening_ms: take.listening_ms,
-            archive: self
-                .archive
-                .then(|| crate::storage::history::CompletedTake {
-                    id,
-                    created: now.unix,
-                    text: text.clone(),
-                    language: take.rules.language,
-                    profile: take.rules.profile,
-                }),
-        });
-        if let Some(plan) = insert {
-            // One selection and at most one attempt; late or duplicate
-            // collection results cannot start another insertion.
-            take.stage = Stage::Inserting;
-            take.pending_insert = Some((Draft::new(id, parts, full.clone()), completion.unwrap()));
-            effects.push(Effect::Insert(id, plan, full.unwrap()));
-        } else {
-            if !matches!(outcome, TakeOutcome::NoText)
-                || parts.iter().any(|p| {
-                    matches!(
-                        p.status,
-                        PartStatus::Blocked | PartStatus::NeedsReview | PartStatus::Missing
-                    )
-                })
-            {
-                let mut draft = Draft::new(id, parts, full);
-                draft.set_lifetime(now, self.settings.draft_minutes);
-                self.save_draft(draft);
-            }
-            if let Some(completion) = completion {
-                effects.push(Effect::Completed(completion));
-            }
-            self.end(outcome, effects);
         }
+        self.finish_draft(draft, TakeOutcome::KeptInSambler { reason }, None, now, effects);
+    }
+
+    fn finish_draft(
+        &mut self,
+        draft: FinalDraft,
+        outcome: TakeOutcome,
+        delivered_app: Option<AppIdentity>,
+        now: Now,
+        effects: &mut Vec<Effect>,
+    ) {
+        let take = self.take.as_ref().unwrap();
+        let id = take.id;
+        let (text, outcome) = match draft.rendered {
+            Ok(rendered) => {
+                effects.push(Effect::Completed(Completion {
+                    id,
+                    words: rendered.text.unicode_words().count() as u64,
+                    listening_ms: take.listening_ms,
+                    delivered_app,
+                    archive: self
+                        .archive
+                        .then(|| crate::storage::history::CompletedTake {
+                            id,
+                            created: draft.created,
+                            text: rendered.text.clone(),
+                            language: take.rendering.global.language,
+                            profile: rendered.profile,
+                        }),
+                }));
+                (Some(rendered.text), outcome)
+            }
+            Err(error) => (None, error.outcome()),
+        };
+        if !matches!(outcome, TakeOutcome::NoText)
+            || draft.parts.iter().any(|p| {
+                matches!(
+                    p.status,
+                    PartStatus::Blocked | PartStatus::NeedsReview | PartStatus::Missing
+                )
+            })
+        {
+            let mut draft = Draft::new(id, draft.parts, text);
+            draft.set_lifetime(now, self.settings.draft_minutes);
+            self.save_draft(draft);
+        }
+        self.end(outcome, effects);
     }
 
     fn interrupt(&mut self, reason: InterruptReason, now: Now, effects: &mut Vec<Effect>) {
         let take = self.take.as_mut().unwrap();
-        let draft = if let Some((draft, _)) = take.pending_insert.take() {
-            Some(draft)
+        let draft = if let Some(draft) = take.pending_insert.take() {
+            Some(Draft::new(
+                take.id,
+                draft.parts,
+                draft.rendered.ok().map(|rendered| rendered.text),
+            ))
         } else {
             let parts = parts(std::mem::take(&mut take.segments), true);
             (parts.len() > 1).then(|| Draft::new(take.id, parts, None))

@@ -104,6 +104,7 @@ pub fn run() {
             commands::clear_draft,
             commands::get_stats,
             commands::get_activity,
+            commands::get_known_apps,
             commands::open_mic_privacy_settings,
             commands::preview_render,
             commands::get_personal_rules,
