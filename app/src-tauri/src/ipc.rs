@@ -263,6 +263,8 @@ pub enum AccessSource {
     None,
     /// `RAMBLER_AUTHORITY` + the three `RAMBLER_*` variables of the process.
     Environment,
+    /// Built into Sambler: the person never enters an access.
+    Builtin,
     /// Saved for this Windows account with DPAPI (installed edition only).
     Saved,
     /// Kept in memory for this session only (portable edition, or not remembered).

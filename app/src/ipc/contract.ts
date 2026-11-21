@@ -298,7 +298,7 @@ export interface DraftView {
   fullText: string | null;
 }
 
-export type AccessSource = "none" | "environment" | "saved" | "session";
+export type AccessSource = "none" | "environment" | "builtin" | "saved" | "session";
 
 /** Never contains the secret values. */
 export interface AccessStatus {
