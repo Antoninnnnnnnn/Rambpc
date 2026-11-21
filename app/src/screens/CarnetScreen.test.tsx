@@ -205,8 +205,35 @@ describe("Carnet: notes", () => {
     await waitFor(() => expect(field()).toHaveValue(IDEAS.text));
     await user.click(screen.getByRole("button", { name: "Copier la note" }));
     await waitFor(() => expect(liveRegion()).toHaveTextContent("Note copiée dans le presse-papiers."));
-    expect(await navigator.clipboard.readText()).toBe(IDEAS.text);
+    expect(bridge.invoke).toHaveBeenCalledWith("copy_note", { id: IDEAS.id });
     expect(screen.getByRole("button", { name: "Copiée la note" })).toBeInTheDocument();
+  });
+
+  it("saves pending words before copying, then copies the stored note natively", async () => {
+    const { bridge } = carnetBridge();
+    const { user } = await openCarnet(bridge);
+    await user.click(rows()[0]);
+    await waitFor(() => expect(field()).toHaveValue(IDEAS.text));
+    await user.type(field(), " Fin.");
+    await user.click(screen.getByRole("button", { name: "Copier la note" }));
+    await waitFor(() => expect(liveRegion()).toHaveTextContent("Note copiée dans le presse-papiers."));
+    const order = bridge.invoke.mock.calls.map(([command]) => command).filter((c) => c === "save_note" || c === "copy_note");
+    expect(order.indexOf("save_note")).toBeGreaterThanOrEqual(0);
+    expect(order.lastIndexOf("copy_note")).toBeGreaterThan(order.indexOf("save_note"));
+  });
+
+  it("explains a clipboard refusal without touching the note", async () => {
+    const { bridge } = carnetBridge();
+    bridge.handlers.copy_note = () => {
+      throw { code: "clipboard-exclusion-failed", message: "" };
+    };
+    const { user } = await openCarnet(bridge);
+    await user.click(rows()[0]);
+    await waitFor(() => expect(field()).toHaveValue(IDEAS.text));
+    await user.click(screen.getByRole("button", { name: "Copier la note" }));
+    expect(await screen.findByText(/n’a pas pu exclure ce texte de l’historique du presse-papiers/)).toBeInTheDocument();
+    await waitFor(() => expect(liveRegion()).toHaveTextContent("La copie a échoué."));
+    expect(field()).toHaveValue(IDEAS.text);
   });
 
   it("deletes a note only after the in-page confirmation", async () => {

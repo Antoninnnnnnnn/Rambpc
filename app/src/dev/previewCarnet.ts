@@ -97,6 +97,9 @@ export function createPreviewCarnet(emit: Emit, fail: Fail) {
       const input = args!.note as { id: string | null; text: string };
       return saveNote(input.id, input.text);
     },
+    copy_note: (args?: Record<string, unknown>) => {
+      if (!notes.some((note) => note.id === args!.id)) fail("note-not-found", "Cette note n’existe plus.");
+    },
     delete_note: (args?: Record<string, unknown>) => {
       notes = notes.filter((note) => note.id !== args!.id);
     },

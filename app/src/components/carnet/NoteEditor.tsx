@@ -6,10 +6,10 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { announcement, useAnnounce } from "../../a11y/announcer";
-import { useBridge } from "../../ipc/bridge";
+import { toCommandError, useBridge } from "../../ipc/bridge";
 import { EVENT_LEVEL } from "../../ipc/contract";
 import { listenShared } from "../../ipc/shared";
-import { commandErrorText, PHASE_LABELS } from "../../labels/fr";
+import { clipboardErrorText, commandErrorText, PHASE_LABELS } from "../../labels/fr";
 import { formatClock } from "../../lib/time";
 import { prefersReducedMotion, speechLevel } from "../../lib/waveform";
 import { useUiCommands } from "../../state/commands";
@@ -71,40 +71,16 @@ function useVoiceLevel(target: RefObject<HTMLElement | null>, listening: boolean
   }, [bridge, listening, target]);
 }
 
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    // Fall back to the selection copy below.
-  }
-  const scratch = document.createElement("textarea");
-  scratch.value = text;
-  scratch.setAttribute("readonly", "");
-  scratch.style.position = "fixed";
-  scratch.style.opacity = "0";
-  document.body.appendChild(scratch);
-  scratch.select();
-  let copied = false;
-  try {
-    copied = document.execCommand("copy");
-  } catch {
-    copied = false;
-  }
-  scratch.remove();
-  return copied;
-}
-
 export function NoteEditor({ editor, dictation, field, now, onBack, onDeleted }: Props) {
   const note = editor.note!;
+  const bridge = useBridge();
   const announce = useAnnounce();
   const plate = useRef<HTMLElement>(null);
   const ids = { title: useId(), field: useId(), hint: useId(), block: useId(), confirm: useId(), count: useId() };
   const [asking, setAsking] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [copy, setCopy] = useState<"idle" | "done" | "failed">("idle");
+  const [copyError, setCopyError] = useState<string | null>(null);
   const copyTimer = useRef<number | undefined>(undefined);
   const deleteButton = useRef<HTMLButtonElement>(null);
   const confirmButton = useRef<HTMLButtonElement>(null);
@@ -129,12 +105,32 @@ export function NoteEditor({ editor, dictation, field, now, onBack, onDeleted }:
     }
   }, [asking]);
 
+  // Copied natively from the stored note, through the same private clipboard
+  // path as Récents (excluded from Win+V history), after saving the text shown.
   const runCopy = async () => {
     window.clearTimeout(copyTimer.current);
-    const ok = note.text.length > 0 && (await writeClipboard(note.text));
-    setCopy(ok ? "done" : "failed");
-    announce(announcement(ok ? "Note copiée dans le presse-papiers." : "La copie a échoué."));
-    if (ok) copyTimer.current = window.setTimeout(() => setCopy("idle"), 3000);
+    const notSaved = "La note n’est pas encore enregistrée. Réessayez dans un instant.";
+    let error: string | null = null;
+    if (note.text.trim().length === 0) {
+      error = "La note est vide : il n’y a rien à copier.";
+    } else if (!(await editor.flush())) {
+      error = notSaved;
+    } else {
+      const id = editor.storedId();
+      if (id === null) {
+        error = notSaved;
+      } else {
+        try {
+          await bridge.invoke("copy_note", { id });
+        } catch (raw) {
+          error = clipboardErrorText(toCommandError(raw));
+        }
+      }
+    }
+    setCopyError(error);
+    setCopy(error ? "failed" : "done");
+    announce(announcement(error ? "La copie a échoué." : "Note copiée dans le presse-papiers."));
+    if (!error) copyTimer.current = window.setTimeout(() => setCopy("idle"), 3000);
   };
 
   const runDelete = async () => {
@@ -285,7 +281,7 @@ export function NoteEditor({ editor, dictation, field, now, onBack, onDeleted }:
       ) : null}
 
       {copy === "failed" ? (
-        <FieldError>La copie a échoué. Sélectionnez le texte, puis appuyez sur Ctrl+C.</FieldError>
+        <FieldError>{copyError}</FieldError>
       ) : null}
 
       {dictation.view.kind === "active" ? (

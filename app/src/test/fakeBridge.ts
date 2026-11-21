@@ -237,6 +237,7 @@ export function createFakeBridge(options: Options = {}): FakeBridge {
       words: note.text.split(/\s+/).filter(Boolean).length,
     }),
     delete_note: () => undefined,
+    copy_note: () => undefined,
     pick_audio_file: () => null,
     transcribe_file: () => {
       throw { code: "transcription-unavailable", message: "Transcription indisponible." };

@@ -613,6 +613,8 @@ export interface CommandMap {
   /** `id: null` creates a note. Returns the stored metadata. */
   save_note: { args: { note: { id: string | null; text: string } }; result: NoteMeta };
   delete_note: { args: { id: string }; result: void };
+  /** Private clipboard like Récents: excluded from Win+V history and cloud sync. */
+  copy_note: { args: { id: string }; result: void };
   /** Native open dialog filtered on supported audio types; null when cancelled. */
   pick_audio_file: { args: void; result: string | null };
   /** `path` from `pick_audio_file` or a file dropped on the window. One at a time. */

@@ -110,6 +110,8 @@ export interface NoteEditor {
   setText: (text: string) => void;
   /** Save now. Resolves true when the text shown is stored. */
   flush: () => Promise<boolean>;
+  /** Id of the open note once stored (null for a new note not saved yet). */
+  storedId: () => string | null;
   /** Delete the open note for good. */
   remove: () => Promise<{ ok: true } | { ok: false; error: CommandError }>;
 }
@@ -309,7 +311,9 @@ export function useNoteEditor({ onSaved }: EditorOptions): NoteEditor {
     };
   }, [persist]);
 
-  return { note, loading, loadError, open, create, close, setText, flush, remove };
+  const storedId = useCallback(() => session.current?.id ?? null, []);
+
+  return { note, loading, loadError, open, create, close, setText, flush, storedId, remove };
 }
 
 // ------------------------------------------------------------------ open requests
