@@ -1,0 +1,13 @@
+/* Every theme of the main window. A theme's rules only match under
+   :root[data-theme="<id>"], so loading them all changes nothing visible; a
+   font file downloads only when a rule of the active theme uses it.
+
+   Per theme: theme.css (all semantic tokens, required), then optionally
+   fonts.css, components.css (scoped component styling) and the CSS of its
+   React slots. The floating bar loads its own skin (<id>/overlay.css) from
+   its own entry, not from here. */
+
+@import "./sable/theme.css";
+
+@import "./verre-aurore/fonts.css";
+@import "./verre-aurore/theme.css";

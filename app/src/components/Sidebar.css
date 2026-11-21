@@ -5,6 +5,10 @@
   min-height: 0;
   padding: 0 var(--space-3) var(--space-3);
   overflow-y: auto;
+  background: var(--rail-bg);
+  box-shadow: var(--rail-shadow);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
 }
 
 .sidebar__brand {
@@ -20,7 +24,7 @@
 .sidebar__brand .app-mark {
   width: 1.75rem;
   height: 1.75rem;
-  filter: drop-shadow(0 1px 2px rgba(29, 78, 216, 0.25));
+  filter: drop-shadow(0 1px 2px var(--mark-shadow));
 }
 
 .sidebar__nav {

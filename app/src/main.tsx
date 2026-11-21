@@ -2,9 +2,15 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App, { AppProviders } from "./App";
 import { createTauriBridge, type Bridge } from "./ipc/bridge";
+import { applyAppearance, readCachedAppearance } from "./themes/appearance";
 import "./styles/fonts.css";
 import "./styles/tokens.css";
+import "./themes/index.css";
 import "./styles/base.css";
+
+// The last theme and scheme, before anything is drawn: the settings arrive a
+// moment later and the appearance provider takes over from there.
+applyAppearance(readCachedAppearance());
 
 /**
  * The real bridge, except in a plain browser during `npm run dev`. The

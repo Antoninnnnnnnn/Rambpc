@@ -21,7 +21,7 @@
 }
 
 .wave--active .wave__bar {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 55%, #7dd3fc) 0%, var(--accent) 100%);
+  background: linear-gradient(180deg, var(--wave-from) 0%, var(--wave-to) 100%);
   opacity: 1;
 }
 
