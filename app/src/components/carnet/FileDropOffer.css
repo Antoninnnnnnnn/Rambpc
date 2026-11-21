@@ -1,0 +1,87 @@
+/* The window-wide banner after a file drop, and the end of a transcription
+   seen from another screen. Non-modal: it floats over the bottom of the
+   content, the page behind stays usable. Tokens only; a theme refines it in
+   themes/<id>/screens-carnet.css. */
+
+.drop-offer {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 20;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+  width: min(30rem, calc(100vw - 2 * var(--space-5)));
+  padding: var(--space-4);
+  color: var(--text);
+  background: var(--sheet);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.drop-offer__icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: var(--radius-md);
+}
+
+.drop-offer__icon .icon {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.drop-offer__body {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.drop-offer__title {
+  font-size: var(--text-md);
+  font-weight: 640;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.drop-offer__name {
+  font-weight: 700;
+}
+
+.drop-offer__desc {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.drop-offer__actions {
+  grid-column: 2;
+}
+
+.drop-offer--ended .drop-offer__icon {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+@media (max-width: 30rem) {
+  .drop-offer {
+    right: var(--space-3);
+    bottom: var(--space-3);
+    width: calc(100vw - 2 * var(--space-3));
+  }
+
+  .drop-offer__actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (forced-colors: active) {
+  .drop-offer {
+    border: 2px solid CanvasText;
+  }
+}

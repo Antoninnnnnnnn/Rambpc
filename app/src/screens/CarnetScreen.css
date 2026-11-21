@@ -1,0 +1,151 @@
+/* Carnet: the screen's layout, the same for every theme. Two panes (the
+   list, the open note) when the screen is wide enough; otherwise one at a
+   time, chosen by `data-pane`, with « Toutes les notes » to go back. */
+
+.carnet {
+  container: carnet / inline-size;
+  gap: var(--space-5);
+}
+
+.carnet__header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-4);
+  align-items: end;
+}
+
+.carnet__header > :not(.carnet__header-actions) {
+  grid-column: 1;
+}
+
+.carnet__header-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: end;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.carnet__panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.carnet__pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.carnet__placeholder {
+  padding: var(--space-5);
+}
+
+/* No note open: an invitation in place of the editor. */
+.carnet__empty-editor {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-2);
+  min-height: 20rem;
+  padding: var(--space-7) var(--space-5);
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.carnet__empty-editor > .note-notice {
+  justify-self: stretch;
+  text-align: left;
+}
+
+.carnet__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: var(--space-1);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+
+.carnet__empty-icon .icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.carnet__empty-title {
+  font-weight: 620;
+}
+
+.carnet__empty-editor .hint {
+  max-width: 26rem;
+  line-height: 1.7;
+}
+
+.carnet__empty-editor .btn {
+  margin-top: var(--space-2);
+}
+
+.carnet__unavailable h2 {
+  max-width: 30rem;
+}
+
+/* ---------------------------------------------------------------- two panes */
+
+@container carnet (min-width: 40rem) {
+  .carnet__panes {
+    grid-template-columns: minmax(14rem, 17.5rem) minmax(0, 1fr);
+  }
+
+  /* The list stays in view while a long note scrolls. */
+  .carnet__pane--list {
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - var(--titlebar-h) - 3rem);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .carnet__pane--list > .note-list {
+    max-height: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------- one pane */
+
+@container carnet (max-width: 39.99rem) {
+  .carnet__header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .carnet__header-actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .carnet[data-pane="list"] .carnet__pane--editor,
+  .carnet[data-pane="editor"] .carnet__pane--list,
+  .carnet[data-pane="editor"] > .transcribe {
+    display: none;
+  }
+
+  .carnet[data-pane="editor"] .carnet__header > .screen__lead {
+    display: none;
+  }
+
+  .note-editor .note-editor__back {
+    display: inline-flex;
+  }
+
+  .note-editor__bar {
+    gap: var(--space-2);
+  }
+
+  .note-editor__field {
+    min-height: 14rem;
+  }
+}
