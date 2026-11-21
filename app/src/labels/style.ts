@@ -35,7 +35,7 @@ export const TEXT_OPTION_LABELS: Record<TextOptionKey, string> = {
 
 export const TEXT_OPTION_DESCRIPTIONS: Record<TextOptionKey, string> = {
   lightPunctuation: "Complète la ponctuation simple, comme le point final.",
-  typographicSpaces: nb("Espaces insécables du français avant « : ; ! ? » et dans les guillemets."),
+  typographicSpaces: nb("Espaces fines avant « ; ! ? » et « : », et guillemets français « » à la place des guillemets droits."),
   sentenceCase: "Met une majuscule au début de chaque phrase.",
   voiceCommands: nb("« À la ligne », « ouvrez les guillemets »… deviennent de la mise en page."),
 };
