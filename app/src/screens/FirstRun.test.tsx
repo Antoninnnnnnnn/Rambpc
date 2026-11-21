@@ -120,6 +120,8 @@ describe("Prise en main", () => {
     expect(screen.getByTestId("try-instruction")).toHaveTextContent(
       "Maintenez Ctrl+Maj+F2, dites « Rendez-vous jeudi à 14 h », puis relâchez.",
     );
+    // The hour never splits across lines: a no-break space (U+00A0) in "14 h".
+    expect(screen.getByTestId("try-instruction").textContent).toContain("14 h");
     expect(screen.getByRole("button", { name: "Fermer la prise en main" })).toBeInTheDocument();
 
     act(() => {
@@ -151,6 +153,19 @@ describe("Prise en main", () => {
 
     await user.click(screen.getByRole("button", { name: "Terminer la prise en main" }));
     expect(await screen.findByRole("heading", { level: 1, name: /^Accueil/ })).toHaveFocus();
+  });
+
+  it("keeps the step counter and the way out beside the steps", async () => {
+    const bridge = createFakeBridge();
+    const { user } = renderApp(bridge);
+    await appReady();
+    await user.click(screen.getByRole("button", { name: "Prise en main" }));
+    const rail = screen.getByRole("list", { name: "Étapes de la prise en main" }).parentElement!;
+    expect(within(rail).getByText("Étape 1 sur 3")).toBeInTheDocument();
+    expect(within(rail).getByRole("button", { name: "Fermer la prise en main" })).toBeInTheDocument();
+    // The steps come before the step itself, so the counter is read with them.
+    const title = screen.getByRole("heading", { level: 1 });
+    expect(rail.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("is reachable again from the sidebar", async () => {
