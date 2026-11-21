@@ -43,6 +43,8 @@ Démarrage instantané (« Écoute » dès l'appui), insertion instantanée par 
 - Thèmes et modes changés en direct dans la fenêtre et la barre flottante ; barre visible pendant l'écoute sans prise de focus.
 - Carnet : transcription d'un fichier réel par le sélecteur (35 mots, note créée), « Copier » avec exclusion de l'historique Win+V.
 - Dictée réelle avec le vrai service : texte inséré une seule fois, paragraphes conservés.
-- Tests automatisés : 135 tests natifs, 415 tests d'interface.
+- Paquets 0.12.0 : version portable lancée sans aucune variable `RAMBLER_*` (« Dictée disponible », langue « Automatique » par défaut, données dans `Data\`), installation silencieuse, lancement puis désinstallation (données conservées à part).
+- À 1040×720 : prise en main, Accueil au lancement et Carnet affichés en entier, sans défilement, dans les deux thèmes.
+- Tests automatisés : 141 tests natifs, 417 tests d'interface.
 
 Code source sous licence MIT ; Opus, les polices et les autres composants tiers gardent leurs licences.
