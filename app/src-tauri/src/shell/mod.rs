@@ -278,17 +278,30 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         }))
     };
 
-    // Integration: replace this temporary sink with the Carnet store's note creation.
-    let transcriptions = Arc::new(transcribe::Transcriptions::new(Arc::new(|_, _| {
-        Err("Carnet non raccordé".into())
-    })));
+    // A finished (or partial) file transcription becomes a Carnet note whose
+    // first line, and therefore title, is « Transcription · <file> ».
+    let notes = Arc::new(storage::notes::Notes::new(&root, platform.protector.clone()));
+    let transcriptions = {
+        let notes = notes.clone();
+        Arc::new(transcribe::Transcriptions::new(Arc::new(move |title: &str, text: &str| {
+            notes
+                .save(crate::ipc::NoteInput {
+                    id: None,
+                    text: format!("{title}
+
+{text}"),
+                })
+                .map(|meta| meta.id)
+                .map_err(|error| error.to_string())
+        })))
+    };
     app.manage(AppState {
         controller: controller.clone(),
         store,
         settings: Mutex::new(settings.clone()),
         personal_rules: Mutex::new(personal_rules),
         history,
-        notes: Arc::new(storage::notes::Notes::new(&root, platform.protector.clone())),
+        notes,
         consent: Mutex::new(consent),
         consent_write: Mutex::new(()),
         settings_write: Mutex::new(()),
