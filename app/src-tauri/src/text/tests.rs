@@ -736,3 +736,37 @@ fn clean_prose_is_idempotent_with_all_switch_combinations() {
         }
     }
 }
+
+#[test]
+fn french_guillemets_replace_straight_quotes_from_rambler() {
+    let rules = crate::text::TextRules::from_settings(&crate::settings::Settings::default());
+    let real = "Bonjour Claire,\n\nMerci pour ton retour. \"Parfait\".";
+    assert_eq!(
+        crate::text::render(real, &rules),
+        "Bonjour Claire,\n\nMerci pour ton retour. «\u{202f}Parfait\u{202f}»."
+    );
+    assert_eq!(
+        crate::text::render("Bonjour Claire, merci pour ton retour.\n\n\"Parfait\"", &rules),
+        "Bonjour Claire, merci pour ton retour.\n\n«\u{202f}Parfait\u{202f}»"
+    );
+    // Odd count, URL and code stay as received.
+    assert_eq!(crate::text::render("Un \" seul", &rules), "Un \" seul");
+    assert!(crate::text::render("Ouvre \"https://exemple.fr\"", &rules).contains("\"https://exemple.fr\""));
+    assert!(crate::text::render("Mets name=\"valeur\"", &rules).contains("name=\"valeur\""));
+}
+
+#[test]
+fn french_guillemets_respect_language_profile_and_app_overrides() {
+    let base = crate::text::TextRules::from_settings(&crate::settings::Settings::default());
+    let quoted = "He said \"fine\".";
+    let mut english = base.clone();
+    english.language = crate::model::Language::English;
+    assert_eq!(crate::text::render(quoted, &english), quoted);
+    let mut faithful = base.clone();
+    faithful.profile = crate::model::RenderProfile::Faithful;
+    assert_eq!(crate::text::render("Il a dit \"oui\".", &faithful), "Il a dit \"oui\".");
+    // A per-app style turning typographic spaces off (e.g. VS Code) keeps quotes.
+    let mut no_typography = base.clone();
+    no_typography.options.typographic_spaces = false;
+    assert!(crate::text::render("Il a dit \"oui\".", &no_typography).contains("\"oui\""));
+}

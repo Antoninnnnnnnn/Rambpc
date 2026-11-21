@@ -56,6 +56,7 @@ pub struct Expression {
 
 mod personal;
 mod prose;
+mod quotes;
 #[cfg(test)]
 mod tests;
 mod voice;
@@ -92,6 +93,18 @@ pub fn render(admitted: &str, rules: &TextRules) -> String {
         lf(admitted)
     } else {
         admitted.into()
+    };
+    // Rambler often writes straight quotes itself; French typography wants « ».
+    let admitted = if natural
+        && rules.options.typographic_spaces
+        && rules.language == Language::French
+    {
+        match quotes::french_guillemets(&admitted) {
+            Some(converted) => Cow::Owned(converted),
+            None => admitted,
+        }
+    } else {
+        admitted
     };
     let mut pieces = personal::substitute(&admitted, rules);
     if natural && rules.options.voice_commands && rules.language == Language::French {
