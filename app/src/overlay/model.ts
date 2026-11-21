@@ -81,6 +81,31 @@ export function flashFor(outcome: TakeOutcome): Flash {
   }
 }
 
+/**
+ * What an outcome means for the dictated text, for themes that colour the bar
+ * by meaning rather than by severity (Verre et aurore: jade, saffron, red).
+ * Always shown with the flash's icon and words, never by colour alone.
+ */
+export type OutcomeMeaning = "inserted" | "kept" | "neutral" | "refused" | "error";
+
+export function outcomeMeaning(outcome: TakeOutcome): OutcomeMeaning {
+  switch (outcome.kind) {
+    case "inserted":
+      return "inserted";
+    case "inserted-partially":
+    case "kept-in-sambler":
+      return "kept";
+    case "no-text":
+    case "cancelled":
+      return "neutral";
+    case "interrupted":
+      if (outcome.reason.kind === "microphone" && outcome.reason.error.kind === "access-denied") return "error";
+      return outcome.recovered ? "kept" : "error";
+    case "refused":
+      return outcome.reason.kind === "microphone" || outcome.reason.kind === "unavailable" ? "error" : "refused";
+  }
+}
+
 function outcomeKey(state: UiState): string {
   return state.lastOutcome ? JSON.stringify(state.lastOutcome) : "";
 }

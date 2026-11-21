@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { TakeOutcome, UiState } from "../ipc/contract";
 import { uiState } from "../test/fakeBridge";
-import { clock, expire, FLASH_MS, flashFor, HIDDEN, nextView, type OverlayView } from "./model";
+import {
+  clock,
+  expire,
+  FLASH_MS,
+  flashFor,
+  HIDDEN,
+  nextView,
+  outcomeMeaning,
+  type OutcomeMeaning,
+  type OverlayView,
+} from "./model";
 
 const idle = (patch: Partial<UiState> = {}) => uiState(patch);
 const listening = (take: number, listeningMs = 0, patch: Partial<UiState> = {}) =>
@@ -89,6 +99,26 @@ describe("overlay state mapping", () => {
     expect(flash.tone).toBe(tone);
     // Fits the pill of the 360 px window.
     expect(flash.label.length).toBeLessThanOrEqual(26);
+  });
+
+  it.each<[string, TakeOutcome, OutcomeMeaning]>([
+    ["inserted", { kind: "inserted" }, "inserted"],
+    ["inserted-partially", { kind: "inserted-partially" }, "kept"],
+    ["kept", { kind: "kept-in-sambler", reason: { kind: "incomplete" } }, "kept"],
+    ["no-text", { kind: "no-text" }, "neutral"],
+    ["cancelled", { kind: "cancelled" }, "neutral"],
+    ["interrupted, recovered", { kind: "interrupted", reason: { kind: "network" }, recovered: true }, "kept"],
+    ["interrupted, lost", { kind: "interrupted", reason: { kind: "timeout" }, recovered: false }, "error"],
+    ["duration, recovered", { kind: "interrupted", reason: { kind: "duration-limit" }, recovered: true }, "kept"],
+    ["duration, lost", { kind: "interrupted", reason: { kind: "duration-limit" }, recovered: false }, "error"],
+    ["mic denied mid-take", { kind: "interrupted", reason: { kind: "microphone", error: { kind: "access-denied" } }, recovered: true }, "error"],
+    ["needs consent", { kind: "refused", reason: { kind: "needs-consent" } }, "refused"],
+    ["protected", { kind: "refused", reason: { kind: "protected-field" } }, "refused"],
+    ["pending draft (legacy)", { kind: "refused", reason: { kind: "pending-draft" } }, "refused"],
+    ["unavailable", { kind: "refused", reason: { kind: "unavailable", reason: "network" } }, "error"],
+    ["no mic", { kind: "refused", reason: { kind: "microphone", error: { kind: "no-input" } } }, "error"],
+  ])("tells what %s means for the text", (_name, outcome, meaning) => {
+    expect(outcomeMeaning(outcome)).toBe(meaning);
   });
 
   it("formats the clock", () => {

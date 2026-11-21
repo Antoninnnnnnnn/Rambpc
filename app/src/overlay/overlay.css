@@ -1,6 +1,37 @@
-/* Floating dictation bar. The window (about 360 x 72 logical px) is
-   transparent: only the pill is drawn, centered at the bottom. A dark ink pill
-   with a light hairline and a soft shadow reads on light and dark wallpapers. */
+/* Floating dictation bar: structure and motion only. The window (about
+   360 x 72 logical px) is transparent: only the pill is drawn, centered at the
+   bottom, and everything, its shadow included, must fit inside it.
+
+   Every colour, font and decoration comes from the active theme's skin,
+   `themes/<id>/overlay.css`, as custom properties set under
+   `:root[data-theme="<id>"]` (and `[data-scheme="dark"]`), possibly per state
+   on `.bar[data-kind]`, `.bar[data-tone]` (severity: success, info, neutral,
+   warning, error) or `.bar[data-meaning]` (inserted, kept, neutral, refused,
+   error). Skins set custom properties only; real properties stay here, so the
+   reduced-motion and forced-colors rules below always win.
+
+   Tokens (fallback = structural default):
+     text      --bar-font, --bar-font-features, --bar-label-weight, --bar-label-tracking,
+               --bar-timer-font, --bar-timer-weight, --bar-timer-fg, --bar-timer-warn
+     layout    --bar-inset (window padding, 0 8px 12px), --bar-pad (0 16px 0 8px),
+               --bar-pad-outcome, --bar-gap (10px)
+     pill      --bar-fg, --bar-bg, --bar-shadow, --bar-clip (visible; `hidden` clips the
+               horizon and rim to the pill), --bar-isolation (auto; `isolate` for the horizon)
+     icon      --bar-icon-box (28px), --bar-icon-fg (default --bar-tone), --bar-icon-bg,
+               --bar-icon-ring, --bar-icon-ring-wide (breathing while listening),
+               --bar-glyph (18px), --bar-glyph-stroke (2)
+     wave      --bar-wave-fill (spread across the whole wave), --bar-wave-bar (3px),
+               --bar-wave-gap (3px), --bar-wave-height (24px), --bar-wave-busy-opacity
+     horizon   --bar-aurora-display (none), --bar-aurora, --bar-aurora-rest, --bar-aurora-gain
+               (opacity added at full voice), --bar-aurora-rise (offset at silence),
+               --bar-aurora-blend (normal)
+     rim       --bar-rim-display (none), --bar-rim, --bar-rim-rest, --bar-rim-gain,
+               --bar-rim-inset (16px), --bar-rim-height (2px)
+     dots      --bar-dot-1, --bar-dot-2, --bar-dot-3, --bar-dot-size (6px)
+     per state --bar-listening-icon (grid), --bar-finalizing-icon (grid),
+               --bar-finalizing-wave (inline-flex), --bar-finalizing-dots (none),
+               --bar-finalizing-label (none)
+   Set by the bar itself: --level (0..1, voice while listening), --bar-flash-ms. */
 
 html,
 body {
@@ -15,10 +46,9 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  font-family: "Inter Sambler", "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, sans-serif;
+  font-family: var(--bar-font, ui-sans-serif, system-ui, sans-serif);
   font-size: 13px;
-  font-feature-settings: "tnum", "cv11";
+  font-feature-settings: var(--bar-font-features, normal);
   -webkit-font-smoothing: antialiased;
   user-select: none;
   -webkit-user-select: none;
@@ -26,38 +56,28 @@ body {
 }
 
 .bar {
-  --pill-bg: rgba(22, 24, 31, 0.95);
-  --pill-text: #f3f4f6;
-  --pill-muted: rgba(243, 244, 246, 0.66);
-  --tone: #c9cdd4;
-  --accent: #7aa2ff;
   display: flex;
   justify-content: center;
   width: 100%;
-  padding: 0 8px 12px;
+  padding: var(--bar-inset, 0 8px 12px);
   box-sizing: border-box;
 }
 
 .bar__pill {
+  position: relative;
+  isolation: var(--bar-isolation, auto);
+  overflow: var(--bar-clip, visible);
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--bar-gap, 10px);
   height: 44px;
   max-width: 100%;
-  padding: 0 16px 0 8px;
+  padding: var(--bar-pad, 0 16px 0 8px);
   box-sizing: border-box;
-  color: var(--pill-text);
-  /* A faint top sheen and a light hairline set it apart from dark wallpapers;
-     the dark body and the shadow do the same on light ones. */
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 55%),
-    var(--pill-bg);
+  color: var(--bar-fg);
+  background: var(--bar-bg);
   border-radius: 999px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    0 0 0 1px rgba(0, 0, 0, 0.35),
-    0 2px 6px rgba(0, 0, 0, 0.22),
-    0 10px 28px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--bar-shadow, none);
   opacity: 1;
   transform: translateY(0) scale(1);
   transition:
@@ -71,32 +91,71 @@ body {
   transition-duration: 300ms;
 }
 
+/* The theme's own horizon, under the content, clipped by the pill. */
+.bar__aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: var(--bar-aurora-display, none);
+  background: var(--bar-aurora, none);
+  opacity: calc(var(--bar-aurora-rest, 0) + var(--level, 0) * var(--bar-aurora-gain, 0));
+  transform: translateY(calc((1 - var(--level, 0)) * var(--bar-aurora-rise, 0px)));
+  mix-blend-mode: var(--bar-aurora-blend, normal);
+  transition:
+    opacity 140ms linear,
+    transform 180ms ease-out;
+  pointer-events: none;
+}
+
+/* A thin rim along the bottom edge. */
+.bar__pill::after {
+  content: "";
+  position: absolute;
+  left: var(--bar-rim-inset, 16px);
+  right: var(--bar-rim-inset, 16px);
+  bottom: 0;
+  display: var(--bar-rim-display, none);
+  height: var(--bar-rim-height, 2px);
+  border-radius: 2px 2px 0 0;
+  background: var(--bar-rim, none);
+  opacity: calc(var(--bar-rim-rest, 1) + var(--level, 0) * var(--bar-rim-gain, 0));
+  transform-origin: left center;
+  transition: opacity 140ms linear;
+  pointer-events: none;
+}
+
 .bar__icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 28px;
-  height: 28px;
-  color: var(--tone);
+  width: var(--bar-icon-box, 28px);
+  height: var(--bar-icon-box, 28px);
+  color: var(--bar-icon-fg, var(--bar-tone));
+  background: var(--bar-icon-bg, none);
   border-radius: 50%;
+  box-shadow: var(--bar-icon-ring, none);
 }
 
 .bar__icon svg {
   display: block;
+  width: var(--bar-glyph, 18px);
+  height: var(--bar-glyph, 18px);
+  stroke-width: var(--bar-glyph-stroke, 2);
 }
 
 .bar__label {
   overflow: hidden;
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  font-weight: var(--bar-label-weight, 600);
+  letter-spacing: var(--bar-label-tracking, normal);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .bar__timer {
   min-width: 2.6em;
-  color: var(--pill-muted);
-  font-weight: 560;
+  color: var(--bar-timer-fg, inherit);
+  font-family: var(--bar-timer-font, inherit);
+  font-weight: var(--bar-timer-weight, 560);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -104,19 +163,48 @@ body {
 .bar__wave {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  height: 24px;
+  gap: var(--bar-wave-gap, 3px);
+  height: var(--bar-wave-height, 24px);
 }
 
 .bar__wave .wave__bar {
   display: block;
-  width: 3px;
+  width: var(--bar-wave-bar, 3px);
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(180deg, #b6d0ff 0%, #6e98ff 100%);
+  /* One gradient across the whole wave: each bar shows its own slice. */
+  background: var(--bar-wave-fill);
+  background-size: calc(var(--n, 1) * (var(--bar-wave-bar, 3px) + var(--bar-wave-gap, 3px)) - var(--bar-wave-gap, 3px)) 100%;
+  background-position: calc(var(--k, 0) * -1 * (var(--bar-wave-bar, 3px) + var(--bar-wave-gap, 3px))) 0;
   transform: scaleY(0.16);
   transform-origin: center;
   will-change: transform;
+}
+
+.bar__dots {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.bar__dots i {
+  display: block;
+  width: var(--bar-dot-size, 6px);
+  height: var(--bar-dot-size, 6px);
+  border-radius: 50%;
+  background: var(--bar-dot-1, currentColor);
+  animation: bar-dot 1.2s ease-in-out infinite;
+}
+
+.bar__dots i:nth-child(2) {
+  background: var(--bar-dot-2, currentColor);
+  animation-delay: 0.15s;
+}
+
+.bar__dots i:nth-child(3) {
+  background: var(--bar-dot-3, currentColor);
+  animation-delay: 0.3s;
 }
 
 /* ---------------------------------------------------------------- per state */
@@ -127,65 +215,61 @@ body {
 }
 
 .bar[data-kind="listening"] .bar__label,
-.bar[data-kind="finalizing"] .bar__label,
 .bar[data-kind="preparing"] .bar__label {
   display: none;
 }
 
-.bar[data-kind="listening"] .bar__icon,
-.bar[data-kind="preparing"] .bar__icon {
-  color: #ffffff;
-  background: linear-gradient(145deg, #4f86ff 0%, #2357e0 100%);
-  box-shadow: 0 0 0 3px rgba(79, 134, 255, 0.22);
-}
-
 .bar[data-kind="listening"] .bar__icon {
+  display: var(--bar-listening-icon, grid);
   animation: bar-breathe 1.8s ease-in-out infinite;
 }
 
 .bar[data-kind="listening"][data-warn] .bar__timer {
-  color: #fbbf24;
+  color: var(--bar-timer-warn);
 }
 
 .bar[data-kind="finalizing"] .bar__icon {
-  color: var(--accent);
-  background: rgba(122, 162, 255, 0.14);
+  display: var(--bar-finalizing-icon, grid);
+}
+
+.bar[data-kind="finalizing"] .bar__wave {
+  display: var(--bar-finalizing-wave, inline-flex);
+}
+
+.bar[data-kind="finalizing"] .bar__dots {
+  display: var(--bar-finalizing-dots, none);
+}
+
+.bar[data-kind="finalizing"] .bar__label {
+  display: var(--bar-finalizing-label, none);
 }
 
 /* Processing: a slow ripple from the center, independent of the voice. */
 .bar[data-kind="finalizing"] .wave__bar,
 .bar[data-kind="preparing"] .wave__bar {
-  opacity: 0.85;
+  opacity: var(--bar-wave-busy-opacity, 0.85);
   animation: bar-ripple 1.15s ease-in-out infinite;
   animation-delay: calc(var(--i) * 55ms);
 }
 
+/* Processing: a highlight sweeps along the rim. */
+.bar[data-kind="finalizing"] .bar__pill::after {
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: bar-sweep 1.6s ease-in-out infinite;
+}
+
 .bar[data-kind="outcome"] .bar__pill {
-  padding-right: 18px;
+  padding: var(--bar-pad-outcome, var(--bar-pad, 0 18px 0 8px));
 }
 
-.bar[data-tone="success"] {
-  --tone: #4ade80;
+/* Outcome: the rim empties while the flash lasts. */
+.bar[data-kind="outcome"] .bar__pill::after {
+  animation: bar-countdown var(--bar-flash-ms, 2500ms) linear forwards;
 }
 
-.bar[data-tone="info"] {
-  --tone: #8fb2ff;
-}
-
-.bar[data-tone="warning"] {
-  --tone: #fbbf24;
-}
-
-.bar[data-tone="error"] {
-  --tone: #ff8a80;
-}
-
-.bar[data-tone="neutral"] {
-  --tone: #c9cdd4;
-}
-
-.bar[data-kind="outcome"] .bar__icon {
-  background: color-mix(in srgb, var(--tone) 16%, transparent);
+.bar[data-kind="hidden"] .bar__pill::after {
+  transform: scaleX(0);
 }
 
 @keyframes bar-ripple {
@@ -200,7 +284,38 @@ body {
 
 @keyframes bar-breathe {
   50% {
-    box-shadow: 0 0 0 5px rgba(79, 134, 255, 0.12);
+    box-shadow: var(--bar-icon-ring-wide, none);
+  }
+}
+
+@keyframes bar-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes bar-sweep {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@keyframes bar-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
   }
 }
 
@@ -223,9 +338,31 @@ body {
     display: inline;
   }
 
+  .bar[data-kind="listening"] .bar__icon {
+    display: grid;
+  }
+
   .bar[data-kind="listening"] .bar__icon,
-  .wave__bar {
+  .wave__bar,
+  .bar__dots i,
+  .bar__pill::after {
     animation: none !important;
+  }
+
+  .bar__dots i {
+    opacity: 1;
+  }
+
+  /* A still horizon and rim, half lit, instead of following the voice. */
+  .bar__aurora {
+    opacity: calc(var(--bar-aurora-rest, 0) + 0.5 * var(--bar-aurora-gain, 0));
+    transform: none;
+    transition: none;
+  }
+
+  .bar__pill::after {
+    opacity: calc(var(--bar-rim-rest, 1) + 0.5 * var(--bar-rim-gain, 0));
+    transition: none;
   }
 }
 
@@ -240,6 +377,11 @@ body {
     border: 2px solid CanvasText;
   }
 
+  .bar__aurora,
+  .bar__pill::after {
+    display: none;
+  }
+
   .bar__icon,
   .bar[data-kind="listening"] .bar__icon,
   .bar[data-kind="preparing"] .bar__icon,
@@ -247,13 +389,16 @@ body {
     color: CanvasText;
     background: transparent;
     box-shadow: none;
+    animation: none;
   }
 
-  .bar__timer {
+  .bar__timer,
+  .bar[data-kind="listening"][data-warn] .bar__timer {
     color: CanvasText;
   }
 
-  .bar__wave .wave__bar {
+  .bar__wave .wave__bar,
+  .bar__dots i:nth-child(n) {
     background: CanvasText;
   }
 }

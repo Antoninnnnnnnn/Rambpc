@@ -1,0 +1,68 @@
+/* Sable skin of the floating dictation bar: a dark ink pill with a light
+   hairline and a soft shadow, the same in light and dark schemes since it is
+   drawn over any wallpaper. Custom properties only (list in
+   overlay/overlay.css); colour follows severity (`data-tone`). */
+
+:root[data-theme="sable"] {
+  --bar-font: "Inter Sambler", "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+  --bar-font-features: "tnum", "cv11";
+  --bar-label-weight: 600;
+  --bar-label-tracking: -0.005em;
+  --bar-timer-weight: 560;
+  --bar-timer-fg: rgba(243, 244, 246, 0.66);
+  --bar-timer-warn: #fbbf24;
+
+  --bar-inset: 0 8px 12px;
+  --bar-pad: 0 16px 0 8px;
+  --bar-pad-outcome: 0 18px 0 8px;
+
+  --bar-fg: #f3f4f6;
+  /* A faint top sheen and a light hairline set it apart from dark wallpapers;
+     the dark body and the shadow do the same on light ones. */
+  --bar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 55%), rgba(22, 24, 31, 0.95);
+  --bar-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.22),
+    0 10px 28px rgba(0, 0, 0, 0.3);
+
+  --bar-tone: #c9cdd4;
+  --bar-wave-fill: linear-gradient(180deg, #b6d0ff 0%, #6e98ff 100%);
+  --bar-wave-busy-opacity: 0.85;
+}
+
+:root[data-theme="sable"] .bar[data-kind="listening"],
+:root[data-theme="sable"] .bar[data-kind="preparing"] {
+  --bar-icon-fg: #ffffff;
+  --bar-icon-bg: linear-gradient(145deg, #4f86ff 0%, #2357e0 100%);
+  --bar-icon-ring: 0 0 0 3px rgba(79, 134, 255, 0.22);
+  --bar-icon-ring-wide: 0 0 0 5px rgba(79, 134, 255, 0.12);
+}
+
+:root[data-theme="sable"] .bar[data-kind="finalizing"] {
+  --bar-icon-fg: #7aa2ff;
+  --bar-icon-bg: rgba(122, 162, 255, 0.14);
+}
+
+:root[data-theme="sable"] .bar[data-kind="outcome"] {
+  --bar-icon-bg: color-mix(in srgb, var(--bar-tone) 16%, transparent);
+}
+
+:root[data-theme="sable"] .bar[data-tone="success"] {
+  --bar-tone: #4ade80;
+}
+
+:root[data-theme="sable"] .bar[data-tone="info"] {
+  --bar-tone: #8fb2ff;
+}
+
+:root[data-theme="sable"] .bar[data-tone="warning"] {
+  --bar-tone: #fbbf24;
+}
+
+:root[data-theme="sable"] .bar[data-tone="error"] {
+  --bar-tone: #ff8a80;
+}
+
+:root[data-theme="sable"] .bar[data-tone="neutral"] {
+  --bar-tone: #c9cdd4;
+}

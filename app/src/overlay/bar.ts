@@ -1,9 +1,23 @@
 // Draws the floating dictation bar from state and level events. Plain DOM,
 // no framework; nothing here calls a command or receives dictated text.
+// One structure for every theme: the theme's overlay.css shows, hides and
+// colours its parts (see overlay.css for the tokens).
 
 import type { UiState } from "../ipc/contract";
-import { createWaveform, prefersReducedMotion } from "../lib/waveform";
-import { clock, expire, HIDDEN, LIMIT_WARNING_MS, nextView, type FlashIcon, type OverlayView } from "./model";
+import { createWaveform, prefersReducedMotion, speechLevel } from "../lib/waveform";
+import {
+  clock,
+  expire,
+  FLASH_MS,
+  HIDDEN,
+  LIMIT_WARNING_MS,
+  nextView,
+  outcomeMeaning,
+  type FlashIcon,
+  type OutcomeMeaning,
+  type OverlayView,
+} from "./model";
+import { followAppearance } from "./theme";
 
 export interface OverlaySource {
   onState(handler: (state: UiState) => void): void;
@@ -29,25 +43,41 @@ const ICONS: Record<FlashIcon | "mic" | "dots", string> = {
 const BARS = 17;
 const LIMIT_MS = 5 * 60_000;
 
-export function mountOverlay(root: HTMLElement, source: OverlaySource): void {
+/**
+ * `page` gets `data-theme` and `data-scheme`: the cached appearance at once,
+ * then the one carried by each state event.
+ */
+export function mountOverlay(root: HTMLElement, source: OverlaySource, page: HTMLElement = document.documentElement): void {
+  const followTheme = followAppearance(page);
+  // `bar__aurora` and `bar__dots` are decorations some themes show (hidden by default).
   root.innerHTML =
-    '<div class="bar__pill"><span class="bar__icon"></span><span class="bar__wave"></span>' +
+    '<div class="bar__pill"><span class="bar__aurora"></span><span class="bar__icon"></span>' +
+    '<span class="bar__dots"><i></i><i></i><i></i></span><span class="bar__wave"></span>' +
     '<span class="bar__label"></span><span class="bar__timer"></span></div>';
+  const pill = root.querySelector<HTMLElement>(".bar__pill")!;
   const icon = root.querySelector<HTMLElement>(".bar__icon")!;
   const waveRoot = root.querySelector<HTMLElement>(".bar__wave")!;
   const label = root.querySelector<HTMLElement>(".bar__label")!;
   const timer = root.querySelector<HTMLElement>(".bar__timer")!;
+  waveRoot.style.setProperty("--n", String(BARS));
   for (let i = 0; i < BARS; i += 1) {
     const bar = document.createElement("span");
     bar.className = "wave__bar";
-    // Distance from the center, for the processing ripple.
+    // Distance from the center, for the processing ripple; index, for a
+    // colour gradient spread across the whole wave.
     bar.style.setProperty("--i", String(Math.abs(i - (BARS - 1) / 2)));
+    bar.style.setProperty("--k", String(i));
     waveRoot.appendChild(bar);
   }
-  const wave = createWaveform(waveRoot, BARS, prefersReducedMotion());
+  const still = prefersReducedMotion();
+  const wave = createWaveform(waveRoot, BARS, still);
+  // The outcome countdown some themes draw lasts as long as the flash.
+  root.style.setProperty("--bar-flash-ms", `${FLASH_MS}ms`);
 
   let view: OverlayView = HIDDEN;
+  let shown: OverlayView = HIDDEN;
   let previous: UiState | null = null;
+  let meaning: OutcomeMeaning | null = null;
   let tick = 0;
   let expiry = 0;
 
@@ -58,19 +88,24 @@ export function mountOverlay(root: HTMLElement, source: OverlaySource): void {
     root.toggleAttribute("data-warn", elapsed >= LIMIT_WARNING_MS);
   };
 
-  const setContent = (svg: string, text: string, tone?: string) => {
+  const setContent = (svg: string, text: string, tone?: string, sense?: OutcomeMeaning) => {
     icon.innerHTML = svg;
     label.textContent = text;
     if (tone) root.dataset.tone = tone;
     else delete root.dataset.tone;
+    if (sense) root.dataset.meaning = sense;
+    else delete root.dataset.meaning;
   };
 
   const render = () => {
+    const replacesFlash = view !== shown && shown.kind === "outcome" && view.kind === "outcome";
+    shown = view;
     root.dataset.kind = view.kind;
     window.clearInterval(tick);
     window.clearTimeout(expiry);
     if (view.kind !== "listening") {
       wave.reset();
+      root.style.removeProperty("--level");
       timer.textContent = "";
       root.removeAttribute("data-warn");
     }
@@ -91,7 +126,9 @@ export function mountOverlay(root: HTMLElement, source: OverlaySource): void {
         setContent(ICONS.dots, "Traitement");
         return;
       case "outcome": {
-        setContent(ICONS[view.flash.icon], view.flash.label, view.flash.tone);
+        setContent(ICONS[view.flash.icon], view.flash.label, view.flash.tone, meaning ?? undefined);
+        // A new flash straight after another one: its countdown starts over.
+        if (replacesFlash) for (const animation of pill.getAnimations?.({ subtree: true }) ?? []) animation.currentTime = 0;
         const until = view.until;
         expiry = window.setTimeout(() => {
           view = expire(view, Math.max(Date.now(), until));
@@ -103,12 +140,18 @@ export function mountOverlay(root: HTMLElement, source: OverlaySource): void {
   };
 
   source.onState((next) => {
+    followTheme(next);
+    const before = view;
     view = nextView(view, previous, next, Date.now());
+    if (view.kind === "outcome" && view !== before && next.lastOutcome) meaning = outcomeMeaning(next.lastOutcome);
     previous = next;
     render();
   });
   source.onLevel((level) => {
-    if (view.kind === "listening") wave.push(level);
+    if (view.kind !== "listening") return;
+    wave.push(level);
+    // The theme's own horizon follows the voice (CSS reads `--level`, 0..1).
+    if (!still) root.style.setProperty("--level", speechLevel(level).toFixed(2));
   });
   render();
 }

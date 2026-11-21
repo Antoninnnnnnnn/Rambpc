@@ -1,0 +1,182 @@
+/* Verre et aurore skin of the floating dictation bar: the "capsule".
+   Nearly opaque (the window cannot blur the real desktop), with its own small
+   aurora horizon that rises with the voice while listening. A double rim (a
+   dark ring outside, a light one inside) keeps it legible on light and dark
+   wallpapers. Colour follows meaning (`data-meaning`): jade inserted, saffron
+   kept in Sambler, red refused or failed, always with an icon and words.
+   Custom properties only (list in overlay/overlay.css); fonts from fonts.css. */
+
+:root[data-theme="verre-aurore"] {
+  /* Palette (mockup tokens, light). */
+  --cap-encre: #2a1c21;
+  --cap-encre-2: #5d4a4f;
+  --cap-fond: rgba(255, 251, 248, 0.95);
+  --cap-anneau-ext: rgba(40, 18, 20, 0.22);
+  --cap-anneau-int: rgba(255, 255, 255, 0.9);
+  --cap-ombre-proche: rgba(60, 24, 18, 0.14);
+  --cap-ombre: rgba(60, 24, 18, 0.42);
+  --cap-braise: #b4461a;
+  --cap-braise-voile: rgba(180, 70, 26, 0.1);
+  --cap-braise-vif: #ff8a5c;
+  --cap-safran: #8f5508;
+  --cap-safran-vif: #f0a83c;
+  --cap-jade-vif: #3cc4a2;
+  --cap-jade-encre: #062a22;
+  --cap-alerte: #b2243a;
+  --cap-neutre: rgba(74, 40, 46, 0.3);
+  --cap-au-1: #ffb08a;
+  --cap-au-2: #ffd27a;
+  --cap-au-3: #a6e2cf;
+  --cap-au-4: #f6b0c2;
+  --cap-voix: linear-gradient(90deg, var(--cap-jade-vif), var(--cap-safran-vif) 50%, var(--cap-braise-vif));
+
+  /* Text. */
+  --bar-font: "Hanken Grotesk Sambler", "Segoe UI Variable Text", "Segoe UI", -apple-system, "Cantarell",
+    "Noto Sans", system-ui, sans-serif;
+  --bar-font-features: "tnum";
+  --bar-label-weight: 600;
+  --bar-label-tracking: 0;
+  --bar-timer-font: "Geist Mono Sambler", "Cascadia Mono", "SF Mono", ui-monospace, Menlo, "DejaVu Sans Mono",
+    monospace;
+  --bar-timer-weight: 500;
+  --bar-timer-fg: var(--cap-encre);
+  --bar-timer-warn: var(--cap-safran);
+
+  /* Capsule: 44 px high, 12 px from the window's sides and 16 px from its
+     bottom, so the tight shadow below stays inside the 360 x 72 window. */
+  --bar-inset: 0 12px 16px;
+  --bar-pad: 0 16px 0 14px;
+  --bar-pad-outcome: 0 17px 0 11px;
+  --bar-gap: 10px;
+  --bar-fg: var(--cap-encre);
+  --bar-bg: var(--cap-fond);
+  --bar-clip: hidden;
+  --bar-isolation: isolate;
+  --bar-shadow:
+    0 0 0 1px var(--cap-anneau-ext), inset 0 0 0 1px var(--cap-anneau-int), inset 0 1px 0 var(--cap-anneau-int),
+    0 1px 2px var(--cap-ombre-proche), 0 6px 15px -7px var(--cap-ombre);
+
+  /* Icon: a bare glyph, except the inserted check in its jade chip. */
+  --bar-icon-box: 22px;
+  --bar-icon-fg: var(--cap-encre-2);
+  --bar-glyph: 17px;
+  --bar-listening-icon: none;
+
+  /* Voice bars: one gradient, jade to ember, across the wave. */
+  --bar-wave-fill: var(--cap-voix);
+  --bar-wave-bar: 3px;
+  --bar-wave-gap: 2px;
+  --bar-wave-height: 22px;
+  --bar-wave-busy-opacity: 0.6;
+
+  /* Processing: three coloured dots and the word instead of the wave. */
+  --bar-finalizing-icon: none;
+  --bar-finalizing-wave: none;
+  --bar-finalizing-dots: inline-flex;
+  --bar-finalizing-label: inline;
+  --bar-dot-1: var(--cap-braise-vif);
+  --bar-dot-2: var(--cap-safran-vif);
+  --bar-dot-3: var(--cap-jade-vif);
+
+  /* The capsule's own dawn, low behind the content. */
+  --bar-aurora-display: block;
+  --bar-aurora:
+    radial-gradient(70% 130% at 18% 135%, var(--cap-au-1), transparent 72%),
+    radial-gradient(60% 130% at 62% 145%, var(--cap-au-2), transparent 72%),
+    radial-gradient(50% 130% at 100% 125%, var(--cap-au-3), transparent 72%);
+  --bar-aurora-rest: 0.24;
+  --bar-aurora-gain: 0;
+
+  --bar-rim-display: block;
+  --bar-rim: var(--cap-voix);
+  --bar-rim-rest: 0.45;
+  --bar-rim-gain: 0;
+}
+
+:root[data-theme="verre-aurore"][data-scheme="dark"] {
+  --cap-encre: #f7ede7;
+  --cap-encre-2: #cdbab6;
+  --cap-fond: rgba(24, 15, 21, 0.95);
+  --cap-anneau-ext: rgba(0, 0, 0, 0.55);
+  --cap-anneau-int: rgba(255, 232, 220, 0.16);
+  --cap-ombre-proche: rgba(0, 0, 0, 0.3);
+  --cap-ombre: rgba(0, 0, 0, 0.6);
+  --cap-braise: #ff9a6a;
+  --cap-braise-voile: rgba(255, 154, 106, 0.14);
+  --cap-braise-vif: #ff8a5c;
+  --cap-safran: #ffc46b;
+  --cap-safran-vif: #f0a83c;
+  --cap-jade-vif: #34c09f;
+  --cap-jade-encre: #062a22;
+  --cap-alerte: #ff8a98;
+  --cap-neutre: rgba(255, 226, 212, 0.3);
+  --cap-au-1: #c4471e;
+  --cap-au-2: #d48a26;
+  --cap-au-3: #138470;
+  --cap-au-4: #93294f;
+  /* At night the dawn glows (lightens) rather than tints. */
+  --bar-aurora-blend: screen;
+}
+
+/* ---------------------------------------------------------------- dictation */
+
+/* Arming: the microphone in an ember halo, the wave still. */
+:root[data-theme="verre-aurore"] .bar[data-kind="preparing"] {
+  --bar-pad: 0 16px 0 9px;
+  --bar-icon-box: 26px;
+  --bar-icon-fg: var(--cap-braise);
+  --bar-icon-bg: var(--cap-braise-voile);
+  --bar-glyph: 16px;
+}
+
+/* Listening: the horizon and the rim rise with the voice. */
+:root[data-theme="verre-aurore"] .bar[data-kind="listening"] {
+  --bar-pad: 0 16px 0 15px;
+  --bar-aurora-rest: 0.3;
+  --bar-aurora-gain: 0.62;
+  --bar-aurora-rise: 9px;
+  --bar-rim-gain: 0.55;
+}
+
+:root[data-theme="verre-aurore"] .bar[data-kind="finalizing"] {
+  --bar-pad: 0 17px 0 15px;
+  --bar-rim: linear-gradient(90deg, transparent, var(--cap-safran-vif), transparent);
+  --bar-rim-rest: 0.9;
+}
+
+/* ---------------------------------------------------------------- outcomes */
+
+:root[data-theme="verre-aurore"] .bar[data-meaning="inserted"] {
+  --bar-icon-fg: var(--cap-jade-encre);
+  --bar-icon-bg: var(--cap-jade-vif);
+  --bar-glyph: 13px;
+  --bar-glyph-stroke: 2.8;
+  --bar-aurora: radial-gradient(70% 140% at 10% 140%, var(--cap-au-3), transparent 70%);
+  --bar-aurora-rest: 0.42;
+  --bar-rim: var(--cap-jade-vif);
+  --bar-rim-rest: 1;
+}
+
+:root[data-theme="verre-aurore"] .bar[data-meaning="kept"] {
+  --bar-icon-fg: var(--cap-safran);
+  --bar-aurora: radial-gradient(70% 140% at 10% 140%, var(--cap-au-2), transparent 70%);
+  --bar-aurora-rest: 0.42;
+  --bar-rim: var(--cap-safran-vif);
+  --bar-rim-rest: 0.9;
+}
+
+:root[data-theme="verre-aurore"] .bar[data-meaning="refused"],
+:root[data-theme="verre-aurore"] .bar[data-meaning="error"] {
+  --bar-icon-fg: var(--cap-alerte);
+  --bar-aurora: radial-gradient(70% 140% at 10% 140%, var(--cap-au-4), transparent 70%);
+  --bar-aurora-rest: 0.18;
+  --bar-rim: var(--cap-alerte);
+  --bar-rim-rest: 0.85;
+}
+
+:root[data-theme="verre-aurore"] .bar[data-meaning="neutral"] {
+  --bar-icon-fg: var(--cap-encre-2);
+  --bar-aurora-rest: 0.12;
+  --bar-rim: var(--cap-neutre);
+  --bar-rim-rest: 1;
+}
