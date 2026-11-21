@@ -24,14 +24,15 @@ export const SAMPLE_ACTIVITY = {
   longestTo: 70,
 } as const;
 
+// Ids as in dev/previewApps.ts (lowercased executable name).
 const APPS = [
-  { app: "Word", words: 16_426 },
-  { app: "Brave", words: 10_629 },
-  { app: "Discord", words: 7_247 },
-  { app: "Visual Studio Code", words: 5_797 },
-  { app: "Outlook", words: 4_348 },
-  { app: "Bloc-notes", words: 2_104 },
-  { app: "Slack", words: 1_761 },
+  { app: "Word", words: 16_426, id: "winword" },
+  { app: "Brave", words: 10_629, id: "brave" },
+  { app: "Discord", words: 7_247, id: "discord" },
+  { app: "Visual Studio Code", words: 5_797, id: "code" },
+  { app: "Outlook", words: 4_348, id: "outlook" },
+  { app: "Bloc-notes", words: 2_104, id: "notepad" },
+  { app: "Slack", words: 1_761, id: "slack" },
 ];
 
 /** Small deterministic generator (mulberry32). */
