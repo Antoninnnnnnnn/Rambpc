@@ -1,0 +1,176 @@
+/* Verre et aurore: the Activité screen. The chart tokens (see
+   components/activity/activity.css) and the plates, scoped to the theme.
+
+   Day map: one braise hue, light to dark in the light scheme and the other
+   way round in the dark one, each step at least 0.06 apart in OKLCH lightness
+   and the faintest step at 2:1 or more against the plate (checked with the
+   dataviz palette validator, ordinal mode). Bars: braise at 3:1 or more on
+   the plate, today in the accent. */
+
+:root[data-theme="verre-aurore"] {
+  --chart-heat-0: rgba(74, 40, 46, 0.07);
+  --chart-heat-1: #ea9d72;
+  --chart-heat-2: #d9703f;
+  --chart-heat-3: #b4461a;
+  --chart-heat-4: #7d2a0b;
+  --chart-bar: #d9703f;
+  --chart-bar-strong: #b4461a;
+  --chart-grid: rgba(74, 40, 46, 0.1);
+  --chart-mark-current: #b4461a;
+  --chart-mark-record: #8a767b;
+}
+
+:root[data-theme="verre-aurore"][data-scheme="dark"] {
+  --chart-heat-0: rgba(255, 230, 215, 0.06);
+  --chart-heat-1: #8a3e20;
+  --chart-heat-2: #b8562a;
+  --chart-heat-3: #e2773f;
+  --chart-heat-4: #ffab80;
+  --chart-bar: #c65a2b;
+  --chart-bar-strong: #ff9a6a;
+  --chart-grid: rgba(255, 226, 212, 0.09);
+  --chart-mark-current: #ff9a6a;
+  --chart-mark-record: #a8938f;
+}
+
+/* ================================================================ screen */
+
+:root[data-theme="verre-aurore"] .activity {
+  row-gap: 0.875rem;
+}
+
+:root[data-theme="verre-aurore"] .activity > .screen__header {
+  margin-bottom: 0.5rem;
+}
+
+:root[data-theme="verre-aurore"] .activity__grid {
+  gap: 0.875rem;
+}
+
+:root[data-theme="verre-aurore"] .activity__method {
+  margin: 0.125rem 0.125rem 0;
+}
+
+/* ---------------------------------------------------------------- key figures */
+
+/* One plate, hairlines between the figures (the outer ones are clipped). */
+:root[data-theme="verre-aurore"] .activity-figures__grid {
+  gap: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--va-plate-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--va-contour),
+    0 6px 20px -14px var(--va-shadow);
+}
+
+:root[data-theme="verre-aurore"] .activity-figure {
+  gap: 0.375rem;
+  padding: 1.125rem 1.125rem 1rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    -1px 0 0 var(--border),
+    0 -1px 0 var(--border);
+}
+
+:root[data-theme="verre-aurore"] .activity-figure__value {
+  font-size: 1.875rem;
+  font-weight: 620;
+  font-stretch: 108%;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+:root[data-theme="verre-aurore"] .activity-figure__value small {
+  font-size: 1.0625rem;
+  font-weight: 560;
+}
+
+:root[data-theme="verre-aurore"] .activity-figure__detail {
+  font-size: 0.6875rem;
+}
+
+/* ---------------------------------------------------------------- cards */
+
+:root[data-theme="verre-aurore"] .activity-card {
+  gap: 0.875rem;
+  padding: 1.125rem 1.25rem;
+}
+
+:root[data-theme="verre-aurore"] .activity-card__meta {
+  font-size: 0.75rem;
+}
+
+:root[data-theme="verre-aurore"] .streak__number {
+  font-weight: 620;
+  font-stretch: 108%;
+}
+
+:root[data-theme="verre-aurore"] .streak__unit {
+  font-size: 1rem;
+}
+
+:root[data-theme="verre-aurore"] .daymap__cell {
+  border-radius: 4px;
+}
+
+:root[data-theme="verre-aurore"] .week-chart__value,
+:root[data-theme="verre-aurore"] .app-row__value {
+  font-family: var(--font-mono);
+}
+
+/* Applications: a monogram tile, the row lifts on hover like a list row. */
+:root[data-theme="verre-aurore"] .app-row {
+  border-radius: 0.625rem;
+}
+
+:root[data-theme="verre-aurore"] .app-row:hover {
+  box-shadow: 0 0 0 0.5px var(--va-contour);
+}
+
+:root[data-theme="verre-aurore"] .app-row__mark {
+  font-family: var(--font-display);
+  font-stretch: 110%;
+  background: var(--raised);
+  border-radius: 0.4375rem;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+:root[data-theme="verre-aurore"] .apps-waiting {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+}
+
+:root[data-theme="verre-aurore"] .apps-waiting__icon {
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--va-contour);
+}
+
+/* The tooltip: dense glass without blur (nothing blurs inside the sheet). */
+:root[data-theme="verre-aurore"] .chart-tip {
+  background: var(--glass-strong);
+  border: 0;
+  border-radius: 0.6875rem;
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 1px var(--border),
+    0 10px 22px -12px var(--va-shadow);
+}
+
+:root[data-theme="verre-aurore"] .chart-tip__value {
+  font-family: var(--font-mono);
+}
+
+/* ================================================================ forced colors */
+
+@media (forced-colors: active) {
+  :root[data-theme="verre-aurore"] .activity-figure {
+    border: 1px solid CanvasText;
+  }
+}
