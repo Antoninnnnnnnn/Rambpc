@@ -20,7 +20,7 @@ import { useUiState } from "../../state/ui";
 import { FieldError, Keys } from "../controls";
 import { Glyph, StatusIcon, ToneIcon } from "../Icon";
 import { Waveform } from "../Waveform";
-import { countWords, editedText, longDate, titleOf, wordsText } from "./labels";
+import { countWords, editedText, isUnsupported, longDate, titleOf, UNSUPPORTED_NOTES, wordsText } from "./labels";
 import type { ActivePhase, DictationBlock, DictationNotice, NoteDictation } from "./useNoteDictation";
 import "./carnet.css";
 
@@ -273,7 +273,10 @@ export function NoteEditor({ editor, dictation, field, now, onBack, onDeleted }:
       {note.status.kind === "error" ? (
         <div className="note-editor__save-error" data-testid="save-error">
           <FieldError>
-            {commandErrorText(note.status.error, "La note n’a pas pu être enregistrée.")} Votre texte reste affiché ici.
+            {isUnsupported(note.status.error)
+              ? UNSUPPORTED_NOTES
+              : commandErrorText(note.status.error, "La note n’a pas pu être enregistrée.")}{" "}
+            Votre texte reste affiché ici.
           </FieldError>
           <button type="button" className="btn btn--sm" onClick={() => void editor.flush()}>
             Réessayer

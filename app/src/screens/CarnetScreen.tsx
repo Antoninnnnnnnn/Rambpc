@@ -4,6 +4,7 @@
 // its own state; announcements carry counts and fixed copy, never the text.
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { announcement, useAnnounce } from "../a11y/announcer";
 import { FieldError, Keys } from "../components/controls";
 import { Glyph } from "../components/Icon";
 import { insertAtSelection } from "../components/carnet/insertText";
@@ -30,6 +31,7 @@ export function CarnetScreen() {
   const editor = useNoteEditor({ onSaved: list.upsert });
   const transcriptions = useTranscriptions();
   const state = useUiState();
+  const announce = useAnnounce();
   const field = useRef<HTMLTextAreaElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const newButton = useRef<HTMLButtonElement>(null);
@@ -108,22 +110,32 @@ export function CarnetScreen() {
     setFocus(null);
   }, [focus, noteKey, pane]);
 
+  // The open note keeps its text until it is stored: another note waits.
+  const blocked = useCallback(() => {
+    announce(announcement("La note ouverte n’est pas enregistrée. Réessayez de l’enregistrer avant d’en changer."));
+  }, [announce]);
+
+  /** `show`: the person asked for it (the note comes forward with the keyboard). */
   const openNote = useCallback(
-    async (id: string, takeFocus = true) => {
+    async (id: string, show = true) => {
       const ok = await open(id);
-      if (ok) {
+      if (ok && show) {
         setPane("editor");
-        if (takeFocus) requestFocus({ target: "field" });
+        requestFocus({ target: "field" });
+      } else if (!ok && show && currentNote.current?.status.kind === "error") {
+        blocked();
       }
       return ok;
     },
-    [open, requestFocus],
+    [open, requestFocus, blocked],
   );
 
   const newNote = async () => {
     if (await create()) {
       setPane("editor");
       requestFocus({ target: "field" });
+    } else if (currentNote.current?.status.kind === "error") {
+      blocked();
     }
   };
 

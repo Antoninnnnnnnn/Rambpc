@@ -156,9 +156,11 @@ export function FileDropOffer() {
         </div>
         <div className="drop-offer__actions btn-row">
           {busy ? (
-            <button type="button" className="btn btn--sm" onClick={openCarnet}>
-              Voir dans le Carnet
-            </button>
+            view === "carnet" ? null : (
+              <button type="button" className="btn btn--sm" onClick={openCarnet}>
+                Voir dans le Carnet
+              </button>
+            )
           ) : (
             <button
               type="button"

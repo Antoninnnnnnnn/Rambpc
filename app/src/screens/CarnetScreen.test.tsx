@@ -186,6 +186,12 @@ describe("Carnet: notes", () => {
     expect(field()).toHaveValue(`${IDEAS.text}!`);
     await waitFor(() => expect(liveRegion()).toHaveTextContent("La note n’a pas pu être enregistrée."));
 
+    // The unsaved text is never dropped for another note.
+    await user.click(rows()[1]);
+    await waitFor(() => expect(liveRegion()).toHaveTextContent("La note ouverte n’est pas enregistrée."));
+    expect(bridge.invoke).not.toHaveBeenCalledWith("get_note", { id: "shopping" });
+    expect(field()).toHaveValue(`${IDEAS.text}!`);
+
     bridge.handlers.save_note = save;
     await user.click(within(screen.getByTestId("save-error")).getByRole("button", { name: "Réessayer" }));
     await waitFor(() => expect(screen.getByTestId("save-state")).toHaveTextContent("Enregistré"));

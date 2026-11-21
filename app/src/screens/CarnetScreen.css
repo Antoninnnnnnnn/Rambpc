@@ -118,13 +118,18 @@
 /* ---------------------------------------------------------------- one pane */
 
 @container carnet (max-width: 39.99rem) {
+  /* The title and « Nouvelle note » share a row, the lead goes below. */
   .carnet__header {
-    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
   }
 
   .carnet__header-actions {
-    grid-column: 1;
-    grid-row: auto;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .carnet__header > .screen__lead {
+    grid-column: 1 / -1;
   }
 
   .carnet[data-pane="list"] .carnet__pane--editor,
