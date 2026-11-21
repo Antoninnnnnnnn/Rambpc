@@ -25,18 +25,22 @@ import {
 } from "./state/navigation";
 import { SettingsProvider } from "./state/settings";
 import { UiStateProvider, useUiState, useUiStore } from "./state/ui";
+import { AppearanceProvider } from "./themes/AppearanceProvider";
+import { ThemeBackdrop } from "./themes/slots";
 import "./styles/layout.css";
 
-/** Everything the screens need: bridge, live region and the stores. */
+/** Everything the screens need: bridge, live region, the stores and the appearance. */
 export function AppProviders({ bridge, children }: { bridge: Bridge; children: ReactNode }) {
   return (
     <BridgeProvider bridge={bridge}>
       <AnnouncerProvider>
         <UiStateProvider>
           <SettingsProvider>
-            <AccessProvider>
-              <DraftSafetyProvider>{children}</DraftSafetyProvider>
-            </AccessProvider>
+            <AppearanceProvider>
+              <AccessProvider>
+                <DraftSafetyProvider>{children}</DraftSafetyProvider>
+              </AccessProvider>
+            </AppearanceProvider>
           </SettingsProvider>
         </UiStateProvider>
       </AnnouncerProvider>
@@ -49,6 +53,7 @@ export default function App() {
   if (!state) {
     return (
       <div className="frame">
+        <ThemeBackdrop />
         <TitleBar />
         <main className="startup" id="main">
           <AppMark className="startup__mark" />
@@ -95,6 +100,7 @@ function Shell() {
       <StateAnnouncer />
       {firstRun ? (
         <div className="frame">
+          <ThemeBackdrop />
           <TitleBar showBrand />
           <FirstRun key={firstRun} initialStep={firstRun} openedByPerson={navigated} onClose={() => go("home")} />
         </div>
@@ -126,6 +132,7 @@ function MainLayout({ view, target, autoFocus }: MainLayoutProps) {
 
   return (
     <div className="app">
+      <ThemeBackdrop />
       <a
         className="skip-link"
         href="#main"
