@@ -30,6 +30,11 @@ Prerequisites: Rust (MSVC, 1.90+), Node 24, Visual Studio C++ tools and CMake
 for the bundled Opus build (see [BUILDING](../crates/rambler-audio/BUILDING.md)).
 End users need only Windows 11 x64 with the WebView2 Evergreen runtime.
 
+The installer comes from `src-tauri/nsis/installer.nsi`, Tauri 2.12.6's NSIS
+template with changes marked `Sambler:` (an older version is replaced in place,
+a running Sambler is closed without asking, the language is always saved).
+When upgrading the Tauri CLI, start again from its new template and re-apply them.
+
 Access to Rambler is configured by the person, never built in: the three
 `RAMBLER_*` values (and optionally `RAMBLER_AUTHORITY`, otherwise the SDK
 default) come from the environment or are entered in the app. The installed
