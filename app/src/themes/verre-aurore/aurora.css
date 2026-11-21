@@ -1,0 +1,351 @@
+/* Verre et aurore: the aurora decor drawn by Aurora.tsx (backdrop slot and the
+   tile of the Accueil status card). Slow veils of light; `--eveil` (0..1)
+   wakes them while Sambler listens and `--voix` (0..1, the voice level, set
+   by script) makes them breathe and rise up into the title bar.
+
+   Cost: transform and opacity only, no filter. The drifts use steps() on a
+   shared 10 Hz clock, so the frosted panels above are recomposited about ten
+   times a second while idle instead of every frame. Paused while the window
+   is hidden (`data-paused`), frozen with reduced motion. */
+
+@property --voix {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --eveil {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.aurora {
+  --eveil: 0;
+  /* Default for engines without @property; the script writes it inline. */
+  --voix: 0;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--aurora-base);
+  border-radius: inherit;
+  pointer-events: none;
+  contain: strict;
+  transition:
+    --eveil 0.9s ease,
+    --voix 0.12s linear;
+}
+
+.aurora[data-phase="preparing"],
+.aurora[data-phase="finalizing"] {
+  --eveil: 0.55;
+}
+
+.aurora[data-phase="listening"] {
+  --eveil: 1;
+}
+
+/* Behind the whole window, title bar included. */
+.aurora--backdrop {
+  position: fixed;
+  z-index: -1;
+  border-radius: 0;
+}
+
+/* Where the voice lives, the aurora takes its vivid colours. */
+.aurora--live {
+  --aurora-1: var(--aurora-live-1);
+  --aurora-2: var(--aurora-live-2);
+  --aurora-3: var(--aurora-live-3);
+  --aurora-4: var(--aurora-live-4);
+  --aurora-strength: 1;
+}
+
+.aurora > i {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  mix-blend-mode: var(--aurora-blend);
+  will-change: transform;
+}
+
+.aurora__veil {
+  opacity: calc(var(--aurora-strength) * (0.78 + var(--eveil) * 0.22 + var(--voix) * 0.35));
+  scale: calc(1 + var(--voix) * 0.1);
+}
+
+.aurora__veil--1 {
+  width: 72%;
+  height: 92%;
+  left: -18%;
+  bottom: -34%;
+  background: radial-gradient(closest-side, var(--aurora-1), transparent);
+  animation: aurora-drift-a 74s steps(740) infinite alternate;
+}
+
+.aurora__veil--2 {
+  width: 62%;
+  height: 84%;
+  left: 28%;
+  bottom: -48%;
+  background: radial-gradient(closest-side, var(--aurora-2), transparent);
+  animation: aurora-drift-b 88s steps(880) infinite alternate;
+}
+
+.aurora__veil--3 {
+  width: 64%;
+  height: 92%;
+  right: -18%;
+  top: -42%;
+  background: radial-gradient(closest-side, var(--aurora-3), transparent);
+  animation: aurora-drift-c 101s steps(1010) infinite alternate;
+}
+
+.aurora__veil--4 {
+  width: 52%;
+  height: 62%;
+  left: 14%;
+  top: -34%;
+  background: radial-gradient(closest-side, var(--aurora-4), transparent);
+  animation: aurora-drift-d 67s steps(670) infinite alternate;
+}
+
+/* In the small tile, the fourth veil glows from the lower right. */
+.aurora--live .aurora__veil--4 {
+  left: auto;
+  top: auto;
+  right: -6%;
+  bottom: -30%;
+}
+
+/* Vertical curtains of light, masked into a soft oval. */
+.aurora__curtains {
+  inset: -10% -30% 22% -30%;
+  border-radius: 0 !important;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 14px,
+    var(--aurora-curtain-a) 25px,
+    transparent 37px 50px,
+    var(--aurora-curtain-b) 59px,
+    transparent 70px 92px
+  );
+  -webkit-mask-image: radial-gradient(58% 46% at 58% 40%, #000 15%, transparent 78%);
+  mask-image: radial-gradient(58% 46% at 58% 40%, #000 15%, transparent 78%);
+  opacity: calc(var(--aurora-curtain-strength) * (1 + var(--eveil) * 0.6 + var(--voix) * 1.5));
+  transform-origin: 50% 100%;
+  scale: 1 calc(1 + var(--voix) * 0.3);
+  animation: aurora-curtains 52s steps(520) infinite alternate;
+}
+
+/* The breath: light rising from below with the voice, up to the title bar. */
+.aurora__breath {
+  left: -15%;
+  right: -15%;
+  bottom: -38%;
+  height: 78%;
+  background: radial-gradient(closest-side, var(--aurora-2) 0%, var(--aurora-1) 48%, transparent 100%);
+  opacity: calc(var(--voix) * 0.95);
+  transform-origin: 50% 100%;
+  scale: 1 calc(0.55 + var(--voix) * 0.65);
+}
+
+/* The crest: while listening, the top edge (behind the title bar) lights up. */
+.aurora__crest {
+  left: 8%;
+  right: 8%;
+  top: -46%;
+  height: 72%;
+  background: radial-gradient(closest-side, var(--aurora-2) 0%, var(--aurora-1) 42%, transparent 100%);
+  opacity: calc(var(--eveil) * 0.5 + var(--voix) * 0.45);
+  transform-origin: 50% 0%;
+  scale: 1 calc(0.8 + var(--voix) * 0.35);
+}
+
+.aurora__grain {
+  inset: 0;
+  border-radius: 0 !important;
+  mix-blend-mode: normal !important;
+  opacity: var(--aurora-grain);
+  will-change: auto !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.4  0 0 0 0 0.4  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+}
+
+.aurora[data-paused] > i {
+  animation-play-state: paused;
+}
+
+@keyframes aurora-drift-a {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(9%, -7%) rotate(14deg);
+  }
+}
+
+@keyframes aurora-drift-b {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(-12%, -5%) rotate(-10deg);
+  }
+}
+
+@keyframes aurora-drift-c {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(-10%, 9%) rotate(18deg);
+  }
+}
+
+@keyframes aurora-drift-d {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-16%, -10%);
+  }
+}
+
+@keyframes aurora-curtains {
+  from {
+    transform: skewX(-16deg) translateX(-5%);
+  }
+  to {
+    transform: skewX(-7deg) translateX(6%);
+  }
+}
+
+/* ---------------------------------------------------------------- status tile */
+
+/* The tile of the Accueil status card: the shortcut as big keys on a vivid
+   aurora. Decorative (aria-hidden): its labels are drawn from data
+   attributes, the card's text carries the meaning. */
+.status-art {
+  position: relative;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+  min-height: 11rem;
+  margin: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.status-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--border);
+  pointer-events: none;
+}
+
+.status-art > .aurora {
+  z-index: -1;
+}
+
+.status-art__keys {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.status-art__key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 3.375rem;
+  height: 3.125rem;
+  padding: 0 0.875rem;
+  border-radius: 0.75rem;
+  font: 650 1.0625rem/1 var(--font-text);
+  color: var(--text);
+  background: var(--va-key-glass);
+  border: 1px solid var(--key-border);
+  box-shadow:
+    0 3px 0 var(--va-key-drop),
+    inset 0 1px 0 var(--glass-edge),
+    0 10px 24px -10px var(--va-shadow);
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease;
+}
+
+.status-art__key::before {
+  content: attr(data-key);
+}
+
+.status-art__legend::before {
+  content: attr(data-text);
+}
+
+/* Held keys sink while Sambler listens (hold gesture). */
+.status-art[data-phase="listening"][data-gesture="hold"] .status-art__key {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 var(--va-key-drop),
+    inset 0 1px 0 var(--glass-edge),
+    0 4px 12px -6px var(--va-shadow);
+}
+
+/* Dictation not available yet: the keys rest, dimmed. */
+.status-art[data-resting] .status-art__keys {
+  opacity: 0.55;
+}
+
+.status-art__legend {
+  display: inline-flex;
+  align-items: center;
+  height: 1.625rem;
+  padding: 0 0.6875rem;
+  border-radius: var(--radius-full);
+  font: 600 var(--text-xs) / 1 var(--font-text);
+  color: var(--text);
+  background: var(--glass-strong);
+  box-shadow:
+    0 0 0 0.5px var(--va-contour),
+    0 4px 12px -6px var(--va-shadow);
+}
+
+/* ---------------------------------------------------------------- motion, contrast */
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora > i {
+    animation: none !important;
+  }
+
+  .aurora__veil,
+  .aurora__curtains,
+  .aurora__breath,
+  .aurora__crest {
+    scale: 1;
+  }
+
+  .status-art__key {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .aurora {
+    display: none;
+  }
+
+  .status-art {
+    border: 1px solid CanvasText;
+  }
+
+  .status-art__key,
+  .status-art__legend {
+    border: 1px solid CanvasText;
+  }
+}

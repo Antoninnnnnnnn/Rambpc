@@ -231,7 +231,7 @@ function RecentItem({ item, now, copyNoteId, startExpanded, onCopy, onClear }: I
             aria-disabled={copy.busy || undefined}
           >
             <Glyph name={copied ? "check" : "copy"} />
-            {copy.busy ? "Copie…" : "Copier"}
+            <span className="btn__label">{copy.busy ? "Copie…" : "Copier"}</span>
             <span className="visually-hidden"> le texte de {time}</span>
           </button>
           {expandable ? (
@@ -243,13 +243,13 @@ function RecentItem({ item, now, copyNoteId, startExpanded, onCopy, onClear }: I
               onClick={() => setExpanded((value) => !value)}
             >
               <Glyph name="chevron-down" className={expanded ? "recent__chevron recent__chevron--up" : "recent__chevron"} />
-              {expanded ? "Réduire" : "Afficher tout"}
+              <span className="btn__label">{expanded ? "Réduire" : "Afficher tout"}</span>
               <span className="visually-hidden"> le texte de {time}</span>
             </button>
           ) : null}
           <button type="button" className="btn btn--sm btn--ghost recent__clear" onClick={() => void runClear()}>
             <Glyph name="trash" />
-            Effacer
+            <span className="btn__label">Effacer</span>
             <span className="visually-hidden"> le texte de {time}</span>
           </button>
         </div>
