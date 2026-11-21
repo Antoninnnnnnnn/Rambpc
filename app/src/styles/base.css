@@ -37,7 +37,7 @@ figure {
   margin: 0;
 }
 
-/* Titles use the theme's display face (the text face in Sable). */
+/* Titles use the theme's display face. */
 h1,
 h2 {
   font-family: var(--font-display);

@@ -1,0 +1,271 @@
+/* Doux et rond skin of the floating dictation bar: the capsule. A milk pill
+   (an aubergine-indigo one at night) with a double rim, so it stays legible
+   on light and dark wallpapers alike. At its left, the living shape in small:
+   two pebbles that breathe and swell with the voice. Their colour, and a soft
+   wash across the capsule, say the state: pêche listening, lilas processing,
+   menthe inserted, beurre kept in Sambler, rose refused or failed, brume when
+   nothing happened. Always with an icon on the pebble and words beside it.
+   Custom properties only (list in overlay/overlay.css), plus the pebbles'
+   keyframes; fonts from fonts.css. */
+
+:root[data-theme="doux-rond"] {
+  /* Palette (mockup tokens, light). */
+  --cap-fond: #ffffff;
+  --cap-encre: #2a2342;
+  --cap-encre-2: #5f5878;
+  --cap-anneau-ext: rgba(42, 35, 66, 0.18);
+  --cap-anneau-int: rgba(255, 255, 255, 0.9);
+  --cap-ombre-proche: rgba(48, 30, 90, 0.12);
+  --cap-ombre: rgba(48, 30, 90, 0.42);
+  --cap-icone: #1e1a30;
+  --cap-peche: #ffa584;
+  --cap-lilas: #9c88f2;
+  --cap-beurre-encre: #85510a;
+  --cap-halo: rgba(255, 150, 120, 0.55);
+  --cap-halo-lilas: rgba(138, 118, 230, 0.4);
+  /* Pebble tints: body light, body mid, body deep; back from, back to. */
+  --cap-voix-1: #ffe3cc;
+  --cap-voix-2: #ff9f80;
+  --cap-voix-3: #f497bd;
+  --cap-voix-4: #b6a4f6;
+  --cap-lilas-1: #e9e3ff;
+  --cap-lilas-2: #9c88f2;
+  --cap-menthe-1: #d2f5e4;
+  --cap-menthe-2: #63c99f;
+  --cap-beurre-1: #fff2c9;
+  --cap-beurre-2: #f2bc4b;
+  --cap-rose-1: #ffd9e2;
+  --cap-rose-2: #ee7f9c;
+  --cap-brume-1: #f1eef6;
+  --cap-brume-2: #c9c2d9;
+  /* The wash across the capsule, per state. */
+  --cap-voile-peche: #ffe7dc;
+  --cap-voile-lilas: #ece8fd;
+  --cap-voile-menthe: #dff4ea;
+  --cap-voile-beurre: #fff1d2;
+  --cap-voile-rose: #ffe6ec;
+  --cap-voile-brume: #eeebf3;
+
+  /* Text. */
+  --bar-font: "Figtree Sambler", "Segoe UI Variable Text", "Segoe UI", -apple-system, "Cantarell", "Noto Sans",
+    system-ui, sans-serif;
+  --bar-font-features: "tnum";
+  --bar-label-weight: 620;
+  --bar-label-tracking: 0;
+  --bar-timer-font: "DM Mono Sambler", "Cascadia Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --bar-timer-weight: 500;
+  --bar-timer-fg: var(--cap-encre);
+  --bar-timer-warn: var(--cap-beurre-encre);
+
+  /* Capsule: 44 px high, 12 px from the window's sides and 15 px from its
+     bottom, so the tight shadow below stays inside the 360 x 72 window. */
+  --bar-inset: 0 12px 15px;
+  --bar-pad: 0 17px 0 7px;
+  --bar-pad-outcome: 0 18px 0 7px;
+  --bar-gap: 10px;
+  --bar-fg: var(--cap-encre);
+  --bar-bg: var(--cap-fond);
+  --bar-clip: hidden;
+  --bar-isolation: isolate;
+  --bar-shadow:
+    0 0 0 1px var(--cap-anneau-ext), inset 0 0 0 1px var(--cap-anneau-int), 0 1px 2px var(--cap-ombre-proche),
+    0 6px 14px -6px var(--cap-ombre);
+
+  /* The living shape: two pebbles under a small dark glyph. */
+  --bar-icon-box: 30px;
+  --bar-icon-fg: var(--cap-icone);
+  --bar-icon-bg: none;
+  --bar-glyph: 14px;
+  --bar-glyph-stroke: 2.4;
+  --bar-pebbles: block;
+  --bar-pebble-back-inset: 5px 2px 2px 6px;
+  --bar-pebble-back-radius: 56% 44% 52% 48% / 47% 57% 43% 53%;
+  --bar-pebble-back-motion: dr-galet-dos 5.2s ease-in-out infinite alternate;
+  --bar-pebble-inset: 3px 5px 5px 3px;
+  --bar-pebble-radius: 47% 53% 45% 55% / 55% 46% 54% 45%;
+  --bar-pebble-motion: dr-galet-corps 4.4s ease-in-out infinite alternate;
+
+  /* Voice bars: little pêche-to-lilas pebbles across the wave. */
+  --bar-wave-fill: linear-gradient(90deg, var(--cap-peche), var(--cap-lilas));
+  --bar-wave-bar: 3px;
+  --bar-wave-gap: 2px;
+  --bar-wave-height: 20px;
+  --bar-wave-busy-opacity: 0.7;
+
+  /* Processing: the lilac pebbles turn, with the word. */
+  --bar-finalizing-wave: none;
+  --bar-finalizing-label: inline;
+
+  /* The state's wash, from the pebble across the capsule. */
+  --bar-aurora-display: block;
+  --bar-aurora-rest: 1;
+  --bar-aurora-gain: 0;
+}
+
+/* The pebbles and the wash of the current state (pêche by default). Declared
+   on the bar itself, so that each state's `--cap-*` below is the one used. */
+:root[data-theme="doux-rond"] .bar {
+  --cap-p1: var(--cap-voix-1);
+  --cap-p2: var(--cap-voix-2);
+  --cap-p3: var(--cap-voix-3);
+  --cap-b1: var(--cap-voix-4);
+  --cap-b2: var(--cap-voix-3);
+  --cap-voile: var(--cap-voile-peche);
+  --bar-pebble: linear-gradient(145deg, var(--cap-p1), var(--cap-p2) 52%, var(--cap-p3));
+  --bar-pebble-back: linear-gradient(225deg, var(--cap-b1), var(--cap-b2));
+  --bar-aurora: radial-gradient(75% 160% at 0% 50%, var(--cap-voile), transparent 78%);
+}
+
+:root[data-theme="doux-rond"][data-scheme="dark"] {
+  --cap-fond: #2a2350;
+  --cap-encre: #f5f1ff;
+  --cap-encre-2: #bdb4dc;
+  --cap-anneau-ext: rgba(0, 0, 0, 0.45);
+  --cap-anneau-int: rgba(255, 255, 255, 0.2);
+  --cap-ombre-proche: rgba(0, 0, 0, 0.3);
+  --cap-ombre: rgba(0, 0, 0, 0.65);
+  --cap-peche: #ffad8e;
+  --cap-lilas: #a795ff;
+  --cap-beurre-encre: #ffd98e;
+  --cap-halo: rgba(255, 130, 110, 0.5);
+  --cap-halo-lilas: rgba(167, 149, 255, 0.4);
+  --cap-voix-1: #ffd3b4;
+  --cap-voix-2: #ff8e6e;
+  --cap-voix-3: #ee7bb6;
+  --cap-voix-4: #8e7bff;
+  --cap-lilas-1: #dcd3ff;
+  --cap-lilas-2: #8470f2;
+  --cap-menthe-1: #b3f3d4;
+  --cap-menthe-2: #3fb487;
+  --cap-beurre-1: #ffeab0;
+  --cap-beurre-2: #e7aa3a;
+  --cap-rose-1: #ffc8d5;
+  --cap-rose-2: #e86a8e;
+  --cap-brume-1: #c4bde3;
+  --cap-brume-2: #8b82b8;
+  --cap-voile-peche: #47293f;
+  --cap-voile-lilas: #2e2858;
+  --cap-voile-menthe: #1c3b3c;
+  --cap-voile-beurre: #3b3122;
+  --cap-voile-rose: #46203d;
+  --cap-voile-brume: #332c55;
+}
+
+/* ---------------------------------------------------------------- dictation */
+
+/* Arming: the pebbles wake, the wave still rippling. */
+:root[data-theme="doux-rond"] .bar[data-kind="preparing"] {
+  --bar-icon-ring: 0 0 10px 0 var(--cap-halo);
+  --cap-voile: transparent;
+}
+
+/* Listening: a pêche halo that breathes, the pebbles swell with the voice. */
+:root[data-theme="doux-rond"] .bar[data-kind="listening"] {
+  --bar-pad: 0 16px 0 7px;
+  --bar-icon-gain: 0.24;
+  --bar-icon-ring: 0 0 9px 0 var(--cap-halo);
+  --bar-icon-ring-wide: 0 0 14px 3px var(--cap-halo);
+  --bar-pebble-back-motion: dr-galet-dos 2.2s ease-in-out infinite alternate;
+  --bar-pebble-motion: dr-galet-corps 1.8s ease-in-out infinite alternate;
+  --bar-aurora-rest: 0.55;
+  --bar-aurora-gain: 0.45;
+}
+
+/* Processing: lilac pebbles that turn while Rambler thinks. */
+:root[data-theme="doux-rond"] .bar[data-kind="finalizing"] {
+  --cap-p1: var(--cap-lilas-1);
+  --cap-p2: color-mix(in srgb, var(--cap-lilas-1), var(--cap-lilas-2));
+  --cap-p3: var(--cap-lilas-2);
+  --cap-b1: var(--cap-voix-3);
+  --cap-b2: var(--cap-lilas-2);
+  --cap-voile: var(--cap-voile-lilas);
+  --bar-icon-ring: 0 0 9px 0 var(--cap-halo-lilas);
+  --bar-pebble-back-motion: dr-galet-tourne 2.6s linear infinite;
+  --bar-pebble-motion: dr-galet-tourne 3.4s linear infinite reverse;
+}
+
+/* ---------------------------------------------------------------- outcomes */
+
+:root[data-theme="doux-rond"] .bar[data-meaning] {
+  --bar-glyph: 15px;
+  --bar-glyph-stroke: 2.5;
+  --bar-pebble-back-motion: dr-galet-dos 6s ease-in-out infinite alternate;
+  --bar-pebble-motion: dr-galet-corps 5s ease-in-out infinite alternate;
+}
+
+:root[data-theme="doux-rond"] .bar[data-meaning="inserted"] {
+  --cap-p1: var(--cap-menthe-1);
+  --cap-p2: color-mix(in srgb, var(--cap-menthe-1), var(--cap-menthe-2));
+  --cap-p3: var(--cap-menthe-2);
+  --cap-b1: var(--cap-menthe-2);
+  --cap-b2: var(--cap-lilas-1);
+  --cap-voile: var(--cap-voile-menthe);
+}
+
+:root[data-theme="doux-rond"] .bar[data-meaning="kept"] {
+  --cap-p1: var(--cap-beurre-1);
+  --cap-p2: color-mix(in srgb, var(--cap-beurre-1), var(--cap-beurre-2));
+  --cap-p3: var(--cap-beurre-2);
+  --cap-b1: var(--cap-voix-2);
+  --cap-b2: var(--cap-beurre-2);
+  --cap-voile: var(--cap-voile-beurre);
+}
+
+:root[data-theme="doux-rond"] .bar[data-meaning="refused"],
+:root[data-theme="doux-rond"] .bar[data-meaning="error"] {
+  --cap-p1: var(--cap-rose-1);
+  --cap-p2: color-mix(in srgb, var(--cap-rose-1), var(--cap-rose-2));
+  --cap-p3: var(--cap-rose-2);
+  --cap-b1: var(--cap-lilas-2);
+  --cap-b2: var(--cap-rose-2);
+  --cap-voile: var(--cap-voile-rose);
+  /* Nothing to celebrate: the pebbles doze. */
+  --bar-pebble-back-motion: none;
+  --bar-pebble-motion: none;
+}
+
+:root[data-theme="doux-rond"] .bar[data-meaning="neutral"] {
+  --cap-p1: var(--cap-brume-1);
+  --cap-p2: color-mix(in srgb, var(--cap-brume-1), var(--cap-brume-2));
+  --cap-p3: var(--cap-brume-2);
+  --cap-b1: var(--cap-brume-2);
+  --cap-b2: var(--cap-brume-1);
+  --cap-voile: var(--cap-voile-brume);
+  --bar-pebble-back-motion: none;
+  --bar-pebble-motion: none;
+}
+
+/* ---------------------------------------------------------------- the pebbles breathe */
+
+@keyframes dr-galet-corps {
+  0% {
+    border-radius: 47% 53% 45% 55% / 55% 46% 54% 45%;
+  }
+  50% {
+    border-radius: 55% 45% 52% 48% / 46% 55% 45% 54%;
+  }
+  100% {
+    border-radius: 44% 56% 58% 42% / 52% 42% 58% 48%;
+  }
+}
+
+@keyframes dr-galet-dos {
+  0% {
+    border-radius: 56% 44% 52% 48% / 47% 57% 43% 53%;
+  }
+  50% {
+    border-radius: 46% 54% 44% 56% / 56% 46% 54% 44%;
+  }
+  100% {
+    border-radius: 52% 48% 57% 43% / 44% 52% 48% 56%;
+  }
+}
+
+@keyframes dr-galet-tourne {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 360deg;
+  }
+}

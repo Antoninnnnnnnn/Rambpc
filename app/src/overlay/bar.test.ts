@@ -113,21 +113,21 @@ describe("floating bar theming", () => {
   });
 
   it("wears the cached theme from the start, then the one from the state", () => {
-    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "dark" }));
+    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "doux-rond", colorScheme: "dark" }));
     const events = fakeSource();
     mountOverlay(root, events.source, page);
-    expect(page.dataset).toMatchObject({ theme: "sable", scheme: "dark" });
+    expect(page.dataset).toMatchObject({ theme: "doux-rond", scheme: "dark" });
     events.state(uiState({ phase: { kind: "listening" }, take: 1, appearance: { theme: "verre-aurore", colorScheme: "light" } }));
     expect(page.dataset).toMatchObject({ theme: "verre-aurore", scheme: "light" });
     expect(root.dataset.kind).toBe("listening");
   });
 
   it("keeps its theme without appearance, and falls back for an unknown one", () => {
-    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "sable", colorScheme: "light" }));
+    localStorage.setItem(APPEARANCE_CACHE_KEY, JSON.stringify({ theme: "doux-rond", colorScheme: "light" }));
     const events = fakeSource();
     mountOverlay(root, events.source, page);
     events.state(uiState({ phase: { kind: "listening" }, take: 1, appearance: undefined }));
-    expect(page.dataset.theme).toBe("sable");
+    expect(page.dataset.theme).toBe("doux-rond");
     events.state(uiState({ phase: { kind: "finalizing" }, take: 1, appearance: { theme: "neon", colorScheme: "dark" } }));
     expect(page.dataset).toMatchObject({ theme: DEFAULT_THEME, scheme: "dark" });
   });
@@ -191,5 +191,34 @@ describe("floating bar theming", () => {
     const bars = root.querySelectorAll<HTMLElement>(".wave__bar");
     expect(bars[16].style.getPropertyValue("--k")).toBe("16");
     expect(root.querySelector<HTMLElement>(".bar__wave")!.style.getPropertyValue("--n")).toBe("17");
+  });
+
+  it("dresses as the Doux et rond capsule: a meaning, an icon and words for every outcome", () => {
+    const events = fakeSource();
+    mountOverlay(root, events.source, page);
+    const appearance = { theme: "doux-rond", colorScheme: "dark" as const };
+    events.state(uiState({ phase: { kind: "listening" }, take: 1, listeningMs: 0, appearance }));
+    expect(page.dataset).toMatchObject({ theme: "doux-rond", scheme: "dark" });
+    // The pebbles swell with the voice (`--level`) and carry the microphone.
+    events.level(0.52);
+    expect(root.style.getPropertyValue("--level")).toBe("0.50");
+    expect(root.querySelector(".bar__icon svg")).not.toBeNull();
+    events.state(uiState({ phase: { kind: "finalizing" }, take: 1, appearance }));
+    expect(root.dataset.kind).toBe("finalizing");
+    expect(root.querySelector(".bar__label")).toHaveTextContent("Traitement");
+
+    const outcomes = [
+      [{ kind: "inserted" }, "inserted", "Inséré"],
+      [{ kind: "kept-in-sambler", reason: { kind: "sambler-destination" } }, "kept", "Texte dans Sambler"],
+      [{ kind: "refused", reason: { kind: "protected-field" } }, "refused", "Champ protégé"],
+      [{ kind: "refused", reason: { kind: "microphone", error: { kind: "access-denied" } } }, "error", "Micro bloqué par Windows"],
+      [{ kind: "no-text" }, "neutral", "Aucun texte"],
+    ] as const;
+    for (const [outcome, meaning, words] of outcomes) {
+      events.state(uiState({ lastOutcome: outcome, appearance }));
+      expect(root.dataset).toMatchObject({ kind: "outcome", meaning });
+      expect(root.querySelector(".bar__icon svg")).not.toBeNull();
+      expect(root.querySelector(".bar__label")).toHaveTextContent(words);
+    }
   });
 });

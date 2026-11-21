@@ -8,12 +8,12 @@ import { listen } from "@tauri-apps/api/event";
 import { EVENT_LEVEL, EVENT_STATE, type UiState } from "../ipc/contract";
 import { mountOverlay, type OverlaySource } from "./bar";
 // Fonts of every theme: a face downloads only when the active theme uses it.
-import "../styles/fonts.css";
 import "../themes/verre-aurore/fonts.css";
+import "../themes/doux-rond/fonts.css";
 // Structure and motion, then each theme's skin (tokens keyed on `data-theme`).
 import "./overlay.css";
-import "../themes/sable/overlay.css";
 import "../themes/verre-aurore/overlay.css";
+import "../themes/doux-rond/overlay.css";
 
 const tauriSource: OverlaySource = {
   onState: (handler) => void listen<UiState>(EVENT_STATE, (event) => handler(event.payload)),

@@ -1,0 +1,326 @@
+/* Thème « Doux et rond » : une fenêtre-galet couleur d'iris, le contenu sur
+   une grande feuille de lait aux coins larges, et la voix en forme vivante
+   (deux galets pêche et lilas qui respirent, Galets.tsx). Pas de verre, pas
+   de décor derrière la fenêtre : la douceur vient des formes et des teintes.
+
+                    clair                         sombre (nuit aubergine)
+     iris (coque)   #f1edf8                       #1a1631
+     lait (feuille) #ffffff                       #231d3e
+     encre          #2a2342 aubergine             #f5f1ff
+     pêche          #ffa584  voix, action         #ffad8e
+     lilas          #8a76e6  focus, traitement    #a795ff
+     menthe         #1d6a4b  inséré, prêt         #96ebc8
+     beurre         #85510a  gardé                #ffd98e
+     rose           #ae2d4d  refus, erreur        #ffb3c6
+
+   Rayons hiérarchisés : feuille 22 › carte 18 › champ 14 › ligne 12 ›
+   touche 8, pilule pour les boutons, interrupteurs et la capsule.
+   Polices : Fraunces (axe SOFT à 100) pour les titres et les chiffres,
+   Figtree pour le texte, DM Mono pour les heures (fonts.css).
+
+   Every semantic token of the contract is defined here, light then dark (see
+   themes/README.md). The `--dr-*` variables at the end are private to this
+   theme (components.css, galets.css, preview). */
+
+:root[data-theme="doux-rond"] {
+  color-scheme: light;
+
+  /* Typography */
+  --font-text: "Figtree Sambler", "Segoe UI Variable Text", "Segoe UI", -apple-system, "Cantarell", "Noto Sans",
+    system-ui, sans-serif;
+  --font-display: "Fraunces Sambler", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-mono: "DM Mono Sambler", "Cascadia Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-features: normal;
+  --display-stretch: 100%;
+  --display-tracking: -0.018em;
+
+  /* Theme-independent overrides: radii by rank, a wider rail and sheet. */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.375rem;
+  --control-h: 2.5rem;
+  --control-h-sm: 2.125rem;
+  --sidebar-w: 13.5rem;
+  --content-w: 62rem;
+
+  /* Canvas and surfaces: an iris shell, a milk sheet, hollows on the sheet. */
+  --canvas: #f1edf8;
+  --sheet: #ffffff;
+  --surface: #f7f4fb;
+  --surface-2: #eee9f6;
+  --surface-hover: #eee9f6;
+  --surface-pressed: #e6e0f2;
+  --raised: #ffffff;
+  --field-bg: #ffffff;
+  --border: #eae5f2;
+  --border-strong: #d9d2e7;
+  /* Field rims and the switch's off track: 3:1 on milk (WCAG 1.4.11). */
+  --input-border: #948bad;
+
+  /* Shell: no glass. The rail sits on the iris; the sheet is opaque milk. */
+  --titlebar-bg: transparent;
+  --rail-bg: transparent;
+  --rail-bg-solid: transparent;
+  --rail-shadow: none;
+  --panel-bg: #ffffff;
+  --panel-bg-solid: #ffffff;
+  --panel-border: rgba(42, 35, 66, 0.05);
+  --panel-shadow: 0 1px 2px rgba(42, 35, 66, 0.05), 0 14px 34px -26px rgba(58, 38, 110, 0.3);
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
+  --glass-filter: none;
+  --glass-border: #eae5f2;
+  --glass-edge: transparent;
+  --glass-shadow: 0 12px 32px -12px rgba(58, 38, 100, 0.3), 0 2px 6px rgba(42, 35, 66, 0.06);
+  --glass-strong: #ffffff;
+
+  /* Text: aubergine ink, never black (AA on the iris, the milk and the hollows) */
+  --text: #2a2342;
+  --text-2: #5f5878;
+  --text-3: #665f80;
+  --text-disabled: #a39cb8;
+
+  /* Accent: pêche, the voice and the main action, with dark ink on it */
+  --accent: #ffa584;
+  --accent-hover: #ff916b;
+  --accent-pressed: #fb8358;
+  --accent-soft: #fff2ec;
+  --accent-soft-2: #ffe7dc;
+  --accent-ink: #9e4323;
+  --on-accent: #2b1a1f;
+  --focus: #7c66de;
+
+  /* Status: menthe, beurre, rose */
+  --success: #1d6a4b;
+  --success-soft: #dff4ea;
+  --warning: #85510a;
+  --warning-soft: #fff1d2;
+  --error: #ae2d4d;
+  --error-soft: #ffe6ec;
+  --danger: #ae2d4d;
+  --danger-hover: #95233f;
+  --on-danger: #ffffff;
+
+  /* Dictation states: menthe ready, pêche listening, lilas working */
+  --state-ready: #62c79d;
+  --state-ready-soft: #dff4ea;
+  --state-listening: #ff916b;
+  --state-listening-soft: #fff2ec;
+  --state-working: #8a76e6;
+  --state-working-soft: #f2effe;
+
+  /* Voice: pebbles from pêche to lilas */
+  --voice-low: #62c79d;
+  --voice-mid: #f4c65a;
+  --voice-high: #ff916b;
+  --wave-from: #ffa584;
+  --wave-to: #a08cf0;
+
+  /* Aurora hooks: no aurora here; the voice colours, at rest on the canvas */
+  --aurora-base: #f1edf8;
+  --aurora-1: #ffdccb;
+  --aurora-2: #dcd0fa;
+  --aurora-3: #cfede2;
+  --aurora-4: #ffd9e2;
+  --aurora-live-1: #ff9f80;
+  --aurora-live-2: #b6a4f6;
+  --aurora-live-3: #63c99f;
+  --aurora-live-4: #f497bd;
+  --aurora-blend: normal;
+  --aurora-strength: 0;
+  --aurora-curtain-a: transparent;
+  --aurora-curtain-b: transparent;
+  --aurora-curtain-strength: 0;
+  --aurora-grain: 0;
+
+  /* Controls */
+  --key-bg: #ffffff;
+  --key-border: #d9d2e7;
+  --key-shadow: 0 2px 0 #d9d2e7;
+  --switch-thumb: #ffffff;
+  --switch-thumb-off: #ffffff;
+  --switch-thumb-shadow: 0 1px 3px rgba(20, 10, 40, 0.25);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235f5878' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  --titlebar-close-bg: #e5484d;
+  --titlebar-close-pressed: #c93c40;
+  --on-titlebar-close: #ffffff;
+
+  /* The Sambler mark: a pêche-to-lilas tile, milk strokes */
+  --mark-tile-from: #ff9f80;
+  --mark-tile-to: #9c88f2;
+  --mark-ink: #ffffff;
+  --mark-wave: #ffe3cc;
+  --mark-shadow: rgba(255, 120, 80, 0.35);
+
+  /* Shadows: soft, tinted with aubergine */
+  --shadow-xs: 0 1px 2px rgba(42, 35, 66, 0.06);
+  --shadow-sm: 0 1px 2px rgba(42, 35, 66, 0.06), 0 2px 8px -2px rgba(42, 35, 66, 0.08);
+  --shadow-md: 0 12px 32px -12px rgba(58, 38, 100, 0.3), 0 2px 6px rgba(42, 35, 66, 0.06);
+  --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 18px -10px rgba(255, 120, 80, 0.55);
+  --ring: 0 0 0 4px #ece8fd;
+
+  /* Private to this theme */
+  --dr-iris-fort: #e6e0f2;
+  --dr-seg-fond: #eee9f6;
+  --dr-seg-actif: #ffffff;
+  --dr-sur-menthe: #0f3b2a;
+  --dr-corail: #d9603a;
+  --dr-lilas: #8a76e6;
+  --dr-lilas-encre: #5643bf;
+  --dr-lilas-voile: #f2effe;
+  --dr-menthe: #62c79d;
+  --dr-beurre: #f4c65a;
+  --dr-rose: #f0879f;
+  --dr-brume-fond: #eeebf3;
+  --dr-brume-encre: #5e5874;
+  --dr-hero-a: #ffe3d4;
+  --dr-hero-b: #e9e2fc;
+  --dr-hero-a-vif: #ffdac9;
+  --dr-hero-trait: rgba(42, 35, 66, 0.09);
+  --dr-ombre-peche: rgba(255, 120, 80, 0.5);
+  /* The living shape: body (pêche), back (lilas), sheen, halo; one pair per tint. */
+  --dr-voix-1: #ffe3cc;
+  --dr-voix-2: #ff9f80;
+  --dr-voix-3: #f497bd;
+  --dr-voix-4: #b6a4f6;
+  --dr-reflet: #fff9f0;
+  --dr-halo: rgba(255, 150, 120, 0.55);
+  --dr-lilas-1: #e9e3ff;
+  --dr-lilas-2: #9c88f2;
+  --dr-menthe-1: #d2f5e4;
+  --dr-menthe-2: #63c99f;
+  --dr-beurre-1: #fff2c9;
+  --dr-beurre-2: #f2bc4b;
+  --dr-rose-1: #ffd9e2;
+  --dr-rose-2: #ee7f9c;
+  --dr-brume-1: #f1eef6;
+  --dr-brume-2: #c9c2d9;
+  --dr-galet-icone: #1e1a30;
+}
+
+:root[data-theme="doux-rond"][data-scheme="dark"] {
+  color-scheme: dark;
+
+  /* A night of aubergine and indigo, never grey. */
+  --canvas: #1a1631;
+  --sheet: #231d3e;
+  --surface: #2a2449;
+  --surface-2: #332c55;
+  --surface-hover: #332c55;
+  --surface-pressed: #3b3366;
+  --raised: #302a54;
+  --field-bg: #1f1a39;
+  --border: #352e59;
+  --border-strong: #463d70;
+  --input-border: #7d72b3;
+
+  --panel-bg: #231d3e;
+  --panel-bg-solid: #231d3e;
+  --panel-border: rgba(255, 255, 255, 0.05);
+  --panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 18px 40px -28px rgba(0, 0, 0, 0.7);
+  --glass-border: #352e59;
+  --glass-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --glass-strong: #2a2449;
+
+  --text: #f5f1ff;
+  --text-2: #b6add6;
+  --text-3: #a39bc6;
+  --text-disabled: #6b6390;
+
+  --accent: #ffad8e;
+  --accent-hover: #ffc0a6;
+  --accent-pressed: #ffcdb8;
+  --accent-soft: #3a2742;
+  --accent-soft-2: #47293f;
+  --accent-ink: #ffc6ae;
+  --on-accent: #2a1820;
+  --focus: #a795ff;
+
+  --success: #96ebc8;
+  --success-soft: #1c3b3c;
+  --warning: #ffd98e;
+  --warning-soft: #3b3122;
+  --error: #ffb3c6;
+  --error-soft: #46203d;
+  --danger: #ff8fab;
+  --danger-hover: #ffa6bc;
+  --on-danger: #2b0f1d;
+
+  --state-ready: #72d9ae;
+  --state-ready-soft: #1c3b3c;
+  --state-listening: #ffad8e;
+  --state-listening-soft: #3a2742;
+  --state-working: #a795ff;
+  --state-working-soft: #2e2858;
+
+  --voice-low: #72d9ae;
+  --voice-mid: #f5c866;
+  --voice-high: #ffad8e;
+  --wave-from: #ffad8e;
+  --wave-to: #a795ff;
+
+  --aurora-base: #1a1631;
+  --aurora-1: #3a1f45;
+  --aurora-2: #22205a;
+  --aurora-3: #0f3a3c;
+  --aurora-4: #46203d;
+  --aurora-live-1: #ff8e6e;
+  --aurora-live-2: #8e7bff;
+  --aurora-live-3: #3fb487;
+  --aurora-live-4: #ee7bb6;
+
+  --key-bg: #2f2852;
+  --key-border: #463d70;
+  --key-shadow: 0 2px 0 #463d70;
+  --switch-thumb: #ffffff;
+  --switch-thumb-off: #d8d1ee;
+  --switch-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23b6add6' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+
+  --mark-tile-from: #ff8e6e;
+  --mark-tile-to: #8470f2;
+  --mark-wave: #ffd3b4;
+  --mark-shadow: rgba(0, 0, 0, 0.5);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px -2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 16px 36px -14px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 18px -10px rgba(0, 0, 0, 0.6);
+  --ring: 0 0 0 4px #2e2858;
+
+  --dr-iris-fort: #26204a;
+  --dr-seg-fond: #1c1733;
+  --dr-seg-actif: #3b3366;
+  --dr-corail: #ff8a63;
+  --dr-lilas: #a795ff;
+  --dr-lilas-encre: #cec4ff;
+  --dr-lilas-voile: #2e2858;
+  --dr-menthe: #72d9ae;
+  --dr-beurre: #f5c866;
+  --dr-rose: #ff8fab;
+  --dr-brume-fond: #2e2850;
+  --dr-brume-encre: #c2badf;
+  --dr-hero-a: #3e2543;
+  --dr-hero-b: #2a2762;
+  --dr-hero-a-vif: #55293f;
+  --dr-hero-trait: rgba(255, 255, 255, 0.09);
+  --dr-ombre-peche: rgba(0, 0, 0, 0.5);
+  --dr-voix-1: #ffd3b4;
+  --dr-voix-2: #ff8e6e;
+  --dr-voix-3: #ee7bb6;
+  --dr-voix-4: #8e7bff;
+  --dr-reflet: #fff3e6;
+  --dr-halo: rgba(255, 130, 110, 0.5);
+  --dr-lilas-1: #dcd3ff;
+  --dr-lilas-2: #8470f2;
+  --dr-menthe-1: #b3f3d4;
+  --dr-menthe-2: #3fb487;
+  --dr-beurre-1: #ffeab0;
+  --dr-beurre-2: #e7aa3a;
+  --dr-rose-1: #ffc8d5;
+  --dr-rose-2: #e86a8e;
+  --dr-brume-1: #5a5285;
+  --dr-brume-2: #3a3363;
+}

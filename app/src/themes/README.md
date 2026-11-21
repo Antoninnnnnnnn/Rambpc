@@ -8,7 +8,11 @@ tests. L'utilisateur choisit le thème et le mode (Système, Clair, Sombre) dans
 - `registry.ts` : liste des thèmes (`THEME_IDS`, `THEMES`, `DEFAULT_THEME`). Données pures, aussi lues
   par la barre flottante. Le manifeste donne le nom, la phrase, les couleurs d'aperçu (`swatches`,
   par position : fond, surface, texte, accent, second accent facultatif) et, si besoin, les lueurs
-  d'ambiance de l'aperçu (`glow`).
+  d'ambiance de l'aperçu (`glow`). Deux thèmes : « Verre et aurore » (`verre-aurore`, par défaut) et
+  « Doux et rond » (`doux-rond`).
+- Un id retiré du registre (« Sable », `sable`, supprimé au jalon 5) peut rester dans les réglages
+  natifs ou le cache : il est refusé par `isThemeId` et l'apparence retombe sur `DEFAULT_THEME`, le
+  mode choisi étant gardé. La valeur native change au prochain choix dans Réglages > Apparence.
 - Le choix est enregistré nativement dans `Settings.appearance` (`{ theme, colorScheme }`) ; la barre
   flottante le reçoit dans `UiState.appearance`. Une copie en localStorage (`sambler.appearance.v1`)
   sert au premier affichage (`main.tsx` l'applique avant le rendu) et de repli si le natif est ancien.
@@ -23,17 +27,23 @@ tests. L'utilisateur choisit le thème et le mode (Système, Clair, Sombre) dans
   `:root[data-theme="<id>"][data-scheme="dark"]` (sombre).
 - `index.css` importe toutes les CSS de thème (fenêtre principale). Seules les règles du thème actif
   s'appliquent, et une police n'est téléchargée que si une règle active l'utilise.
+- `<id>/preview.css` (facultatif) : la carte du thème dans Réglages > Apparence, visible quel que soit
+  le thème actif. Ses règles visent `.theme-preview[data-preview="<id>"]` et n'utilisent que les
+  couleurs du manifeste (`--preview-*`).
 - `slots.tsx` : emplacements React facultatifs, par id de thème (voir plus bas).
 - Les composants n'utilisent que des jetons sémantiques (`var(--…)`), jamais une couleur en dur.
 - Les jetons indépendants du thème (échelle typographique `--text-xs…3xl`, espacements `--space-*`,
   rayons `--radius-*`, tailles `--control-h*`, `--titlebar-h`, `--sidebar-w`, `--content-w`, durées
   `--dur*`, `--ease`) sont dans `styles/tokens.css`. Un thème peut en surcharger certains (Verre et
-  aurore change les rayons, la largeur du rail et celle du contenu).
+  aurore change les rayons, la largeur du rail et celle du contenu ; Doux et rond aussi, avec la
+  hauteur des contrôles).
 
 ## Les jetons d'un thème
 
 Chaque thème définit toute la liste ci-dessous, en clair et (pour ceux qui changent) en sombre.
-`sable/theme.css` est la référence la plus simple ; `verre-aurore/theme.css` la plus complète.
+`verre-aurore/theme.css` est la référence : `contract.test.ts` vérifie que chaque thème définit tous
+ses jetons, hormis ses variables privées `--va-*`. `doux-rond/theme.css` montre un thème sans verre ni
+décor de fond.
 
 ### Typographie
 
@@ -102,7 +112,7 @@ plus lumineux.
 | `--aurora-curtain-a`, `--aurora-curtain-b`, `--aurora-curtain-strength` | Rideaux verticaux. |
 | `--aurora-grain` | Opacité du grain. |
 
-Un thème sans décor les pose sur `--canvas` avec une intensité nulle (voir Sable).
+Un thème sans aurore les pose sur ses propres teintes avec une intensité nulle (voir Doux et rond).
 
 ### Contrôles, marque et ombres
 
@@ -117,15 +127,16 @@ Un thème sans décor les pose sur `--canvas` avec une intensité nulle (voir Sa
 | `--shadow-accent` | Ombre du bouton principal. |
 | `--ring` | Halo de focus des champs. |
 
-Les variables privées d'un thème (préfixe court, par exemple `--va-*` pour Verre et aurore) ne font
-pas partie du contrat : seules ses propres CSS les utilisent.
+Les variables privées d'un thème (préfixe court : `--va-*` pour Verre et aurore, `--dr-*` pour Doux
+et rond) ne font pas partie du contrat : seules ses propres CSS les utilisent. Ajouter le préfixe d'un
+nouveau thème à `PRIVATE` dans `contract.test.ts`.
 
 ## Emplacements facultatifs (`slots.tsx`)
 
-| Emplacement | Où | Verre et aurore |
-| --- | --- | --- |
-| `Backdrop` | Derrière toute la fenêtre, barre de titre comprise (`position: fixed; z-index: -1`). | L'aurore animée, qui s'éveille pendant l'écoute (phase) et respire avec le niveau `sambler://level`. |
-| `StatusArt` | Dans la carte d'état de l'Accueil, à côté de l'état. Reçoit `phase`, `ready`, `gesture`, `shortcut`. | La tuile d'aurore vive avec le raccourci en grandes touches. |
+| Emplacement | Où | Verre et aurore | Doux et rond |
+| --- | --- | --- | --- |
+| `Backdrop` | Derrière toute la fenêtre, barre de titre comprise (`position: fixed; z-index: -1`). | L'aurore animée, qui s'éveille pendant l'écoute (phase) et respire avec le niveau `sambler://level`. | Aucun : la coque d'iris reste unie. |
+| `StatusArt` | Dans la carte d'état de l'Accueil, à côté de l'état. Reçoit `phase`, `ready`, `gesture`, `shortcut`. | La tuile d'aurore vive avec le raccourci en grandes touches. | La forme vivante (`Galets.tsx`) : deux galets pêche et lilas qui respirent, gonflent avec le niveau pendant l'écoute, virent au lilas pendant le traitement et à la brume quand la dictée n'est pas disponible. |
 
 Règles : décoratif seulement (`aria-hidden`, rien de focalisable, aucun texte que le contenu
 accessible ne porte déjà ; les libellés d'une tuile sont tirés d'attributs `data-*`), jamais de texte
@@ -138,7 +149,8 @@ dicté, pause quand la fenêtre est cachée (`visibilitychange`), immobile avec
 1. Ajouter l'id dans `THEME_IDS` et son manifeste dans `THEMES` (nom, phrase, `swatches` clair et
    sombre, `glow` si le thème a une lumière d'ambiance).
 2. Créer `<id>/theme.css` qui définit **tous** les jetons ci-dessus (clair puis sombre), sans media
-   query de schéma, et l'importer dans `index.css`. Partir d'une copie de `sable/theme.css`.
+   query de schéma, et l'importer dans `index.css`. Partir d'une copie de `doux-rond/theme.css` (sans
+   verre) ou de `verre-aurore/theme.css`, et renommer les variables privées.
 3. Polices : embarquées localement (CSP `'self'`), via un paquet `@fontsource` ou des fichiers dans le
    dépôt, déclarées dans `<id>/fonts.css` et importées dans `index.css`.
 4. Facultatif : `<id>/components.css` pour ce que les jetons ne suffisent pas à exprimer (formes,
@@ -147,7 +159,12 @@ dicté, pause quand la fenêtre est cachée (`visibilitychange`), immobile avec
    (`--rail-bg-solid`, `--panel-bg-solid`) gagnent.
 5. Facultatif : des emplacements React dans `slots.tsx` (`THEME_SLOTS[<id>]`) et leur CSS.
 6. Facultatif : la peau de la barre flottante, `<id>/overlay.css`, chargée par l'entrée de la barre
-   (`overlay.html`), pas par `index.css`.
-7. Vérifier le contraste AA du texte sur les panneaux dans les deux schémas, la taille minimale de la
-   fenêtre (560 × 480), `forced-colors` et `prefers-reduced-motion`.
-8. `npm run typecheck && npm test && npm run build`.
+   (`overlay.html`, `overlay/main.tsx`), pas par `index.css`, avec ses polices. Propriétés
+   personnalisées seulement (liste en tête de `overlay/overlay.css`, galets compris) ; la capsule et
+   son ombre tiennent dans la fenêtre de 360 × 72.
+7. Facultatif : `<id>/preview.css` pour l'aperçu de Réglages > Apparence.
+8. Vérifier le contraste AA du texte sur les panneaux dans les deux schémas, la taille minimale de la
+   fenêtre (560 × 480), `forced-colors` et `prefers-reduced-motion`. Aucune couleur en dur hors de
+   `theme.css` et de la palette de la peau de barre (`contract.test.ts` le vérifie pour
+   `components.css`, `galets.css` et `preview.css`).
+9. `npm run typecheck && npm test && npm run build`.

@@ -98,7 +98,8 @@ function ThemePicker({
 /**
  * A tiny window in the theme's own colours (from its manifest, whatever the
  * active theme): rail, sheet, a title, two lines and a button, over the
- * theme's ambient glow if it has one. Decorative.
+ * theme's ambient glow if it has one. A theme may reshape its own preview in
+ * `themes/<id>/preview.css`, keyed on `data-preview`. Decorative.
  */
 function ThemePreview({ theme, scheme }: { theme: ThemeManifest; scheme: Scheme }) {
   const colors = theme.swatches[scheme];
@@ -117,7 +118,13 @@ function ThemePreview({ theme, scheme }: { theme: ThemeManifest; scheme: Scheme 
       : undefined,
   } as CSSProperties;
   return (
-    <span className="theme-preview" style={style} data-glass={glow.length ? "" : undefined} aria-hidden="true">
+    <span
+      className="theme-preview"
+      style={style}
+      data-preview={theme.id}
+      data-glass={glow.length ? "" : undefined}
+      aria-hidden="true"
+    >
       <span className="theme-preview__window">
         <span className="theme-preview__rail">
           <i />

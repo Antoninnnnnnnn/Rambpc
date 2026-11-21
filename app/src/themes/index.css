@@ -3,14 +3,19 @@
    font file downloads only when a rule of the active theme uses it.
 
    Per theme: theme.css (all semantic tokens, required), then optionally
-   fonts.css, components.css (scoped component styling) and the CSS of its
-   React slots. The floating bar loads its own skin (<id>/overlay.css) from
-   its own entry, not from here. */
-
-@import "./sable/theme.css";
+   fonts.css, components.css (scoped component styling), the CSS of its
+   React slots and preview.css (its card in Réglages > Apparence, shown
+   whatever the active theme). The floating bar loads its own skin
+   (<id>/overlay.css) from its own entry, not from here. */
 
 @import "./verre-aurore/fonts.css";
 @import "./verre-aurore/theme.css";
 @import "./verre-aurore/components.css";
 @import "./verre-aurore/aurora.css";
 @import "./verre-aurore/screens-activity.css";
+
+@import "./doux-rond/fonts.css";
+@import "./doux-rond/theme.css";
+@import "./doux-rond/components.css";
+@import "./doux-rond/galets.css";
+@import "./doux-rond/preview.css";

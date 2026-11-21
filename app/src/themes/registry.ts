@@ -2,8 +2,12 @@
 // `:root[data-theme="<id>"]` and `[data-scheme="dark"]`, and optionally a few
 // theme-owned pieces (a backdrop, an overlay skin). Pure data: no React, no
 // DOM, so the floating bar can import it too. See README.md in this folder.
+//
+// An id that is no longer here (« sable », removed in milestone 5) may still
+// sit in the native settings or the cache: `isThemeId` rejects it and the
+// appearance falls back to DEFAULT_THEME.
 
-export const THEME_IDS = ["verre-aurore", "sable"] as const;
+export const THEME_IDS = ["verre-aurore", "doux-rond"] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 export const DEFAULT_THEME: ThemeId = "verre-aurore";
@@ -37,13 +41,19 @@ export const THEMES: Record<ThemeId, ThemeManifest> = {
       dark: ["#c4471e", "#d48a26", "#138470", "#93294f"],
     },
   },
-  sable: {
-    id: "sable",
-    label: "Sable",
-    description: "Sobre et clair : tons sable, encre et un seul bleu.",
+  "doux-rond": {
+    id: "doux-rond",
+    label: "Doux et rond",
+    description: "Des galets pêche et lilas qui respirent avec votre voix, sur une feuille de lait.",
+    // Iris (window), lait (sheet), encre, pêche (voice and action), lilas.
     swatches: {
-      light: ["#f4f2ee", "#ffffff", "#18191d", "#2357e0"],
-      dark: ["#0f1013", "#17181c", "#edeef0", "#7da6ff"],
+      light: ["#f1edf8", "#ffffff", "#2a2342", "#ffa584", "#8a76e6"],
+      dark: ["#1a1631", "#231d3e", "#f5f1ff", "#ffad8e", "#a795ff"],
+    },
+    // The soft desktop the pebble window rests on, in the preview only.
+    glow: {
+      light: ["#cfede2", "#dcd0fa", "#dcd0fa", "#ffdccb"],
+      dark: ["#0f3a3c", "#22205a", "#22205a", "#3a1f45"],
     },
   },
 };

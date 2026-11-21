@@ -69,7 +69,7 @@ describe("appearance: source of truth and cache", () => {
   it("paints from the cache, then applies and caches the native choice", async () => {
     cacheAppearance({ theme: "verre-aurore", colorScheme: "light" });
     let resolveSettings: (settings: Settings) => void = () => {};
-    const bridge = createFakeBridge({ settings: { appearance: { theme: "sable", colorScheme: "dark" } } });
+    const bridge = createFakeBridge({ settings: { appearance: { theme: "doux-rond", colorScheme: "dark" } } });
     const native = bridge.settings;
     bridge.handlers.get_settings = () => new Promise<Settings>((resolve) => (resolveSettings = resolve));
     renderApp(bridge);
@@ -78,11 +78,27 @@ describe("appearance: source of truth and cache", () => {
     expect(root.dataset.scheme).toBe("light");
 
     await act(async () => resolveSettings(native));
-    await waitFor(() => expect(root.dataset.theme).toBe("sable"));
+    await waitFor(() => expect(root.dataset.theme).toBe("doux-rond"));
     expect(root.dataset.scheme).toBe("dark");
     expect(root.style.colorScheme).toBe("dark");
-    expect(cached()).toEqual({ theme: "sable", colorScheme: "dark" });
+    expect(cached()).toEqual({ theme: "doux-rond", colorScheme: "dark" });
     expect(savedSettings(bridge)).toHaveLength(0);
+  });
+
+  it("shows the default theme for a Sable still saved natively or in the cache", async () => {
+    cacheAppearance({ theme: "sable" as never, colorScheme: "dark" });
+    const bridge = createFakeBridge({ settings: { appearance: { theme: "sable", colorScheme: "dark" } } });
+    const { user, card } = await openAppearance(bridge);
+    expect(root.dataset.theme).toBe("verre-aurore");
+    expect(root.dataset.scheme).toBe("dark");
+    expect(within(card).getByRole("radio", { name: "Verre et aurore" })).toBeChecked();
+    expect(within(card).queryByRole("radio", { name: "Sable" })).toBeNull();
+    // The cache is healed at once; the native value changes with the next choice.
+    expect(cached()).toEqual({ theme: "verre-aurore", colorScheme: "dark" });
+    expect(savedSettings(bridge)).toHaveLength(0);
+
+    await user.click(within(card).getByRole("radio", { name: "Clair" }));
+    await waitFor(() => expect(lastSaved(bridge)?.appearance).toEqual({ theme: "verre-aurore", colorScheme: "light" }));
   });
 
   it("saves the theme and the mode chosen in Réglages, and updates the cache", async () => {
@@ -91,15 +107,15 @@ describe("appearance: source of truth and cache", () => {
     expect(within(card).getByRole("radio", { name: "Verre et aurore" })).toBeChecked();
     expect(within(card).getByRole("radio", { name: "Système" })).toBeChecked();
 
-    await user.click(within(card).getByRole("radio", { name: "Sable" }));
-    await waitFor(() => expect(lastSaved(bridge)?.appearance).toEqual({ theme: "sable", colorScheme: "system" }));
-    expect(root.dataset.theme).toBe("sable");
-    expect(cached()).toEqual({ theme: "sable", colorScheme: "system" });
+    await user.click(within(card).getByRole("radio", { name: "Doux et rond" }));
+    await waitFor(() => expect(lastSaved(bridge)?.appearance).toEqual({ theme: "doux-rond", colorScheme: "system" }));
+    expect(root.dataset.theme).toBe("doux-rond");
+    expect(cached()).toEqual({ theme: "doux-rond", colorScheme: "system" });
 
     await user.click(within(card).getByRole("radio", { name: "Sombre" }));
-    await waitFor(() => expect(lastSaved(bridge)?.appearance).toEqual({ theme: "sable", colorScheme: "dark" }));
+    await waitFor(() => expect(lastSaved(bridge)?.appearance).toEqual({ theme: "doux-rond", colorScheme: "dark" }));
     expect(root.dataset.scheme).toBe("dark");
-    expect(cached()).toEqual({ theme: "sable", colorScheme: "dark" });
+    expect(cached()).toEqual({ theme: "doux-rond", colorScheme: "dark" });
     // The rest of the settings is saved unchanged.
     expect(lastSaved(bridge)).toMatchObject({ language: "french", shortcut: "Ctrl+Shift+F2" });
   });
@@ -110,7 +126,7 @@ describe("appearance: source of truth and cache", () => {
     bridge.handlers.save_settings = () => {
       throw { code: "invalid-settings", message: "Valeur refusée." };
     };
-    await user.click(within(card).getByRole("radio", { name: "Sable" }));
+    await user.click(within(card).getByRole("radio", { name: "Doux et rond" }));
     expect(await within(card).findByText("Ce réglage n’a pas pu être enregistré. Valeur refusée.")).toBeInTheDocument();
     expect(within(card).getByRole("radio", { name: "Verre et aurore" })).toBeChecked();
     expect(root.dataset.theme).toBe("verre-aurore");
@@ -120,20 +136,20 @@ describe("appearance: source of truth and cache", () => {
   it("keeps the choice on this PC when the native side predates themes", async () => {
     const bridge = createFakeBridge({ settings: { appearance: undefined } });
     const { user, card } = await openAppearance(bridge);
-    await user.click(within(card).getByRole("radio", { name: "Sable" }));
+    await user.click(within(card).getByRole("radio", { name: "Doux et rond" }));
     await user.click(within(card).getByRole("radio", { name: "Clair" }));
-    expect(root.dataset.theme).toBe("sable");
+    expect(root.dataset.theme).toBe("doux-rond");
     expect(root.dataset.scheme).toBe("light");
-    expect(cached()).toEqual({ theme: "sable", colorScheme: "light" });
+    expect(cached()).toEqual({ theme: "doux-rond", colorScheme: "light" });
     // Nothing the older native side would not understand is sent.
     expect(savedSettings(bridge)).toHaveLength(0);
 
-    // Next start: still Sable, from the cache.
+    // Next start: still Doux et rond, from the cache.
     cleanup();
     delete root.dataset.theme;
     renderApp(createFakeBridge({ settings: { appearance: undefined } }));
     await appReady();
-    await waitFor(() => expect(root.dataset.theme).toBe("sable"));
+    await waitFor(() => expect(root.dataset.theme).toBe("doux-rond"));
     expect(root.dataset.scheme).toBe("light");
   });
 
@@ -164,13 +180,14 @@ describe("Réglages > Apparence", () => {
 
     const themes = within(card).getByRole("group", { name: "Thème" });
     const options = within(themes).getAllByRole("radio");
-    expect(options.map((option) => option.getAttribute("value"))).toEqual(["verre-aurore", "sable"]);
+    expect(options.map((option) => option.getAttribute("value"))).toEqual(["verre-aurore", "doux-rond"]);
     expect(within(themes).getByRole("radio", { name: "Verre et aurore" })).toHaveAccessibleDescription(
       "Du verre dépoli sur une aube lente, qui s’éclaire quand vous parlez.",
     );
-    expect(within(themes).getByRole("radio", { name: "Sable" })).toHaveAccessibleDescription(
-      /^Sobre et clair\s: tons sable, encre et un seul bleu\.$/,
+    expect(within(themes).getByRole("radio", { name: "Doux et rond" })).toHaveAccessibleDescription(
+      "Des galets pêche et lilas qui respirent avec votre voix, sur une feuille de lait.",
     );
+    expect(within(themes).queryByRole("radio", { name: "Sable" })).toBeNull();
 
     const modes = within(card).getByRole("group", { name: "Mode" });
     expect(within(modes).getAllByRole("radio").map((radio) => radio.getAttribute("value"))).toEqual([
@@ -178,10 +195,23 @@ describe("Réglages > Apparence", () => {
       "light",
       "dark",
     ]);
-    // The previews are decorative.
-    for (const preview of card.querySelectorAll(".theme-preview")) {
-      expect(preview).toHaveAttribute("aria-hidden", "true");
-    }
+    // The previews are decorative, each keyed on its theme for its own look.
+    const previews = [...card.querySelectorAll<HTMLElement>(".theme-preview")];
+    expect(previews.map((preview) => preview.dataset.preview)).toEqual(["verre-aurore", "doux-rond"]);
+    for (const preview of previews) expect(preview).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("previews Doux et rond in its own colours, whatever the active theme and mode", async () => {
+    const { user, card } = await openAppearance(createFakeBridge());
+    const preview = () => card.querySelector<HTMLElement>('.theme-preview[data-preview="doux-rond"]')!;
+    expect(preview().style.getPropertyValue("--preview-bg")).toBe("#f1edf8");
+    expect(preview().style.getPropertyValue("--preview-accent")).toBe("#ffa584");
+    await user.click(within(card).getByRole("radio", { name: "Sombre" }));
+    await waitFor(() => expect(preview().style.getPropertyValue("--preview-bg")).toBe("#1a1631"));
+    expect(preview().style.getPropertyValue("--preview-surface")).toBe("#231d3e");
+    await user.click(within(card).getByRole("radio", { name: "Doux et rond" }));
+    await waitFor(() => expect(root.dataset.theme).toBe("doux-rond"));
+    expect(preview().style.getPropertyValue("--preview-text")).toBe("#f5f1ff");
   });
 
   it("has no detectable accessibility violations", async () => {
@@ -203,11 +233,16 @@ describe("theme slots", () => {
     expect(art?.querySelectorAll("[data-key]")).toHaveLength(3);
 
     cleanup();
-    renderApp(createFakeBridge({ settings: { appearance: { theme: "sable", colorScheme: "light" } } }));
+    renderApp(createFakeBridge({ settings: { appearance: { theme: "doux-rond", colorScheme: "light" } } }));
     await appReady();
-    await waitFor(() => expect(root.dataset.theme).toBe("sable"));
+    await waitFor(() => expect(root.dataset.theme).toBe("doux-rond"));
     expect(document.querySelector(".aurora")).toBeNull();
     expect(document.querySelector(".status-art")).toBeNull();
+    // Doux et rond draws its living shape instead, and no backdrop.
+    const galets = screen.getByTestId("status-card").querySelector(".doux-galets");
+    expect(galets).toHaveAttribute("aria-hidden", "true");
+    expect(galets?.textContent).toBe("");
+    expect(galets?.querySelector("[tabindex], a, button, input")).toBeNull();
   });
 
   it("breathes with the voice level through the one shared listener", async () => {
@@ -252,5 +287,92 @@ describe("theme slots", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
     expect(backdrop).not.toHaveAttribute("data-paused");
+  });
+});
+
+describe("Doux et rond: the living shape", () => {
+  const doux = { appearance: { theme: "doux-rond", colorScheme: "light" as const } };
+  const galets = () => screen.getByTestId("status-card").querySelector<HTMLElement>(".doux-galets")!;
+
+  it("rests in pêche when ready, dozes in brume when dictation is not available", async () => {
+    renderApp(createFakeBridge({ settings: doux }));
+    await appReady();
+    await waitFor(() => expect(galets()).toHaveAttribute("data-tint", "voix"));
+    expect(galets().dataset.mode).toBe("repos");
+    // Two pebbles and a sheen, drawn as closed curves.
+    for (const path of galets().querySelectorAll("path")) expect(path.getAttribute("d")).toMatch(/^M.+Z$/);
+
+    cleanup();
+    renderApp(createFakeBridge({ settings: doux, state: { availability: { kind: "unavailable", reason: "network" } } }));
+    await appReady();
+    await waitFor(() => expect(galets()).toHaveAttribute("data-tint", "brume"));
+    expect(galets().dataset.mode).toBe("dort");
+  });
+
+  it("turns lilas while processing", async () => {
+    renderApp(createFakeBridge({ settings: doux, state: { phase: { kind: "finalizing" }, take: 3 } }));
+    await appReady();
+    await waitFor(() => expect(galets()).toHaveAttribute("data-tint", "lilas"));
+    expect(galets().dataset.mode).toBe("pense");
+  });
+
+  it("swells with the voice level through the one shared listener, while listening only", async () => {
+    const bridge = createFakeBridge({
+      settings: doux,
+      state: { phase: { kind: "listening" }, take: 3, listeningMs: 0 },
+    });
+    renderApp(bridge);
+    await appReady();
+    await waitFor(() => expect(galets().dataset.mode).toBe("ecoute"));
+    await waitFor(() => expect(bridge.listenerCount(EVENT_LEVEL)).toBe(1));
+    act(() => bridge.emit(EVENT_LEVEL, 0.7));
+    await waitFor(() => expect(Number(galets().style.getPropertyValue("--niveau"))).toBeGreaterThan(0));
+
+    act(() => {
+      bridge.pushState({ phase: { kind: "idle" }, take: null, listeningMs: null });
+    });
+    await waitFor(() => expect(galets().style.getPropertyValue("--niveau")).toBe(""));
+    await waitFor(() => expect(bridge.listenerCount(EVENT_LEVEL)).toBe(0));
+  });
+
+  it("holds one still pose with reduced motion", async () => {
+    mockMedia({ reducedMotion: true });
+    const bridge = createFakeBridge({
+      settings: doux,
+      state: { phase: { kind: "listening" }, take: 3, listeningMs: 0 },
+    });
+    renderApp(bridge);
+    await appReady();
+    await waitFor(() => expect(galets().dataset.mode).toBe("ecoute"));
+    const pose = galets().querySelector("path")!.getAttribute("d");
+    expect(pose).toMatch(/^M/);
+    act(() => bridge.emit(EVENT_LEVEL, 0.9));
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(galets().style.getPropertyValue("--niveau")).toBe("");
+    expect(galets().querySelector("path")!.getAttribute("d")).toBe(pose);
+  });
+
+  it("pauses while the window is hidden", async () => {
+    renderApp(createFakeBridge({ settings: doux }));
+    await appReady();
+    await waitFor(() => expect(galets()).not.toHaveAttribute("data-paused"));
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(galets()).toHaveAttribute("data-paused");
+    visibility.mockReturnValue("visible");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(galets()).not.toHaveAttribute("data-paused");
+    visibility.mockRestore();
+  });
+
+  it("keeps the Accueil free of accessibility violations", async () => {
+    renderApp(createFakeBridge({ settings: doux }));
+    await appReady();
+    await waitFor(() => expect(root.dataset.theme).toBe("doux-rond"));
+    expect(await axeViolations(screen.getByTestId("status-card"))).toEqual([]);
   });
 });
