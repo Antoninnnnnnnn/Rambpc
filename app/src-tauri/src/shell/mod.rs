@@ -11,6 +11,8 @@ mod indicator;
 mod mic_test;
 mod overlay;
 mod relay;
+#[path = "../transcribe/mod.rs"]
+mod transcribe;
 mod tray;
 mod webview2;
 
@@ -49,6 +51,7 @@ pub struct AppState {
     pub access: Mutex<AccessState>,
     pub microphone: Arc<dyn Microphone>,
     mic_test: Arc<mic_test::MicTest>,
+    transcriptions: Arc<transcribe::Transcriptions>,
     #[cfg(windows)]
     wasapi: Arc<crate::platform::windows::WasapiMicrophone>,
     /// Keeps the lock/suspend subscription alive.
@@ -114,6 +117,10 @@ pub fn run() {
             commands::get_history_status,
             commands::skip_history_next_take,
             commands::set_launch_at_startup,
+            commands::pick_audio_file,
+            commands::transcribe_file,
+            commands::cancel_transcription,
+            commands::list_transcriptions,
         ])
         .setup(move |app| {
             setup(app, root.clone())?;
@@ -136,7 +143,11 @@ pub fn run() {
                         // and storage finish their blocking work.
                         tauri::async_runtime::spawn(async move {
                             let state = app.state::<AppState>();
-                            tokio::join!(state.controller.shutdown(), state.mic_test.drain());
+                            tokio::join!(
+                                state.controller.shutdown(),
+                                state.mic_test.drain(),
+                                state.transcriptions.shutdown(),
+                            );
                             #[cfg(windows)]
                             {
                                 let wasapi = state.wasapi.clone();
@@ -260,6 +271,10 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         }))
     };
 
+    // Integration: replace this temporary sink with the Carnet store's note creation.
+    let transcriptions = Arc::new(transcribe::Transcriptions::new(Arc::new(|_, _| {
+        Err("Carnet non raccordé".into())
+    })));
     app.manage(AppState {
         controller: controller.clone(),
         store,
@@ -277,6 +292,7 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
         #[cfg(windows)]
         wasapi: platform.wasapi.clone(),
         mic_test: mic_test.clone(),
+        transcriptions: transcriptions.clone(),
         _system_events: Mutex::new(Some(system_events)),
     });
 
@@ -297,11 +313,26 @@ fn setup(app: &mut tauri::App, root: DataRoot) -> Result<(), Box<dyn std::error:
     {
         let window_for_close = window.clone();
         window.on_window_event(move |event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                // Closing the window keeps Sambler available in the tray.
-                api.prevent_close();
-                mic_test.stop();
-                let _ = window_for_close.hide();
+            match event {
+                WindowEvent::CloseRequested { api, .. } => {
+                    // Closing the window keeps Sambler available in the tray.
+                    api.prevent_close();
+                    mic_test.stop();
+                    let _ = window_for_close.hide();
+                }
+                WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) => {
+                    use tauri::Emitter;
+                    for path in paths {
+                        if let Some(path) = transcriptions.allow(path) {
+                            let _ = window_for_close.emit_to(
+                                MAIN_WINDOW,
+                                crate::ipc::EVENT_FILE_DROPPED,
+                                path,
+                            );
+                        }
+                    }
+                }
+                _ => (),
             }
         });
     }
