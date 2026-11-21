@@ -1,0 +1,519 @@
+/* Verre et aurore: the Carnet (notes, dictation into a note, audio file
+   transcription) and the window-wide drop banner. Plates on the glass sheet
+   (no blur inside the sheet), braise for the actions, and the aurora only
+   where the voice lives: around the open note while Sambler listens to it,
+   and in the progress of a transcription.
+
+   Every rule is scoped to the theme and uses tokens only (theme.css), so
+   another theme can restyle the same structure (components/carnet/*.css). */
+
+@property --carnet-turn {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* ================================================================ header */
+
+:root[data-theme="verre-aurore"] .carnet {
+  row-gap: 1.25rem;
+}
+
+:root[data-theme="verre-aurore"] .carnet__header {
+  row-gap: 0.5rem;
+}
+
+/* ================================================================ list */
+
+:root[data-theme="verre-aurore"] .note-list {
+  gap: 0.625rem;
+}
+
+:root[data-theme="verre-aurore"] .note-list__head {
+  padding: 0.25rem 0.75rem 0;
+}
+
+:root[data-theme="verre-aurore"] .note-list__title {
+  font-size: 1.0625rem;
+  font-weight: 640;
+  font-stretch: 110%;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="verre-aurore"] .note-list__count {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+:root[data-theme="verre-aurore"] .note-list__search-input {
+  min-height: 2.375rem;
+  border-color: var(--va-plate-border);
+  border-radius: var(--radius-md);
+  box-shadow:
+    inset 0 1px 2px var(--va-shadow-soft),
+    0 0 0 0.5px var(--va-contour);
+}
+
+:root[data-theme="verre-aurore"] .note-list__search-input:focus-visible {
+  border-color: var(--focus);
+  box-shadow: var(--ring);
+}
+
+:root[data-theme="verre-aurore"] .note-list__items {
+  gap: 0;
+}
+
+/* Rows like the Récents: open on the sheet, a hairline between them, the
+   open note on a frosted plate like the current page of the rail. */
+:root[data-theme="verre-aurore"] .note-row {
+  position: relative;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-radius: var(--radius-md);
+}
+
+:root[data-theme="verre-aurore"] li + li > .note-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0.75rem;
+  right: 0.75rem;
+  height: 1px;
+  background: var(--border);
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="verre-aurore"] .note-row:is(:hover, [aria-current="true"])::before,
+:root[data-theme="verre-aurore"] li:has(> .note-row:is(:hover, [aria-current="true"])) + li > .note-row::before {
+  opacity: 0;
+}
+
+:root[data-theme="verre-aurore"] .note-row:hover {
+  background: var(--surface-hover);
+  box-shadow: 0 0 0 0.5px var(--va-contour);
+}
+
+:root[data-theme="verre-aurore"] .note-row[aria-current="true"] {
+  background: var(--va-segment-on);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 1px 3px var(--va-shadow-soft),
+    0 0 0 1px var(--va-contour);
+}
+
+/* A braise mark on the open note (its weight already says it). */
+:root[data-theme="verre-aurore"] .note-row[aria-current="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  left: 0.25rem;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
+
+:root[data-theme="verre-aurore"] .note-row__title {
+  font-size: 0.9375rem;
+}
+
+:root[data-theme="verre-aurore"] .note-row__meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="verre-aurore"] .note-row__kind {
+  color: var(--accent-ink);
+}
+
+/* ================================================================ editor */
+
+:root[data-theme="verre-aurore"] .note-editor {
+  padding: 0.75rem 1.375rem 0.75rem;
+  border-color: var(--va-plate-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--va-contour),
+    0 6px 20px -14px var(--va-shadow);
+}
+
+:root[data-theme="verre-aurore"] .note-editor:has(.note-editor__field:focus-visible) {
+  border-color: color-mix(in srgb, var(--focus) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 3px var(--accent-soft),
+    0 10px 28px -16px var(--va-shadow);
+}
+
+:root[data-theme="verre-aurore"] .note-editor__bar {
+  min-height: 2.5rem;
+}
+
+:root[data-theme="verre-aurore"] .note-editor__dictate-btn {
+  min-height: 2.125rem;
+  padding-inline: 0.75rem 0.875rem;
+  font-size: var(--text-sm);
+  border-radius: 0.6875rem;
+}
+
+:root[data-theme="verre-aurore"] .note-editor__tools .btn {
+  color: var(--text-2);
+  border-radius: 0.5625rem;
+}
+
+:root[data-theme="verre-aurore"] .note-editor__tools .btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+:root[data-theme="verre-aurore"] .note-editor__tools .note-editor__delete:hover {
+  color: var(--error);
+  background: var(--error-soft);
+}
+
+:root[data-theme="verre-aurore"] .note-save {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="verre-aurore"] .note-editor__field {
+  font-size: 1rem;
+  line-height: 1.7;
+  letter-spacing: 0.002em;
+  border-top-color: var(--border);
+}
+
+:root[data-theme="verre-aurore"] .note-editor__foot {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="verre-aurore"] .note-editor__hint {
+  font-family: var(--font-text);
+  font-size: var(--text-xs);
+  letter-spacing: 0;
+}
+
+:root[data-theme="verre-aurore"] .note-notice {
+  border-color: color-mix(in srgb, var(--tone) 28%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+/* ---------------------------------------------------------------- the aurora, while listening */
+
+/* A thin ring of live aurora turns slowly around the plate, and a halo of
+   the same colours breathes with the voice (--voix, written by the editor). */
+:root[data-theme="verre-aurore"] .note-editor[data-voice] {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 4px var(--state-listening-soft),
+    calc(-16px - var(--voix, 0) * 8px) -8px calc(36px + var(--voix, 0) * 26px) -14px var(--aurora-live-1),
+    calc(16px + var(--voix, 0) * 8px) -10px calc(36px + var(--voix, 0) * 26px) -14px var(--aurora-live-3),
+    0 calc(16px + var(--voix, 0) * 10px) calc(40px + var(--voix, 0) * 30px) -16px var(--aurora-live-2),
+    0 -14px calc(34px + var(--voix, 0) * 24px) -18px var(--aurora-live-4);
+  transition: box-shadow 0.12s linear;
+}
+
+:root[data-theme="verre-aurore"] .note-editor[data-voice]:is([data-voice="preparing"], [data-voice="finalizing"]) {
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 4px var(--state-working-soft),
+    0 14px 36px -18px var(--aurora-live-2);
+}
+
+:root[data-theme="verre-aurore"] .note-editor__aura {
+  inset: -1.5px;
+  padding: 1.5px;
+  box-shadow: none !important;
+  background: conic-gradient(
+    from var(--carnet-turn),
+    var(--aurora-live-1),
+    var(--aurora-live-2),
+    var(--aurora-live-3),
+    var(--aurora-live-4),
+    var(--aurora-live-1)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+:root[data-theme="verre-aurore"] .note-editor[data-voice] .note-editor__aura {
+  animation: carnet-aurora-turn 14s steps(140) infinite;
+}
+
+/* The wash: veils of live aurora rise from the top of the plate. */
+:root[data-theme="verre-aurore"] .note-editor::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    radial-gradient(60% 120% at 12% -30%, var(--aurora-live-1), transparent 70%),
+    radial-gradient(50% 110% at 52% -40%, var(--aurora-live-2), transparent 70%),
+    radial-gradient(55% 120% at 92% -35%, var(--aurora-live-3), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease);
+}
+
+:root[data-theme="verre-aurore"] .note-editor[data-voice]::before {
+  opacity: calc(0.2 + var(--voix, 0) * 0.22);
+  transition: opacity 0.12s linear;
+}
+
+:root[data-theme="verre-aurore"][data-scheme="dark"] .note-editor[data-voice]::before {
+  opacity: calc(0.16 + var(--voix, 0) * 0.2);
+}
+
+:root[data-theme="verre-aurore"] .note-editor[data-voice="finalizing"]::before,
+:root[data-theme="verre-aurore"] .note-editor[data-voice="preparing"]::before {
+  opacity: 0.12;
+}
+
+/* ---------------------------------------------------------------- dictation strip */
+
+:root[data-theme="verre-aurore"] .note-dictation {
+  padding: 0.625rem 0.75rem;
+  background: var(--glass-strong);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--va-contour),
+    0 10px 24px -16px var(--va-shadow);
+}
+
+:root[data-theme="verre-aurore"] .note-dictation--quiet {
+  background: var(--surface-2);
+  box-shadow: none;
+}
+
+:root[data-theme="verre-aurore"] .note-dictation__badge {
+  color: var(--va-on-vivid);
+  background: linear-gradient(135deg, var(--aurora-live-1), var(--aurora-live-2));
+  border: 0;
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 4px var(--state-listening-soft);
+}
+
+:root[data-theme="verre-aurore"] .note-dictation:is([data-phase="preparing"], [data-phase="finalizing"]) .note-dictation__badge {
+  color: var(--va-on-vivid);
+  background: linear-gradient(135deg, var(--aurora-live-2), var(--aurora-live-3));
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 4px var(--state-working-soft);
+}
+
+:root[data-theme="verre-aurore"] .note-dictation__label {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 640;
+  font-stretch: 106%;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="verre-aurore"] .note-dictation__wave .wave {
+  --wave-h: 1.75rem;
+  --wave-bar: 0.1875rem;
+  --wave-gap: 0.1875rem;
+  opacity: 0.85;
+}
+
+:root[data-theme="verre-aurore"] .note-dictation__dots span:nth-child(1) {
+  background: var(--state-listening);
+}
+
+:root[data-theme="verre-aurore"] .note-dictation__dots span:nth-child(2) {
+  background: var(--state-working);
+}
+
+:root[data-theme="verre-aurore"] .note-dictation__dots span:nth-child(3) {
+  background: var(--state-ready);
+}
+
+/* ================================================================ empty editor */
+
+:root[data-theme="verre-aurore"] .carnet__empty-editor {
+  border: 1px dashed var(--border-strong);
+}
+
+:root[data-theme="verre-aurore"] .carnet__empty-icon,
+:root[data-theme="verre-aurore"] .dropzone__icon {
+  color: var(--text-2);
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--va-contour);
+}
+
+:root[data-theme="verre-aurore"] .carnet__empty-title {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 640;
+  font-stretch: 108%;
+  letter-spacing: -0.01em;
+}
+
+/* ================================================================ transcription */
+
+:root[data-theme="verre-aurore"] .dropzone {
+  padding: 0.75rem 0.875rem 0.75rem 0.875rem;
+  border-color: var(--border-strong);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+:root[data-theme="verre-aurore"] .dropzone:hover {
+  background: var(--surface-hover);
+}
+
+:root[data-theme="verre-aurore"] .dropzone__title {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 640;
+  font-stretch: 106%;
+}
+
+:root[data-theme="verre-aurore"] .job {
+  border-color: var(--va-plate-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--va-contour),
+    0 6px 20px -14px var(--va-shadow);
+}
+
+:root[data-theme="verre-aurore"] .job__icon {
+  border-radius: 0.6875rem;
+}
+
+/* A transcription in progress: the voice of a file, so the aurora lights its
+   tile and its progress. */
+:root[data-theme="verre-aurore"] .job--running .job__icon {
+  color: var(--va-on-vivid);
+  background: linear-gradient(135deg, var(--aurora-live-1), var(--aurora-live-2) 55%, var(--aurora-live-3));
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+:root[data-theme="verre-aurore"] .job__title {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 640;
+  font-stretch: 106%;
+}
+
+:root[data-theme="verre-aurore"] .job__track {
+  height: 0.4375rem;
+  background: var(--surface-2);
+  box-shadow: inset 0 1px 2px var(--va-shadow-soft);
+}
+
+:root[data-theme="verre-aurore"] .job__fill {
+  background:
+    linear-gradient(90deg, transparent 0 40%, var(--glass-edge) 50%, transparent 60% 100%) 0 0 / 200% 100%,
+    linear-gradient(90deg, var(--aurora-live-3), var(--aurora-live-2) 55%, var(--aurora-live-1));
+  animation: carnet-shimmer 2.4s steps(48) infinite;
+}
+
+:root[data-theme="verre-aurore"] .job__stats,
+:root[data-theme="verre-aurore"] .job__file {
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme="verre-aurore"] .job__stats {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+/* ================================================================ drop banner */
+
+:root[data-theme="verre-aurore"] .drop-offer {
+  right: 1.25rem;
+  bottom: 1.25rem;
+  padding: 0.875rem 1rem 0.875rem 0.875rem;
+  background: var(--glass-strong);
+  border: 0;
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 1px var(--border-strong),
+    0 22px 48px -18px var(--va-shadow);
+  animation: va-toast-in 0.22s ease-out;
+}
+
+:root[data-theme="verre-aurore"] .drop-offer__icon {
+  color: var(--va-on-vivid);
+  background: linear-gradient(135deg, var(--aurora-live-1), var(--aurora-live-2) 55%, var(--aurora-live-3));
+  border-radius: 0.75rem;
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 6px 14px -8px var(--va-shadow);
+}
+
+:root[data-theme="verre-aurore"] .drop-offer--ended .drop-offer__icon {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+:root[data-theme="verre-aurore"] .drop-offer__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 640;
+  font-stretch: 106%;
+  letter-spacing: -0.01em;
+}
+
+/* ================================================================ motion, contrast */
+
+@keyframes carnet-aurora-turn {
+  to {
+    --carnet-turn: 360deg;
+  }
+}
+
+@keyframes carnet-shimmer {
+  from {
+    background-position:
+      100% 0,
+      0 0;
+  }
+  to {
+    background-position:
+      -100% 0,
+      0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="verre-aurore"] .note-editor[data-voice] .note-editor__aura,
+  :root[data-theme="verre-aurore"] .job__fill,
+  :root[data-theme="verre-aurore"] .drop-offer {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  :root[data-theme="verre-aurore"] .note-editor::before,
+  :root[data-theme="verre-aurore"] .note-row[aria-current="true"]::after {
+    display: none;
+  }
+
+  :root[data-theme="verre-aurore"] .note-editor__aura {
+    background: none;
+  }
+
+  :root[data-theme="verre-aurore"] .drop-offer {
+    border: 2px solid CanvasText;
+  }
+}

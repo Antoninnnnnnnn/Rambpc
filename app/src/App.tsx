@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnnouncerProvider } from "./a11y/announcer";
 import { StateAnnouncer } from "./a11y/StateAnnouncer";
+import { FileDropOffer } from "./components/carnet/FileDropOffer";
 import { AppMark } from "./components/Icon";
 import { Sidebar } from "./components/Sidebar";
 import { TitleBar } from "./components/TitleBar";
@@ -168,6 +169,7 @@ function MainLayout({ view, target, autoFocus }: MainLayoutProps) {
           )}
         </div>
       </main>
+      <FileDropOffer />
     </div>
   );
 }
