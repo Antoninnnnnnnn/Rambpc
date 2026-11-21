@@ -2,11 +2,13 @@
 // only by *.test.tsx files; the application never references it.
 
 import { vi, type Mock } from "vitest";
+import { sampleActivity } from "../dev/sampleActivity";
 import type { Bridge } from "../ipc/bridge";
 import {
   defaultSettings,
   EVENT_STATE,
   type AccessStatus,
+  type ActivityStats,
   type CommandName,
   type DraftView,
   type EventMap,
@@ -51,6 +53,8 @@ export interface FakeBridge extends Bridge {
   /** Recent results, newest first (what `get_recent_drafts` returns). */
   recents: DraftView[];
   stats: UsageStats;
+  /** What `get_activity` returns (see dev/sampleActivity.ts). */
+  activity: ActivityStats;
   historyStatus(): HistoryStatus;
   listenerCount(event: EventName): number;
   /** What the next `get_draft` returns. */
@@ -69,6 +73,7 @@ export function uiState(patch: Partial<UiState> = {}): UiState {
     gesture: "hold",
     shortcut: "Ctrl+Shift+F2",
     recentCount: 0,
+    appearance: { theme: "verre-aurore", colorScheme: "system" },
     ...patch,
   };
 }
@@ -101,6 +106,7 @@ interface Options {
   /** `available: false` simulates an ephemeral session. */
   historyAvailable?: boolean;
   stats?: UsageStats;
+  activity?: ActivityStats;
 }
 
 export function createFakeBridge(options: Options = {}): FakeBridge {
@@ -117,6 +123,7 @@ export function createFakeBridge(options: Options = {}): FakeBridge {
     history: [...(options.history ?? [])],
     recents: [...(options.recents ?? (draft ? [draft] : []))],
     stats: options.stats ?? STATS,
+    activity: options.activity ?? sampleActivity(),
   } as unknown as FakeBridge;
   // A state that names recent results counts them, unless the test says otherwise.
   if (options.state?.recentCount === undefined) fake.state.recentCount = fake.recents.length;
@@ -140,6 +147,8 @@ export function createFakeBridge(options: Options = {}): FakeBridge {
     get_settings: () => fake.settings,
     save_settings: ({ settings }: { settings: Settings }) => {
       fake.settings = settings;
+      // Like the native side: the floating bar gets the appearance in UiState.
+      if (settings.appearance) fake.state = { ...fake.state, appearance: settings.appearance };
       return settings;
     },
     list_microphones: () => options.mics ?? MICS,
@@ -178,6 +187,7 @@ export function createFakeBridge(options: Options = {}): FakeBridge {
       return afterRecentsChange();
     },
     get_stats: () => fake.stats,
+    get_activity: () => fake.activity,
     open_mic_privacy_settings: () => undefined,
     preview_render: ({ sample }: { sample: string }) => sample,
     get_personal_rules: () => fake.rules,
