@@ -19,7 +19,12 @@
                horizon and rim to the pill), --bar-isolation (auto; `isolate` for the horizon)
      icon      --bar-icon-box (28px), --bar-icon-fg (default --bar-tone), --bar-icon-bg,
                --bar-icon-ring, --bar-icon-ring-wide (breathing while listening),
-               --bar-glyph (18px), --bar-glyph-stroke (2)
+               --bar-icon-gain (scale added at full voice, 0), --bar-glyph (18px),
+               --bar-glyph-stroke (2)
+     pebbles   two shapes behind the glyph, back then body: --bar-pebbles (none; `block`),
+               --bar-pebble-back, --bar-pebble-back-inset, --bar-pebble-back-radius,
+               --bar-pebble-back-motion (an animation), --bar-pebble, --bar-pebble-inset,
+               --bar-pebble-radius, --bar-pebble-motion
      wave      --bar-wave-fill (spread across the whole wave), --bar-wave-bar (3px),
                --bar-wave-gap (3px), --bar-wave-height (24px), --bar-wave-busy-opacity
      horizon   --bar-aurora-display (none), --bar-aurora, --bar-aurora-rest, --bar-aurora-gain
@@ -125,6 +130,8 @@ body {
 }
 
 .bar__icon {
+  position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   flex: none;
@@ -134,6 +141,35 @@ body {
   background: var(--bar-icon-bg, none);
   border-radius: 50%;
   box-shadow: var(--bar-icon-ring, none);
+  /* A theme may let the icon swell with the voice (`--level`, 0..1). */
+  transform: scale(calc(1 + var(--level, 0) * var(--bar-icon-gain, 0)));
+  transition: transform 140ms ease-out;
+}
+
+/* Optional pebbles under the glyph (inside the icon's own stacking context,
+   so they paint over its background and under the glyph): back, then body. */
+.bar__icon::before,
+.bar__icon::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  display: var(--bar-pebbles, none);
+  pointer-events: none;
+  transition: background 220ms ease;
+}
+
+.bar__icon::before {
+  inset: var(--bar-pebble-back-inset, 0);
+  background: var(--bar-pebble-back, none);
+  border-radius: var(--bar-pebble-back-radius, 50%);
+  animation: var(--bar-pebble-back-motion, none);
+}
+
+.bar__icon::after {
+  inset: var(--bar-pebble-inset, 0);
+  background: var(--bar-pebble, none);
+  border-radius: var(--bar-pebble-radius, 50%);
+  animation: var(--bar-pebble-motion, none);
 }
 
 .bar__icon svg {
@@ -343,10 +379,17 @@ body {
   }
 
   .bar[data-kind="listening"] .bar__icon,
+  .bar__icon::before,
+  .bar__icon::after,
   .wave__bar,
   .bar__dots i,
   .bar__pill::after {
     animation: none !important;
+  }
+
+  .bar__icon {
+    transform: none;
+    transition: none;
   }
 
   .bar__dots i {
@@ -378,7 +421,9 @@ body {
   }
 
   .bar__aurora,
-  .bar__pill::after {
+  .bar__pill::after,
+  .bar__icon::before,
+  .bar__icon::after {
     display: none;
   }
 

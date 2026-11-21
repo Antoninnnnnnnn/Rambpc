@@ -13,6 +13,7 @@ import "../themes/doux-rond/fonts.css";
 // Structure and motion, then each theme's skin (tokens keyed on `data-theme`).
 import "./overlay.css";
 import "../themes/verre-aurore/overlay.css";
+import "../themes/doux-rond/overlay.css";
 
 const tauriSource: OverlaySource = {
   onState: (handler) => void listen<UiState>(EVENT_STATE, (event) => handler(event.payload)),

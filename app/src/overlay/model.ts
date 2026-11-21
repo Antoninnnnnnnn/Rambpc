@@ -83,7 +83,8 @@ export function flashFor(outcome: TakeOutcome): Flash {
 
 /**
  * What an outcome means for the dictated text, for themes that colour the bar
- * by meaning rather than by severity (Verre et aurore: jade, saffron, red).
+ * by meaning rather than by severity (Verre et aurore: jade, saffron, red;
+ * Doux et rond: menthe, beurre, rose, brume).
  * Always shown with the flash's icon and words, never by colour alone.
  */
 export type OutcomeMeaning = "inserted" | "kept" | "neutral" | "refused" | "error";
