@@ -567,7 +567,7 @@ pub struct VoiceCommandInfo {
     pub description: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteMeta {
     pub id: String,
@@ -576,6 +576,17 @@ pub struct NoteMeta {
     pub created_at: u64,
     pub updated_at: u64,
     pub words: u64,
+}
+
+impl std::fmt::Debug for NoteMeta {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NoteMeta")
+            .field("id", &self.id)
+            .field("created_at", &self.created_at)
+            .field("updated_at", &self.updated_at)
+            .field("words", &self.words)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize)]

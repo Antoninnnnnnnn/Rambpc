@@ -590,6 +590,127 @@ fn preview_and_render_agree() {
 }
 
 #[test]
+fn spoken_breaks_use_the_joined_take_and_sentence_case() {
+    let rules = TextRules::default();
+    let sample = rambler_audio::join_segment_texts([
+        "bonjour. À LA",
+        "LIGNE, merci, nouveau paragraphe. à bientôt, nouvelle ligne, fin",
+    ]);
+    assert_eq!(render(&sample, &rules), "Bonjour\nMerci\n\nÀ bientôt\nFin");
+    assert_eq!(preview(&sample, &rules), render(&sample, &rules));
+    assert_eq!(render("Nouvelle ligne.", &rules), "\n");
+    assert_eq!(render("à la ligne nouveau paragraphe", &rules), "\n\n\n");
+    assert_eq!(
+        render("bonjour à la ligne, voici", &rules),
+        "Bonjour\nVoici"
+    );
+    assert_eq!(
+        render("bonjour, à\tla ligne, voici", &rules),
+        "Bonjour\nVoici"
+    );
+    assert_eq!(
+        render("oui ! À la ligne, c'est fini.", &rules),
+        format!("Oui{NNBSP}!\nC'est fini.")
+    );
+}
+
+#[test]
+fn spoken_quotes_and_parentheses_follow_french_typography() {
+    let rules = TextRules::default();
+    let sample = "elle dit, ouvrez les GUILLEMETS, oui, fermez les guillemets, puis ouvrez la parenthèse, bas, fermez la parenthèse.";
+    assert_eq!(
+        render(sample, &rules),
+        format!("Elle dit «{NNBSP}oui{NNBSP}» puis (bas)")
+    );
+    let mut raw = rules;
+    raw.options = options(false, false, false);
+    raw.options.voice_commands = true;
+    assert_eq!(render(sample, &raw), "elle dit «oui» puis (bas)");
+    assert_eq!(render("oui, à la ligne, non", &raw), "oui\nnon");
+    assert_eq!(
+        render(
+            "ouvrez la parenthèse ouvrez la parenthèse oui fermez la parenthèse fermez la parenthèse",
+            &raw
+        ),
+        "((oui))"
+    );
+}
+
+#[test]
+fn spoken_layout_needs_natural_enabled_and_french() {
+    let input = "Bonjour, à la ligne, merci.";
+    let mut rules = TextRules::default();
+    rules.options.voice_commands = false;
+    assert_eq!(render(input, &rules), input);
+    rules.options.voice_commands = true;
+    rules.profile = RenderProfile::Faithful;
+    assert_eq!(render(input, &rules), input);
+    rules.profile = RenderProfile::Natural;
+    rules.language = Language::English;
+    assert_eq!(render(input, &rules), input);
+}
+
+#[test]
+fn spoken_layout_preserves_literal_and_ambiguous_content() {
+    let mut rules = TextRules {
+        options: TextOptions {
+            voice_commands: true,
+            ..options(false, false, false)
+        },
+        ..TextRules::default()
+    };
+    for input in [
+        "il est allé à la ligne 3 du tableau",
+        "il est allé, à la ligne 3 du tableau",
+        "le texte continue à la ligne.",
+        "ce nouveau paragraphe est court",
+        "j'ai créé une nouvelle ligne ce matin",
+        "à la ligne 7 du tableau",
+        "n'ouvrez les guillemets que si nécessaire",
+        "préouvrez les guillemets",
+        "ouvrez les guillemetsanglais",
+        "à la ligne_suffixe",
+        "`ouvrez les guillemets`",
+        "```\nÀ la ligne, voici\n```",
+        r#""C:\\mon dossier\\ouvrez la parenthèse""#,
+        "https://example.test/ouvrez les guillemets",
+        "example.test/fermez la parenthèse",
+        "https://example.test/?x=à la ligne, merci",
+        "voir Mme Dupont et M. à la ligne suivante",
+    ] {
+        assert_eq!(render(input, &rules), input, "{input}");
+    }
+    rules.expressions = vec![
+        expression("insère ma formule", "à la ligne, ouvrez les guillemets"),
+        expression("nouvelle ligne", "expression prioritaire"),
+    ];
+    rules.lexicon = vec![
+        entry("allé", "parti"),
+        entry("citation", "ouvrez la parenthèse"),
+    ];
+    assert_eq!(
+        render("insère ma formule, nouvelle ligne, citation", &rules),
+        "à la ligne, ouvrez les guillemets, expression prioritaire, ouvrez la parenthèse"
+    );
+    assert_eq!(
+        render("Il est allé à la ligne suivante", &rules),
+        "Il est parti à la ligne suivante"
+    );
+}
+
+#[test]
+fn voice_command_help_matches_the_renderer() {
+    let rules = TextRules::default();
+    let entries = voice_commands();
+    assert_eq!(entries.len(), 7);
+    for entry in entries {
+        let expected = entry.result.replace('↵', "\n");
+        assert_eq!(render(&entry.spoken, &rules), expected, "{}", entry.spoken);
+        assert!(!entry.description.is_empty());
+    }
+}
+
+#[test]
 fn clean_prose_is_idempotent_with_all_switch_combinations() {
     for language in [Language::French, Language::English] {
         for mask in 0..8 {

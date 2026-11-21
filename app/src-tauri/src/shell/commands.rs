@@ -452,6 +452,57 @@ fn save_personal_rules_inner(
     })
 }
 
+#[tauri::command]
+pub fn get_voice_commands() -> Vec<crate::ipc::VoiceCommandInfo> {
+    crate::text::voice_commands()
+}
+
+fn notes_error(error: storage::notes::NotesError) -> CommandError {
+    use storage::notes::NotesError;
+    let (code, message) = match error {
+        NotesError::Unreadable => (
+            "notes-unreadable",
+            "Le Carnet est illisible sous ce compte Windows. Le fichier existant n’a pas été modifié.",
+        ),
+        NotesError::SaveFailed => (
+            "notes-save-failed",
+            "Le Carnet n’a pas pu être enregistré de façon protégée.",
+        ),
+        NotesError::NotFound => ("note-not-found", "Cette note est introuvable."),
+        NotesError::TooLong => ("note-too-long", "Une note ne peut pas dépasser 200 000 caractères."),
+        NotesError::Full => ("notes-full", "Le Carnet est limité à 1 000 notes."),
+        NotesError::Unavailable => ("notes-unavailable", "Le Carnet est indisponible pour cette session."),
+    };
+    CommandError::new(code, message)
+}
+
+#[tauri::command]
+pub async fn list_notes(state: State<'_, AppState>) -> CmdResult<Vec<crate::ipc::NoteMeta>> {
+    let notes = state.notes.clone();
+    blocking(move || notes.list().map_err(notes_error)).await?
+}
+
+#[tauri::command]
+pub async fn get_note(state: State<'_, AppState>, id: String) -> CmdResult<crate::ipc::Note> {
+    let notes = state.notes.clone();
+    blocking(move || notes.get(&id).map_err(notes_error)).await?
+}
+
+#[tauri::command]
+pub async fn save_note(
+    state: State<'_, AppState>,
+    note: crate::ipc::NoteInput,
+) -> CmdResult<crate::ipc::NoteMeta> {
+    let notes = state.notes.clone();
+    blocking(move || notes.save(note).map_err(notes_error)).await?
+}
+
+#[tauri::command]
+pub async fn delete_note(state: State<'_, AppState>, id: String) -> CmdResult<()> {
+    let notes = state.notes.clone();
+    blocking(move || notes.delete(&id).map_err(notes_error)).await?
+}
+
 fn history_error(error: HistoryError) -> CommandError {
     match error {
         HistoryError::Unavailable => CommandError::new(
